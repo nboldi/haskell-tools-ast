@@ -5,7 +5,7 @@ import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Base
 
 -- | Haskell literals
-data Literal a
+data Literal wt a
   = CharLit       { charLitValue :: Char } -- ^ character literal: @'c'@
   | StringLit     { stringLitValue :: String }
   | IntLit        { intLitValue :: Integer }
@@ -17,10 +17,10 @@ data Literal a
   | PrimStringLit { stringLitValue :: String }
                
 -- | Literals promoted to kinds
-data Promoted a
+data Promoted wt a
   = PromotedInt    { promotedIntValue :: Integer }
   | PromotedString { promotedStringValue :: String }
-  | PromotedCon    { promotedConName :: Name a }
-  | PromotedList   { promotedElements :: AnnList Promoted a }
-  | PromotedTuple  { promotedElements :: AnnList Promoted a }
+  | PromotedCon    { promotedConName :: Name wt a }
+  | PromotedList   { promotedElements :: ListType Promoted wt a }
+  | PromotedTuple  { promotedElements :: ListType Promoted wt a }
   | PromotedUnit

@@ -1,550 +1,553 @@
+
 module Language.Haskell.Tools.AST.Decl where
 
 import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Base
 import Language.Haskell.Tools.AST.Literals
 
-data Decl a
-  = TypeDecl { declHead :: Ann DeclHead a
-             , declType :: Ann Type a
+
+data Decl wt a
+  = TypeDecl { declHead :: IdType DeclHead wt a
+             , declType :: IdType Type wt a
              } -- ^ A type synonym ( @type String = [Char]@ )
-  | TypeFamilyDecl { declHead :: Ann DeclHead a
-                   , declKind :: AnnMaybe KindConstraint a
+  | TypeFamilyDecl { declHead :: IdType    DeclHead wt a
+                   , declKind :: MaybeType KindConstraint wt a
                    } -- ^ A type family declaration
-  | ClosedTypeFamilyDecl { declHead :: Ann DeclHead a
-                         , declKind :: AnnMaybe KindConstraint a
-                         , declDecl :: AnnList TypeEqn a -- ^ cannot be empty
+  | ClosedTypeFamilyDecl { declHead :: IdType    DeclHead wt a
+                         , declKind :: MaybeType KindConstraint wt a
+                         , declDecl :: ListType  TypeEqn wt a -- ^ cannot be empty
                          } -- ^ A closed type family declaration
-  | DataDecl { declNewtype :: Ann DataOrNewtypeKeyword a
-             , declCtx  :: AnnMaybe Context a
-             , declHead :: Ann DeclHead a
-             , declCons :: AnnList ConDecl a
-             , declDeriving :: AnnMaybe Deriving a
+  | DataDecl { declNewtype   :: IdType    DataOrNewtypeKeyword wt a
+             , declCtx       :: MaybeType Context wt a
+             , declHead      :: IdType    DeclHead wt a
+             , declCons      :: ListType  ConDecl wt a
+             , declDeriving  :: MaybeType Deriving wt a
              } -- ^ A data or newtype declaration.
-  | GDataDecl { declNewtype :: Ann DataOrNewtypeKeyword a
-              , declCtx  :: AnnMaybe Context a
-              , declHead :: Ann DeclHead a
-              , declKind :: AnnMaybe KindConstraint a
-              , declGadt :: Ann GadtDeclList a
-              , declDeriving :: AnnMaybe Deriving a
+  | GDataDecl { declNewtype  :: IdType    DataOrNewtypeKeyword wt a
+              , declCtx      :: MaybeType Context wt a
+              , declHead     :: IdType    DeclHead wt a
+              , declKind     :: MaybeType KindConstraint wt a
+              , declGadt     :: IdType    GadtDeclList wt a
+              , declDeriving :: MaybeType Deriving wt a
               } -- ^ A data or newtype declaration.
-  | DataFamilyDecl { declCtx  :: AnnMaybe Context a
-                   , declHead :: Ann DeclHead a
-                   , declKind :: AnnMaybe KindConstraint a
+  | DataFamilyDecl { declCtx  :: MaybeType Context wt a
+                   , declHead :: IdType    DeclHead wt a
+                   , declKind :: MaybeType KindConstraint wt a
                    } -- ^ Data family declaration
-  | TypeInstDecl { declInstance :: Ann Type a
-                 , declAssignedType :: Ann Type a
+  | TypeInstDecl { declInstance     :: IdType Type wt a
+                 , declAssignedType :: IdType Type wt a
                  } -- ^ Type instance declaration (@ type instance Fam T = AssignedT @)
-  | DataInstDecl { declNewtype :: Ann DataOrNewtypeKeyword a
-                 , declInstance :: Ann Type a
-                 , declCons :: AnnList ConDecl a
+  | DataInstDecl { declNewtype  :: IdType   DataOrNewtypeKeyword wt a
+                 , declInstance :: IdType   Type wt a
+                 , declCons     :: ListType ConDecl wt a
                  } -- ^ Data instance declaration (@ data instance Fam T = Con1 | Con2 @)
-  | GDataInstDecl { declNewtype :: Ann DataOrNewtypeKeyword a
-                  , declInstance :: Ann Type a
-                  , declKind :: AnnMaybe KindConstraint a
-                  , declGadt :: Ann GadtDeclList a
+  | GDataInstDecl { declNewtype  :: IdType    DataOrNewtypeKeyword wt a
+                  , declInstance :: IdType    Type wt a
+                  , declKind     :: MaybeType KindConstraint wt a
+                  , declGadt     :: IdType    GadtDeclList wt a
                   } -- ^ Data instance declaration (@ data instance T = Con1 | Con2 @)
-  | ClassDecl { declCtx :: AnnMaybe Context a
-              , declHead :: Ann DeclHead a
-              , declFunDeps :: AnnMaybe FunDeps a
-              , declBody :: AnnMaybe ClassBody a
-              } -- ^ Type class declaration (@ class X a [where f = ...] @)
-  | InstDecl { declOverlap :: AnnMaybe OverlapPragma a
-             , declInstRule :: Ann InstanceRule a
-             , declInstDecl :: AnnMaybe InstBody a
+  | ClassDecl { declCtx     :: MaybeType Context wt a
+              , declHead    :: IdType    DeclHead wt a
+              , declFunDeps :: MaybeType FunDeps wt a
+              , declBody    :: MaybeType ClassBody wt a
+              } -- ^ Type class declaration (@ class X wt a [where f = ...] @)
+  | InstDecl { declOverlap  :: MaybeType OverlapPragma wt a
+             , declInstRule :: IdType    InstanceRule wt a
+             , declInstDecl :: MaybeType InstBody wt a
              } -- ^ Instance declaration (@ instance X T [where f = ...] @)
-  | DerivDecl { declOverlap :: AnnMaybe OverlapPragma a
-              , declInstRule :: Ann InstanceRule a
+  | DerivDecl { declOverlap  :: MaybeType OverlapPragma wt a
+              , declInstRule :: IdType    InstanceRule wt a
               } -- ^ Standalone deriving declaration (@ deriving instance X T @)
-  | FixityDecl { declAssoc :: Ann Assoc a
-               , declPrecedence :: Ann Precedence a
-               , declOperators :: AnnList Name a
+  | FixityDecl { declAssoc      :: IdType   Assoc wt a
+               , declPrecedence :: IdType   Precedence wt a
+               , declOperators  :: ListType Name wt a
                } -- ^ Fixity declaration (@ infixl 5 +, - @)
-  | DefaultDecl { declTypes :: AnnList Type a
-                , declInfo :: a
+  | DefaultDecl { declTypes :: ListType Type wt a
+                , declInfo  :: a
                 } -- ^ Default types (@ default (T1, T2) @)
-  | TypeSignature { declName :: Ann Name a
-                  , declType :: Ann Type a
+  | TypeSignature { declName :: IdType Name wt a
+                  , declType :: IdType Type wt a
                   } -- ^ Type signature (@ f :: Int -> Int @)
-  | FunBinding { declFunBind :: Ann FunBind a } -- ^ Function binding (@ f x = 12 @)
-  | ForeignImport { declCallConv :: Ann CallConv a
-                  , declSafety :: AnnMaybe Safety a
-                  , declName :: Ann Name a
-                  , declType :: Ann Type a
+  | FunBinding { declFunBind :: IdType FunBind wt a } -- ^ Function binding (@ f x = 12 @)
+  | ForeignImport { declCallConv :: IdType    CallConv wt a
+                  , declSafety   :: MaybeType Safety wt a
+                  , declName     :: IdType    Name wt a
+                  , declType     :: IdType    Type wt a
                   } -- ^ Foreign import (@ foreign import foo :: Int -> IO Int @)
-  | ForeignExport { declCallConv :: Ann CallConv a
-                  , declName :: Ann Name a
-                  , declType :: Ann Type a
+  | ForeignExport { declCallConv :: IdType CallConv wt a
+                  , declName     :: IdType Name wt a
+                  , declType     :: IdType Type wt a
                   } -- ^ foreign export (@ foreign export ccall foo :: Int -> IO Int @)
-  | Pragma { declPragma :: TopLevelPragma a } -- ^ top level pragmas
-  | SpliceDecl { declExpr :: Ann Expr a } -- ^ A Template Haskell splice declaration (@ $(generateDecls) @)
+  | Pragma { declPragma :: TopLevelPragma wt a } -- ^ top level pragmas
+  | SpliceDecl { declExpr :: IdType Expr wt a } -- ^ A Template Haskell splice declaration (@ $(generateDecls) @)
        
--- | The list of declarations that can appear in a typeclass
-data ClassBody a
-  = ClassBody { cbElements :: AnnList ClassElement a }
+-- | The list of declarations that can wt appear in wt a typeclass
+data ClassBody wt a
+  = ClassBody { cbElements :: ListType ClassElement wt a }
               
 -- | A list of GADT declarations with the @where@ keyword
-data GadtDeclList a 
-  = GadtDeclList { gadtList :: AnnList GadtDecl a } 
+data GadtDeclList wt a 
+  = GadtDeclList { gadtList :: ListType GadtDecl wt a } 
                  
--- | Members of a class declaration       
-data ClassElement a
-  = ClsDecl { ceDecl :: Ann Decl a } -- ^ Ordinary declaration: @ f :: A -> B @
-  | ClsDataFam { ceCtx :: AnnMaybe Context a
-               , ceHead :: Ann DeclHead a
-               , ceKind :: AnnMaybe Kind a
-               } -- ^ Declaration of an associated data type: @ data T x :: * @ 
-  | ClsTypeFam { ceHead :: Ann DeclHead a
-               , ceKind :: AnnMaybe Kind a
-               } -- ^ Declaration of an associated type synonym: @ type T x :: * @ 
-  | ClsTypeDef { ceHead :: Ann DeclHead a
-               , ceKind :: AnnMaybe Kind a
+-- | Members of wt a class declaration       
+data ClassElement wt a
+  = ClsDecl { ceDecl :: IdType Decl wt a } -- ^ Ordinary declaration: @ f :: A -> B @
+  | ClsDataFam { ceCtx  :: MaybeType Context wt a
+               , ceHead :: IdType    DeclHead wt a
+               , ceKind :: MaybeType Kind wt a
+               } -- ^ Declaration of wt an wt associated data type: @ data T x :: * @ 
+  | ClsTypeFam { ceHead :: IdType    DeclHead wt a
+               , ceKind :: MaybeType Kind wt a
+               } -- ^ Declaration of wt an wt associated type synonym: @ type T x :: * @ 
+  | ClsTypeDef { ceHead :: IdType    DeclHead wt a
+               , ceKind :: MaybeType Kind wt a
                } -- ^ Default choice for type synonym: @ type T x = TE @ or @ type instance T x = TE @ 
-  | ClsDefSig { ceName :: Ann Name a
-              , ceType :: Ann Type a
-              } -- ^ Default signature (by using @DefaultSignatures@): @ default enum :: (Generic a, GEnum (Rep a)) => [a] @
-       
--- The declared (possibly parameterized) type (@ A x :+: B y @).
-data DeclHead a
-  = DeclHead { dhName :: Name a } -- ^ Type or class name
-  | DHParen  { dhBody :: DeclHead a } -- ^ Parenthesized type
-  | DHApp    { dhAppFun :: Ann DeclHead a
-             , dhAppOperand :: Ann TyVar a
-             } -- ^ Type application
-  | DHInfix  { dhInfixName :: Ann Name a 
-             , dhInfixLeft :: Ann TyVar a
-             } -- ^ Infix application of the type/class name to the left operand
-       
--- | Instance body is the implementation of the class functions (@ where a x = 1; b x = 2 @)
-data InstBody a
-  = InstBody { instBodyDecls :: AnnList InstBodyDecl a }
+  | ClsDefSig { ceName :: IdType Name wt a
+              , ceType :: IdType Type wt a
+              } -- ^ Default signature (by using @DefaultSignatures@): @ default enum :: (Generic wt a, GEnum (Rep wt a)) => [a] @
 
--- | Declarations inside an instance declaration.
-data InstBodyDecl a
-  = InstBodyNormalDecl { instBodyDeclFunbind :: FunBind a } -- ^ A normal declaration (@ f x = 12 @)
-  | InstBodyTypeDecl { instBodyLhsType :: Ann Type a
-                     , instBodyRhsType :: Ann Type a
-                     } -- ^ An associated type definition (@ type A X = B @)
-  | InstBodyDataDecl { instBodyDataNew :: Ann DataOrNewtypeKeyword a
-                     , instBodyLhsType :: Ann Type a
-                     , instBodyDataCons :: AnnList ConDecl a
-                     , instBodyDerivings :: AnnMaybe Deriving a
-                     } -- ^ An associated data type implementation (@ data A X = C1 | C2 @)
-  | InstBodyGadtDataDecl { instBodyDataNew :: Ann DataOrNewtypeKeyword a
-                         , instBodyLhsType :: Ann Type a
-                         , instBodyDataKind :: AnnMaybe Kind a
-                         , instBodyGadtCons :: AnnList GadtDecl a
-                         , instBodyDerivings :: AnnMaybe Deriving a
-                         } -- ^ An associated data type implemented using GADT style
+-- The declared (possibly parameterized) type (@ A x :+: B y @).
+data DeclHead wt a
+  = DeclHead { dhName :: Name wt a } -- ^ Type or class name
+  | DHParen  { dhBody :: DeclHead wt a } -- ^ Parenthesized type
+  | DHApp    { dhAppFun     :: IdType DeclHead wt a
+             , dhAppOperand :: IdType TyVar wt a
+             } -- ^ Type wt application
+  | DHInfix  { dhInfixName :: IdType Name wt a 
+             , dhInfixLeft :: IdType TyVar wt a
+             } -- ^ Infix wt application of the type/class name to the left operand
+       
+-- | Instance body is the implementation of the class functions (@ where wt a x = 1; b x = 2 @)
+data InstBody wt a
+  = InstBody { instBodyDecls :: ListType InstBodyDecl wt a }
+
+-- | Declarations inside wt an instance declaration.
+data InstBodyDecl wt a
+  = InstBodyNormalDecl { instBodyDeclFunbind :: FunBind wt a } -- ^ A normal declaration (@ f x = 12 @)
+  | InstBodyTypeDecl { instBodyLhsType :: IdType Type wt a
+                     , instBodyRhsType :: IdType Type wt a
+                     } -- ^ An wt associated type definition (@ type A X = B @)
+  | InstBodyDataDecl { instBodyDataNew   :: IdType    DataOrNewtypeKeyword wt a
+                     , instBodyLhsType   :: IdType    Type wt a
+                     , instBodyDataCons  :: ListType  ConDecl wt a
+                     , instBodyDerivings :: MaybeType Deriving wt a
+                     } -- ^ An wt associated data type implementation (@ data A X = C1 | C2 @)
+  | InstBodyGadtDataDecl { instBodyDataNew   :: IdType    DataOrNewtypeKeyword wt a
+                         , instBodyLhsType   :: IdType    Type wt a
+                         , instBodyDataKind  :: MaybeType Kind wt a
+                         , instBodyGadtCons  :: ListType  GadtDecl wt a
+                         , instBodyDerivings :: MaybeType Deriving wt a
+                         } -- ^ An wt associated data type implemented using GADT style
 
 -- | GADT constructor declaration (@ D1 :: { val :: Int } -> T String @)
-data GadtDecl a
-  = GadtDecl { gdName :: Ann Name a
-             , gdFields :: AnnList FieldDecl a
-             , gdResType :: Ann Type a
+data GadtDecl wt a
+  = GadtDecl { gdName    :: IdType   Name wt a
+             , gdFields  :: ListType FieldDecl wt a
+             , gdResType :: IdType   Type wt a
              }
              
-data GadtField a
-  = GadtNormalField { gadtFieldType :: Ann Type a }
-  | GadtNamedField { gadtFieldName :: Ann Name a
-                   , gadtFieldType :: Ann Type a
+data GadtField wt a
+  = GadtNormalField { gadtFieldType :: IdType Type wt a }
+  | GadtNamedField { gadtFieldName :: IdType Name wt a
+                   , gadtFieldType :: IdType Type wt a
                    } -- ^ Named GADT field (@ { val :: Int } @)
          
--- | A list of functional dependencies: @ | a -> b, c -> d @ separated by commas  
-data FunDeps a
-  = FunDeps { funDeps :: AnnList FunDep a } 
+-- | A list of functional dependencies: @ | wt a -> b, c -> d @ separated by commas  
+data FunDeps wt a
+  = FunDeps { funDeps :: ListType FunDep wt a } 
          
 -- | A functional dependency, given on the form @l1 ... ln -> r1 ... rn@         
-data FunDep a
-  = FunDep { funDepLhs :: AnnList Name a
-           , funDepRhs :: AnnList Name a
+data FunDep wt a
+  = FunDep { funDepLhs :: ListType Name wt a
+           , funDepRhs :: ListType Name wt a
            }
-  
-data ConDecl a
-  = ConDecl { conDeclName :: Ann Name a
-            , conDeclArgs :: AnnList Type a
+
+data ConDecl wt a
+  = ConDecl { conDeclName :: IdType   Name wt a
+            , conDeclArgs :: ListType Type wt a
             } -- ^ ordinary data constructor (@ C t1 t2 @)
-  | RecordDecl { conDeclName :: Ann Name a
-               , conDeclFields :: AnnList FieldDecl a
+  | RecordDecl { conDeclName   :: IdType   Name wt a
+               , conDeclFields :: ListType FieldDecl wt a
                } -- ^ record data constructor (@ C { n1 :: t1, n2 :: t2 } @)
-  | InfixConDecl { icdName :: Ann Name a
-                 , icdLhs :: Ann Type a
-                 , icdRhs :: Ann Type a
+  | InfixConDecl { icdName :: IdType Name wt a
+                 , icdLhs  :: IdType Type wt a
+                 , icdRhs  :: IdType Type wt a
                  } -- ^ infix data constructor (@ t1 :+: t2 @)
-  
-data FieldDecl a
-  = FieldDecl { fieldNames :: AnnList Name a
-              , fieldType :: Ann Type a
+
+data FieldDecl wt a
+  = FieldDecl { fieldNames :: ListType Name wt a
+              , fieldType  :: IdType   Type wt a
               }
   
--- | A deriving clause following a data type declaration. (@ deriving Show @ or @ deriving (Show, Eq) @)
-data Deriving a
-  = DerivingOne { oneDerived :: Ann InstanceRule a }
-  | Derivings { allDerived :: AnnList InstanceRule a }
+-- | A deriving clause following wt a data type declaration. (@ deriving Show @ or @ deriving (Show, Eq) @)
+data Deriving wt a
+  = DerivingOne { oneDerived :: IdType InstanceRule wt a }
+  | Derivings { allDerived :: ListType InstanceRule wt a }
   
 -- | The instance declaration rule, which is, roughly, the part of the instance declaration before the where keyword.
-data InstanceRule a
-  = InstanceRule { irVars :: AnnMaybe (AnnList TyVar) a
-                 , irCtx :: AnnMaybe Context a
-                 , irHead :: Ann InstanceHead a
+data InstanceRule wt a
+  = InstanceRule { irVars :: MaybeType (ListType TyVar) wt a
+                 , irCtx  :: MaybeType Context wt a
+                 , irHead :: IdType    InstanceHead wt a
                  }
-  | InstanceParen { irRule :: Ann InstanceRule a }
+  | InstanceParen { irRule :: IdType InstanceRule wt a }
 
-data InstanceHead a
-  = InstanceHeadCon { ihConName :: Ann Name a } -- ^ Type or class name
-  | InstanceHeadInfix { ihLeftOp :: Ann Type a
-                      , ihOperator :: Ann Name a
-                      } -- ^ Infix application of the type/class name to the left operand
-  | InstanceHeadParen { ihHead :: Ann InstanceHead a } -- ^ Parenthesized instance head
-  | InstanceHeadApp { ihFun :: Ann InstanceHead a
-                    , ihType :: Ann Type a
+data InstanceHead wt a
+  = InstanceHeadCon { ihConName :: IdType Name wt a } -- ^ Type or class name
+  | InstanceHeadInfix { ihLeftOp   :: IdType Type wt a
+                      , ihOperator :: IdType Name wt a
+                      } -- ^ Infix wt application of the type/class name to the left operand
+  | InstanceHeadParen { ihHead :: IdType InstanceHead wt a } -- ^ Parenthesized instance head
+  | InstanceHeadApp { ihFun  :: IdType InstanceHead wt a
+                    , ihType :: IdType Type wt a
                     } -- ^ Application to one more type
-        
-data TypeEqn a
-  = TypeEqn { teLhs :: Ann Type a
-            , teRhs :: Ann Type a
-            } -- ^ Type equations as found in closed type families (@ T A = S @)
+
+data TypeEqn wt a
+  = TypeEqn { teLhs :: IdType Type wt a
+            , teRhs :: IdType Type wt a
+            } -- ^ Type equations wt as found in closed type families (@ T A = S @)
   
-data KindConstraint a 
-  = KindConstraint { kindConstr :: Ann Kind a } -- ^ Kind constraint (@ :: * -> * @)
+data KindConstraint wt a 
+  = KindConstraint { kindConstr :: IdType Kind wt a } -- ^ Kind constraint (@ :: * -> * @)
 
 ----------------------------------------------------
 -- Types -------------------------------------------
 ----------------------------------------------------
    
 -- | Type variable declaration
-data TyVar a 
-  = TyVarDecl { tyVarName :: Ann Name a
-              , tyVarKind :: AnnMaybe KindConstraint a
+data TyVar wt a
+  = TyVarDecl { tyVarName :: IdType    Name wt a
+              , tyVarKind :: MaybeType KindConstraint wt a
               }
-           
-data Type a
-  = TyForall { typeBounded :: AnnMaybe TyVar a
-             , typeCtx :: AnnMaybe Context a
-             , typeType :: Ann Type a
+         
+data Type wt a
+  = TyForall { typeBounded :: MaybeType TyVar wt a
+             , typeCtx     :: MaybeType Context wt a
+             , typeType    :: IdType    Type wt a
              } -- ^ Forall types (@ forall x y . type @)
-  | TyFun { typeParam :: Ann Type a
-          , typeResult :: Ann Type a
-          } -- ^ Function types (@ a -> b @)
-  | TyTuple { typeElements :: AnnList Type a } -- ^ Tuple types (@ (a,b) @)
-  | TyUnbTuple { typeElements :: AnnList Type a } -- ^ Unboxed tuple types (@ (#a,b#) @)
-  | TyList { typeElement :: Ann Type a } -- ^ List type with special syntax (@ [a] @)
-  | TyParArray { typeElement :: Ann Type a } -- ^ Parallel array type (@ [:a:] @)
-  | TyApp { typeCon :: Ann Type a
-          , typeArg :: Ann Type a
-          } -- ^ Type application (@ F a @)
-  | TyVar { typeName :: Ann Name a } -- ^ type variable (@ a @)
-  | TyCon { typeName :: Ann Name a } -- ^ type constructor (@ T @)
-  | TyParen { typeInner :: Ann Type a } -- ^ type surrounded by parentheses (@ (T a) @)
-  | TyInfix { typeLeft :: Ann Type a 
-            , typeOperator :: Ann Name a
-            , typeRight :: Ann Type a
+  | TyFun { typeParam  :: IdType Type wt a
+          , typeResult :: IdType Type wt a
+          } -- ^ Function types (@ wt a -> b @)
+  | TyTuple { typeElements :: ListType Type wt a } -- ^ Tuple types (@ (a,b) @)
+  | TyUnbTuple { typeElements :: ListType Type wt a } -- ^ Unboxed tuple types (@ (#a,b#) @)
+  | TyList { typeElement :: IdType Type wt a } -- ^ List type with special syntax (@ [a] @)
+  | TyParArray { typeElement :: IdType Type wt a } -- ^ Parallel wt array type (@ [:a:] @)
+  | TyApp { typeCon :: IdType Type wt a
+          , typeArg :: IdType Type wt a
+          } -- ^ Type wt application (@ F wt a @)
+  | TyVar { typeName :: IdType Name wt a } -- ^ type variable (@ wt a @)
+  | TyCon { typeName :: IdType Name wt a } -- ^ type constructor (@ T @)
+  | TyParen { typeInner :: IdType Type wt a } -- ^ type surrounded by parentheses (@ (T wt a) @)
+  | TyInfix { typeLeft     :: IdType Type wt a 
+            , typeOperator :: IdType Name wt a
+            , typeRight    :: IdType Type wt a
             } -- ^ Infix type constructor (@ (a <: b) @)
-  | TyKinded { typeInner :: Ann Type a
-             , typeKind :: Ann Kind a
-             } -- ^ Type with explicit kind signature (@ a :: * @)
-  | TyPromoted { tpPromoted :: Promoted a } -- A promoted data type with @-XDataKinds@ (@ '3 @).
-  | TySplice { tsSplice :: Splice a } -- ^ a Template Haskell splice type (@ $(genType) @).
-  | TyBang { typeInner :: Ann Type a } -- ^ Strict type marked with "!".
-  | TyUnpack { typeInner :: Ann Type a } -- ^ Type marked with UNPACK pragma.
+  | TyKinded { typeInner :: IdType Type wt a
+             , typeKind  :: IdType Kind wt a
+             } -- ^ Type with explicit kind signature (@ wt a :: * @)
+  | TyPromoted { tpPromoted :: Promoted wt a } -- A promoted data type with @-XDataKinds@ (@ '3 @).
+  | TySplice { tsSplice :: Splice wt a } -- ^ wt a Template Haskell splice type (@ $(genType) @).
+  | TyBang { typeInner :: IdType Type wt a } -- ^ Strict type marked with "!".
+  | TyUnpack { typeInner :: IdType Type wt a } -- ^ Type marked with UNPACK pragma.
 
-data Kind a
+data Kind wt a
   = KindStar -- ^ @*@, the kind of types
   | KindUnbox -- ^ @#@, the kind of unboxed types
-  | KindFn { kindLeft :: Ann Kind a
-           , kindRight :: Ann Kind a
+  | KindFn { kindLeft  :: IdType Kind wt a
+           , kindRight :: IdType Kind wt a
            } -- ^ @->@, the kind of type constructor
-  | KindParen { kindParen :: Ann Kind a } -- ^ A parenthesised kind
-  | KindVar { kindVar :: Ann Name a } -- ^ kind variable (using @PolyKinds@ extension)
-  | KindApp { kindAppFun :: Ann Kind a
-            , kindAppArg :: Ann Kind a 
-            } -- ^ Kind application (@ k1 k2 @)
-  | KindTuple { kindTuple :: AnnList Kind a } -- ^ A promoted tuple (@ '(k1,k2,k3) @)
-  | KindList { kindList :: AnnList Kind a } -- ^ A promoted list literal (@ '[k1,k2,k3] @)
+  | KindParen { kindParen :: IdType Kind wt a } -- ^ A parenthesised kind
+  | KindVar { kindVar     :: IdType Name wt a } -- ^ kind variable (using @PolyKinds@ extension)
+  | KindApp { kindAppFun  :: IdType Kind wt a
+            , kindAppArg  :: IdType Kind wt a 
+            } -- ^ Kind wt application (@ k1 k2 @)
+  | KindTuple { kindTuple :: ListType Kind wt a } -- ^ A promoted tuple (@ '(k1,k2,k3) @)
+  | KindList { kindList :: ListType Kind wt a } -- ^ A promoted list literal (@ '[k1,k2,k3] @)
   
--- One or more assertions
-data Context a
-  = ContextOne { contextAssertion :: Assertion a } -- ^ One assertion (@ C a => ... @)
-  | ContextMulti { contextAssertions :: AnnList Assertion a } 
-      -- ^ A set of assertions (@ (C1 a, C2 b) => ... @, but can be one: @ (C a) => ... @)
+-- One or more wt assertions
+data Context wt a
+  = ContextOne { contextAssertion :: Assertion wt a } -- ^ One wt assertion (@ C wt a => ... @)
+  | ContextMulti { contextAssertions :: ListType Assertion wt a } 
+      -- ^ A set of wt assertions (@ (C1 wt a, C2 b) => ... @, but can be one: @ (C wt a) => ... @)
 
--- | A single assertion in the context
-data Assertion a
-  = ClassAssert { assertClsName :: Ann Name a
-                , assertTypes :: AnnList Type a
-                } -- ^ Class assertion (@Cls x@)
-  | AppAssert { assertConstrName :: Ann Name a
-              , assertTypes :: AnnList Type a
-              } -- ^ Class assertion application
-  | InfixAssert { assertLhs :: Ann Type a
-                , assertOp :: Ann Name a
-                , assertRhs :: Ann Type a
-                } -- ^ Infix class assertion, also contains type equations (@ a ~ X y @)
-  | ParenAssert { assertInner :: Ann Assertion a } -- ^ Parenthesised class assertion
+-- | A single wt assertion in the context
+data Assertion wt a
+  = ClassAssert { assertClsName :: IdType   Name wt a
+                , assertTypes   :: ListType Type wt a
+                } -- ^ Class wt assertion (@Cls x@)
+  | AppAssert { assertConstrName :: IdType   Name wt a
+              , assertTypes      :: ListType Type wt a
+              } -- ^ Class wt assertion wt application
+  | InfixAssert { assertLhs :: IdType Type wt a
+                , assertOp  :: IdType Name wt a
+                , assertRhs :: IdType Type wt a
+                } -- ^ Infix class wt assertion, wt also contains type equations (@ wt a ~ X y @)
+  | ParenAssert { assertInner :: IdType Assertion wt a } -- ^ Parenthesised class wt assertion
                  
 -- | Haskell expressions
-data Expr a
-  = Var { exprName :: Ann Name a } -- ^ A variable (@ a @)
-  | Con { exprName :: Ann Name a } -- ^ Data constructor (@Point@ in @Point 1 2@)
-  | Lit { exprLit :: Ann Literal a } -- ^ Primitive literal
-  | InfixApp { exprLhs :: Ann Expr a
-             , exprOperator :: Ann Name a
-             , exprRhs :: Ann Expr a
-             } -- ^ Infix operator application (@ a + b @)
-  | App { exprFun :: Ann Expr a
-        , exprArg :: Ann Expr a
-        } -- ^ Function application (@ f 4 @)
+data Expr wt a
+  = Var { exprName :: IdType Name wt a } -- ^ A variable (@ wt a @)
+  | Con { exprName :: IdType Name wt a } -- ^ Data constructor (@Point@ in @Point 1 2@)
+  | Lit { exprLit  :: IdType Literal wt a } -- ^ Primitive literal
+
+  | InfixApp { exprLhs      :: IdType Expr wt a
+             , exprOperator :: IdType Name wt a
+             , exprRhs      :: IdType Expr wt a
+             } -- ^ Infix operator wt application (@ wt a + b @)
+  | App { exprFun :: IdType Expr wt a
+        , exprArg :: IdType Expr wt a
+        } -- ^ Function wt application (@ f 4 @)
   -- unary minus omitted
-  | Lambda { exprBindings :: AnnList Pattern a -- ^ at least one
-           , exprInner :: Ann Expr a
-           } -- ^ Lambda expression (@ \a b -> a + b @)
-  | Let { exprFunBind :: AnnList FunBind a -- ^ nonempty
-        , exprInner :: Ann Expr a
+  | Lambda { exprBindings :: ListType Pattern wt a -- ^ wt at least one
+           , exprInner    :: IdType   Expr wt a
+           } -- ^ Lambda expression (@ \a b -> wt a + b @)
+  | Let { exprFunBind :: ListType FunBind wt a -- ^ nonempty
+        , exprInner   :: IdType   Expr wt a
         } -- ^ Local binding (@ let x = 2; y = 3 in e x y @)
-  | If { exprCond :: Ann Expr a
-       , exprThen :: Ann Expr a
-       , exprElse :: Ann Expr a
-       } -- ^ If expression (@ if a then b else c @)
-  | MultiIf { exprIfAlts :: AnnList GuardedRhs a }
+  | If { exprCond :: IdType Expr wt a
+       , exprThen :: IdType Expr wt a
+       , exprElse :: IdType Expr wt a
+       } -- ^ If expression (@ if wt a then b else c @)
+  | MultiIf { exprIfAlts :: ListType GuardedRhs wt a }
     -- ^ Multi way if expressions with @MultiWayIf@ extension (@ if | guard1 -> expr1; guard2 -> expr2 @)
-  | Case { exprCase :: Ann Expr a
-         , exprAlts :: AnnList Alt a
+  | Case { exprCase :: IdType     Expr wt a
+         , exprAlts :: ListType   Alt wt a
          } -- ^ Pattern matching expression (@ case expr of pat1 -> expr1; pat2 -> expr2 @)
-  | Do { doKind :: Ann DoKind a
-       , exprStmts :: AnnList Stmt a
-       } -- ^ Do-notation expressions (@ do x <- act1; act2 @)
-  | Tuple { tupleElems :: AnnList Expr a } -- ^ Tuple expression (@ (e1, e2, e3) @)
-  | UnboxedTuple { tupleElems :: AnnList Expr a } -- ^ Unboxed tuple expression (@ (# e1, e2, e3 #) @)
-  | TupleSection { tupleSectionElems :: AnnList (AnnMaybe Expr) a }
+  | Do { doKind    :: IdType   DoKind wt a
+       , exprStmts :: ListType Stmt wt a
+       } -- ^ Do-notation expressions (@ do x <- wt act1; wt act2 @)
+  | Tuple { tupleElems :: ListType Expr wt a } -- ^ Tuple expression (@ (e1, e2, e3) @)
+  | UnboxedTuple { tupleElems :: ListType Expr wt a } -- ^ Unboxed tuple expression (@ (# e1, e2, e3 #) @)
+  | TupleSection { tupleSectionElems :: ListType (MaybeType Expr) wt a }
     -- ^ Tuple section, enabled with @TupleSections@ (@ (a,,b) @)
-  | BoxedTupleSection { tupleSectionElems :: AnnList (AnnMaybe Expr) a }
-  | List { listElems :: AnnList Expr a } -- ^ List expression: @[1,2,3]@
-  | ParArray { listElems :: AnnList Expr a } -- ^ Parallel array expression: @[: 1,2,3 :]@
-  | Paren { exprInner :: Ann Expr a }
-  | LeftSection { exprLhs :: Ann Expr a
-                , exprOperator :: Ann Name a
+  | BoxedTupleSection { tupleSectionElems :: ListType (MaybeType Expr) wt a }
+  | List { listElems :: ListType Expr wt a } -- ^ List expression: @[1,2,3]@
+  | ParArray { listElems :: ListType Expr wt a } -- ^ Parallel wt array expression: @[: 1,2,3 :]@
+  | Paren { exprInner :: IdType Expr wt a }
+  | LeftSection { exprLhs      :: IdType Expr wt a
+                , exprOperator :: IdType Name wt a
                 } -- ^ Left operator section: @(1+)@
-  | RightSection { exprOperator :: Ann Name a
-                 , exprRhs :: Ann Expr a
+  | RightSection { exprOperator :: IdType Name wt a
+                 , exprRhs      :: IdType Expr wt a
                  } -- ^ Right operator section: @(+1)@
-  | RecExpr { exprRecName :: Ann Expr a
-            , exprRecFields :: AnnList FieldUpdate a
+  | RecExpr { exprRecName   :: IdType   Expr wt a
+            , exprRecFields :: ListType FieldUpdate wt a
             } -- ^ Record value construction or update: @p1 { x = 3, y = -2 }@
-  | Enum { enumFrom :: Ann Expr a
-         , enumThen :: AnnMaybe Expr a
-         , enumTo :: AnnMaybe Expr a
+  | Enum { enumFrom :: IdType    Expr wt a
+         , enumThen :: MaybeType Expr wt a
+         , enumTo   :: MaybeType Expr wt a
          , exprInfo :: a
          } -- ^ Enumeration expression (@ [1,3..10] @)
-  | ParArrayEnum { parEnumFrom :: Ann Expr a
-                 , parEnumThen :: AnnMaybe Expr a
-                 , parEnumTo :: Ann Expr a
-                 } -- ^ Parallel array enumeration (@ [: 1,3 .. 10 :] @)
-  | ListComp { compExpr :: Ann Expr a
-             , compBody :: AnnList CompStmt a
+  | ParArrayEnum { parEnumFrom :: IdType    Expr wt a
+                 , parEnumThen :: MaybeType Expr wt a
+                 , parEnumTo   :: IdType    Expr wt a
+                 } -- ^ Parallel wt array enumeration (@ [: 1,3 .. 10 :] @)
+  | ListComp { compExpr :: IdType   Expr wt a
+             , compBody :: ListType CompStmt wt a
              } -- ^ List comprehension (@  @)
-  | ParListComp { compExpr :: Ann Expr a
-                , parCompBody :: AnnList (AnnList CompStmt) a
+  | ParListComp { compExpr    :: IdType   Expr wt a
+                , parCompBody :: ListType (ListType CompStmt) wt a
                 } -- ^ Parallel list comprehension: @ [ (x, y) | x <- xs | y <- ys ] @
-  | ParArrayComp { compExpr :: Ann Expr a
-                 , parCompBody :: AnnList (AnnList CompStmt) a
+  | ParArrayComp { compExpr    :: IdType Expr wt a
+                 , parCompBody :: ListType (ListType CompStmt) wt a
                  } -- ^ List comprehension  
-  | TypeSig { exprInner :: Ann Expr a
-            , exprSig :: Ann Type a
+  | TypeSig { exprInner :: IdType Expr wt a
+            , exprSig   :: IdType Type wt a
             } -- ^ Explicit type signature (@ x :: Int @)
   -- Template Haskell
-  | VarQuote { quotedName :: Name a } -- ^ @'x@ for template haskell reifying of expressions
-  | TypeQuote { quotedName :: Name a } -- ^ @''T@ for template haskell reifying of types
-  | BracketExpr { bracket :: Bracket a } -- ^ Template haskell bracket expression
-  | Splice { innerExpr :: Ann Expr a } -- ^ Template haskell splice expression, for example: @$(gen a)@ or @$x@
-  | QuasiQuote { qqExprName :: Ann Name a
-               , qqExprBody :: Ann QQString a
+  | VarQuote { quotedName :: Name wt a } -- ^ @'x@ for template haskell reifying of expressions
+  | TypeQuote { quotedName :: Name wt a } -- ^ @''T@ for template haskell reifying of types
+  | BracketExpr { bracket :: Bracket wt a } -- ^ Template haskell bracket expression
+  | Splice { innerExpr :: IdType Expr wt a } -- ^ Template haskell splice expression, for example: @$(gen wt a)@ or @$x@
+  | QuasiQuote { qqExprName :: IdType Name wt a
+               , qqExprBody :: IdType QQString wt a
                } -- ^ template haskell quasi-quotation: @[$quoter|str]@
-  | ExprPragma { exprPragma :: ExprPragma a }
+  | ExprPragma { exprPragma :: ExprPragma wt a }
   -- Arrows
-  | Proc { procPattern :: Ann Pattern a
-         , procExpr :: Ann Expr a
+  | Proc { procPattern :: IdType Pattern wt a
+         , procExpr    :: IdType Expr wt a
          }
-  | ArrowApp { exprLhs :: Ann Expr a
-             , arrowAppl :: Ann ArrowAppl a
-             , exprRhs :: Ann Expr a
+  | ArrowApp { exprLhs   :: IdType Expr wt a
+             , arrowAppl :: IdType ArrowAppl wt a
+             , exprRhs   :: IdType Expr wt a
              }
-  | LamCase { exprAlts :: AnnList Alt a } -- ^ Lambda case ( @\case 0 -> 1; 1 -> 2@ )
+  | LamCase { exprAlts :: ListType Alt wt a } -- ^ Lambda case ( @\case 0 -> 1; 1 -> 2@ )
   -- XML expressions omitted
-          
-data Stmt a
-  = BindStmt { stmtPattern :: Ann Pattern a
-             , stmtBounded :: Ann Expr a
-             } -- ^ Binding statement (@ x <- action @)
-  | ExprStmt { stmtExpr :: Expr a } -- ^ Non-binding statement (@ action @)
-  | LetStmt  { stmtBinds :: Ann Binds a } -- ^ Let statement (@ let x = 3; y = 4 @)
-  | RecStmt  { stmtRecBinds :: AnnList Stmt a } -- ^ A recursive binding group for arrows (@ rec b <- f a c; c <- f b a @)
+
+data Stmt wt a
+  = BindStmt { stmtPattern :: IdType Pattern wt a
+             , stmtBounded :: IdType Expr wt a
+             } -- ^ Binding statement (@ x <- wt action @)
+  | ExprStmt { stmtExpr :: Expr wt a } -- ^ Non-binding statement (@ wt action @)
+  | LetStmt  { stmtBinds :: IdType Binds wt a } -- ^ Let statement (@ let x = 3; y = 4 @)
+  | RecStmt  { stmtRecBinds :: ListType Stmt wt a } -- ^ A recursive binding group for wt arrows (@ rec b <- f wt a c; c <- f b wt a @)
          
 -- | List comprehension statement
-data CompStmt a
-  = CompStmt   { compStmt :: Ann Stmt a } -- ^ Normal monadic statement of a list comprehension
-  | ThenStmt   { thenExpr :: Ann Expr a 
-               , byExpr :: AnnMaybe Expr a
+data CompStmt wt a
+  = CompStmt   { compStmt :: IdType Stmt wt a } -- ^ Normal monadic statement of wt a list comprehension
+  | ThenStmt   { thenExpr :: IdType Expr wt a 
+               , byExpr   :: MaybeType Expr wt a
                } -- ^ Then statements by @TransformListComp@ (@ then sortWith by (x + y) @)
-  | GroupStmt  { byExpr :: AnnMaybe Expr a
-               , usingExpr :: AnnMaybe Expr a
+  | GroupStmt  { byExpr    :: MaybeType Expr wt a
+               , usingExpr :: MaybeType Expr wt a
                } -- ^ Grouping statements by @TransformListComp@ (@ then group by (x + y) using groupWith @) 
-                 -- Note: byExpr or usingExpr must have a value
-          
--- | Function binding for top-level and local bindings
-data FunBind a
-  = FunBind { funBindMatches :: AnnList Match a }                    
+                 -- Note: byExpr or usingExpr must have wt a value
+
+-- | Function binding for top-level wt and local bindings
+data FunBind wt a 
+  = FunBind { funBindMatches :: ListType Match wt a }
 
 -- | Representation of patterns for pattern bindings
-data Pattern a
-  = VarPat { patternVar :: Name a } -- ^ Pattern name binding
-  | LitPat { patternLiteral :: Literal a } -- ^ Literal pattern
-  | InfixPat { patternLhs :: Ann Pattern a
-             , patternOp :: Ann Name a
-             , patternRhs :: Ann Pattern a
-             } -- ^ Infix constructor application pattern (@ a :+: b @)
-  | AppPat { patternCon :: Ann Name a
-           , patternArg :: Ann Pattern a
-           } -- ^ Constructor application pattern (@ Point x y @)
-  | TuplePat { patternElems :: AnnList Pattern a } -- ^ Tuple pattern (@ (x,y) @)
-  | UnboxTuplePat { patternElems :: AnnList Pattern a } -- ^ Unboxed tuple pattern (@ (# x, y #) @)
-  | ListPat { patternElems :: AnnList Pattern a } -- ^ List pattern (@ [1,2,a,x] @)
-  | ParenPat { patternInner :: Ann Pattern a } -- ^ Parenthesised patterns
-  | RecPat { patternName :: Ann Name a
-           , patternFields :: AnnList PatternField a
+data Pattern wt a 
+  = VarPat { patternVar :: Name wt a } -- ^ Pattern name binding
+  | LitPat { patternLiteral :: Literal wt a } -- ^ Literal pattern
+  | InfixPat { patternLhs :: IdType Pattern wt a
+             , patternOp  :: IdType Name wt a
+             , patternRhs :: IdType Pattern wt a
+             } -- ^ Infix constructor wt application pattern (@ wt a :+: b @)
+  | AppPat { patternCon :: IdType Name wt a
+           , patternArg :: IdType Pattern wt a
+           } -- ^ Constructor wt application pattern (@ Point x y @)
+  | TuplePat { patternElems :: ListType Pattern wt a } -- ^ Tuple pattern (@ (x,y) @)
+  | UnboxTuplePat { patternElems :: ListType Pattern wt a } -- ^ Unboxed tuple pattern (@ (# x, y #) @)
+  | ListPat { patternElems :: ListType Pattern wt a } -- ^ List pattern (@ [1,2,a,x] @)
+  | ParenPat { patternInner :: IdType Pattern wt a } -- ^ Parenthesised patterns
+  | RecPat { patternName   :: IdType   Name wt a
+           , patternFields :: ListType PatternField wt a
            } -- ^ Record pattern (@ Point { x = 3, y } @)
-  | AsPat { patternName :: Ann Name a
-          , patternInner :: Ann Pattern a
+  | AsPat { patternName  :: IdType Name wt a
+          , patternInner :: IdType Pattern wt a
           } -- ^ As-pattern (explicit name binding) (@ ls\@(hd:_) @)
   | WildPat { patternInfo :: a } -- ^ Wildcard pattern: (@ _ @)
-  | IrrPat { patternInner :: Ann Pattern a } -- ^ Irrefutable pattern (@ ~(x:_) @)
-  | BangPat { patternInner :: Ann Pattern a } -- ^ Bang pattern (@ !x @)
-  | TypeSigPat { patternInner :: Ann Pattern a
-               , patternType :: Ann Type a
+  | IrrPat { patternInner :: IdType Pattern wt a } -- ^ Irrefutable pattern (@ ~(x:_) @)
+  | BangPat { patternInner :: IdType Pattern wt a } -- ^ Bang pattern (@ !x @)
+  | TypeSigPat { patternInner :: IdType Pattern wt a
+               , patternType  :: IdType Type wt a
                } -- ^ Pattern with explicit type signature (@ _ :: Int @)
-  | ViewPat { patternExpr :: Ann Expr a
-            , patternInner :: Ann Pattern a
+  | ViewPat { patternExpr  :: IdType Expr wt a
+            , patternInner :: IdType Pattern wt a
             } -- ^ View pattern (@ f -> Just 1 @)
   -- regular list pattern omitted
   -- xml patterns omitted
-  | QuasiQuotePat { qqPatternName :: Ann Name a
-                  , qqPatternBody :: Ann QQString a
+  | QuasiQuotePat { qqPatternName :: IdType Name wt a
+                  , qqPatternBody :: IdType QQString wt a
                   }
-                  
--- Field specification of a record pattern
-data PatternField a 
-  = NormalFieldPattern { fieldPatternName :: Ann Name a
-                       , fieldPattern :: Ann Pattern a
+
+-- Field specification of wt a record pattern
+data PatternField wt a 
+  = NormalFieldPattern { fieldPatternName :: IdType Name wt a
+                       , fieldPattern     :: IdType Pattern wt a
                        } -- ^ Named field pattern (@ p = Point 3 2 @)
-  | FieldPunPattern { fieldPunName :: Name a } -- ^ Named field pun (@ p @)
+  | FieldPunPattern { fieldPunName :: Name wt a } -- ^ Named field pun (@ p @)
   | FieldWildcardPattern -- ^ Wildcard field pattern (@ .. @)
-          
+
 -- | A template haskell splice          
-data Splice a
-  = IdSplice { spliceId :: Ann Name a } -- ^ A simple name splice
-  | ParenSplice { spliceExpr :: Ann Expr a }
-        
+data Splice wt a
+  = IdSplice { spliceId :: IdType Name wt a } -- ^ A simple name splice
+  | ParenSplice { spliceExpr :: IdType Expr wt a }
+
 -- | Template Haskell Quasi-Quotation        
-data QQString a
+data QQString wt a
   = QQString { qqString :: String } 
 
 -- | Clause of function binding   
-data Match a
-  = Match { matchName :: Ann Name a
-          , matchArgs :: AnnList Pattern a
-          , matchType :: AnnMaybe Type a
-          , matchRhs :: Ann Rhs a
-          , matchBinds :: AnnMaybe Binds a
+data Match wt a
+  = Match { matchName  :: IdType    Name wt a
+          , matchArgs  :: ListType  Pattern wt a
+          , matchType  :: MaybeType Type wt a
+          , matchRhs   :: IdType    Rhs wt a
+          , matchBinds :: MaybeType Binds wt a
           } 
     
 -- | Clause of case expression          
-data Alt a
-  = Alt { altPattern :: Ann Pattern a
-        , altRhs :: Ann Rhs a
-        , altBinds :: AnnMaybe Binds a
+data Alt wt a
+  = Alt { altPattern :: IdType    Pattern wt a
+        , altRhs     :: IdType    Rhs wt a
+        , altBinds   :: MaybeType Binds wt a
         }
 
--- | Local bindings attached to a declaration (@ where x = 42 @)             
-data Binds a
-  = DeclBindings { bindingDecls :: AnnList Decl a }
+-- | Local bindings wt attached to wt a declaration (@ where x = 42 @)             
+data Binds wt a
+  = DeclBindings { bindingDecls :: ListType Decl wt a }
    
-data Rhs a
-  = UnguardedRhs { rhsExpr :: Expr a }
-  | GuardedRhss { rhsGuards :: AnnList GuardedRhs a }
+data Rhs wt a
+  = UnguardedRhs { rhsExpr :: Expr wt a }
+  | GuardedRhss { rhsGuards :: ListType GuardedRhs wt a }
                
-data GuardedRhs a
-  = GuardedRhs { guardStmts :: AnnList Stmt a
-               , guardExpr :: Ann Expr a
-               } 
+data GuardedRhs wt a
+  = GuardedRhs { guardStmts :: ListType Stmt wt a
+               , guardExpr  :: IdType   Expr wt a
+               }
                
-data FieldUpdate a 
-  = NormalFieldUpdate { fieldName :: Ann Name a
-                      , fieldValue :: Ann Expr a
-                      } -- ^ Update of a field (@ x = 1 @)
-  | FieldPun { fieldUpdateName :: Name a } -- ^ Update the field to the value of the same name (@ x @)
+data FieldUpdate wt a 
+  = NormalFieldUpdate { fieldName  :: IdType Name wt a
+                      , fieldValue :: IdType Expr wt a
+                      } -- ^ Update of wt a field (@ x = 1 @)
+  | FieldPun { fieldUpdateName :: Name wt a } -- ^ Update the field to the value of the same name (@ x @)
   | FieldWildcard -- ^ Update the fields of the bounded names to their values (@ .. @)
                
 -- | Template Haskell bracket expressions
-data Bracket a
-  = ExprBracket { bracketExpr :: Ann Expr a } -- ^ Expression bracket (@ [| x + y |] @)
-  | PatternBracket { bracketPattern :: Ann Pattern a } -- ^ Pattern bracket (@ [| Point x y |] @)
-  | TypeBracket { bracketType :: Ann Type a } -- ^ Pattern bracket (@ [| (Int,Int) |] @)
-  | DeclBracket { bracketDecl :: Ann Decl a } -- ^ Declaration bracket (@ [| f :: Int -> Int; f x = x*x |] @)
+data Bracket wt a
+  = ExprBracket { bracketExpr :: IdType Expr wt a } -- ^ Expression bracket (@ [| x + y |] @)
+  | PatternBracket { bracketPattern :: IdType Pattern wt a } -- ^ Pattern bracket (@ [| Point x y |] @)
+  | TypeBracket { bracketType :: IdType Type wt a } -- ^ Pattern bracket (@ [| (Int,Int) |] @)
+  | DeclBracket { bracketDecl :: IdType Decl wt a } -- ^ Declaration bracket (@ [| f :: Int -> Int; f x = x*x |] @)
                   
 -- * Pragmas
 
 -- | Top level pragmas
-data TopLevelPragma a
-  = RulePragma { pragmaRule :: AnnList Rule a }
-  | DeprPragma { pragmaObjects :: AnnList Name a
-               , pragmaMessage :: Ann StringNode a
+data TopLevelPragma wt a
+  = RulePragma { pragmaRule :: ListType Rule wt a }
+  | DeprPragma { pragmaObjects :: ListType Name wt a
+               , pragmaMessage :: IdType   StringNode wt a
                }
-  | WarningPragma { pragmaObjects :: AnnList Name a
-                  , pragmaMessage :: Ann StringNode a
+  | WarningPragma { pragmaObjects :: ListType Name wt a
+                  , pragmaMessage :: IdType   StringNode wt a
                   }
-  | AnnPragma { pragmaAnnotation :: Annotation a }
-  | MinimalPragma { pragmaFormula :: AnnMaybe MinimalFormula a }
+  | AnnPragma { pragmaAnnotation :: Annotation wt a }
+  | MinimalPragma { pragmaFormula :: MaybeType MinimalFormula wt a }
  
 -- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
-data Rule a
-  = Rule { ruleName :: Ann StringNode a -- ^ User name of the rule
-         , rulePhase :: AnnMaybe PhaseControl a
-         , ruleBounded :: AnnList Name a
-         , ruleTopLevel :: Ann Name a
-         , ruleApplied :: AnnList Expr a
-         , ruleRhs :: Ann Expr a
+data Rule wt a
+  = Rule { ruleName     :: IdType    StringNode wt a -- ^ User name of the rule
+         , rulePhase    :: MaybeType PhaseControl wt a
+         , ruleBounded  :: ListType  Name wt a
+         , ruleTopLevel :: IdType    Name wt a
+         , ruleApplied  :: ListType  Expr wt a
+         , ruleRhs      :: IdType    Expr wt a
          }
  
--- | Annotation allows you to connect an expression to any declaration. 
-data Annotation a
-  = NameAnnotation { annotateType :: AnnMaybe TypeKeyword a
-                   , annotateName :: Ann Name a
-                   , annotateExpr :: Ann Expr a
+-- | Annotation wt allows you to connect wt an expression to wt any declaration. 
+data Annotation wt a
+  = NameAnnotation { annotateType :: MaybeType TypeKeyword wt a
+                   , annotateName :: IdType    Name wt a
+                   , annotateExpr :: IdType    Expr wt a
                    }
-  | ModuleAnnotation { annotateExpr :: Ann Expr a }
+  | ModuleAnnotation { annotateExpr :: IdType Expr wt a }
          
-data MinimalFormula a
-  = MinimalName { minimalName :: Name a }
-  | MinimalParen { minimalInner :: Ann MinimalFormula a }
-  | MinimalOr { minimalLhs :: Ann MinimalFormula a
-              , minimalRhs :: Ann MinimalFormula a
-              } -- ^ One of the minimal formulas are needed (@ min1 | min2 @)
-  | MinimalAnd { minimalLhs :: Ann MinimalFormula a
-               , minimalRhs :: Ann MinimalFormula a
-               } -- ^ Both of the minimal formulas are needed (@ min1 , min2 @)
+data MinimalFormula wt a
+  = MinimalName { minimalName :: Name wt a }
+  | MinimalParen { minimalInner :: IdType MinimalFormula wt a }
+  | MinimalOr { minimalLhs :: IdType MinimalFormula wt a
+              , minimalRhs :: IdType MinimalFormula wt a
+              } -- ^ One of the minimal formulas wt are needed (@ min1 | min2 @)
+  | MinimalAnd { minimalLhs :: IdType MinimalFormula wt a
+               , minimalRhs :: IdType MinimalFormula wt a
+               } -- ^ Both of the minimal formulas wt are needed (@ min1 , min2 @)
          
--- | Pragmas that can be applied to expressions
-data ExprPragma a
-  = CorePragma { pragmaStr :: Ann StringNode a }
-  | SccPragma { pragmaStr :: Ann StringNode a }
-  | GeneratedPragma { pragmaSrcRange :: Ann SourceRange a }
+-- | Pragmas that can be wt applied to expressions
+data ExprPragma wt a
+  = CorePragma { pragmaStr :: IdType StringNode wt a }
+  | SccPragma { pragmaStr :: IdType StringNode wt a }
+  | GeneratedPragma { pragmaSrcRange :: IdType SourceRange wt a }
                   
-data SourceRange a
-  = SourceRange { srFileName :: Ann StringNode a
-                , srFromLine :: Ann Number a
-                , srFromCol :: Ann Number a
-                , srToLine :: Ann Number a
-                , srToCol :: Ann Number a
+data SourceRange wt a
+  = SourceRange { srFileName :: IdType StringNode wt a
+                , srFromLine :: IdType Number wt a
+                , srFromCol  :: IdType Number wt a
+                , srToLine   :: IdType Number wt a
+                , srToCol    :: IdType Number wt a
                 }
   
-data Number a = Number { numberInteger :: Integer }
-                  
+data Number wt a = Number { numberInteger :: Integer }
+

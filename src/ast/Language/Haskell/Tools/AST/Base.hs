@@ -10,56 +10,71 @@ module Language.Haskell.Tools.AST.Base where
   
 import Language.Haskell.Tools.AST.Ann
 
-data AnnotationWrapper = AnnotationWrapper
-data IdWrapper = IdWrapper
+data AnnotationSemantic = AnnotationSemantic
+data IdenticSemantic = IdenticSemantic
 
-type family IdType a (elem :: * -> *) info
-type family ListType a (elem :: * -> *) info
-type family MaybeType a (elem :: * -> *) info
+class StructuralSemantic sem (elem :: * -> * -> *) info where
+    type IdType    elem sem info
+    type ListType  elem sem info
+    type MaybeType elem sem info
 
-type instance IdType AnnotationWrapper elem annot = Ann elem annot
-type instance ListType AnnotationWrapper elem annot = AnnList elem annot
-type instance MaybeType AnnotationWrapper elem annot = AnnMaybe elem annot
+instance StructuralSemantic AnnotationSemantic elem annot where
+    type IdType    elem AnnotationSemantic annot = Ann      (elem AnnotationSemantic) annot
+    type ListType  elem AnnotationSemantic annot = AnnList  (elem AnnotationSemantic) annot
+    type MaybeType elem AnnotationSemantic annot = AnnMaybe (elem AnnotationSemantic) annot
 
-type instance IdType IdWrapper elem annot = elem annot
-type instance ListType IdWrapper elem annot = elem annot
-type instance MaybeType IdWrapper elem annot = elem annot
+instance StructuralSemantic IdenticSemantic elem annot where
+    type IdType    elem IdenticSemantic annot = Ann      (elem IdenticSemantic) annot
+    type ListType  elem IdenticSemantic annot = AnnList  (elem IdenticSemantic) annot
+    type MaybeType elem IdenticSemantic annot = AnnMaybe (elem IdenticSemantic) annot
+{-
+type family IdType wt a (elem :: * -> *) info
+type family ListType wt a (elem :: * -> *) info
+type family MaybeType wt a (elem :: * -> *) info
 
+type instance IdType AnnotationWrapper elem wt annot = Ann elem wt annot
+type instance ListType AnnotationWrapper elem wt annot = AnnList elem wt annot
+type instance MaybeType AnnotationWrapper elem wt annot = AnnMaybe elem wt annot
 
--- | Possible qualified names. Contains also implicit names.
+type instance IdType IdWrapper elem wt annot = elem wt annot
+type instance ListType IdWrapper elem wt annot = elem wt annot
+type instance MaybeType IdWrapper elem wt annot = elem wt annot
+-}
+
+-- | Possible qualified names. Contains wt also implicit names.
 -- Linear implicit parameter: @%x@. Non-linear implicit parameter: @?x@.
-data Name a = Name { qualifiers      :: AnnList SimpleName a
-                   , unqualifiedName :: Ann SimpleName a 
-                   } 
+data Name wt a = Name { qualifiers      :: ListType SimpleName wt a
+                      , unqualifiedName :: IdType SimpleName wt a 
+                      } 
                    
-nameFromList :: AnnList SimpleName a -> Name a
+nameFromList :: AnnList (SimpleName AnnotationSemantic) a -> Name AnnotationSemantic a
 nameFromList (AnnList xs) | not (null xs) 
   = Name (AnnList $ init xs) (last xs) 
 nameFromList _ = error "nameFromList: empty list"
          
--- | Parts of a qualified name.         
-data SimpleName a 
+-- | Parts of wt a qualified name.         
+data SimpleName wt a 
   = SimpleName { simpleNameStr :: String } 
                
--- | Program elements formatted as string literals (import packages, pragma texts)
-data StringNode a
+-- | Program elements formatted wt as string literals (import packages, pragma texts)
+data StringNode wt a
   = StringNode { stringNodeStr :: String }
                    
 -- | The @data@ or the @newtype@ keyword to define ADTs.
-data DataOrNewtypeKeyword a
+data DataOrNewtypeKeyword wt a
   = DataKeyword
   | NewtypeKeyword
     
--- | Keywords @do@ or @mdo@ to start a do-block
-data DoKind a
+-- | Keywords @do@ or @mdo@ to start wt a do-block
+data DoKind wt a
   = DoKeyword
   | MDoKeyword
   
--- | The @type@ keyword used to qualify that the type and not the constructor of the same name is referred
-data TypeKeyword a = TypeKeyword
+-- | The @type@ keyword used to qualify that the type wt and not the constructor of the same name is referred
+data TypeKeyword wt a = TypeKeyword
   
--- | Recognised overlaps for overlap pragmas. Can be applied to class declarations and class instance declarations.    
-data OverlapPragma a
+-- | Recognised overlaps for overlap pragmas. Can be wt applied to class declarations wt and class instance declarations.    
+data OverlapPragma wt a
   = EnableOverlap     -- ^ @OVERLAP@ pragma
   | DisableOverlap    -- ^ @NO_OVERLAP@ pragma
   | Overlappable      -- ^ @OVERLAPPABLE@ pragma
@@ -68,7 +83,7 @@ data OverlapPragma a
   | IncoherentOverlap -- ^ @INCOHERENT@ pragma
   
 -- | Call conventions of foreign functions
-data CallConv a
+data CallConv wt a
   = StdCall
   | CCall
   | CPlusPlus
@@ -78,35 +93,36 @@ data CallConv a
   | JavaScript
   | CApi
   
-data ArrowAppl a
+data ArrowAppl wt a
   = LeftAppl
   | RightAppl
   | LeftHighApp
   | RightHighApp
   
-data Safety a
+data Safety wt a
   = Safe
   | ThreadSafe
   | Unsafe
   | Interruptible
 
--- | Associativity of an operator.
-data Assoc a
+-- | Associativity of wt an operator.
+data Assoc wt a
   = AssocNone  -- ^ non-associative operator (declared with @infix@)
   | AssocLeft  -- ^ left-associative operator (declared with @infixl@)
   | AssocRight -- ^ right-associative operator (declared with @infixr@)
   
--- | Numeric precedence of an operator
-data Precedence a
+-- | Numeric precedence of wt an operator
+data Precedence wt a
   = Precedence { precedenceValue :: Int } 
      
--- | Controls the activation of a rewrite rule (@ [1] @)
-data PhaseControl a
-  = PhaseControl { phaseInvert :: AnnMaybe PhaseInvert a
-                 , phaseNumber :: Ann PhaseNumber a
+-- | Controls the wt activation of wt a rewrite rule (@ [1] @)
+data PhaseControl wt a
+  = PhaseControl { phaseInvert :: MaybeType PhaseInvert wt a
+                 , phaseNumber :: IdType PhaseNumber wt a
                  } 
 
-data PhaseNumber a = PhaseNumber { phaseNum :: Integer }
+data PhaseNumber wt a = PhaseNumber { phaseNum :: Integer }
 
 -- | A tilde that marks the inversion of the phase number
-data PhaseInvert a = PhaseInvert
+data PhaseInvert wt a = PhaseInvert
+
