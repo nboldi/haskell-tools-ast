@@ -40,7 +40,7 @@ data ModulePragma wt a
   | OptionsPragma { opTool :: MaybeType Name wt a
                   , opStr  :: IdType    StringNode wt a
                   } -- ^ OPTIONS pragma, possibly qualified with wt a tool, e.g. OPTIONS_GHC
-  | AnnModulePragma { wt ampExpr  :: IdType Expr wt a } -- ^ ANN pragma with module scope
+  | AnnModulePragma { ampExpr  :: IdType Expr wt a } -- ^ ANN pragma with module scope
                       
 data ImportDecl wt a
   = ImportDecl { importQualified    :: MaybeType ImportQualified wt a

@@ -3,6 +3,8 @@
            , KindSignatures
            , MultiParamTypeClasses
            , FlexibleInstances
+           , UndecidableInstances
+           , TypeOperators
            #-}
 
 -- | Simple AST elements of Haskell
@@ -13,20 +15,46 @@ import Language.Haskell.Tools.AST.Ann
 data AnnotationSemantic = AnnotationSemantic
 data IdenticSemantic = IdenticSemantic
 
+data IdSem
+data ListSem
+data MaybeSem
+data a :> b
+infixr 5 :>
+
+type family PrimSemantic sem :: (* -> *) -> * -> *
+type instance PrimSemantic IdSem = Ann
+type instance PrimSemantic ListSem = AnnList
+type instance PrimSemantic MaybeSem = AnnMaybe
+
+type family StSem sem (elem :: * -> * -> *) info
+type instance StSem IdSem    elem info = (PrimSemantic IdSem)    (elem IdSem) info
+type instance StSem ListSem  elem info = (PrimSemantic ListSem)  (elem ListSem) info
+type instance StSem MaybeSem elem info = (PrimSemantic MaybeSem) (elem MaybeSem) info
+type instance StSem (a :> b) elem info = (PrimSemantic a) (StSem b elem info) info
+
 class StructuralSemantic sem (elem :: * -> * -> *) info where
     type IdType    elem sem info
     type ListType  elem sem info
     type MaybeType elem sem info
+    type ListMaybeType elem sem info
+    type MaybeListType elem sem info
+    type ListListType elem sem info
 
 instance StructuralSemantic AnnotationSemantic elem annot where
     type IdType    elem AnnotationSemantic annot = Ann      (elem AnnotationSemantic) annot
     type ListType  elem AnnotationSemantic annot = AnnList  (elem AnnotationSemantic) annot
     type MaybeType elem AnnotationSemantic annot = AnnMaybe (elem AnnotationSemantic) annot
+    type ListMaybeType elem AnnotationSemantic annot = AnnList (AnnMaybe (elem AnnotationSemantic)) annot
+    type MaybeListType elem AnnotationSemantic annot = AnnMaybe (AnnList (elem AnnotationSemantic)) annot
+    type ListListType  elem AnnotationSemantic annot = AnnList (AnnList (elem AnnotationSemantic)) annot
 
-instance StructuralSemantic IdenticSemantic elem annot where
-    type IdType    elem IdenticSemantic annot = Ann      (elem IdenticSemantic) annot
-    type ListType  elem IdenticSemantic annot = AnnList  (elem IdenticSemantic) annot
-    type MaybeType elem IdenticSemantic annot = AnnMaybe (elem IdenticSemantic) annot
+instance StructuralSemantic IdenticSemantic elem info where
+    type IdType    elem IdenticSemantic info = elem IdenticSemantic info
+    type ListType  elem IdenticSemantic info = [elem IdenticSemantic info]
+    type MaybeType elem IdenticSemantic info = Maybe (elem IdenticSemantic info)
+    type ListMaybeType elem IdenticSemantic info = [Maybe (elem IdenticSemantic info)]
+    type MaybeListType elem IdenticSemantic info = Maybe [elem IdenticSemantic info]
+    type ListListType  elem IdenticSemantic info = [[elem IdenticSemantic info]]
 
 data Box (typ :: (* -> * -> *) -> * -> * -> *) (elem :: * -> * -> *) sem a = Box { unBox :: typ elem sem a }
 

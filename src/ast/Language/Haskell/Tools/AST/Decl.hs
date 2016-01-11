@@ -186,7 +186,7 @@ data Deriving wt a
   
 -- | The instance declaration rule, which is, roughly, the part of the instance declaration before the where keyword.
 data InstanceRule wt a
-  = InstanceRule { irVars :: MaybeType (BoxListType TyVar) wt a
+  = InstanceRule { irVars :: MaybeListType TyVar wt a
                  , irCtx  :: MaybeType Context wt a
                  , irHead :: IdType    InstanceHead wt a
                  }
@@ -318,9 +318,9 @@ data Expr wt a
        } -- ^ Do-notation expressions (@ do x <- wt act1; wt act2 @)
   | Tuple { tupleElems :: ListType Expr wt a } -- ^ Tuple expression (@ (e1, e2, e3) @)
   | UnboxedTuple { tupleElems :: ListType Expr wt a } -- ^ Unboxed tuple expression (@ (# e1, e2, e3 #) @)
-  | TupleSection { tupleSectionElems :: ListType (MaybeType Expr) wt a }
+  | TupleSection { tupleSectionElems :: ListMaybeType Expr wt a }
     -- ^ Tuple section, enabled with @TupleSections@ (@ (a,,b) @)
-  | BoxedTupleSection { tupleSectionElems :: ListType (MaybeType Expr) wt a }
+  | BoxedTupleSection { tupleSectionElems :: ListMaybeType Expr wt a }
   | List { listElems :: ListType Expr wt a } -- ^ List expression: @[1,2,3]@
   | ParArray { listElems :: ListType Expr wt a } -- ^ Parallel wt array expression: @[: 1,2,3 :]@
   | Paren { exprInner :: IdType Expr wt a }
@@ -346,10 +346,10 @@ data Expr wt a
              , compBody :: ListType CompStmt wt a
              } -- ^ List comprehension (@  @)
   | ParListComp { compExpr    :: IdType   Expr wt a
-                , parCompBody :: ListType (ListType CompStmt) wt a
+                , parCompBody :: ListListType CompStmt wt a
                 } -- ^ Parallel list comprehension: @ [ (x, y) | x <- xs | y <- ys ] @
   | ParArrayComp { compExpr    :: IdType Expr wt a
-                 , parCompBody :: ListType (ListType CompStmt) wt a
+                 , parCompBody :: ListListType CompStmt wt a
                  } -- ^ List comprehension  
   | TypeSig { exprInner :: IdType Expr wt a
             , exprSig   :: IdType Type wt a

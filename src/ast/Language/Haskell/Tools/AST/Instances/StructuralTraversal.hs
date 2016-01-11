@@ -21,6 +21,7 @@ instance StructuralTraversable elem => StructuralTraversable (AnnMaybe elem) whe
 instance StructuralTraversable elem => StructuralTraversable (AnnList elem) where
   structTraverse desc asc f (AnnList ls) = AnnList <$> sequenceA (map (structTraverse desc asc f) ls)
 
+{-
 -- Modules
 deriveStructTrav ''Module
 deriveStructTrav ''ModuleHead
@@ -104,3 +105,4 @@ deriveStructTrav ''Precedence
 deriveStructTrav ''PhaseControl
 deriveStructTrav ''PhaseNumber
 deriveStructTrav ''PhaseInvert
+-}
