@@ -27,19 +27,11 @@ instance StructuralSemantic IdenticSemantic elem annot where
     type IdType    elem IdenticSemantic annot = Ann      (elem IdenticSemantic) annot
     type ListType  elem IdenticSemantic annot = AnnList  (elem IdenticSemantic) annot
     type MaybeType elem IdenticSemantic annot = AnnMaybe (elem IdenticSemantic) annot
-{-
-type family IdType wt a (elem :: * -> *) info
-type family ListType wt a (elem :: * -> *) info
-type family MaybeType wt a (elem :: * -> *) info
 
-type instance IdType AnnotationWrapper elem wt annot = Ann elem wt annot
-type instance ListType AnnotationWrapper elem wt annot = AnnList elem wt annot
-type instance MaybeType AnnotationWrapper elem wt annot = AnnMaybe elem wt annot
+data Box (typ :: (* -> * -> *) -> * -> * -> *) (elem :: * -> * -> *) sem a = Box { unBox :: typ elem sem a }
 
-type instance IdType IdWrapper elem wt annot = elem wt annot
-type instance ListType IdWrapper elem wt annot = elem wt annot
-type instance MaybeType IdWrapper elem wt annot = elem wt annot
--}
+data BoxListType (elem :: * -> * -> *) sem a = BoxListType { unBoxListType :: ListType elem sem a }
+
 
 -- | Possible qualified names. Contains wt also implicit names.
 -- Linear implicit parameter: @%x@. Non-linear implicit parameter: @?x@.

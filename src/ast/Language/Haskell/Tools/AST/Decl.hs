@@ -186,7 +186,7 @@ data Deriving wt a
   
 -- | The instance declaration rule, which is, roughly, the part of the instance declaration before the where keyword.
 data InstanceRule wt a
-  = InstanceRule { irVars :: MaybeType (ListType TyVar) wt a
+  = InstanceRule { irVars :: MaybeType (BoxListType TyVar) wt a
                  , irCtx  :: MaybeType Context wt a
                  , irHead :: IdType    InstanceHead wt a
                  }
