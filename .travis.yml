@@ -73,7 +73,7 @@ script:
  - cabal configure --enable-tests --enable-coverage -v2  # -v2 provides useful information for debugging
  - cabal build   # this builds all libraries and executables (including tests/benchmarks)
  - $HOME/.cabal/bin/run-cabal-test # use it instead of cabal test to tolerate some non-critical hpc errors
- - cat dist/test/*.log # display the log (TODO: if test fails)
+ - if [ ! $? == 0 ] ; then cat dist/test/*.log | echo; fi # display the log if test fails
  - cd ..
 
  - cabal install --force-reinstalls src/ast/dist/*-*.tar.gz
