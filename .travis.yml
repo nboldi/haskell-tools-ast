@@ -84,4 +84,5 @@ script:
 # EOF
 
 after_script:
+  - cd test
   - hpc-coveralls --repo-token=evVaJSdhT3mFWlBuNINeuXtLc86FXYFml haskell-tools-test
