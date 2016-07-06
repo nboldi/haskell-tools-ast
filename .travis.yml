@@ -63,14 +63,14 @@ install:
 # Here starts the actual work to be performed for the package under test;
 # any command which exits with a non-zero exit code causes the build to fail.
 script:
- - cd src/ast && cabal install && cabal check && cabal sdist && cd ../..
- - cd src/ast-trf && cabal install && cabal check && cabal sdist && cd ../..
- - cd src/ast-ppr && cabal install && cabal check && cabal sdist && cd ../..
- - cd src/ast-ghc && cabal install && cabal check && cabal sdist && cd ../..
- - cd src/ast-gen && cabal install && cabal check && cabal sdist && cd ../..
- - cd src/refactor && cabal install && cabal check && cabal sdist && cd ../..
+ - cd src/ast && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
+ - cd src/ast-trf && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
+ - cd src/ast-ppr && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
+ - cd src/ast-ghc && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
+ - cd src/ast-gen && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
+ - cd src/refactor && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
  - cd test
- - cabal configure --enable-tests -v2  # -v2 provides useful information for debugging
+ - cabal configure --enable-tests --enable-coverage -v2  # -v2 provides useful information for debugging
  - cabal build   # this builds all libraries and executables (including tests/benchmarks)
  - cabal test
  - cd ..
@@ -82,3 +82,6 @@ script:
  - cabal install --force-reinstalls src/ast-gen/dist/*-*.tar.gz
  - cabal install --force-reinstalls src/refactor/dist/*-*.tar.gz
 # EOF
+
+after_script:
+  - hpc-coveralls --repo-token=evVaJSdhT3mFWlBuNINeuXtLc86FXYFml haskell-tools-test
