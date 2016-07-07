@@ -76,6 +76,7 @@ script:
  - cd src/refactor && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
 
  # copy mix files to test dir for coverage
+ - mkdir test/.hpc
  - cp -r -v -t test/.hpc src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* 
  - cp -r -v -t test/.hpc src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
  - cp -r -v -t test/.hpc src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
