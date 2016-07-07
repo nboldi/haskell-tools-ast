@@ -89,7 +89,8 @@ script:
  - cd test
  - cabal configure --enable-tests --enable-coverage -v2  # -v2 provides useful information for debugging
  - cabal build   # this builds all libraries and executables (including tests/benchmarks)
- - mv -v -t dist/hpc/vanilla/mix/haskell-tools-test-* .hpc/* 
+ - ls dist/hpc/vanilla/mix/
+ # - mv -v -t dist/hpc/vanilla/mix/haskell-tools-test-* .hpc/* 
  - $HOME/.cabal/bin/run-cabal-test --log=/dev/stdout --show-details=streaming
  - cd ..
 
