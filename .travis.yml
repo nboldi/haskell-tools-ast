@@ -81,7 +81,7 @@ script:
  - cp -r -v -t test/.hpc src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
  - cp -r -v -t test/.hpc src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
  - cp -r -v -t test/.hpc src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -v -t test/.hpc src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -v -t test/.hpc src/ast-gen/dist/hpc/vanilla/mix/haskell-tools-*/*
  - cp -r -v -t test/.hpc src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/*
 
 
@@ -89,11 +89,7 @@ script:
  - cd test
  - cabal configure --enable-tests --enable-coverage -v2  # -v2 provides useful information for debugging
  - cabal build   # this builds all libraries and executables (including tests/benchmarks)
- - ls dist/hpc/vanilla/mix/
 
- - TEST_VERSION="$(cat haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
- - mkdir dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
- - mv -v -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION .hpc/* 
  - $HOME/.cabal/bin/run-cabal-test --log=/dev/stdout --show-details=streaming
  - cd ..
 
