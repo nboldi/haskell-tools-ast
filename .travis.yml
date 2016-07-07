@@ -76,12 +76,12 @@ script:
  - cd src/refactor && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
 
  # copy mix files to test dir for coverage
- - cp -r src/ast/dist/hpc/vanilla/mix/haskell-tools-*/haskell-tools-* test/.hpc
- - cp -r src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/haskell-tools-* test/.hpc
- - cp -r src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/haskell-tools-* test/.hpc
- - cp -r src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/haskell-tools-* test/.hpc
- - cp -r src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/haskell-tools-* test/.hpc
- - cp -r src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/haskell-tools-* test/.hpc
+ - cp -r -v src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* test/.hpc
+ - cp -r -v src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/* test/.hpc
+ - cp -r -v src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/* test/.hpc
+ - cp -r -v src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/* test/.hpc
+ - cp -r -v src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/* test/.hpc
+ - cp -r -v src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/* test/.hpc
 
  # run test
  - cd test
