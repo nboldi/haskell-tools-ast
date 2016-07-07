@@ -78,13 +78,12 @@ script:
  # copy mix files to test dir for coverage
  - TEST_VERSION="$(cat test/haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
  - mkdir -p dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
- - cp -r -v -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* 
- - cp -r -v -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -v -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -v -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -v -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-gen/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -v -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/*
-
+ - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* 
+ - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-gen/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/*
 
  # run test
  - cd test
