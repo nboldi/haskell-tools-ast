@@ -77,7 +77,7 @@ script:
 
  # copy mix files to test dir for coverage
  - TEST_VERSION="$(cat test/haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
- - mkdir -p dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
+ - mkdir -p test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
  - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* 
  - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
  - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
