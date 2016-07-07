@@ -78,12 +78,12 @@ script:
  # copy mix files to test dir for coverage
  - TEST_VERSION="$(cat test/haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
  - mkdir -p test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
- - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* 
- - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-gen/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -v -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* 
+ - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-gen/dist/hpc/vanilla/mix/haskell-tools-*/*
+ - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/*
 
  # run test
  - cd test
@@ -102,5 +102,6 @@ script:
 # EOF
 
 after_script:
+  - cp -v -r -t test/ src/ast/* src/ast-trf/* src/ast-ppr/* src/ast-ghc/* src/ast-gen/* src/refactor/*
   - cd test
   - $HOME/.cabal/bin/hpc-coveralls --exclude-dir=test --repo-token=evVaJSdhT3mFWlBuNINeuXtLc86FXYFml haskell-tools-test
