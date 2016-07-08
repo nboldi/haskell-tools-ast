@@ -79,7 +79,7 @@ script:
  - cd test
  - cabal configure --enable-coverage -v2  # -v2 provides useful information for debugging
  - cabal build
- - dist/build/haskell-tools-test-exec/haskell-tools-test-exec # run the tests as an executable (better for coverage)
+ - dist/build/haskell-tools-test/haskell-tools-test-exec # run the tests as an executable (better for coverage)
  - cd ..
 
  # check if generated tarballs are usable
@@ -98,8 +98,9 @@ after_script:
   - mkdir -p dist/hpc/vanilla/tix/haskell-tools-test-exec
   - mv -T haskell-tools-test-exec.tix dist/hpc/vanilla/tix/haskell-tools-test-exec/haskell-tools-test-exec.tix
 
-  # copy source files to dir for coverage
-  - SOURCE_ROOT=Language
-  - cp -v -r -t . ../src/*/$SOURCE_ROOT
+  # copy mix files to test dir for coverage
+  - TEST_VERSION="$(cat haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
+  - mkdir -p dist/hpc/vanilla/mix/haskell-tools-test-exec-$TEST_VERSION
+  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-exec-$TEST_VERSION ../src/*/dist/hpc/vanilla/mix/haskell-tools-*/*
 
   - $HOME/.cabal/bin/hpc-coveralls --exclude-dir=test --repo-token=evVaJSdhT3mFWlBuNINeuXtLc86FXYFml haskell-tools-test-exec
