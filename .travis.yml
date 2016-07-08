@@ -78,8 +78,8 @@ script:
  # run test
  - cd test
  - cabal configure --enable-coverage -v2  # -v2 provides useful information for debugging
- - cabal build   # this builds all libraries and executables (including tests/benchmarks)
- - dist/build/haskell-tools-test/haskell-tools-test # run the tests as an executable (better for coverage)
+ - cabal build
+ - dist/build/haskell-tools-test/haskell-tools-test-exec # run the tests as an executable (better for coverage)
  - cd ..
 
  # check if generated tarballs are usable
@@ -97,17 +97,7 @@ after_script:
   # move the tix file to where it will be expected
   - mkdir -p dist/hpc/vanilla/tix/haskell-tools-test
   - mv -T haskell-tools-test.tix dist/hpc/vanilla/tix/haskell-tools-test/haskell-tools-test.tix
-
-  # copy mix files to test dir for coverage
-  - TEST_VERSION="$(cat haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
-  - mkdir -p dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
-  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* 
-  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
-  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
-  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/*
-  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast-gen/dist/hpc/vanilla/mix/haskell-tools-*/*
-  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/*
-
+  
   # copy source files to dir for coverage
   - SOURCE_ROOT=Language
   - cp -v -r -t . ../src/*/$SOURCE_ROOT
