@@ -100,7 +100,7 @@ after_script:
 
   # copy mix files to test dir for coverage
   - TEST_VERSION="$(cat haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
-  - mkdir -p dist/hpc/vanilla/mix/haskell-tools-test-exec-$TEST_VERSION
-  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-exec-$TEST_VERSION ../src/*/dist/hpc/vanilla/mix/haskell-tools-*/*
+  - mkdir -p dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
+  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/*/dist/hpc/vanilla/mix/*/*
 
   - $HOME/.cabal/bin/hpc-coveralls --exclude-dir=test --repo-token=evVaJSdhT3mFWlBuNINeuXtLc86FXYFml haskell-tools-test-exec
