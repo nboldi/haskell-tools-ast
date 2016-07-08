@@ -75,25 +75,11 @@ script:
  - cd src/ast-gen && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
  - cd src/refactor && cabal install --enable-coverage && cabal check && cabal sdist && cd ../..
 
- # copy mix files to test dir for coverage
- - TEST_VERSION="$(cat test/haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
- - mkdir -p test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
- - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* 
- - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/ast-gen/dist/hpc/vanilla/mix/haskell-tools-*/*
- - cp -r -t test/dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/*
-
  # run test
  - cd test
- - cabal configure --enable-tests --enable-coverage -v2  # -v2 provides useful information for debugging
+ - cabal configure --enable-coverage -v2  # -v2 provides useful information for debugging
  - cabal build   # this builds all libraries and executables (including tests/benchmarks)
-
- - SOURCE_ROOT=Language
- - cp -v -r -t . ../src/*/$SOURCE_ROOT
-
- - $HOME/.cabal/bin/run-cabal-test --log=/dev/stdout --show-details=streaming
+ - $HOME/.cabal/bin/haskell-tools-test # run the tests as an executable (better for coverage)
  - cd ..
 
  # check if generated tarballs are usable
@@ -107,4 +93,19 @@ script:
 
 after_script:
   - cd test
+
+  # copy mix files to test dir for coverage
+  - TEST_VERSION="$(cat haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
+  - mkdir -p dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
+  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast/dist/hpc/vanilla/mix/haskell-tools-*/* 
+  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast-trf/dist/hpc/vanilla/mix/haskell-tools-*/*
+  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast-ppr/dist/hpc/vanilla/mix/haskell-tools-*/*
+  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast-ghc/dist/hpc/vanilla/mix/haskell-tools-*/*
+  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/ast-gen/dist/hpc/vanilla/mix/haskell-tools-*/*
+  - cp -r -t dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION ../src/refactor/dist/hpc/vanilla/mix/haskell-tools-*/*
+
+  # copy source files to dir for coverage
+  - SOURCE_ROOT=Language
+  - cp -v -r -t . ../src/*/$SOURCE_ROOT
+
   - $HOME/.cabal/bin/hpc-coveralls --exclude-dir=test --repo-token=evVaJSdhT3mFWlBuNINeuXtLc86FXYFml haskell-tools-test
