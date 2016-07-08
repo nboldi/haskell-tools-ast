@@ -89,6 +89,9 @@ script:
  - cd test
  - cabal configure --enable-tests --enable-coverage -v2  # -v2 provides useful information for debugging
  - cabal build   # this builds all libraries and executables (including tests/benchmarks)
+
+ - cp -v -r -t . ../src/ast/* ../src/ast-trf/* ../src/ast-ppr/* ../src/ast-ghc/* ../src/ast-gen/* ../src/refactor/*
+
  - $HOME/.cabal/bin/run-cabal-test --log=/dev/stdout --show-details=streaming
  - cd ..
 
@@ -102,6 +105,5 @@ script:
 # EOF
 
 after_script:
-  - cp -v -r -t test/ src/ast/* src/ast-trf/* src/ast-ppr/* src/ast-ghc/* src/ast-gen/* src/refactor/*
   - cd test
   - $HOME/.cabal/bin/hpc-coveralls --exclude-dir=test --repo-token=evVaJSdhT3mFWlBuNINeuXtLc86FXYFml haskell-tools-test
