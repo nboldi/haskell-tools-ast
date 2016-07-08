@@ -106,7 +106,7 @@ after_script:
   # copy source files to dir for coverage
 
   - CATEGORY="$(cat haskell-tools-test.cabal | sed -n 's/^category:[ \n]*\([a-zA-Z]*\)/\1/p')"
-  - cp -v -r -t . ../src/*/$CATEGORY
+  - cp -r -t . ../src/*/$CATEGORY
 
   # send coveralls report
   - $HOME/.cabal/bin/hpc-coveralls --exclude-dir=test --repo-token=evVaJSdhT3mFWlBuNINeuXtLc86FXYFml haskell-tools-test-exec
