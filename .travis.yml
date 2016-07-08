@@ -94,6 +94,9 @@ script:
 after_script:
   - cd test
 
+  # move the tix file to where it will be expected
+  - mv haskell-tools-test.tix dist/hpc/vanilla/tix/haskell-tools-test/haskell-tools-test.tix
+
   # copy mix files to test dir for coverage
   - TEST_VERSION="$(cat haskell-tools-test.cabal | sed -n 's/^version:[ \n]*\([0-9.]*\)/\1/p')"
   - mkdir -p dist/hpc/vanilla/mix/haskell-tools-test-$TEST_VERSION
