@@ -34,7 +34,6 @@ import Language.Haskell.Tools.Refactor.GenerateExports
 import Language.Haskell.Tools.Refactor.RenameDefinition
 import Language.Haskell.Tools.Refactor.ExtractBinding
 import Language.Haskell.Tools.Refactor.RefactorBase
-import Language.Haskell.Tools.Refactor.ASTDebug
 
 main :: IO ()
 main = run nightlyTests
@@ -60,7 +59,6 @@ unitTests = map makeReprintTest checkTestCases
               ++ map makeExtractBindingTest extractBindingTests
               ++ map makeWrongExtractBindingTest wrongExtractBindingTests
               ++ map makeMultiModuleTest multiModuleTests
-              ++ map makeASTDebugTest astDebugTests
   where checkTestCases = languageTests 
                           ++ organizeImportTests 
                           ++ map fst generateSignatureTests 
@@ -281,27 +279,6 @@ multiModuleTests =
   , ("RenameDefinition 5:1-5:5 exprSplice", "Define", "Refactor/RenameDefinition/SpliceExpr", [])
   , ("RenameDefinition 6:1-6:4 spliceTyp", "Define", "Refactor/RenameDefinition/SpliceType", [])
   ]
-
-astDebugTests =
-  [ ("ASTDebug.Name", (\case NameInfoType {} -> True; _ -> False))
-  , ("ASTDebug.Name", (\case ExprInfoType {} -> True; _ -> False))
-  , ("ASTDebug.Expr", (\case ExprInfoType {} -> True; _ -> False))
-  , ("ASTDebug.Simple", (\case ModuleInfoType {} -> True; _ -> False))
-  , ("ASTDebug.Import", (\case ImportInfoType {} -> True; _ -> False))
-  , ("ASTDebug.ImplicitFldCreate", (\case ImplicitFieldInfoType {} -> True; _ -> False))
-  , ("ASTDebug.ImplicitFldExtract", (\case ImplicitFieldInfoType {} -> True; _ -> False))
-  ]
-   
-makeASTDebugTest :: (String, SemanticInfoType IdDom -> Bool) -> Test
-makeASTDebugTest (mod, check)
-  = TestLabel mod $ TestCase $ 
-      do modul <- runGhc (Just libdir) (parseTyped =<< loadModule rootDir mod)
-         let semaInfos = concatMap flattenDebugNode (astDebug' modul)
-         assertBool "The searched semantic element is not found" (any check semaInfos)
-
-flattenDebugNode :: DebugNode dom -> [SemanticInfoType dom]
-flattenDebugNode (TreeNode _ (TreeDebugNode _ sema more)) = sema : concatMap flattenDebugNode more
-flattenDebugNode _ = []
 
 makeMultiModuleTest :: (String, String, String, [String]) -> Test
 makeMultiModuleTest (refact, mod, root, removed)
