@@ -64,5 +64,9 @@ mkSimpleName :: String -> Ann QualifiedName dom SrcTemplateStage
 mkSimpleName n = mkAnn (child <> child) 
                        (QualifiedName emptyList (mkAnn (fromString n) (UnqualName n)))
 
+mkStringNode :: String -> Ann StringNode dom SrcTemplateStage
+mkStringNode s = mkAnn (fromString s) (StringNode s)
+
 mkModuleName :: String -> Ann ModuleName dom SrcTemplateStage
 mkModuleName s = mkAnn (fromString s) (ModuleName s)
+
