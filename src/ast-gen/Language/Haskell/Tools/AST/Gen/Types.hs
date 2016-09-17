@@ -64,6 +64,9 @@ mkTyKinded t k = mkAnn (child <> " :: " <> child) (TyKinded t k)
 mkTyBang :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyBang = mkAnn ("!" <> child) . TyBang
 
+mkTyLazy :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyLazy = mkAnn ("~" <> child) . TyLazy
+
 mkTyUnpack :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyUnpack = mkAnn ("{-# UNPACK #-} " <> child) . TyUnpack
 
