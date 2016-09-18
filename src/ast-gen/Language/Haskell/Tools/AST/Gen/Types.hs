@@ -19,11 +19,11 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
 -- * Generation of types
 
-mkTyForall :: AnnList TyVar dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
-mkTyForall vars t = mkAnn ("forall " <> child <> " ." <> child <> " " <> child) (TyForall vars t)
+mkTyForall :: [Ann TyVar dom SrcTemplateStage] -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyForall vars t = mkAnn ("forall " <> child <> " . " <> child) (TyForall (mkAnnList (listSep " ") vars) t)
 
-mkTypeVarList :: [GHC.Name] -> AnnList TyVar dom SrcTemplateStage
-mkTypeVarList ls = mkAnnList (listSep " ") (map (mkTypeVar . mkUnqualName') ls)
+mkTypeVar' :: GHC.Name -> Ann TyVar dom SrcTemplateStage
+mkTypeVar' = mkTypeVar . mkUnqualName'
 
 mkTyCtx :: Ann Context dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyCtx ctx t = mkAnn (child <> " " <> child) (TyCtx ctx t)

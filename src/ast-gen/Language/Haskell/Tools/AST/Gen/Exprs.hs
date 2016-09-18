@@ -27,7 +27,7 @@ mkInfixApp :: Ann Expr dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage
 mkInfixApp lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ InfixApp lhs op rhs
 
 mkPrefixApp :: Ann Operator dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
-mkPrefixApp op rhs = mkAnn (child <> " " <> child) $ PrefixApp op rhs
+mkPrefixApp op rhs = mkAnn (child <> child) $ PrefixApp op rhs
 
 mkApp :: Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
 mkApp f e = mkAnn (child <> " " <> child) (App f e)
@@ -42,22 +42,22 @@ mkIf :: Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Ex
 mkIf cond then_ else_ = mkAnn ("if " <> child <> " then " <> child <> " else " <> child) $ If cond then_ else_
 
 mkMultiIf :: [Ann GuardedCaseRhs dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
-mkMultiIf cases = mkAnn ("if " <> child) $ MultiIf (mkAnnList indentedList cases)
+mkMultiIf cases = mkAnn ("if" <> child) $ MultiIf (mkAnnList indentedList cases)
 
 mkCase :: Ann Expr dom SrcTemplateStage -> [Ann Alt dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
 mkCase expr cases = mkAnn ("case " <> child <> " of " <> child) $ Case expr (mkAnnList indentedList cases)
 
 mkDoBlock :: [Ann Stmt dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
-mkDoBlock stmts = mkAnn ("case " <> child <> " of " <> child) $ Do (mkAnn "do" DoKeyword) (mkAnnList indentedList stmts)
+mkDoBlock stmts = mkAnn (child <> " " <> child) $ Do (mkAnn "do" DoKeyword) (mkAnnList indentedList stmts)
 
 mkTuple :: [Ann Expr dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
-mkTuple exprs = mkAnn ("( " <> child <> " )") $ Tuple (mkAnnList (listSep ", ") exprs)
+mkTuple exprs = mkAnn ("(" <> child <> ")") $ Tuple (mkAnnList (listSep ", ") exprs)
 
 mkUnboxedTuple :: [Ann Expr dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
 mkUnboxedTuple exprs = mkAnn ("(# " <> child <> " #)") $ Tuple (mkAnnList (listSep ", ") exprs)
 
 mkList :: [Ann Expr dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
-mkList exprs = mkAnn ("[ " <> child <> " ]") $ List (mkAnnList (listSep ", ") exprs)
+mkList exprs = mkAnn ("[" <> child <> "]") $ List (mkAnnList (listSep ", ") exprs)
 
 mkParen :: Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
 mkParen = mkAnn ("(" <> child <> ")") . Paren
@@ -69,10 +69,10 @@ mkRightSection :: Ann Operator dom SrcTemplateStage -> Ann Expr dom SrcTemplateS
 mkRightSection op rhs = mkAnn ("(" <> child <> child <> ")") $ RightSection op rhs
 
 mkRecCon :: Ann Name dom SrcTemplateStage -> [Ann FieldUpdate dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
-mkRecCon name flds = mkAnn (child <> "{ " <> child <> " }") $ RecCon name (mkAnnList (listSep ", ") flds)
+mkRecCon name flds = mkAnn (child <> " { " <> child <> " }") $ RecCon name (mkAnnList (listSep ", ") flds)
 
 mkRecUpdate :: Ann Expr dom SrcTemplateStage -> [Ann FieldUpdate dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
-mkRecUpdate expr flds = mkAnn (child <> "{ " <> child <> " }") $ RecUpdate expr (mkAnnList (listSep ", ") flds)
+mkRecUpdate expr flds = mkAnn (child <> " { " <> child <> " }") $ RecUpdate expr (mkAnnList (listSep ", ") flds)
 
 mkEnum :: Ann Expr dom SrcTemplateStage -> Maybe (Ann Expr dom SrcTemplateStage) -> Maybe (Ann Expr dom SrcTemplateStage) -> Ann Expr dom SrcTemplateStage
 mkEnum from step to = mkAnn ("[" <> child <> child <> ".." <> child <> "]") $ Enum from (mkAnnMaybe (optBefore ",") step) (mkAnnMaybe (optBefore ",") to)

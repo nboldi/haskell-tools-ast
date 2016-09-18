@@ -30,13 +30,13 @@ mkAppPat :: Ann Name dom SrcTemplateStage -> [Ann Pattern dom SrcTemplateStage] 
 mkAppPat n pat = mkAnn (child <> child) $ AppPat n (mkAnnList (listSepBefore " " " ") pat)
 
 mkTuplePat :: [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
-mkTuplePat pats = mkAnn ("( " <> child <> " )") $ TuplePat (mkAnnList (listSep ", ") pats)
+mkTuplePat pats = mkAnn ("(" <> child <> ")") $ TuplePat (mkAnnList (listSep ", ") pats)
 
 mkUnboxedTuplePat :: [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
 mkUnboxedTuplePat pats = mkAnn ("(# " <> child <> " #)") $ UnboxTuplePat (mkAnnList (listSep ", ") pats)
 
 mkListPat :: [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
-mkListPat pats = mkAnn ("[ " <> child <> " ]") $ ListPat (mkAnnList (listSep ", ") pats)
+mkListPat pats = mkAnn ("[" <> child <> "]") $ ListPat (mkAnnList (listSep ", ") pats)
 
 mkParenPat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
 mkParenPat = mkAnn ("(" <> child <> ")") . ParenPat

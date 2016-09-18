@@ -12,16 +12,23 @@ import Data.String
 import Data.Function (on)
 import Control.Reference
 import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.AST.Gen.Patterns
 import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.AST.Gen.Base
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
+mkSimpleBind' :: Ann Name dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann ValueBind dom SrcTemplateStage
+mkSimpleBind' n e = mkSimpleBind (mkVarPat n) (mkUnguardedRhs e) Nothing
+
 mkSimpleBind :: Ann Pattern dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage -> Maybe (Ann LocalBinds dom SrcTemplateStage) -> Ann ValueBind dom SrcTemplateStage
-mkSimpleBind p r l = mkAnn (child <> child <> child) (SimpleBind p r (mkAnnMaybe (optBefore " ") l))
+mkSimpleBind p r l = mkAnn (child <> child <> child) (SimpleBind p r (mkAnnMaybe opt l))
 
 mkFunctionBind :: [Ann Match dom SrcTemplateStage] -> Ann ValueBind dom SrcTemplateStage
 mkFunctionBind = mkAnn child . FunBind . mkAnnList indentedList
+
+mkFunctionBind' :: Ann Name dom SrcTemplateStage -> [([Ann Pattern dom SrcTemplateStage], Ann Expr dom SrcTemplateStage)] -> Ann ValueBind dom SrcTemplateStage
+mkFunctionBind' name matches = mkFunctionBind $ map (\(args, rhs) -> mkMatch (mkNormalMatchLhs name args) (mkUnguardedRhs rhs) Nothing) matches
 
 mkMatch :: Ann MatchLhs dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage -> Maybe (Ann LocalBinds dom SrcTemplateStage) -> Ann Match dom SrcTemplateStage
 mkMatch lhs rhs locs 
@@ -38,6 +45,9 @@ mkInfixMatchLhs lhs op rhs pats = mkAnn (child <> child <> child <> child) $ Inf
 mkLocalBinds :: Int -> [Ann LocalBind dom SrcTemplateStage] -> AnnMaybe LocalBinds dom SrcTemplateStage
 mkLocalBinds col = mkAnnMaybe (optBefore ("\n" ++ replicate (col - 1) ' ' ++ "where ")) 
                      . Just . mkAnn child . LocalBinds . mkAnnList indentedList
+
+mkLocalBinds' :: [Ann LocalBind dom SrcTemplateStage] -> Ann LocalBinds dom SrcTemplateStage
+mkLocalBinds' = mkAnn (" where " <> child) . LocalBinds . mkAnnList indentedList
 
 mkLocalValBind :: Ann ValueBind dom SrcTemplateStage -> Ann LocalBind dom SrcTemplateStage
 mkLocalValBind = mkAnn child . LocalValBind
