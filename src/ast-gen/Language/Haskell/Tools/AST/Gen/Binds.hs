@@ -32,7 +32,7 @@ mkFunctionBind' name matches = mkFunctionBind $ map (\(args, rhs) -> mkMatch (mk
 
 mkMatch :: Ann MatchLhs dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage -> Maybe (Ann LocalBinds dom SrcTemplateStage) -> Ann Match dom SrcTemplateStage
 mkMatch lhs rhs locs 
-  = mkAnn (child <> child <> child) 
+  = mkAnn (child <> " " <> child <> child) 
       $ Match lhs rhs (mkAnnMaybe (optBefore " ") locs)
 
 mkNormalMatchLhs :: Ann Name dom SrcTemplateStage -> [Ann Pattern dom SrcTemplateStage] -> Ann MatchLhs dom SrcTemplateStage
@@ -80,7 +80,7 @@ mkGuardedRhss :: [Ann GuardedRhs dom SrcTemplateStage] -> Ann Rhs dom SrcTemplat
 mkGuardedRhss = mkAnn child . GuardedRhss . mkAnnList indentedList
 
 mkGuardedRhs :: [Ann RhsGuard dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage -> Ann GuardedRhs dom SrcTemplateStage
-mkGuardedRhs guards expr = mkAnn ("| " <> child <> child) $ GuardedRhs (mkAnnList (listSep ", ") guards) expr
+mkGuardedRhs guards expr = mkAnn ("| " <> child <> " = " <> child) $ GuardedRhs (mkAnnList (listSep ", ") guards) expr
 
 mkGuardBind :: Ann Pattern dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann RhsGuard dom SrcTemplateStage
 mkGuardBind pat expr = mkAnn (child <> " <- " <> child) $ GuardBind pat expr

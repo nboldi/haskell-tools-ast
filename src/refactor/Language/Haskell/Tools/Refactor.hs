@@ -102,11 +102,11 @@ initGhcFlags = do
 
 -- | Translates module name and working directory into the name of the file where the given module should be defined
 toFileName :: String -> String -> FilePath
-toFileName workingDir mod = workingDir </> map (\case '.' -> pathSeparator; c -> c) mod ++ ".hs"
+toFileName workingDir mod = normalise $ workingDir </> map (\case '.' -> pathSeparator; c -> c) mod ++ ".hs"
 
 -- | Translates module name and working directory into the name of the file where the boot module should be defined
 toBootFileName :: String -> String -> FilePath
-toBootFileName workingDir mod = workingDir </> map (\case '.' -> pathSeparator; c -> c) mod ++ ".hs-boot"
+toBootFileName workingDir mod = normalise $ workingDir </> map (\case '.' -> pathSeparator; c -> c) mod ++ ".hs-boot"
 
 -- | Load the summary of a module given by the working directory and module name.
 loadModule :: String -> String -> Ghc ModSummary

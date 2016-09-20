@@ -44,8 +44,8 @@ type LocalRefactoring dom = UnnamedModule dom -> LocalRefactor dom (UnnamedModul
 type Refactoring dom = ModuleDom dom -> [ModuleDom dom] -> Refactor [RefactorChange dom]
 
 -- | Change in the project, modification or removal of a module.
-data RefactorChange dom = ContentChanged (ModuleDom dom)
-                        | ModuleRemoved String
+data RefactorChange dom = ContentChanged { fromContentChanged :: (ModuleDom dom) }
+                        | ModuleRemoved { removedModuleName :: String }
 
 -- | Performs the given refactoring, transforming it into a Ghc action
 runRefactor :: (SemanticInfo' dom SameInfoModuleCls ~ ModuleInfo n) 
