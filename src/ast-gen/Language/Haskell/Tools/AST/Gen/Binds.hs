@@ -32,7 +32,7 @@ mkFunctionBind' name matches = mkFunctionBind $ map (\(args, rhs) -> mkMatch (mk
 
 mkMatch :: Ann MatchLhs dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage -> Maybe (Ann LocalBinds dom SrcTemplateStage) -> Ann Match dom SrcTemplateStage
 mkMatch lhs rhs locs 
-  = mkAnn (child <> " " <> child <> child) 
+  = mkAnn (child <> child <> child) 
       $ Match lhs rhs (mkAnnMaybe (optBefore " ") locs)
 
 mkNormalMatchLhs :: Ann Name dom SrcTemplateStage -> [Ann Pattern dom SrcTemplateStage] -> Ann MatchLhs dom SrcTemplateStage

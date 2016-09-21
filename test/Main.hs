@@ -37,7 +37,8 @@ import Language.Haskell.Tools.Refactor.ExtractBinding
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 main :: IO ()
-main = run nightlyTests
+main = run functionalTests
+--main = run nightlyTests
 
 run :: [Test] -> IO ()
 run tests = do results <- runTestTT $ TestList tests
@@ -54,7 +55,7 @@ unitTests :: [Test]
 unitTests = genTests ++ functionalTests
 
 functionalTests :: [Test]
-functionalTests = map makeReprintTest checkTestCases
+functionalTests = {- map makeReprintTest checkTestCases
               ++ map makeOrganizeImportsTest organizeImportTests
               ++ map makeGenerateSignatureTest generateSignatureTests
               ++ map makeGenerateExportsTest generateExportsTests
@@ -62,7 +63,7 @@ functionalTests = map makeReprintTest checkTestCases
               ++ map makeWrongRenameDefinitionTest wrongRenameDefinitionTests
               ++ map makeExtractBindingTest extractBindingTests
               ++ map makeWrongExtractBindingTest wrongExtractBindingTests
-              ++ map makeMultiModuleTest multiModuleTests
+              ++ -} map makeMultiModuleTest multiModuleTests
   where checkTestCases = languageTests 
                           ++ organizeImportTests 
                           ++ map fst generateSignatureTests 
@@ -276,12 +277,12 @@ wrongExtractBindingTests =
   ]
 
 multiModuleTests =
-  [ ("RenameDefinition 5:5-5:6 bb", "A", "Refactor/RenameDefinition/MultiModule", [])
-  , ("RenameDefinition 1:8-1:9 C", "B", "Refactor/RenameDefinition/RenameModule", ["B"])
-  , ("RenameDefinition 3:8-3:9 C", "A", "Refactor/RenameDefinition/RenameModule", ["B"])
-  , ("RenameDefinition 6:1-6:9 hello", "Use", "Refactor/RenameDefinition/SpliceDecls", [])
-  , ("RenameDefinition 5:1-5:5 exprSplice", "Define", "Refactor/RenameDefinition/SpliceExpr", [])
-  , ("RenameDefinition 6:1-6:4 spliceTyp", "Define", "Refactor/RenameDefinition/SpliceType", [])
+  [ ("RenameDefinition 5:5-5:6 bb", "A", "Refactor" </> "RenameDefinition" </> "MultiModule", [])
+  , ("RenameDefinition 1:8-1:9 C", "B", "Refactor" </> "RenameDefinition" </> "RenameModule", ["B"])
+  , ("RenameDefinition 3:8-3:9 C", "A", "Refactor" </> "RenameDefinition" </> "RenameModule", ["B"])
+  , ("RenameDefinition 6:1-6:9 hello", "Use", "Refactor" </> "RenameDefinition" </> "SpliceDecls", [])
+  , ("RenameDefinition 5:1-5:5 exprSplice", "Define", "Refactor" </> "RenameDefinition" </> "SpliceExpr", [])
+  , ("RenameDefinition 6:1-6:4 spliceTyp", "Define", "Refactor" </> "RenameDefinition" </> "SpliceType", [])
   ]
 
 makeMultiModuleTest :: (String, String, String, [String]) -> Test
