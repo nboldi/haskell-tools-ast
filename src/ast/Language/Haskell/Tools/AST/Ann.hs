@@ -300,6 +300,9 @@ isAnnJust :: AnnMaybe e d s -> Bool
 isAnnJust (AnnMaybe _ (Just _)) = True
 isAnnJust (AnnMaybe _ _) = False
 
+annLength :: AnnList e d s -> Int
+annLength (AnnList _ ls) = length ls
+
 -- | A non-existing AST part
 annNothing :: NodeInfo (SemanticInfo d (AnnMaybe e)) (OptionalInfo s) -> AnnMaybe e d s
 annNothing a = AnnMaybe a Nothing

@@ -190,3 +190,13 @@ makeReferences ''RefactorSessionState
 
 initSession :: RefactorSessionState
 initSession = RefactorSessionState Map.empty Nothing False
+
+tryRefactor :: Refactoring IdDom -> String -> IO ()
+tryRefactor refact moduleName 
+  = runGhc (Just libdir) $ do
+      initGhcFlags
+      useDirs ["."]
+      mod <- loadModule "." moduleName >>= parseTyped
+      res <- runRefactor (toFileName "." moduleName, mod) [] refact 
+      case res of Right r -> liftIO $ mapM_ (putStrLn . prettyPrint . snd . fromContentChanged) r
+                  Left err -> liftIO $ putStrLn err

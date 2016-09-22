@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, FlexibleContexts, TupleSections, ViewPatterns #-}
+{-# LANGUAGE RankNTypes, FlexibleContexts, ViewPatterns #-}
 module Language.Haskell.Tools.Refactor.IfToGuards (ifToGuards) where
 
 import Language.Haskell.Tools.AST
@@ -10,7 +10,6 @@ import SrcLoc
 import Data.Generics.Uniplate.Data
 
 import Language.Haskell.Tools.Refactor
-import Language.Haskell.Tools.Debug
 
 tryItOut moduleName sp = tryRefactor (localRefactoring $ ifToGuards (readSrcSpan (toFileName "." moduleName) sp)) moduleName
 

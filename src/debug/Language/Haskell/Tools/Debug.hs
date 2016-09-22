@@ -27,17 +27,6 @@ import Language.Haskell.Tools.RangeDebug.Instances
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.RefactorBase
 
-
-tryRefactor :: Refactoring IdDom -> String -> IO ()
-tryRefactor refact moduleName 
-  = runGhc (Just libdir) $ do
-      initGhcFlags
-      useDirs ["."]
-      mod <- loadModule "." moduleName >>= parseTyped
-      res <- runRefactor (toFileName "." moduleName, mod) [] refact 
-      case res of Right r -> liftIO $ mapM_ (putStrLn . prettyPrint . snd . fromContentChanged) r
-                  Left err -> liftIO $ putStrLn err
-
 -- | Should be only used for testing
 demoRefactor :: String -> String -> [String] -> String -> IO ()
 demoRefactor command workingDir args moduleName = 
