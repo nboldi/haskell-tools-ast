@@ -6,12 +6,13 @@
            #-}
 module Language.Haskell.Tools.AST.SemaInfoTypes where
 
-import Name
-import Id
-import Module
-import SrcLoc
-import RdrName
-import Outputable
+import Name as GHC
+import BasicTypes as GHC
+import Id as GHC
+import Module as GHC
+import SrcLoc as GHC
+import RdrName as GHC
+import Outputable as GHC
 
 import Data.List
 import Data.Data
@@ -53,6 +54,7 @@ data NameInfo n = NameInfo { _nameScopedLocals :: Scope
 data CNameInfo = CNameInfo { _cnameScopedLocals :: Scope
                            , _cnameIsDefined :: Bool
                            , _cnameInfo :: Id
+                           , _cnameFixity :: Maybe GHC.Fixity
                            }
   deriving (Eq, Data)
 
@@ -84,7 +86,7 @@ instance Outputable n => Show (NameInfo n) where
   show (ImplicitNameInfo locals defined nameInfo span) = "(ImplicitNameInfo " ++ showSDocUnsafe (ppr locals) ++ " " ++ show defined ++ " " ++ showSDocUnsafe (ppr nameInfo) ++ " " ++ show span ++ ")"
 
 instance Show CNameInfo where
-  show (CNameInfo locals defined nameInfo) = "(CNameInfo " ++ showSDocUnsafe (ppr locals) ++ " " ++ show defined ++ " " ++ showSDocUnsafe (ppr nameInfo) ++ ")"
+  show (CNameInfo locals defined nameInfo fixity) = "(CNameInfo " ++ showSDocUnsafe (ppr locals) ++ " " ++ show defined ++ " " ++ showSDocUnsafe (ppr nameInfo) ++ showSDocUnsafe (ppr fixity) ++ ")"
 
 instance Outputable n => Show (ModuleInfo n) where
   show (ModuleInfo mod isboot imp) = "(ModuleInfo " ++ showSDocUnsafe (ppr mod) ++ " " ++ show isboot ++ " " ++ showSDocUnsafe (ppr imp) ++ ")"
