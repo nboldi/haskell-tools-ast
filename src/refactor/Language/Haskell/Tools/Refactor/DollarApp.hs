@@ -1,18 +1,21 @@
-{-# LANGUAGE RankNTypes, FlexibleContexts, ViewPatterns, TypeApplications, ScopedTypeVariables, ConstraintKinds #-}
+{-# LANGUAGE RankNTypes, FlexibleContexts, ViewPatterns, TypeApplications, ScopedTypeVariables, ConstraintKinds, TypeFamilies #-}
 module Language.Haskell.Tools.Refactor.DollarApp (dollarApp) where
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Gen
 import Language.Haskell.Tools.Refactor.RefactorBase
 
+import GHC
 import Control.Reference hiding (element)
 import SrcLoc
 import PrelNames
 import Outputable
 import Data.Generics.Uniplate.Data
 import BasicTypes as GHC
+import MkId as GHC
 
 import Language.Haskell.Tools.Refactor
+import Language.Haskell.Tools.Refactor.RefactorBase
 --
 import Control.Monad.State
 
@@ -83,6 +86,41 @@ parenDollar3 expr@(e -> InfixApp _ _ arg)
          then return $ mkParen expr
          else return expr
 parenDollar3 e = return e
+
+----------------------------------------------------------------------------------
+
+tryItOut4 moduleName sp = tryRefactor (localRefactoring $ dollarApp4 (readSrcSpan (toFileName "." moduleName) sp)) moduleName
+
+type DollarRefactor2 dom = ( Domain dom, HasNameInfo (SemanticInfo dom QualifiedName), HasFixityInfo (SemanticInfo dom QualifiedName)
+                           , SemanticInfo' dom SameInfoImportCls ~ ImportInfo Id)
+
+dollarApp4 :: forall dom . DollarRefactor2 dom => RealSrcSpan -> LocalRefactoring dom
+dollarApp4 sp = flip evalStateT [] . ((nodesContained sp !~ replaceExpr4) >=> (biplateRef !~ parenExpr4 @_ @dom))
+
+replaceExpr4 :: DollarRefactor2 dom => Ann Expr dom SrcTemplateStage -> StateT [SrcSpan] (LocalRefactor dom) (Ann Expr dom SrcTemplateStage)
+replaceExpr4 expr@(e -> App fun (e -> Paren (e -> InfixApp _ op _))) 
+  | sema <- (op ^. element&operatorName&semantics) 
+  , fmap getUnique (semanticsName sema) /= Just dollarIdKey 
+      && (case semanticsFixity sema of Just (GHC.Fixity _ p _) | p > 0 -> False; _ -> True)
+  = return expr
+replaceExpr4 expr@(e -> App fun (e -> Paren arg)) 
+  = do modify (getRange arg :)
+       lift $ mkInfixApp fun <$> referenceOperator dollarId <*> pure arg
+replaceExpr4 expr = return expr
+
+
+parenExpr4 :: Monad m => Ann Expr dom SrcTemplateStage -> StateT [SrcSpan] m (Ann Expr dom SrcTemplateStage)
+parenExpr4 e = (element&exprLhs !~ parenDollar4) =<< (element&exprRhs !~ parenDollar4 $ e)
+
+parenDollar4 :: Monad m => Ann Expr dom SrcTemplateStage -> StateT [SrcSpan] m (Ann Expr dom SrcTemplateStage)
+parenDollar4 expr@(e -> InfixApp _ _ arg) 
+  = do replacedRanges <- get
+       if getRange arg `elem` replacedRanges 
+         then return $ mkParen expr
+         else return expr
+parenDollar4 e = return e
+
+[dollarId] = filter ((dollarIdKey==) . getUnique) wiredInIds
 
 --------------------------------------------------------------------------------
 

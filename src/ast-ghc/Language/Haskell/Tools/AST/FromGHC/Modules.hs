@@ -82,7 +82,10 @@ addTypeInfos bnds mod = do
   ut <- liftIO mkUnknownType
   let getType = getType' ut
   fixities <- getFixities
-  let createCName sc def id = CNameInfo sc def id (if any (any ((getOccName id ==) . getOccName)) (init sc) then Nothing else List.lookup (getOccName id) fixities)
+  let createCName sc def id = CNameInfo sc def id fixity
+        where fixity = if any (any ((getOccName id ==) . getOccName)) (init sc) 
+                          then Nothing 
+                          else fmap (snd . snd) $ List.find (\(mod,(occ,_)) -> mod == (nameModule $ varName id) && occ == getOccName id) fixities
   evalStateT (semaTraverse 
     (AST.SemaTrf
       (\case (NameInfo sc def ni) -> lift $ createCName sc def <$> getType ni 
@@ -110,12 +113,12 @@ addTypeInfos bnds mod = do
           tUnique <- mkSplitUniqSupply 'x'
           return $ mkTyVarTy $ mkVanillaGlobal (mkSystemName (uniqFromSupply tUnique) (mkDataOcc "TypeNotFound")) (mkTyConTy starKindTyCon)
 
-        getFixities :: Ghc [(OccName, GHC.Fixity)]
+        getFixities :: Ghc [(Module, (OccName, GHC.Fixity))]
         getFixities = do env <- getSession
                          pit <- liftIO $ eps_PIT <$> hscEPS env
                          let hpt = hsc_HPT env
                              ifaces = moduleEnvElts pit ++ map hm_iface (eltsUFM hpt)
-                         return $ concatMap mi_fixities ifaces
+                         return $ concatMap (\mi -> map (mi_module mi, ) $ mi_fixities mi) ifaces
 
 extractExprIds :: LHsBinds Id -> [Located Id]
         -- expressions like HsRecFld are removed from the typechecked representation, they are replaced by HsVar
