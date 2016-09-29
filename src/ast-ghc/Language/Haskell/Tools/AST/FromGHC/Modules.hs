@@ -82,7 +82,7 @@ addTypeInfos bnds mod = do
   ut <- liftIO mkUnknownType
   let getType = getType' ut
   fixities <- getFixities
-  let createCName sc def id = CNameInfo sc def id (if any (any ((getOccName id ==) . getOccName)) sc then Nothing else List.lookup (getOccName id) fixities)
+  let createCName sc def id = CNameInfo sc def id (if any (any ((getOccName id ==) . getOccName)) (init sc) then Nothing else List.lookup (getOccName id) fixities)
   evalStateT (semaTraverse 
     (AST.SemaTrf
       (\case (NameInfo sc def ni) -> lift $ createCName sc def <$> getType ni 

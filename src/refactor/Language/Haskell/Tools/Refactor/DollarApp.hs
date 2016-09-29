@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, FlexibleContexts, ViewPatterns, TypeApplications, ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes, FlexibleContexts, ViewPatterns, TypeApplications, ScopedTypeVariables, ConstraintKinds #-}
 module Language.Haskell.Tools.Refactor.DollarApp (dollarApp) where
 
 import Language.Haskell.Tools.AST
@@ -8,7 +8,9 @@ import Language.Haskell.Tools.Refactor.RefactorBase
 import Control.Reference hiding (element)
 import SrcLoc
 import PrelNames
+import Outputable
 import Data.Generics.Uniplate.Data
+import BasicTypes as GHC
 
 import Language.Haskell.Tools.Refactor
 --
@@ -52,32 +54,35 @@ parenDollar e = return e
 
 ----------------------------------------------------------------------------------
 
--- tryItOut3 moduleName sp = tryRefactor (localRefactoring $ dollarApp3 (readSrcSpan (toFileName "." moduleName) sp)) moduleName
+tryItOut3 moduleName sp = tryRefactor (localRefactoring $ dollarApp3 (readSrcSpan (toFileName "." moduleName) sp)) moduleName
 
--- dollarApp3 :: forall dom . (Domain dom, HasNameInfo (SemanticInfo dom QualifiedName)) => RealSrcSpan -> LocalRefactoring dom
--- dollarApp3 sp = return . flip evalState [] . ((nodesContained sp !~ replaceExpr3) >=> (biplateRef !~ parenExpr3 @dom))
+type DollarRefactor dom = (Domain dom, HasNameInfo (SemanticInfo dom QualifiedName), HasFixityInfo (SemanticInfo dom QualifiedName))
 
--- replaceExpr3 :: (Domain dom, HasNameInfo (SemanticInfo dom QualifiedName)) => Ann Expr dom SrcTemplateStage -> State [SrcSpan] (Ann Expr dom SrcTemplateStage)
--- replaceExpr3 expr@(e -> App fun (e -> Paren (e -> InfixApp _ op _))) 
---   | Just sema <- semanticsName (op ^. element&operatorName&semantics)
---   , getUnique sema /= dollarIdKey && sema
---   = return expr
--- replaceExpr3 expr@(e -> App fun (e -> Paren arg)) 
---   = do modify (getRange arg :)
---        return $ mkInfixApp fun (mkUnqualOp "$") arg
--- replaceExpr3 expr = return expr
+dollarApp3 :: forall dom . DollarRefactor dom => RealSrcSpan -> LocalRefactoring dom
+dollarApp3 sp = return . flip evalState [] . ((nodesContained sp !~ replaceExpr3) >=> (biplateRef !~ parenExpr3 @dom))
+
+replaceExpr3 :: DollarRefactor dom => Ann Expr dom SrcTemplateStage -> State [SrcSpan] (Ann Expr dom SrcTemplateStage)
+replaceExpr3 expr@(e -> App fun (e -> Paren (e -> InfixApp _ op _))) 
+  | sema <- (op ^. element&operatorName&semantics) 
+  , fmap getUnique (semanticsName sema) /= Just dollarIdKey 
+      && (case semanticsFixity sema of Just (GHC.Fixity _ p _) | p > 0 -> False; _ -> True)
+  = return expr
+replaceExpr3 expr@(e -> App fun (e -> Paren arg)) 
+  = do modify (getRange arg :)
+       return $ mkInfixApp fun (mkUnqualOp "$") arg
+replaceExpr3 expr = return expr
 
 
--- parenExpr3 :: Ann Expr dom SrcTemplateStage -> State [SrcSpan] (Ann Expr dom SrcTemplateStage)
--- parenExpr3 e = (element&exprLhs !~ parenDollar3) =<< (element&exprRhs !~ parenDollar3 $ e)
+parenExpr3 :: Ann Expr dom SrcTemplateStage -> State [SrcSpan] (Ann Expr dom SrcTemplateStage)
+parenExpr3 e = (element&exprLhs !~ parenDollar3) =<< (element&exprRhs !~ parenDollar3 $ e)
 
--- parenDollar3 :: Ann Expr dom SrcTemplateStage -> State [SrcSpan] (Ann Expr dom SrcTemplateStage)
--- parenDollar3 expr@(e -> InfixApp _ _ arg) 
---   = do replacedRanges <- get
---        if getRange arg `elem` replacedRanges 
---          then return $ mkParen expr
---          else return expr
--- parenDollar3 e = return e
+parenDollar3 :: Ann Expr dom SrcTemplateStage -> State [SrcSpan] (Ann Expr dom SrcTemplateStage)
+parenDollar3 expr@(e -> InfixApp _ _ arg) 
+  = do replacedRanges <- get
+       if getRange arg `elem` replacedRanges 
+         then return $ mkParen expr
+         else return expr
+parenDollar3 e = return e
 
 --------------------------------------------------------------------------------
 

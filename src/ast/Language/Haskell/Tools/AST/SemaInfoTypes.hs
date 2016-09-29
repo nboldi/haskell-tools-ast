@@ -125,6 +125,13 @@ class HasIdInfo si where
 instance HasIdInfo CNameInfo where
   semanticsId = (^. cnameInfo)
 
+-- | Infos that may have a fixity information
+class HasFixityInfo si where
+  semanticsFixity :: si -> Maybe GHC.Fixity
+
+instance HasFixityInfo CNameInfo where
+  semanticsFixity = (^. cnameFixity)
+
 -- | Infos that contain the names that are available in theirs scope
 class HasScopeInfo si where
   semanticsScope :: si -> Scope
