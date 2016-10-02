@@ -24,8 +24,13 @@ The goal of this project is to create developer tools for the functional program
   
 ## Running the CLI
 
-  - If you are using stack to build from source: `stack --stack-yaml=stack-all.yaml exec ht-refact -- [ghc-flags] package-roots`
-  - Otherwise, install the `haskell-tools-cli` package and use `ht-refact [ghc-flags] package-roots`.
+  - If you are using stack to build from source: `stack --stack-yaml=stack-all.yaml exec ht-refact -- [flags] package-roots`
+  - Otherwise, install the `haskell-tools-cli` package and use `ht-refact [flags] package-roots`.
+  - You can use [ghc flags](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html) to control how modules are loaded and checked.
+  - By setting the `-one-shot`, `-module-name=<modulename>` and `-refactoring=<refactor-command>` flags, you can perform a refactoring without the interactive mode.
+  - By using the `-dry-run` flag, the files will not be modified, the result will be printed on the output.
+  
+When the interactive session is started:
   - Select a module to refactor with `SelectModule modulename`
   - Use the refactorings:
     - `RenameDefinition src-range new-name`
@@ -48,13 +53,12 @@ The goal of this project is to create developer tools for the functional program
 ## Using GHCi
 
   - use `stack ghci`
-  - currently ghci cannot be used to perform whole refactorings because of a ghci code generation bug in ghc 8.0.1, but this should be fixed soon
 
 ## Test the code
 
   - The test folder contains the test package. The test suite contains both unit and nightly tests.
   - Run it with `stack test`.
-  - Continous integration is backed by Travis-CI. Status: [![Travis](https://img.shields.io/travis/haskell-tools/haskell-tools.svg)](https://travis-ci.org/haskell-tools/haskell-tools)
+  - Continous integration is backed by Travis-CI. Status: [![Travis](https://img.shields.io/travis/haskell-tools/haskell-tools/master.svg)](https://travis-ci.org/haskell-tools/haskell-tools)
   - Test coverage is automatically calculated, but is currently very low because of generated fields/instances/references defined for API consistency but not being used by any refactoring: [![Coverage Status](https://coveralls.io/repos/github/haskell-tools/haskell-tools/badge.svg)](https://coveralls.io/github/haskell-tools/haskell-tools)
 
 ## Known limitations
