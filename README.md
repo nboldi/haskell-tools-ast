@@ -12,7 +12,7 @@ The goal of this project is to create developer tools for the functional program
 ## Installation (last release from Hackage)
 
   - Make sure you have the latest [haskell-platform](https://www.haskell.org/platform/)
-  - On Linux you must install libgmp-dev (`sudo apt-get install libgmp-dev`).
+  - On Linux you might need to install libz-dev and libgmp-dev (`sudo apt-get install libz-dev libgmp-dev`).
   - Use `cabal install haskell-tools-refactor` to install the library. Also install `haskell-tools-cli` or `haskell-tools-demo` to try the command line interface, or to setup the demo for yourself.
 
 ## Installation (last build from source)
