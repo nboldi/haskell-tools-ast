@@ -48,17 +48,16 @@ data RefactorChange dom = ContentChanged { fromContentChanged :: (ModuleDom dom)
                         | ModuleRemoved { removedModuleName :: String }
 
 -- | Performs the given refactoring, transforming it into a Ghc action
-runRefactor :: (SemanticInfo' dom SameInfoModuleCls ~ ModuleInfo n) 
-            => ModuleDom dom -> [ModuleDom dom] -> Refactoring dom -> Ghc (Either String [RefactorChange dom])
+runRefactor :: (HasModuleInfo dom) => ModuleDom dom -> [ModuleDom dom] -> Refactoring dom -> Ghc (Either String [RefactorChange dom])
 runRefactor mod mods trf = runExceptT $ trf mod mods
 
 -- | Wraps a refactoring that only affects one module. Performs the per-module finishing touches.
-localRefactoring :: HasModuleInfo (SemanticInfo dom Module) => LocalRefactoring dom -> Refactoring dom
+localRefactoring :: HasModuleInfo dom => LocalRefactoring dom -> Refactoring dom
 localRefactoring ref (name, mod) _ 
   = (\m -> [ContentChanged (name, m)]) <$> localRefactoringRes id mod (ref mod)
 
 -- | Transform the result of the local refactoring
-localRefactoringRes :: HasModuleInfo (SemanticInfo dom Module)
+localRefactoringRes :: HasModuleInfo dom
                     => ((UnnamedModule dom -> UnnamedModule dom) -> a -> a) 
                           -> UnnamedModule dom 
                           -> LocalRefactor dom a
@@ -154,25 +153,23 @@ qualifiedName name = case GHC.nameModule_maybe name of
   Just mod -> GHC.moduleNameString (GHC.moduleName mod) ++ "." ++ GHC.occNameString (GHC.nameOccName name)
   Nothing -> GHC.occNameString (GHC.nameOccName name)
 
-referenceName :: (SemanticInfo' dom SameInfoImportCls ~ ImportInfo n, Eq n, GHC.NamedThing n) 
-              => n -> LocalRefactor dom (Ann Name dom SrcTemplateStage)
+referenceName :: (HasImportInfo dom) => GHC.Name -> LocalRefactor dom (Ann Name dom SrcTemplateStage)
 referenceName = referenceName' mkQualName'
 
-referenceOperator :: (SemanticInfo' dom SameInfoImportCls ~ ImportInfo n, Eq n, GHC.NamedThing n) 
-                  => n -> LocalRefactor dom (Ann Operator dom SrcTemplateStage)
+referenceOperator :: (HasImportInfo dom) => GHC.Name -> LocalRefactor dom (Ann Operator dom SrcTemplateStage)
 referenceOperator = referenceName' mkQualOp'
 
 -- | Create a name that references the definition. Generates an import if the definition is not yet imported.
-referenceName' :: (SemanticInfo' dom SameInfoImportCls ~ ImportInfo n, Eq n, GHC.NamedThing n) 
-               => ([String] -> GHC.Name -> Ann nt dom SrcTemplateStage) -> n -> LocalRefactor dom (Ann nt dom SrcTemplateStage)
-referenceName' makeName n@(GHC.getName -> name) 
+referenceName' :: (HasImportInfo dom) 
+               => ([String] -> GHC.Name -> Ann nt dom SrcTemplateStage) -> GHC.Name -> LocalRefactor dom (Ann nt dom SrcTemplateStage)
+referenceName' makeName name 
   | name `elem` registeredNamesFromPrelude || qualifiedName name `elem` otherNamesFromPrelude
   = return $ makeName [] name -- imported from prelude
   | otherwise 
   = do RefactorCtx {refCtxImports = imports, refModuleName = thisModule} <- ask
        if maybe True (thisModule ==) (GHC.nameModule_maybe name) 
          then return $ makeName [] name -- in the same module, use simple name
-         else let possibleImports = filter ((n `elem`) . (\imp -> fromJust $ imp ^? semantics&importedNames)) imports
+         else let possibleImports = filter ((name `elem`) . (\imp -> semanticsImported $ imp ^. semantics)) imports
                in if null possibleImports 
                     then do tell [name]
                             return $ makeName [] name

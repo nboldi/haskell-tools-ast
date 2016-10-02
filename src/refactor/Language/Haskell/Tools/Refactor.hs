@@ -137,7 +137,7 @@ parseTyped modSum = do
                          (pm_parsed_source p)))
 
 -- | Executes a given command on the selected module and given other modules
-performCommand :: (SemanticInfo' dom SameInfoModuleCls ~ AST.ModuleInfo n, DomGenerateExports dom, OrganizeImportsDomain dom n, DomainRenameDefinition dom, ExtractBindingDomain dom, GenerateSignatureDomain dom) 
+performCommand :: (HasModuleInfo dom, DomGenerateExports dom, OrganizeImportsDomain dom, DomainRenameDefinition dom, ExtractBindingDomain dom, GenerateSignatureDomain dom) 
                => RefactorCommand -> ModuleDom dom -- ^ The module in which the refactoring is performed
                                   -> [ModuleDom dom] -- ^ Other modules
                                   -> Ghc (Either String [RefactorChange dom])

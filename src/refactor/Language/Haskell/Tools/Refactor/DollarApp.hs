@@ -7,6 +7,7 @@ import Language.Haskell.Tools.Refactor.RefactorBase
 
 import GHC
 import Control.Reference hiding (element)
+import Id as GHC
 import SrcLoc
 import PrelNames
 import Outputable
@@ -59,7 +60,7 @@ parenDollar e = return e
 
 tryItOut3 moduleName sp = tryRefactor (localRefactoring $ dollarApp3 (readSrcSpan (toFileName "." moduleName) sp)) moduleName
 
-type DollarRefactor dom = (Domain dom, HasNameInfo (SemanticInfo dom QualifiedName), HasFixityInfo (SemanticInfo dom QualifiedName))
+type DollarRefactor dom = (Domain dom, HasNameInfo dom, HasFixityInfo dom)
 
 dollarApp3 :: forall dom . DollarRefactor dom => RealSrcSpan -> LocalRefactoring dom
 dollarApp3 sp = return . flip evalState [] . ((nodesContained sp !~ replaceExpr3) >=> (biplateRef !~ parenExpr3 @dom))
@@ -89,10 +90,10 @@ parenDollar3 e = return e
 
 ----------------------------------------------------------------------------------
 
+
 tryItOut4 moduleName sp = tryRefactor (localRefactoring $ dollarApp4 (readSrcSpan (toFileName "." moduleName) sp)) moduleName
 
-type DollarRefactor2 dom = ( Domain dom, HasNameInfo (SemanticInfo dom QualifiedName), HasFixityInfo (SemanticInfo dom QualifiedName)
-                           , SemanticInfo' dom SameInfoImportCls ~ ImportInfo Id)
+type DollarRefactor2 dom = ( Domain dom, HasNameInfo dom, HasFixityInfo dom, HasImportInfo dom )
 
 dollarApp4 :: forall dom . DollarRefactor2 dom => RealSrcSpan -> LocalRefactoring dom
 dollarApp4 sp = flip evalStateT [] . ((nodesContained sp !~ replaceExpr4) >=> (biplateRef !~ parenExpr4 @_ @dom))
@@ -105,7 +106,7 @@ replaceExpr4 expr@(e -> App fun (e -> Paren (e -> InfixApp _ op _)))
   = return expr
 replaceExpr4 expr@(e -> App fun (e -> Paren arg)) 
   = do modify (getRange arg :)
-       lift $ mkInfixApp fun <$> referenceOperator dollarId <*> pure arg
+       lift $ mkInfixApp fun <$> referenceOperator dollarName <*> pure arg
 replaceExpr4 expr = return expr
 
 
@@ -120,7 +121,7 @@ parenDollar4 expr@(e -> InfixApp _ _ arg)
          else return expr
 parenDollar4 e = return e
 
-[dollarId] = filter ((dollarIdKey==) . getUnique) wiredInIds
+[dollarName] = map idName $ filter ((dollarIdKey==) . getUnique) wiredInIds
 
 --------------------------------------------------------------------------------
 
