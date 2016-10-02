@@ -37,8 +37,7 @@ import Language.Haskell.Tools.Refactor.ExtractBinding
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 main :: IO ()
-main = run functionalTests
---main = run nightlyTests
+main = run nightlyTests
 
 run :: [Test] -> IO ()
 run tests = do results <- runTestTT $ TestList tests
@@ -55,7 +54,7 @@ unitTests :: [Test]
 unitTests = genTests ++ functionalTests
 
 functionalTests :: [Test]
-functionalTests = {- map makeReprintTest checkTestCases
+functionalTests = map makeReprintTest checkTestCases
               ++ map makeOrganizeImportsTest organizeImportTests
               ++ map makeGenerateSignatureTest generateSignatureTests
               ++ map makeGenerateExportsTest generateExportsTests
@@ -63,7 +62,7 @@ functionalTests = {- map makeReprintTest checkTestCases
               ++ map makeWrongRenameDefinitionTest wrongRenameDefinitionTests
               ++ map makeExtractBindingTest extractBindingTests
               ++ map makeWrongExtractBindingTest wrongExtractBindingTests
-              ++ -} map makeMultiModuleTest multiModuleTests
+              ++ map makeMultiModuleTest multiModuleTests
   where checkTestCases = languageTests 
                           ++ organizeImportTests 
                           ++ map fst generateSignatureTests 
