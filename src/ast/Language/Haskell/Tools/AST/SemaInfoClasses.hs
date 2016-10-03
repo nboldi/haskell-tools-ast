@@ -76,10 +76,17 @@ type HasModuleInfo dom = (Domain dom, HasModuleInfo' (SemanticInfo dom AST.Modul
 class HasModuleInfo' si where
   semanticsModule :: si -> GHC.Module
   isBootModule :: si -> Bool
+  semanticsImplicitImports :: si -> [GHC.Name]
 
-instance HasModuleInfo' (AST.ModuleInfo n) where
+instance HasModuleInfo' (AST.ModuleInfo GHC.Name) where
   semanticsModule = (^. defModuleName)
   isBootModule = (^. defIsBootModule)
+  semanticsImplicitImports = (^. implicitNames)
+
+instance HasModuleInfo' (AST.ModuleInfo GHC.Id) where
+  semanticsModule = (^. defModuleName)
+  isBootModule = (^. defIsBootModule)
+  semanticsImplicitImports = map idName . (^. implicitNames)
 
 type HasImportInfo dom = (Domain dom, HasImportInfo' (SemanticInfo dom AST.ImportDecl))
   

@@ -31,7 +31,7 @@ import Language.Haskell.Tools.Refactor.RefactorBase
 
 type Ann' e dom = Ann e dom SrcTemplateStage
 type AnnList' e dom = AnnList e dom SrcTemplateStage
-type GenerateSignatureDomain dom = ( Domain dom, HasIdInfo dom, HasImportInfo dom ) 
+type GenerateSignatureDomain dom = ( HasModuleInfo dom, HasIdInfo dom, HasImportInfo dom ) 
 
 generateTypeSignature' :: GenerateSignatureDomain dom => RealSrcSpan -> LocalRefactoring dom
 generateTypeSignature' sp = generateTypeSignature (nodesContaining sp) (nodesContaining sp) (getValBindInList sp) 
