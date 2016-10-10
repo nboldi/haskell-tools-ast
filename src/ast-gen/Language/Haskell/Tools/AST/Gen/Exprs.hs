@@ -2,7 +2,8 @@
 -- The bindings defined here create a the annotated version of the AST constructor with the same name.
 -- For example, @mkApp@ creates the annotated version of the @App@ AST constructor.
 {-# LANGUAGE OverloadedStrings 
-           , TypeFamilies 
+           , TypeFamilies
+           , PatternSynonyms
            #-}
 module Language.Haskell.Tools.AST.Gen.Exprs where
 
@@ -17,20 +18,23 @@ import Language.Haskell.Tools.AST.Gen.Base
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
-mkVar :: Ann Name dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
-mkVar = mkAnn child . Var
+pattern Var' :: Ann Name dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
+pattern Var' name <- Ann _ (Var name) where
+  Var' = mkAnn child . Var
 
 mkLit :: Ann Literal dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
 mkLit = mkAnn child . Lit
 
-mkInfixApp :: Ann Expr dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
-mkInfixApp lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ InfixApp lhs op rhs
+pattern InfixApp' :: Ann Expr dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
+pattern InfixApp' lhs op rhs <- Ann _ (InfixApp lhs op rhs) where
+  InfixApp' lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ InfixApp lhs op rhs
 
 mkPrefixApp :: Ann Operator dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
 mkPrefixApp op rhs = mkAnn (child <> child) $ PrefixApp op rhs
 
-mkApp :: Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
-mkApp f e = mkAnn (child <> " " <> child) (App f e)
+pattern App' :: Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
+pattern App' f e <- Ann _ (App f e) where
+  App' f e = mkAnn (child <> " " <> child) (App f e)
 
 mkLambda :: [Ann Pattern dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
 mkLambda pats rhs = mkAnn ("\\" <> child <> " -> " <> child) $ Lambda (mkAnnList (listSep " ") pats) rhs
@@ -59,8 +63,9 @@ mkUnboxedTuple exprs = mkAnn ("(# " <> child <> " #)") $ Tuple (mkAnnList (listS
 mkList :: [Ann Expr dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
 mkList exprs = mkAnn ("[" <> child <> "]") $ List (mkAnnList (listSep ", ") exprs)
 
-mkParen :: Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
-mkParen = mkAnn ("(" <> child <> ")") . Paren
+pattern Paren' :: Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
+pattern Paren' expr <- Ann _ (Paren expr) where
+  Paren' = mkAnn ("(" <> child <> ")") . Paren
 
 mkLeftSection :: Ann Expr dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage
 mkLeftSection lhs op = mkAnn ("(" <> child <> child <> ")") $ LeftSection lhs op

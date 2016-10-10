@@ -66,7 +66,7 @@ extractThatBind name cont e
             Paren {} | hasParameter -> element & exprInner !~ doExtract name cont $ e
                      | otherwise -> doExtract name cont (fromJust $ e ^? element & exprInner)
             Var {} -> lift $ refactError "The selected expression is too simple to be extracted."
-            el | isParenLikeExpr el && hasParameter -> mkParen <$> doExtract name cont e
+            el | isParenLikeExpr el && hasParameter -> Paren' <$> doExtract name cont e
             el -> doExtract name cont e
   where hasParameter = not (null (getExternalBinds cont e))
 
@@ -150,7 +150,7 @@ actualContainingExpr (RealSrcSpan rng) = element & accessRhs & element & accessE
 
 -- | Generates the expression that calls the local binding
 generateCall :: String -> [Ann' Name dom] -> Ann' Expr dom
-generateCall name args = foldl (\e a -> mkApp e (mkVar a)) (mkVar $ mkNormalName $ mkSimpleName name) args
+generateCall name args = foldl (\e a -> App' e (Var' a)) (Var' $ mkNormalName $ mkSimpleName name) args
 
 -- | Generates the local binding for the selected expression
 generateBind :: String -> [Ann' Pattern dom] -> Ann' Expr dom -> Ann' ValueBind dom
