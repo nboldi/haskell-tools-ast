@@ -4,44 +4,44 @@ module Language.Haskell.Tools.AST.Match.Kinds where
 
 import Language.Haskell.Tools.AST
 
--- mkKindConstraint :: Ann Kind dom SrcTemplateStage -> Ann KindConstraint dom SrcTemplateStage
--- mkKindConstraint = mkAnn (" :: " <> child) . KindConstraint
+pattern KindConstraint :: Ann Kind dom SrcTemplateStage -> Ann KindConstraint dom SrcTemplateStage
+pattern KindConstraint k <- Ann _ (UKindConstraint k)
 
--- mkKindStar :: Ann Kind dom SrcTemplateStage
--- mkKindStar = mkAnn "*" KindStar
+pattern StarKind :: Ann Kind dom SrcTemplateStage
+pattern StarKind <- Ann _ UStarKind
 
--- mkKindUnbox :: Ann Kind dom SrcTemplateStage
--- mkKindUnbox = mkAnn "#" KindUnbox
+pattern UnboxKind :: Ann Kind dom SrcTemplateStage
+pattern UnboxKind <- Ann _ UUnboxKind
 
--- mkKindFun :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
--- mkKindFun lhs rhs = mkAnn (child <> " -> " <> child) $ KindFn lhs rhs
+pattern FunKind :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+pattern FunKind a r <- Ann _ (UFunKind a r)
 
--- mkKindParen :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
--- mkKindParen = mkAnn ("(" <> child <> ")") . KindParen
+pattern ParenKind :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+pattern ParenKind k <- Ann _ (UParenKind k)
 
--- mkKindVar :: Ann Name dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
--- mkKindVar = mkAnn child . KindVar
+pattern VarKind :: Ann Name dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+pattern VarKind v <- Ann _ (UVarKind v)
 
--- mkKindApp :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
--- mkKindApp lhs rhs = mkAnn (child <> " " <> child) $ KindApp lhs rhs
+pattern AppKind :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+pattern AppKind f a <- Ann _ (UAppKind f a)
 
--- mkKindList :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
--- mkKindList = mkAnn ("[" <> child <> "]") . KindList
+pattern ListKind :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+pattern ListKind k <- Ann _ (UListKind k)
 
--- mkIntKind :: Integer -> Ann Kind dom SrcTemplateStage
--- mkIntKind i = mkAnn child $ KindPromoted $ mkAnn (fromString $ show i) (PromotedInt i)
+pattern IntKind :: Integer -> Ann Kind dom SrcTemplateStage
+pattern IntKind i <- Ann _ (UPromotedKind (Ann _ (UPromotedInt i)))
 
--- mkStringKind :: String -> Ann Kind dom SrcTemplateStage
--- mkStringKind i = mkAnn child $ KindPromoted $ mkAnn (fromString $ show i) (PromotedString i)
+pattern StringKind :: String -> Ann Kind dom SrcTemplateStage
+pattern StringKind s <- Ann _ (UPromotedKind (Ann _ (UPromotedString s)))
 
--- mkConKind :: Ann Name dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
--- mkConKind = mkAnn child . KindPromoted . mkAnn child . PromotedCon
+pattern ConKind :: Ann Name dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+pattern ConKind s <- Ann _ (UPromotedKind (Ann _ (UPromotedCon s)))
 
--- mkListKind :: [Ann Kind dom SrcTemplateStage] -> Ann Kind dom SrcTemplateStage
--- mkListKind = mkAnn child . KindPromoted . mkAnn ("[" <> child <> "]") . PromotedList . mkAnnList (listSep ", ")
+pattern ListKindPromoted :: AnnList Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+pattern ListKindPromoted elems <- Ann _ (UPromotedKind (Ann _ (UPromotedList elems)))
 
--- mkTupleKind :: [Ann Kind dom SrcTemplateStage] -> Ann Kind dom SrcTemplateStage
--- mkTupleKind = mkAnn child . KindPromoted . mkAnn ("(" <> child <> ")") . PromotedTuple . mkAnnList (listSep ", ")
+pattern TupleKind :: AnnList Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+pattern TupleKind elems <- Ann _ (UPromotedKind (Ann _ (UPromotedTuple elems)))
 
--- mkUnitKind :: Ann Kind dom SrcTemplateStage
--- mkUnitKind = mkAnn child $ KindPromoted $ mkAnn "()" PromotedUnit
+pattern UnitKind :: Ann Kind dom SrcTemplateStage
+pattern UnitKind <- Ann _ (UPromotedKind (Ann _ UPromotedUnit))
