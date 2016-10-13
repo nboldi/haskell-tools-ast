@@ -41,7 +41,7 @@ trfBind = trfLocNoSema trfBind'
 trfBind' :: TransformName n r => HsBind n -> Trf (AST.ValueBind (Dom r) RangeStage)
 -- a value binding (not a function)
 trfBind' (FunBind { fun_id = id, fun_matches = MG { mg_alts = unLoc -> [L matchLoc (Match { m_pats = [], m_grhss = GRHSs [L rhsLoc (GRHS [] expr)] (unLoc -> locals) })]} }) 
-  = AST.SimpleBind <$> copyAnnot AST.VarPat (define $ trfName id)
+  = AST.SimpleBind <$> copyAnnot AST.UVarPat (define $ trfName id)
                    <*> addToScope locals (annLocNoSema (combineSrcSpans (getLoc expr) <$> tokenLoc AnnEqual) (AST.UnguardedRhs <$> trfExpr expr))
                    <*> addToScope locals (trfWhereLocalBinds locals)
 trfBind' (FunBind id (MG (unLoc -> matches) _ _ _) _ _ _) = AST.FunBind <$> makeNonemptyIndentedList (mapM (trfMatch (unLoc id)) matches)
@@ -114,7 +114,7 @@ trfLocalBinds (HsIPBinds (IPBinds binds _))
 
 trfIpBind :: TransformName n r => Located (IPBind n) -> Trf (Ann AST.LocalBind (Dom r) RangeStage)
 trfIpBind = trfLocNoSema $ \case
-  IPBind (Left (L l ipname)) expr -> AST.LocalValBind <$> (annContNoSema $ AST.SimpleBind <$> focusOn l (annContNoSema (AST.VarPat <$> define (trfImplicitName ipname)))
+  IPBind (Left (L l ipname)) expr -> AST.LocalValBind <$> (annContNoSema $ AST.SimpleBind <$> focusOn l (annContNoSema (AST.UVarPat <$> define (trfImplicitName ipname)))
                                                                                           <*> annFromNoSema AnnEqual (AST.UnguardedRhs <$> trfExpr expr)
                                                                                           <*> nothing " " "" atTheEnd)
              

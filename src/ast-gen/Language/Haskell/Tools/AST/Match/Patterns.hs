@@ -4,50 +4,50 @@ module Language.Haskell.Tools.AST.Match.Patterns where
 
 import Language.Haskell.Tools.AST
 
--- mkVarPat :: Ann Name dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
--- mkVarPat = mkAnn child . VarPat
+pattern VarPat :: Ann Name dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern VarPat var <- Ann _ (UVarPat var)
 
--- mkLitPat :: Ann Literal dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
--- mkLitPat = mkAnn child . LitPat
+pattern LitPat :: Ann Literal dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern LitPat lit <- Ann _ (ULitPat lit)
 
--- mkInfixAppPat :: Ann Pattern dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
--- mkInfixAppPat lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ InfixPat lhs op rhs
+pattern InfixAppPat :: Ann Pattern dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern InfixAppPat lhs op rhs <- Ann _ (UInfixAppPat lhs op rhs)
 
--- mkAppPat :: Ann Name dom SrcTemplateStage -> [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
--- mkAppPat n pat = mkAnn (child <> child) $ AppPat n (mkAnnList (listSepBefore " " " ") pat)
+pattern AppPat :: Ann Name dom SrcTemplateStage -> AnnList Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern AppPat n pat <- Ann _ (UAppPat n pat)
 
--- mkTuplePat :: [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
--- mkTuplePat pats = mkAnn ("(" <> child <> ")") $ TuplePat (mkAnnList (listSep ", ") pats)
+pattern TuplePat :: AnnList Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern TuplePat pats <- Ann _ (UTuplePat pats)
 
--- mkUnboxedTuplePat :: [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
--- mkUnboxedTuplePat pats = mkAnn ("(# " <> child <> " #)") $ UnboxTuplePat (mkAnnList (listSep ", ") pats)
+pattern UnboxTuplePat :: AnnList Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern UnboxTuplePat pats <- Ann _ (UUnboxTuplePat pats)
 
--- mkListPat :: [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
--- mkListPat pats = mkAnn ("[" <> child <> "]") $ ListPat (mkAnnList (listSep ", ") pats)
+pattern ListPat :: AnnList Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern ListPat pats <- Ann _ (UListPat pats)
 
--- mkParenPat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
--- mkParenPat = mkAnn ("(" <> child <> ")") . ParenPat
+pattern ParenPat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern ParenPat pat <- Ann _ (UParenPat pat)
 
--- mkRecPat :: Ann Name dom SrcTemplateStage -> [Ann PatternField dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
--- mkRecPat name flds = mkAnn (child <> "{ " <> child <> " }") $ RecPat name (mkAnnList (listSep ", ") flds)
+pattern RecPat :: Ann Name dom SrcTemplateStage -> AnnList PatternField dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern RecPat name flds <- Ann _ (URecPat name flds)
 
--- mkAsPat :: Ann Name dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
--- mkAsPat name pat = mkAnn (child <> "@" <> child) $ AsPat name pat
+pattern AsPat :: Ann Name dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern AsPat name pat <- Ann _ (UAsPat name pat)
 
--- mkWildPat :: Ann Pattern dom SrcTemplateStage
--- mkWildPat = mkAnn "_" WildPat
+pattern WildPat :: Ann Pattern dom SrcTemplateStage
+pattern WildPat <- Ann _ UWildPat
 
--- mkIrrefutablePat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
--- mkIrrefutablePat = mkAnn ("~" <> child) . IrrPat
+pattern IrrefutablePat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern IrrefutablePat pat <- Ann _ (UIrrefutablePat pat)
 
--- mkBangPat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
--- mkBangPat = mkAnn ("!" <> child) . BangPat
+pattern BangPat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern BangPat pat <- Ann _ (UBangPat pat)
 
--- mkTypeSignPat :: Ann Pattern dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
--- mkTypeSignPat pat typ = mkAnn (child <> " :: " <> child) $ TypeSigPat pat typ
+pattern TypeSigPat :: Ann Pattern dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern TypeSigPat pat typ <- Ann _ (UTypeSigPat pat typ)
 
--- mkViewPat :: Ann Expr dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
--- mkViewPat name pat = mkAnn (child <> " -> " <> child) $ ViewPat name pat
+pattern ViewPat :: Ann Expr dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+pattern ViewPat name pat <- Ann _ (UViewPat name pat)
 
--- mkPatternField :: Ann Name dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann PatternField dom SrcTemplateStage
--- mkPatternField name pat = mkAnn (child <> " = " <> child) $ NormalFieldPattern name pat
+pattern PatternField :: Ann Name dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann PatternField dom SrcTemplateStage
+pattern PatternField name pat <- Ann _ (UNormalFieldPattern name pat)

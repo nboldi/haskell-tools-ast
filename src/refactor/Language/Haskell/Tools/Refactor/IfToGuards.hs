@@ -17,7 +17,7 @@ ifToGuards :: Domain dom => RealSrcSpan -> LocalRefactoring dom
 ifToGuards sp = return . (nodesContaining sp .- ifToGuards')
 
 ifToGuards' :: Ann ValueBind dom SrcTemplateStage -> Ann ValueBind dom SrcTemplateStage
-ifToGuards' (e -> SimpleBind (e -> VarPat name) (e -> UnguardedRhs (If pred thenE elseE)) locals) 
+ifToGuards' (e -> SimpleBind (VarPat name) (e -> UnguardedRhs (If pred thenE elseE)) locals) 
   = mkFunctionBind [mkMatch (mkNormalMatchLhs name []) (createSimpleIfRhss pred thenE elseE) (locals ^. annMaybe) ]
 ifToGuards' fbs@(e -> FunBind _) 
   = element&funBindMatches&annList&element&matchRhs .- trfRhs $ fbs
