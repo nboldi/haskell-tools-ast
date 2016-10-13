@@ -22,7 +22,7 @@ import Control.Reference hiding (element)
 import Control.Monad.State
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
-import Language.Haskell.Tools.AST.Gen
+import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
@@ -62,11 +62,11 @@ extractThatBind :: ExtractBindingDomain dom => String -> Ann' Expr dom -> Ann' E
 extractThatBind name cont e 
   = do ret <- get
        if (isJust ret) then return e 
-          else case (e ^. element) of
+          else case e of
             Paren {} | hasParameter -> element & exprInner !~ doExtract name cont $ e
                      | otherwise -> doExtract name cont (fromJust $ e ^? element & exprInner)
             Var {} -> lift $ refactError "The selected expression is too simple to be extracted."
-            el | isParenLikeExpr el && hasParameter -> Paren' <$> doExtract name cont e
+            el | isParenLikeExpr el && hasParameter -> mkParen <$> doExtract name cont e
             el -> doExtract name cont e
   where hasParameter = not (null (getExternalBinds cont e))
 
@@ -89,7 +89,7 @@ insertLocalBind declRng toInsert locals
   | otherwise = annJust & element & localBinds .- insertWhere (mkLocalValBind toInsert) (const True) isNothing $ locals
 
 -- | All expressions that are bound stronger than function application.
-isParenLikeExpr :: Expr dom st -> Bool
+isParenLikeExpr :: Ann Expr dom SrcTemplateStage -> Bool
 isParenLikeExpr (If {}) = True
 isParenLikeExpr (Paren {}) = True
 isParenLikeExpr (List {}) = True
@@ -108,9 +108,9 @@ isParenLikeExpr (QuasiQuoteExpr {}) = True
 isParenLikeExpr _ = False
 
 doExtract :: ExtractBindingDomain dom => String -> Ann' Expr dom -> Ann' Expr dom -> StateT (Maybe (Ann' ValueBind dom)) (LocalRefactor dom) (Ann' Expr dom)
-doExtract name cont e@((^. element) -> lam@(Lambda {}))
+doExtract name cont e@(Lambda (AnnList bindings) inner)
   = do let params = getExternalBinds cont e
-       put (Just (generateBind name (map mkVarPat params ++ (lam ^? exprBindings&annList)) (fromJust $ lam ^? exprInner)))
+       put (Just (generateBind name (map mkVarPat params ++ bindings) inner))
        return (generateCall name params)
 doExtract name cont e 
   = do let params = getExternalBinds cont e
@@ -150,7 +150,7 @@ actualContainingExpr (RealSrcSpan rng) = element & accessRhs & element & accessE
 
 -- | Generates the expression that calls the local binding
 generateCall :: String -> [Ann' Name dom] -> Ann' Expr dom
-generateCall name args = foldl (\e a -> App' e (Var' a)) (Var' $ mkNormalName $ mkSimpleName name) args
+generateCall name args = foldl (\e a -> mkApp e (mkVar a)) (mkVar $ mkNormalName $ mkSimpleName name) args
 
 -- | Generates the local binding for the selected expression
 generateBind :: String -> [Ann' Pattern dom] -> Ann' Expr dom -> Ann' ValueBind dom

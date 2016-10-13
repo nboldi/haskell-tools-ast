@@ -54,7 +54,7 @@ mkImportDecl source qualified safe pkg name rename spec
       ImportDecl (if source then justVal (mkAnn "{-# SOURCE #-} " ImportSource) else noth)
                  (if qualified then justVal (mkAnn "qualified " ImportQualified) else noth)
                  (if safe then justVal (mkAnn "safe " ImportSafe) else noth)
-                 (case pkg of Just str -> justVal (mkAnn (fromString $ str ++ " ") (StringNode str)); _ -> noth)
+                 (case pkg of Just str -> justVal (mkStringNode str); _ -> noth)
                  name (mkAnnMaybe opt (fmap (mkAnn (" as " <> child) . ImportRenaming . mkModuleName) rename)) (mkAnnMaybe opt spec)
 
 mkImportSpecList :: [Ann IESpec dom SrcTemplateStage] -> Ann ImportSpec dom SrcTemplateStage

@@ -13,7 +13,7 @@ import Data.Maybe
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
-import Language.Haskell.Tools.AST.Gen
+import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 type DomGenerateExports dom = (Domain dom, HasNameInfo dom)

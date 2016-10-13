@@ -232,7 +232,7 @@ trfLanguagePragma lstr@(L l str) = annLocNoSema (pure l) (AST.LanguagePragma <$>
         extensions = init $ drop 2 pragmaElems
 
 trfOptionsPragma :: Located String -> Trf (Ann AST.FilePragma (Dom r) RangeStage)
-trfOptionsPragma (L l str) = annLocNoSema (pure l) (AST.OptionsPragma <$> annContNoSema (pure $ AST.StringNode str))
+trfOptionsPragma (L l str) = annLocNoSema (pure l) (AST.OptionsPragma <$> annContNoSema (pure $ AST.UStringNode str))
 
 trfModulePragma :: Maybe (Located WarningTxt) -> Trf (AnnMaybe AST.ModulePragma (Dom r) RangeStage)
 trfModulePragma = trfMaybeDefault " " "" (trfLocNoSema $ \case WarningTxt _ txts -> AST.ModuleWarningPragma <$> trfAnnList " " trfText' txts
@@ -240,7 +240,7 @@ trfModulePragma = trfMaybeDefault " " "" (trfLocNoSema $ \case WarningTxt _ txts
                                   (before AnnWhere)
 
 trfText' :: StringLiteral -> Trf (AST.StringNode (Dom r) RangeStage)
-trfText' = pure . AST.StringNode . unpackFS . sl_fs
+trfText' = pure . AST.UStringNode . unpackFS . sl_fs
 
 
 
@@ -258,7 +258,7 @@ trfExport = trfMaybeLocNoSema $ \case
 
 trfImports :: TransformName n r => [LImportDecl n] -> Trf (AnnList AST.ImportDecl (Dom r) RangeStage)
 trfImports (filter (not . ideclImplicit . unLoc) -> imps) 
-  = AnnList <$> importDefaultLoc <*> mapM trfImport imps
+  = AnnListC <$> importDefaultLoc <*> mapM trfImport imps
   where importDefaultLoc = noSemaInfo . AST.ListPos (if List.null imps then "\n" else "") "" "\n" True . srcSpanEnd 
                              <$> (combineSrcSpans <$> asks (srcLocSpan . srcSpanStart . contRange) 
                                                   <*> (srcLocSpan . srcSpanEnd <$> tokenLoc AnnWhere))
@@ -276,7 +276,7 @@ trfImport (L l (GHC.ImportDecl src name pkg isSrc isSafe isQual isImpl declAs de
        <*> (if isSafe then makeJust <$> (annLocNoSema (tokenLoc AnnSafe) (pure AST.ImportSafe)) 
                       else nothing " " "" (after annBeforeSafe))
        <*> maybe (nothing " " "" (after annBeforePkg)) 
-                 (\str -> makeJust <$> (annLocNoSema (tokenLoc AnnPackageName) (pure (AST.StringNode (unpackFS $ sl_fs str))))) pkg
+                 (\str -> makeJust <$> (annLocNoSema (tokenLoc AnnPackageName) (pure (AST.UStringNode (unpackFS $ sl_fs str))))) pkg
        <*> trfModuleName name 
        <*> maybe (nothing " " "" (pure $ srcSpanEnd (getLoc name))) (\mn -> makeJust <$> (trfRenaming mn)) declAs
        <*> trfImportSpecs declHiding 

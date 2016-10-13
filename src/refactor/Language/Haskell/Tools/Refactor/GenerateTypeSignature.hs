@@ -25,7 +25,7 @@ import Control.Monad.State
 import Control.Reference hiding (element)
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
-import Language.Haskell.Tools.AST.Gen
+import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.Refactor.RefactorBase
 

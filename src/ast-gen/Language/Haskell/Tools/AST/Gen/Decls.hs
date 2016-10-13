@@ -34,22 +34,22 @@ mkClosedTypeFamily dh kind typeqs = mkAnn (child <> child <> " where " <> child)
 mkDataDecl :: Maybe (Ann Context dom SrcTemplateStage) -> Ann DeclHead dom SrcTemplateStage
                 -> [Ann ConDecl dom SrcTemplateStage] -> Maybe (Ann Deriving dom SrcTemplateStage) -> Ann Decl dom SrcTemplateStage
 mkDataDecl ctx dh cons derivs 
-  = mkAnn (child <> child <> child <> child <> child) 
-      $ DataDecl (mkAnn "data " DataKeyword) (mkAnnMaybe (optBefore " ") ctx) dh 
+  = mkAnn (child <> " " <> child <> child <> child <> child) 
+      $ DataDecl mkDataKeyword (mkAnnMaybe (optBefore " ") ctx) dh 
                  (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
 mkNewtypeDecl :: Maybe (Ann Context dom SrcTemplateStage) -> Ann DeclHead dom SrcTemplateStage
                    -> [Ann ConDecl dom SrcTemplateStage] -> Maybe (Ann Deriving dom SrcTemplateStage) -> Ann Decl dom SrcTemplateStage
 mkNewtypeDecl ctx dh cons derivs 
-  = mkAnn (child <> child <> child <> child <> child <> child) 
-      $ DataDecl (mkAnn "newtype " NewtypeKeyword) (mkAnnMaybe (optBefore " ") ctx) dh 
+  = mkAnn (child <> " " <> child <> child <> child <> child <> child) 
+      $ DataDecl mkNewtypeKeyword (mkAnnMaybe (optBefore " ") ctx) dh 
                  (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
 mkGADTDataDecl :: Maybe (Ann Context dom SrcTemplateStage) -> Ann DeclHead dom SrcTemplateStage -> Maybe (Ann KindConstraint dom SrcTemplateStage)
                     -> [Ann GadtConDecl dom SrcTemplateStage] -> Maybe (Ann Deriving dom SrcTemplateStage) -> Ann Decl dom SrcTemplateStage
 mkGADTDataDecl ctx dh kind cons derivs 
-  = mkAnn (child <> child <> child <> child <> child <> child) 
-      $ GDataDecl (mkAnn "data " DataKeyword) (mkAnnMaybe (optBefore " ") ctx) dh 
+  = mkAnn (child <> " " <> child <> child <> child <> child <> child) 
+      $ GDataDecl mkDataKeyword (mkAnnMaybe (optBefore " ") ctx) dh 
                   (mkAnnMaybe (optBefore " ") kind) (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
 mkTypeInstance :: Ann InstanceRule dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Decl dom SrcTemplateStage
@@ -58,20 +58,20 @@ mkTypeInstance instRule typ = mkAnn ("type instance " <> child <> " = " <> child
 mkDataInstance :: Ann InstanceRule dom SrcTemplateStage -> [Ann ConDecl dom SrcTemplateStage] -> Maybe (Ann Deriving dom SrcTemplateStage)
                     -> Ann Decl dom SrcTemplateStage
 mkDataInstance instRule cons derivs 
-  = mkAnn ("data instance " <> child <> " = " <> child <> child) 
-      $ DataInstDecl (mkAnn "data " DataKeyword) instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
+  = mkAnn (child <> " instance " <> child <> " = " <> child <> child) 
+      $ DataInstDecl mkDataKeyword instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
 mkNewtypeInstance :: Ann InstanceRule dom SrcTemplateStage -> [Ann ConDecl dom SrcTemplateStage] -> Maybe (Ann Deriving dom SrcTemplateStage)
                        -> Ann Decl dom SrcTemplateStage
 mkNewtypeInstance instRule cons derivs 
-  = mkAnn ("data instance " <> child <> " = " <> child <> child) 
-      $ DataInstDecl (mkAnn "newtype " NewtypeKeyword) instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
+  = mkAnn (child <> " instance " <> child <> " = " <> child <> child) 
+      $ DataInstDecl mkNewtypeKeyword instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
 mkGadtDataInstance :: Ann InstanceRule dom SrcTemplateStage -> Maybe (Ann KindConstraint dom SrcTemplateStage) -> [Ann GadtConDecl dom SrcTemplateStage]
                        -> Ann Decl dom SrcTemplateStage
 mkGadtDataInstance instRule kind cons 
-  = mkAnn ("data instance " <> child <> child <> " where " <> child) 
-      $ GDataInstDecl (mkAnn "data " DataKeyword) instRule (mkAnnMaybe (optBefore " ") kind) (mkAnnList indentedList cons)
+  = mkAnn (child <> " instance " <> child <> child <> " where " <> child) 
+      $ GDataInstDecl mkDataKeyword instRule (mkAnnMaybe (optBefore " ") kind) (mkAnnList indentedList cons)
 
 mkClassDecl :: Maybe (Ann Context dom SrcTemplateStage) -> Ann DeclHead dom SrcTemplateStage -> Maybe (Ann ClassBody dom SrcTemplateStage) -> Ann Decl dom SrcTemplateStage
 mkClassDecl ctx dh body = mkAnn ("class " <> child <> child <> child <> child) 
@@ -139,20 +139,20 @@ mkInstanceElemTypeDef = mkAnn child . InstBodyTypeDecl
 mkInstanceElemDataDef :: Ann InstanceRule dom SrcTemplateStage -> [Ann ConDecl dom SrcTemplateStage] -> Maybe (Ann Deriving dom SrcTemplateStage) 
                            -> Ann InstBodyDecl dom SrcTemplateStage
 mkInstanceElemDataDef instRule cons derivs 
-  = mkAnn (child <> child <> child <> child) 
-      $ InstBodyDataDecl (mkAnn "data " DataKeyword) instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
+  = mkAnn (child <> " " <> child <> child <> child) 
+      $ InstBodyDataDecl mkDataKeyword instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
 mkInstanceElemNewtypeDef :: Ann InstanceRule dom SrcTemplateStage -> [Ann ConDecl dom SrcTemplateStage] -> Maybe (Ann Deriving dom SrcTemplateStage) 
                            -> Ann InstBodyDecl dom SrcTemplateStage
 mkInstanceElemNewtypeDef instRule cons derivs 
-  = mkAnn (child <> child <> child <> child) 
-      $ InstBodyDataDecl (mkAnn "newtype " NewtypeKeyword) instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
+  = mkAnn (child <> " " <> child <> child <> child) 
+      $ InstBodyDataDecl mkNewtypeKeyword instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
 mkInstanceElemGadtDataDef :: Ann InstanceRule dom SrcTemplateStage -> Maybe (Ann KindConstraint dom SrcTemplateStage) -> [Ann GadtConDecl dom SrcTemplateStage] 
                                -> Maybe (Ann Deriving dom SrcTemplateStage) -> Ann InstBodyDecl dom SrcTemplateStage
 mkInstanceElemGadtDataDef instRule kind cons derivs 
-  = mkAnn (child <> child <> child <> child) 
-      $ InstBodyGadtDataDecl (mkAnn "data " DataKeyword) instRule (mkAnnMaybe opt kind) (mkAnnList (listSepBefore " | " " = ") cons) 
+  = mkAnn (child <> " " <> child <> child <> child) 
+      $ InstBodyGadtDataDecl mkDataKeyword instRule (mkAnnMaybe opt kind) (mkAnnList (listSepBefore " | " " = ") cons) 
                              (mkAnnMaybe (optBefore " deriving ") derivs)
 
 mkGadtConDecl :: [Ann Name dom SrcTemplateStage] -> Ann Type dom SrcTemplateStage -> Ann GadtConDecl dom SrcTemplateStage
