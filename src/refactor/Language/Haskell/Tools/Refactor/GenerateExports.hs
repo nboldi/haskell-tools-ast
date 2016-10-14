@@ -36,9 +36,12 @@ getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d) (getTopL
 getTopLevelDeclName :: DomGenerateExports dom => Ann Decl dom SrcTemplateStage -> Maybe GHC.Name
 getTopLevelDeclName (d @ TypeDecl {}) = semanticsName =<< listToMaybe (d ^? element & declHead & dhNames)
 getTopLevelDeclName (d @ TypeFamily {}) = semanticsName =<< listToMaybe (d ^? element & declTypeFamily & element & tfHead & dhNames)
+getTopLevelDeclName (d @ DataFamily {}) = semanticsName =<< listToMaybe (d ^? element & declTypeFamily & element & tfHead & dhNames)
 getTopLevelDeclName (d @ ClosedTypeFamily {}) = semanticsName =<< listToMaybe (d ^? element & declHead & dhNames)
 getTopLevelDeclName (d @ DataDecl {}) = semanticsName =<< listToMaybe (d ^? element & declHead & dhNames)
+getTopLevelDeclName (d @ NewtypeDecl {}) = semanticsName =<< listToMaybe (d ^? element & declHead & dhNames)
 getTopLevelDeclName (d @ GADTDataDecl {}) = semanticsName =<< listToMaybe (d ^? element & declHead & dhNames)
+getTopLevelDeclName (d @ GADTNewtypeDecl {}) = semanticsName =<< listToMaybe (d ^? element & declHead & dhNames)
 getTopLevelDeclName (d @ ClassDecl {}) = semanticsName =<< listToMaybe (d ^? element & declHead & dhNames)
 getTopLevelDeclName (d @ PatternSynonym {}) 
   = semanticsName =<< listToMaybe (d ^? element & declPatSyn & element & patLhs & element & (patName & element & simpleName &+& patSynOp & element & operatorName) & semantics)

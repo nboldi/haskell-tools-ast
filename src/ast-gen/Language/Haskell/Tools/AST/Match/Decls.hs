@@ -28,6 +28,9 @@ pattern NewtypeDecl ctx dh cons derivs <- Ann _ (UDataDecl NewtypeKeyword ctx dh
 pattern GADTDataDecl :: AnnMaybe Context dom SrcTemplateStage -> Ann DeclHead dom SrcTemplateStage -> AnnMaybe KindConstraint dom SrcTemplateStage -> AnnList GadtConDecl dom SrcTemplateStage -> AnnMaybe Deriving dom SrcTemplateStage -> Ann Decl dom SrcTemplateStage
 pattern GADTDataDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl DataKeyword ctx dh kind cons derivs )
 
+pattern GADTNewtypeDecl :: AnnMaybe Context dom SrcTemplateStage -> Ann DeclHead dom SrcTemplateStage -> AnnMaybe KindConstraint dom SrcTemplateStage -> AnnList GadtConDecl dom SrcTemplateStage -> AnnMaybe Deriving dom SrcTemplateStage -> Ann Decl dom SrcTemplateStage
+pattern GADTNewtypeDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl NewtypeKeyword ctx dh kind cons derivs )
+
 pattern TypeInstance :: Ann InstanceRule dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Decl dom SrcTemplateStage
 pattern TypeInstance instRule typ <- Ann _ (UTypeInstDecl instRule typ)
 

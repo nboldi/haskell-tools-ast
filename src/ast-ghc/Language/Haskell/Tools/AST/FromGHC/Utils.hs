@@ -94,7 +94,7 @@ checkImportVisible imp name
   | otherwise = return True
 
 ieSpecMatches :: (HsHasName n, GhcMonad m) => AST.IESpec (Dom n) stage -> GHC.Name -> m Bool
-ieSpecMatches (AST.IESpec (hsGetNames <=< (^? element&simpleName&semantics&nameInfo) -> [n]) ss) name
+ieSpecMatches (AST.UIESpec (hsGetNames <=< (^? element&simpleName&semantics&nameInfo) -> [n]) ss) name
   | n == name = return True
   | isTyConName n
   = (\case Just (ATyCon tc) -> name `elem` map getName (tyConDataCons tc)) 

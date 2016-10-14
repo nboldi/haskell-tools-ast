@@ -91,10 +91,10 @@ narrowImportSpecs usedNames
           fmap getName (semanticsName =<< (ie ^? element&ieName&element&simpleName&annotation&semanticInfo)) `elem` map Just usedNames
           -- if the name is not used, but some of its constructors are used, it is needed
             || ((ie ^? element&ieSubspec&annJust&element&essList&annList) /= [])
-            || (case ie ^? element&ieSubspec&annJust&element of Just SubSpecAll -> True; _ -> False)     
+            || (case ie ^? element&ieSubspec&annJust of Just SubAll -> True; _ -> False)     
   
 narrowImportSubspecs :: OrganizeImportsDomain dom => [GHC.Name] -> Ann SubSpec dom SrcTemplateStage -> Ann SubSpec dom SrcTemplateStage
-narrowImportSubspecs [] (Ann _ SubSpecAll) = mkSubList []
-narrowImportSubspecs _ ss@(Ann _ SubSpecAll) = ss
-narrowImportSubspecs usedNames ss@(Ann _ (SubSpecList _)) 
+narrowImportSubspecs [] SubAll = mkSubList []
+narrowImportSubspecs _ ss@SubAll = ss
+narrowImportSubspecs usedNames ss@(SubList {}) 
   = element&essList .- filterList (\n -> fmap getName (semanticsName =<< (n ^? element&simpleName&annotation&semanticInfo)) `elem` map Just usedNames) $ ss

@@ -9,8 +9,11 @@ import Language.Haskell.Tools.Refactor (tryRefactor)
 tryItOut moduleName = tryRefactor (localRefactoring $ dataToNewtype) moduleName
 
 dataToNewtype :: Domain dom => LocalRefactoring dom
-dataToNewtype (Ann mi mod@(Module { _modDecl = AnnListC li ls })) 
-  = return (Ann mi mod { _modDecl = AnnListC li (map changeDeclaration ls) })
+dataToNewtype mod
+  = let modElem = _element mod
+        modDecls = _modDecl modElem
+        changedDecls = map changeDeclaration $ _annListElems modDecls
+     in return mod { _element = modElem { _modDecl = modDecls { _annListElems = changedDecls } } }
 
 changeDeclaration :: Ann Decl dom SrcTemplateStage -> Ann Decl dom SrcTemplateStage
 changeDeclaration dd@(DataDecl _ _ cons _) 

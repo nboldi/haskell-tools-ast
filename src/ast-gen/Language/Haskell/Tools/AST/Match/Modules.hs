@@ -4,48 +4,43 @@ module Language.Haskell.Tools.AST.Match.Modules where
 
 import Language.Haskell.Tools.AST
 
--- mkModule :: [Ann FilePragma dom SrcTemplateStage] -> Maybe (Ann ModuleHead dom SrcTemplateStage)
---               -> [Ann ImportDecl dom SrcTemplateStage] -> [Ann Decl dom SrcTemplateStage] -> Ann Module dom SrcTemplateStage
--- mkModule filePrags head imps decls 
---   = mkAnn (child <> child <> child <> child) 
---       $ Module (mkAnnList (listSepAfter "\n" "\n") filePrags) (mkAnnMaybe opt head)
---                (mkAnnList (indentedListBefore "\n") imps) (mkAnnList (indentedListBefore "\n") decls)
-               
--- mkModuleHead :: Ann ModuleName dom SrcTemplateStage -> Maybe (Ann ExportSpecList dom SrcTemplateStage) 
---                   -> Maybe (Ann ModulePragma dom SrcTemplateStage) -> Ann ModuleHead dom SrcTemplateStage
--- mkModuleHead n es pr = mkAnn ("module " <> child <> child <> child <> " where") $ ModuleHead n (mkAnnMaybe opt es) (mkAnnMaybe (optBefore "\n") pr)
+pattern Module :: AnnList FilePragma dom SrcTemplateStage -> AnnMaybe ModuleHead dom SrcTemplateStage
+              -> AnnList ImportDecl dom SrcTemplateStage -> AnnList Decl dom SrcTemplateStage -> Ann Module dom SrcTemplateStage
+pattern Module filePrags head imps decls  <- Ann _ (UModule filePrags head imps decls )
 
--- mkExportSpecList :: [Ann ExportSpec dom SrcTemplateStage] -> Ann ExportSpecList dom SrcTemplateStage
--- mkExportSpecList = mkAnn ("(" <> child <> ")") . ExportSpecList . mkAnnList (listSep ", ")
+pattern ModuleHead :: Ann ModuleName dom SrcTemplateStage -> AnnMaybe ExportSpecList dom SrcTemplateStage 
+                  -> AnnMaybe ModulePragma dom SrcTemplateStage -> Ann ModuleHead dom SrcTemplateStage
+pattern ModuleHead n es pr <- Ann _ (UModuleHead n es pr)
 
--- mkModuleExport :: Ann ModuleName dom SrcTemplateStage -> Ann ExportSpec dom SrcTemplateStage
--- mkModuleExport = mkAnn ("module " <> child) . ModuleExport
+pattern ExportSpecList :: AnnList ExportSpec dom SrcTemplateStage -> Ann ExportSpecList dom SrcTemplateStage
+pattern ExportSpecList specs <- Ann _ (UExportSpecList specs)
 
--- mkExportSpec :: Ann IESpec dom SrcTemplateStage -> Ann ExportSpec dom SrcTemplateStage
--- mkExportSpec = mkAnn child . DeclExport
+pattern ModuleExport :: Ann ModuleName dom SrcTemplateStage -> Ann ExportSpec dom SrcTemplateStage
+pattern ModuleExport name <- Ann _ (UModuleExport name)
 
--- mkIeSpec :: Ann Name dom SrcTemplateStage -> Maybe (Ann SubSpec dom SrcTemplateStage) -> Ann IESpec dom SrcTemplateStage
--- mkIeSpec name ss = mkAnn (child <> child) (IESpec name (mkAnnMaybe opt ss))
-        
--- mkSubList :: [Ann Name dom SrcTemplateStage] -> Ann SubSpec dom SrcTemplateStage
--- mkSubList = mkAnn ("(" <> child <> ")") . SubSpecList . mkAnnList (listSep ", ")
+pattern ExportSpec :: Ann IESpec dom SrcTemplateStage -> Ann ExportSpec dom SrcTemplateStage
+pattern ExportSpec ieSpec <- Ann _ (UDeclExport ieSpec)
 
--- mkSubAll :: Ann SubSpec dom SrcTemplateStage
--- mkSubAll = mkAnn "(..)" SubSpecAll
+pattern IESpec :: Ann Name dom SrcTemplateStage -> AnnMaybe SubSpec dom SrcTemplateStage -> Ann IESpec dom SrcTemplateStage
+pattern IESpec name ss <- Ann _ (UIESpec name ss)
 
--- mkImportDecl :: Bool -> Bool -> Bool -> Maybe String -> Ann ModuleName dom SrcTemplateStage 
---                      -> Maybe String -> Maybe (Ann ImportSpec dom SrcTemplateStage) 
---                      -> Ann ImportDecl dom SrcTemplateStage       
--- mkImportDecl source qualified safe pkg name rename spec
---   = mkAnn ("import " <> child <> child <> child <> child <> child <> child <> child) $
---       ImportDecl (if source then justVal (mkAnn "{-# SOURCE #-} " ImportSource) else noth)
---                  (if qualified then justVal (mkAnn "qualified " ImportQualified) else noth)
---                  (if safe then justVal (mkAnn "safe " ImportSafe) else noth)
---                  (case pkg of Just str -> justVal (mkStringNode str); _ -> noth)
---                  name (mkAnnMaybe opt (fmap (mkAnn (" as " <> child) . ImportRenaming . mkModuleName) rename)) (mkAnnMaybe opt spec)
+pattern SubList :: AnnList Name dom SrcTemplateStage -> Ann SubSpec dom SrcTemplateStage
+pattern SubList names <- Ann _ (USubSpecList names)
 
--- mkImportSpecList :: [Ann IESpec dom SrcTemplateStage] -> Ann ImportSpec dom SrcTemplateStage
--- mkImportSpecList = mkAnn ("(" <> child <> ")") . ImportSpecList . mkAnnList (listSep ", ")
+pattern SubAll :: Ann SubSpec dom SrcTemplateStage
+pattern SubAll <- Ann _ USubSpecAll
 
--- mkImportHidingList :: [Ann IESpec dom SrcTemplateStage] -> Ann ImportSpec dom SrcTemplateStage
--- mkImportHidingList = mkAnn (" hiding (" <> child <> ")") . ImportSpecHiding . mkAnnList (listSep ", ")
+pattern ImportDecl :: AnnMaybe ImportSource dom SrcTemplateStage -> AnnMaybe ImportQualified dom SrcTemplateStage 
+                        -> AnnMaybe ImportSafe dom SrcTemplateStage -> AnnMaybe StringNode dom SrcTemplateStage
+                        -> Ann ModuleName dom SrcTemplateStage -> AnnMaybe ImportRenaming dom SrcTemplateStage
+                        -> AnnMaybe ImportSpec dom SrcTemplateStage -> Ann ImportDecl dom SrcTemplateStage       
+pattern ImportDecl source qualified safe pkg name rename spec <- Ann _ (UImportDecl source qualified safe pkg name rename spec)
+
+pattern ImportRenaming :: Ann ModuleName dom SrcTemplateStage -> Ann ImportRenaming dom SrcTemplateStage
+pattern ImportRenaming name <- Ann _ (UImportRenaming name)
+
+pattern ImportSpecList :: AnnList IESpec dom SrcTemplateStage -> Ann ImportSpec dom SrcTemplateStage
+pattern ImportSpecList ieSpecs <- Ann _ (UImportSpecList ieSpecs)
+
+pattern ImportHidingList :: AnnList IESpec dom SrcTemplateStage -> Ann ImportSpec dom SrcTemplateStage
+pattern ImportHidingList hidings <- Ann _ (UImportSpecHiding hidings)
