@@ -4,17 +4,17 @@ module Language.Haskell.Tools.AST.Match.Stmts where
 
 import Language.Haskell.Tools.AST
 
--- mkBindStmt :: Ann Pattern dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
--- mkBindStmt bound expr = mkAnn (child <> " <- " <> child) $ BindStmt bound expr
+pattern BindStmt :: Ann Pattern dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+pattern BindStmt bound expr <- Ann _ (UBindStmt bound expr)
 
--- mkExprStmt :: Ann Expr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
--- mkExprStmt = mkAnn child . ExprStmt
+pattern ExprStmt :: Ann Expr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+pattern ExprStmt expr <- Ann _ (UExprStmt expr)
 
--- mkLetStmt :: [Ann LocalBind dom SrcTemplateStage] -> Ann Stmt dom SrcTemplateStage
--- mkLetStmt = mkAnn ("let " <> child) . LetStmt . mkAnnList indentedList
+pattern LetStmt :: AnnList LocalBind dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+pattern LetStmt binds <- Ann _ (ULetStmt binds)
 
--- mkListCompBody :: [Ann CompStmt dom SrcTemplateStage] -> Ann ListCompBody dom SrcTemplateStage
--- mkListCompBody = mkAnn child . ListCompBody . mkAnnList (listSep " ")
+pattern ListCompBody :: AnnList CompStmt dom SrcTemplateStage -> Ann ListCompBody dom SrcTemplateStage
+pattern ListCompBody stmts <- Ann _ (UListCompBody stmts)
 
--- mkCompStmt :: Ann Stmt dom SrcTemplateStage -> Ann CompStmt dom SrcTemplateStage
--- mkCompStmt = mkAnn child . CompStmt
+pattern CompStmt :: Ann Stmt dom SrcTemplateStage -> Ann CompStmt dom SrcTemplateStage
+pattern CompStmt stmt <- Ann _ (UCompStmt stmt)
