@@ -49,7 +49,7 @@ extractBinding selectDecl selectExpr name mod
      in if conflicting
            then refactError "The given name causes name conflict."
            else do (res, st) <- runStateT (selectDecl&selectExpr !~ extractThatBind name (head $ decl ^? actualContainingExpr exprRange) $ mod) Nothing
-                   case st of Just def -> return $ evalState (selectDecl&element !~ addLocalBinding declRange exprRange def $ res) False
+                   case st of Just def -> return $ evalState (selectDecl !~ addLocalBinding declRange exprRange def $ res) False
                               Nothing -> refactError "There is no applicable expression to extract."
 
 isConflicting :: ExtractBindingDomain dom => String -> Ann' QualifiedName dom -> Bool
@@ -70,16 +70,16 @@ extractThatBind name cont e
             el -> doExtract name cont e
   where hasParameter = not (null (getExternalBinds cont e))
 
-addLocalBinding :: SrcSpan -> SrcSpan -> Ann' ValueBind dom -> ValueBind dom SrcTemplateStage -> State Bool (ValueBind dom SrcTemplateStage)
+addLocalBinding :: SrcSpan -> SrcSpan -> Ann' ValueBind dom -> Ann ValueBind dom SrcTemplateStage -> State Bool (Ann ValueBind dom SrcTemplateStage)
 addLocalBinding declRange exprRange local bind 
   = do done <- get
        if not done then do put True
                            return $ doAddBinding declRange exprRange local bind
                    else return bind 
   where
-    doAddBinding declRng _ local sb@(SimpleBind {}) = valBindLocals .- insertLocalBind declRng local $ sb
-    doAddBinding declRng (RealSrcSpan rng) local fb@(FunBind {}) 
-      = funBindMatches & annList & filtered (isInside rng) & element & matchBinds .- insertLocalBind declRng local $ fb
+    doAddBinding declRng _ local sb@(SimpleBind {}) = element&valBindLocals .- insertLocalBind declRng local $ sb
+    doAddBinding declRng (RealSrcSpan rng) local fb@(FunctionBind {}) 
+      = element&funBindMatches & annList & filtered (isInside rng) & element & matchBinds .- insertLocalBind declRng local $ fb
 
 insertLocalBind :: SrcSpan -> Ann' ValueBind dom -> AnnMaybe' LocalBinds dom -> AnnMaybe' LocalBinds dom
 insertLocalBind declRng toInsert locals 
@@ -155,7 +155,7 @@ generateCall name args = foldl (\e a -> mkApp e (mkVar a)) (mkVar $ mkNormalName
 -- | Generates the local binding for the selected expression
 generateBind :: String -> [Ann' Pattern dom] -> Ann' Expr dom -> Ann' ValueBind dom
 generateBind name [] e = mkSimpleBind (mkVarPat $ mkNormalName $ mkSimpleName name) (mkUnguardedRhs e) Nothing
-generateBind name args e = mkFunctionBind [mkMatch (mkNormalMatchLhs (mkNormalName $ mkSimpleName name) args) (mkUnguardedRhs e) Nothing]
+generateBind name args e = mkFunctionBind [mkMatch (mkMatchLhs (mkNormalName $ mkSimpleName name) args) (mkUnguardedRhs e) Nothing]
 
 isValidBindingName :: String -> Bool
 isValidBindingName = nameValid Variable

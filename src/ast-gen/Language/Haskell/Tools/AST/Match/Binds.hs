@@ -4,77 +4,65 @@ module Language.Haskell.Tools.AST.Match.Binds where
 
 import Language.Haskell.Tools.AST
 
--- mkSimpleBind' :: Ann Name dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann ValueBind dom SrcTemplateStage
--- mkSimpleBind' n e = mkSimpleBind (mkVarPat n) (mkUnguardedRhs e) Nothing
+pattern SimpleBind :: Ann Pattern dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage 
+                        -> AnnMaybe LocalBinds dom SrcTemplateStage -> Ann ValueBind dom SrcTemplateStage
+pattern SimpleBind p r l <- Ann _ (USimpleBind p r l)
 
--- mkSimpleBind :: Ann Pattern dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage -> Maybe (Ann LocalBinds dom SrcTemplateStage) -> Ann ValueBind dom SrcTemplateStage
--- mkSimpleBind p r l = mkAnn (child <> child <> child) (SimpleBind p r (mkAnnMaybe opt l))
+pattern FunctionBind :: AnnList Match dom SrcTemplateStage -> Ann ValueBind dom SrcTemplateStage
+pattern FunctionBind matches <- Ann _ (UFunBind matches)
 
--- mkFunctionBind :: [Ann Match dom SrcTemplateStage] -> Ann ValueBind dom SrcTemplateStage
--- mkFunctionBind = mkAnn child . FunBind . mkAnnList indentedList
+pattern Match :: Ann MatchLhs dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage 
+                   -> AnnMaybe LocalBinds dom SrcTemplateStage -> Ann Match dom SrcTemplateStage
+pattern Match lhs rhs locs <- Ann _ (UMatch lhs rhs locs)
 
--- mkFunctionBind' :: Ann Name dom SrcTemplateStage -> [([Ann Pattern dom SrcTemplateStage], Ann Expr dom SrcTemplateStage)] -> Ann ValueBind dom SrcTemplateStage
--- mkFunctionBind' name matches = mkFunctionBind $ map (\(args, rhs) -> mkMatch (mkNormalMatchLhs name args) (mkUnguardedRhs rhs) Nothing) matches
+pattern MatchLhs :: Ann Name dom SrcTemplateStage -> AnnList Pattern dom SrcTemplateStage 
+                       -> Ann MatchLhs dom SrcTemplateStage
+pattern MatchLhs n pats <- Ann _ (UNormalLhs n pats)
 
--- mkMatch :: Ann MatchLhs dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage -> Maybe (Ann LocalBinds dom SrcTemplateStage) -> Ann Match dom SrcTemplateStage
--- mkMatch lhs rhs locs 
---   = mkAnn (child <> child <> child) 
---       $ Match lhs rhs (mkAnnMaybe (optBefore " ") locs)
+pattern InfixLhs :: Ann Pattern dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage 
+                      -> Ann Pattern dom SrcTemplateStage -> AnnList Pattern dom SrcTemplateStage
+                      -> Ann MatchLhs dom SrcTemplateStage
+pattern InfixLhs lhs op rhs pats <- Ann _ (UInfixLhs lhs op rhs pats)
 
--- mkNormalMatchLhs :: Ann Name dom SrcTemplateStage -> [Ann Pattern dom SrcTemplateStage] -> Ann MatchLhs dom SrcTemplateStage
--- mkNormalMatchLhs n pats = mkAnn (child <> child) $ NormalLhs n (mkAnnList (listSepBefore " " " ") pats)
+pattern LocalBinds :: AnnList LocalBind dom SrcTemplateStage -> Ann LocalBinds dom SrcTemplateStage
+pattern LocalBinds binds <- Ann _ (ULocalBinds binds)
 
--- mkInfixMatchLhs :: Ann Pattern dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage 
---                                                     -> [Ann Pattern dom SrcTemplateStage] -> Ann MatchLhs dom SrcTemplateStage
--- mkInfixMatchLhs lhs op rhs pats = mkAnn (child <> child <> child <> child) $ InfixLhs lhs op rhs (mkAnnList (listSepBefore " " " ") pats)
+pattern LocalValBind :: Ann ValueBind dom SrcTemplateStage -> Ann LocalBind dom SrcTemplateStage
+pattern LocalValBind bind <- Ann _ (ULocalValBind bind)
 
--- mkLocalBinds :: Int -> [Ann LocalBind dom SrcTemplateStage] -> AnnMaybe LocalBinds dom SrcTemplateStage
--- mkLocalBinds col = mkAnnMaybe (optBefore ("\n" ++ replicate (col - 1) ' ' ++ "where ")) 
---                      . Just . mkAnn child . LocalBinds . mkAnnList indentedList
+pattern LocalTypeSig :: Ann TypeSignature dom SrcTemplateStage -> Ann LocalBind dom SrcTemplateStage
+pattern LocalTypeSig typeSig <- Ann _ (ULocalSignature typeSig)
 
--- mkLocalBinds' :: [Ann LocalBind dom SrcTemplateStage] -> Ann LocalBinds dom SrcTemplateStage
--- mkLocalBinds' = mkAnn (" where " <> child) . LocalBinds . mkAnnList indentedList
+pattern LocalFixity :: Ann FixitySignature dom SrcTemplateStage -> Ann LocalBind dom SrcTemplateStage
+pattern LocalFixity fixity <- Ann _ (ULocalFixity fixity)
 
--- mkLocalValBind :: Ann ValueBind dom SrcTemplateStage -> Ann LocalBind dom SrcTemplateStage
--- mkLocalValBind = mkAnn child . LocalValBind
+pattern TypeSignature :: AnnList Name dom SrcTemplateStage -> Ann Type dom SrcTemplateStage 
+                          -> Ann TypeSignature dom SrcTemplateStage
+pattern TypeSignature n t <- Ann _ (UTypeSignature n t)
 
--- mkLocalTypeSig :: Ann TypeSignature dom SrcTemplateStage -> Ann LocalBind dom SrcTemplateStage
--- mkLocalTypeSig = mkAnn child . LocalSignature
+pattern InfixL :: Ann Precedence dom SrcTemplateStage -> AnnList Operator dom SrcTemplateStage -> Ann FixitySignature dom SrcTemplateStage
+pattern InfixL prec op <- Ann _ (UFixitySignature (Ann _ AssocLeft) prec op)
 
--- mkLocalFixity :: Ann FixitySignature dom SrcTemplateStage -> Ann LocalBind dom SrcTemplateStage
--- mkLocalFixity = mkAnn child . LocalFixity
+pattern InfixR :: Ann Precedence dom SrcTemplateStage -> AnnList Operator dom SrcTemplateStage -> Ann FixitySignature dom SrcTemplateStage
+pattern InfixR prec op <- Ann _ (UFixitySignature (Ann _ AssocRight) prec op)
 
--- mkTypeSignature :: Ann Name dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann TypeSignature dom SrcTemplateStage
--- mkTypeSignature n t = mkAnn (child <> " :: " <> child) (TypeSignature (mkAnnList (listSep ", ") [n]) t)
+pattern Infix :: Ann Precedence dom SrcTemplateStage -> AnnList Operator dom SrcTemplateStage -> Ann FixitySignature dom SrcTemplateStage
+pattern Infix prec op <- Ann _ (UFixitySignature (Ann _ AssocNone) prec op)
 
--- mkInfixL :: Int -> Ann Operator dom SrcTemplateStage -> Ann FixitySignature dom SrcTemplateStage
--- mkInfixL prec op = mkAnn (child <> " " <> child <> " " <> child) 
---                      $ FixitySignature (mkAnn "infixl" AssocLeft) (mkAnn (fromString (show prec)) (Precedence prec)) (mkAnnList (listSep ", ") [op])
+pattern UnguardedRhs :: Ann Expr dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage
+pattern UnguardedRhs expr <- Ann _ (UUnguardedRhs expr)
 
--- mkInfixR :: Int -> Ann Operator dom SrcTemplateStage -> Ann FixitySignature dom SrcTemplateStage
--- mkInfixR prec op = mkAnn (child <> " " <> child <> " " <> child) 
---                      $ FixitySignature (mkAnn "infixr" AssocRight) (mkAnn (fromString (show prec)) (Precedence prec)) (mkAnnList (listSep ", ") [op])
+pattern GuardedRhss :: AnnList GuardedRhs dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage
+pattern GuardedRhss rhss <- Ann _ (UGuardedRhss rhss)
 
--- mkInfix :: Int -> Ann Operator dom SrcTemplateStage -> Ann FixitySignature dom SrcTemplateStage
--- mkInfix prec op = mkAnn (child <> " " <> child <> " " <> child) 
---                     $ FixitySignature (mkAnn "infix" AssocNone) (mkAnn (fromString (show prec)) (Precedence prec)) (mkAnnList (listSep ", ") [op])
+pattern GuardedRhs :: AnnList RhsGuard dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann GuardedRhs dom SrcTemplateStage
+pattern GuardedRhs guards expr <- Ann _ (UGuardedRhs guards expr)
 
--- mkUnguardedRhs :: Ann Expr dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage
--- mkUnguardedRhs = mkAnn (" = " <> child) . UnguardedRhs
+pattern GuardBind :: Ann Pattern dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann RhsGuard dom SrcTemplateStage
+pattern GuardBind pat expr <- Ann _ (UGuardBind pat expr)
 
--- mkGuardedRhss :: [Ann GuardedRhs dom SrcTemplateStage] -> Ann Rhs dom SrcTemplateStage
--- mkGuardedRhss = mkAnn child . GuardedRhss . mkAnnList indentedList
+pattern GuardLet :: AnnList LocalBind dom SrcTemplateStage -> Ann RhsGuard dom SrcTemplateStage
+pattern GuardLet binds <- Ann _ (UGuardLet binds)
 
--- mkGuardedRhs :: [Ann RhsGuard dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage -> Ann GuardedRhs dom SrcTemplateStage
--- mkGuardedRhs guards expr = mkAnn ("| " <> child <> " = " <> child) $ GuardedRhs (mkAnnList (listSep ", ") guards) expr
-
--- mkGuardBind :: Ann Pattern dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann RhsGuard dom SrcTemplateStage
--- mkGuardBind pat expr = mkAnn (child <> " <- " <> child) $ GuardBind pat expr
-
--- mkGuardLet :: [Ann LocalBind dom SrcTemplateStage] -> Ann RhsGuard dom SrcTemplateStage
--- mkGuardLet = mkAnn ("let " <> child) . GuardLet . mkAnnList indentedList
-
--- mkGuardCheck :: Ann Expr dom SrcTemplateStage -> Ann RhsGuard dom SrcTemplateStage
--- mkGuardCheck = mkAnn child . GuardCheck
-
--- pragmas are omitted
+pattern GuardCheck :: Ann Expr dom SrcTemplateStage -> Ann RhsGuard dom SrcTemplateStage
+pattern GuardCheck expr <- Ann _ (UGuardCheck expr)

@@ -115,11 +115,11 @@ instance BindingElem Decl where
 instance BindingElem LocalBind where
   sigBind = localSig
   valBind = localVal
-  createTypeSig = LocalSignature
-  createBinding = LocalValBind
-  isTypeSig (LocalSignature _) = True
+  createTypeSig = ULocalSignature
+  createBinding = ULocalValBind
+  isTypeSig (ULocalSignature _) = True
   isTypeSig _ = False
-  isBinding (LocalValBind _) = True
+  isBinding (ULocalValBind _) = True
   isBinding _ = False
 
 bindName :: (BindingElem d, SemanticInfo dom QualifiedName ~ k) => Simple Traversal (d dom stage) k

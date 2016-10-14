@@ -128,7 +128,7 @@ trfDecl = trfLocNoSema $ \case
   SigD sig -> trfSig sig
   DerivD (DerivDecl t overlap) -> AST.DerivDecl <$> trfMaybeDefault " " "" trfOverlap (after AnnInstance) overlap <*> trfInstanceRule (hsib_body t)
   -- TODO: INLINE, SPECIALIZE, MINIMAL, VECTORISE pragmas, Warnings, Annotations, rewrite rules, role annotations
-  RuleD (HsRules _ rules) -> AST.PragmaDecl <$> annContNoSema (AST.RulePragma <$> makeIndentedList (before AnnClose) (mapM trfRewriteRule rules))
+  RuleD (HsRules _ rules) -> AST.PragmaDecl <$> annContNoSema (AST.URulePragma <$> makeIndentedList (before AnnClose) (mapM trfRewriteRule rules))
   RoleAnnotD (RoleAnnotDecl name roles) -> AST.RoleDecl <$> trfQualifiedName name <*> makeList " " atTheEnd (mapM trfRole roles)
   DefD (DefaultDecl types) -> AST.DefaultDecl . nonemptyAnnList <$> mapM trfType types
   ForD (ForeignImport name (hsib_body -> typ) _ (CImport ccall safe _ _ _)) 
@@ -137,7 +137,7 @@ trfDecl = trfLocNoSema $ \case
     -> AST.ForeignExport <$> annLocNoSema (pure l) (trfCallConv' ccall) <*> trfName name <*> trfType typ
   SpliceD (SpliceDecl (unLoc -> spl) _) -> AST.SpliceDecl <$> (annContNoSema $ trfSplice' spl)
   AnnD (HsAnnotation stxt subject expr) 
-    -> AST.PragmaDecl <$> annContNoSema (AST.AnnPragma <$> trfAnnotationSubject stxt subject (srcSpanStart $ getLoc expr) <*> trfExpr expr)
+    -> AST.PragmaDecl <$> annContNoSema (AST.UAnnPragma <$> trfAnnotationSubject stxt subject (srcSpanStart $ getLoc expr) <*> trfExpr expr)
   d -> error ("Illegal declaration: " ++ showSDocUnsafe (ppr d) ++ " (ctor: " ++ show (toConstr d) ++ ")")
 
 trfGADT :: TransformName n r => NewOrData -> Located n -> LHsQTyVars n -> Located (HsContext n) 
@@ -171,18 +171,18 @@ trfSig (FixSig fs) = AST.FixityDecl <$> (annContNoSema $ trfFixitySig fs)
 trfSig (PatSynSig id typ) 
   = AST.PatTypeSigDecl <$> annContNoSema (AST.PatternTypeSignature <$> trfName id <*> trfType (hsib_body typ))
 trfSig (InlineSig name (InlinePragma _ Inlinable _ phase _)) 
-  = AST.PragmaDecl <$> annContNoSema (AST.InlinablePragma <$> trfPhase (pure $ srcSpanStart $ getLoc name) phase <*> trfName name)
+  = AST.PragmaDecl <$> annContNoSema (AST.UInlinablePragma <$> trfPhase (pure $ srcSpanStart $ getLoc name) phase <*> trfName name)
 trfSig (InlineSig name (InlinePragma src inl _ phase cl)) 
   = do rng <- asks contRange
        let parts = map getLoc $ splitLocated (L rng src)
-       AST.PragmaDecl <$> annContNoSema ((case inl of Inline -> AST.InlinePragma; NoInline -> AST.NoInlinePragma) 
+       AST.PragmaDecl <$> annContNoSema ((case inl of Inline -> AST.UInlinePragma; NoInline -> AST.UNoInlinePragma) 
                                      <$> trfConlike parts cl 
                                      <*> trfPhase (pure $ srcSpanStart (getLoc name)) phase 
                                      <*> trfName name)
 trfSig (SpecSig name (map hsib_body -> types) (inl_act -> phase)) 
-  = AST.PragmaDecl <$> annContNoSema (AST.SpecializePragma <$> trfPhase (pure $ srcSpanStart (getLoc name)) phase 
-                                                     <*> trfName name 
-                                                     <*> (orderAnnList <$> trfAnnList ", " trfType' types))
+  = AST.PragmaDecl <$> annContNoSema (AST.USpecializePragma <$> trfPhase (pure $ srcSpanStart (getLoc name)) phase 
+                                       <*> trfName name 
+                                       <*> (orderAnnList <$> trfAnnList ", " trfType' types))
 trfSig s = error ("Illegal signature: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
 
 trfConlike :: [SrcSpan] -> RuleMatchInfo -> Trf (AnnMaybe AST.ConlikeAnnot (Dom r) RangeStage)
@@ -334,10 +334,10 @@ createClassBody sigs binds typeFams typeFamDefs
        
 trfClassElemSig :: TransformName n r => Located (Sig n) -> Trf (Ann AST.ClassElement (Dom r) RangeStage)
 trfClassElemSig = trfLocNoSema $ \case
-  TypeSig names typ -> AST.ClsSig <$> (annContNoSema $ AST.TypeSignature <$> define (makeNonemptyList ", " (mapM trfName names)) 
+  TypeSig names typ -> AST.ClsSig <$> (annContNoSema $ AST.UTypeSignature <$> define (makeNonemptyList ", " (mapM trfName names)) 
                                   <*> trfType (hswc_body $ hsib_body typ))
   ClassOpSig True [name] typ -> AST.ClsDefSig <$> trfName name <*> trfType (hsib_body typ)
-  ClassOpSig False names typ -> AST.ClsSig <$> (annContNoSema $ AST.TypeSignature <$> define (makeNonemptyList ", " (mapM trfName names)) 
+  ClassOpSig False names typ -> AST.ClsSig <$> (annContNoSema $ AST.UTypeSignature <$> define (makeNonemptyList ", " (mapM trfName names)) 
                                            <*> trfType (hsib_body typ))
   MinimalSig _ formula -> AST.ClsMinimal <$> trfMinimalFormula formula
   s -> error ("Illegal signature: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
@@ -375,9 +375,9 @@ trfInstBody binds sigs fams dats = do
           
 trfClassInstSig :: TransformName n r => Located (Sig n) -> Trf (Ann AST.InstBodyDecl (Dom r) RangeStage)
 trfClassInstSig = trfLocNoSema $ \case
-  TypeSig names typ -> AST.InstBodyTypeSig <$> (annContNoSema $ AST.TypeSignature <$> makeNonemptyList ", " (mapM trfName names) 
+  TypeSig names typ -> AST.InstBodyTypeSig <$> (annContNoSema $ AST.UTypeSignature <$> makeNonemptyList ", " (mapM trfName names) 
                                            <*> trfType (hswc_body $ hsib_body typ))
-  ClassOpSig _ names typ -> AST.InstBodyTypeSig <$> (annContNoSema $ AST.TypeSignature <$> define (makeNonemptyList ", " (mapM trfName names)) 
+  ClassOpSig _ names typ -> AST.InstBodyTypeSig <$> (annContNoSema $ AST.UTypeSignature <$> define (makeNonemptyList ", " (mapM trfName names)) 
                                                 <*> trfType (hsib_body typ))
   SpecInstSig _ typ -> AST.SpecializeInstance <$> trfType (hsib_body typ)
   s -> error ("Illegal class instance signature: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
@@ -442,7 +442,7 @@ trfFamilyResultSig _ (Just (L l (InjectivityAnn n deps)))
 trfAnnotationSubject :: TransformName n r => SourceText -> AnnProvenance n -> SrcLoc -> Trf (Ann AST.AnnotationSubject (Dom r) RangeStage)
 trfAnnotationSubject stxt subject payloadEnd
   = do payloadStart <- advanceStr stxt <$> atTheStart
-       case subject of ValueAnnProvenance name@(L l _) -> annLocNoSema (pure l) (AST.NameAnnotation <$> trfName name)
+       case subject of ValueAnnProvenance name@(L l _) -> annLocNoSema (pure l) (AST.UNameAnnotation <$> trfName name)
                        TypeAnnProvenance name@(L l _) -> annLocNoSema (pure $ mkSrcSpan payloadStart (srcSpanEnd l)) 
-                                                                      (AST.TypeAnnotation <$> trfName name)
-                       ModuleAnnProvenance -> annLocNoSema (pure $ mkSrcSpan payloadStart payloadEnd) (pure AST.ModuleAnnotation)
+                                                                      (AST.UTypeAnnotation <$> trfName name)
+                       ModuleAnnProvenance -> annLocNoSema (pure $ mkSrcSpan payloadStart payloadEnd) (pure AST.UModuleAnnotation)
