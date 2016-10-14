@@ -162,7 +162,7 @@ trfModuleRename :: ModSummary -> Ann AST.Module (Dom RdrName) RangeStage
 trfModuleRename mod rangeMod (gr,imports,exps,_) hsMod 
     = do info <- createModuleInfo mod
          trfLocCorrect (pure info) (\sr -> combineSrcSpans sr <$> (uniqueTokenAnywhere AnnEofPos)) (trfModuleRename' (info ^. AST.implicitNames)) hsMod      
-  where roleAnnots = rangeMod ^? AST.element&AST.modDecl&AST.annList&filtered ((\case AST.RoleDecl {} -> True; _ -> False) . (^. AST.element))
+  where roleAnnots = rangeMod ^? AST.element&AST.modDecl&AST.annList&filtered ((\case AST.URoleDecl {} -> True; _ -> False) . (^. AST.element))
         originalNames = Map.fromList $ catMaybes $ map getSourceAndInfo (rangeMod ^? biplateRef) 
         getSourceAndInfo :: Ann AST.QualifiedName (Dom RdrName) RangeStage -> Maybe (SrcSpan, RdrName)
         getSourceAndInfo n = (,) <$> (n ^? annotation&sourceInfo&nodeSpan) <*> (n ^? semantics&nameInfo)

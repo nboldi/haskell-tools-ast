@@ -288,6 +288,12 @@ data AnnMaybe elem dom stage = AnnMaybe { _annMaybeAnnot :: NodeInfo (SemanticIn
                                         }
                              
 makeReferences ''AnnMaybe
+
+pattern AnnNothing :: AnnMaybe elem dom stage
+pattern AnnNothing <- AnnMaybe _ Nothing
+
+pattern AnnJust :: Ann elem dom stage -> AnnMaybe elem dom stage
+pattern AnnJust elem <- AnnMaybe _ (Just elem)
                           
 annJust :: Partial (AnnMaybe e d s) (AnnMaybe e d s) (Ann e d s) (Ann e d s)                          
 annJust = annMaybe & just

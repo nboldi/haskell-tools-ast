@@ -105,11 +105,11 @@ class BindingElem d where
 instance BindingElem Decl where
   sigBind = declTypeSig
   valBind = declValBind
-  createTypeSig = TypeSigDecl
-  createBinding = ValueBinding
-  isTypeSig (TypeSigDecl _) = True
+  createTypeSig = UTypeSigDecl
+  createBinding = UValueBinding
+  isTypeSig (UTypeSigDecl _) = True
   isTypeSig _ = False
-  isBinding (ValueBinding _) = True
+  isBinding (UValueBinding _) = True
   isBinding _ = False
 
 instance BindingElem LocalBind where
