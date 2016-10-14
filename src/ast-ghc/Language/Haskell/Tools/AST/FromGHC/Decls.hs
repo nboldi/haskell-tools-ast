@@ -274,14 +274,14 @@ trfTypeEq = trfLocNoSema $ \(TyFamEqn name pats rhs)
   -> AST.TypeEqn <$> defineTypeVars (focusBefore AnnEqual (combineTypes name (hsib_body pats))) <*> trfType rhs
   where combineTypes :: TransformName n r => Located n -> [LHsType n] -> Trf (Ann AST.Type (Dom r) RangeStage)
         combineTypes name (lhs : rhs : rest) | srcSpanStart (getLoc name) > srcSpanEnd (getLoc lhs)
-          = annContNoSema $ AST.TyInfix <$> trfType lhs <*> trfOperator name <*> trfType rhs
-        combineTypes name pats = wrapTypes (annLocNoSema (pure $ getLoc name) (AST.TyVar <$> trfName name)) pats
+          = annContNoSema $ AST.UTyInfix <$> trfType lhs <*> trfOperator name <*> trfType rhs
+        combineTypes name pats = wrapTypes (annLocNoSema (pure $ getLoc name) (AST.UTyVar <$> trfName name)) pats
 
         wrapTypes :: TransformName n r => Trf (Ann AST.Type (Dom r) RangeStage) -> [LHsType n] -> Trf (Ann AST.Type (Dom r) RangeStage)
         wrapTypes base pats 
           = foldl (\t p -> do typ <- t
                               annLocNoSema (pure $ combineSrcSpans (getRange typ) (getLoc p)) 
-                                     (AST.TyApp <$> pure typ <*> trfType p)) base pats
+                                     (AST.UTyApp <$> pure typ <*> trfType p)) base pats
                  
 trfFunDeps :: TransformName n r => [Located (FunDep (Located n))] -> Trf (AnnMaybe AST.FunDeps (Dom r) RangeStage)
 trfFunDeps [] = nothing "| " "" $ focusBeforeIfPresent AnnWhere atTheEnd

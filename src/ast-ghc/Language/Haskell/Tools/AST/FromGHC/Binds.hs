@@ -150,8 +150,8 @@ trfRewriteRule = trfLocNoSema $ \(HsRule (L nameLoc (_, ruleName)) act bndrs lef
            <*> trfExpr right
 
 trfRuleBndr :: TransformName n r =>  Located (RuleBndr n) -> Trf (Ann AST.TyVar (Dom r) RangeStage)
-trfRuleBndr = trfLocNoSema $ \case (RuleBndr n) -> AST.TyVarDecl <$> trfName n <*> nothing " " "" atTheEnd
-                                   (RuleBndrSig n k) -> AST.TyVarDecl <$> trfName n <*> (makeJust <$> (trfKindSig' (hswc_body $ hsib_body k)))
+trfRuleBndr = trfLocNoSema $ \case (RuleBndr n) -> AST.UTyVarDecl <$> trfName n <*> nothing " " "" atTheEnd
+                                   (RuleBndrSig n k) -> AST.UTyVarDecl <$> trfName n <*> (makeJust <$> (trfKindSig' (hswc_body $ hsib_body k)))
 
 trfMinimalFormula :: TransformName n r => Located (BooleanFormula (Located n)) -> Trf (Ann AST.MinimalFormula (Dom r) RangeStage)
 trfMinimalFormula = trfLocNoSema trfMinimalFormula'

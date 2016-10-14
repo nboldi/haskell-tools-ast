@@ -79,10 +79,10 @@ declHeadNames = element & (dhName&element&simpleName &+& dhBody&declHeadNames &+
                
 typeParams :: Simple Traversal (Ann Type dom stage) (Ann Type dom stage)
 typeParams = fromTraversal typeParamsTrav
-  where typeParamsTrav f (Ann a (TyFun p r)) = Ann a <$> (TyFun <$> f p <*> typeParamsTrav f r)
-        typeParamsTrav f (Ann a (TyForall vs t)) = Ann a <$> (TyForall vs <$> typeParamsTrav f t)
-        typeParamsTrav f (Ann a (TyCtx ctx t)) = Ann a <$> (TyCtx ctx <$> typeParamsTrav f t)
-        typeParamsTrav f (Ann a (TyParen t)) = Ann a <$> (TyParen <$> typeParamsTrav f t)
+  where typeParamsTrav f (Ann a (UTyFun p r)) = Ann a <$> (UTyFun <$> f p <*> typeParamsTrav f r)
+        typeParamsTrav f (Ann a (UTyForall vs t)) = Ann a <$> (UTyForall vs <$> typeParamsTrav f t)
+        typeParamsTrav f (Ann a (UTyCtx ctx t)) = Ann a <$> (UTyCtx ctx <$> typeParamsTrav f t)
+        typeParamsTrav f (Ann a (UTyParen t)) = Ann a <$> (UTyParen <$> typeParamsTrav f t)
         typeParamsTrav f t = f t
         
 
