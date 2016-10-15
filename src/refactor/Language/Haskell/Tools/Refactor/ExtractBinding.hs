@@ -26,11 +26,6 @@ import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
-import Debug.Trace
-
-type Ann' e dom = Ann e dom SrcTemplateStage 
-type AnnMaybe' e dom = AnnMaybe e dom SrcTemplateStage 
-
 type ExtractBindingDomain dom = ( Domain dom, HasNameInfo dom, HasDefiningInfo dom, HasScopeInfo dom )
 
 extractBinding' :: ExtractBindingDomain dom => RealSrcSpan -> String -> LocalRefactoring dom
@@ -38,11 +33,14 @@ extractBinding' sp name mod
   = if isValidBindingName name then extractBinding (nodesContaining sp) (nodesContaining sp) name mod
                                else refactError "The given name is not a valid for the extracted binding"
 
-extractBinding :: forall dom . ExtractBindingDomain dom => Simple Traversal (Ann' Module dom) (Ann' ValueBind dom)
-                   -> Simple Traversal (Ann' ValueBind dom) (Ann' Expr dom)
+-- | Safely performs the transformation to introduce the local binding and replace the expression with the call.
+-- Checks if the introduction of the name causes a name conflict.
+extractBinding :: forall dom . ExtractBindingDomain dom 
+               => Simple Traversal (Ann Module dom SrcTemplateStage) (Ann ValueBind dom SrcTemplateStage)
+                   -> Simple Traversal (Ann ValueBind dom SrcTemplateStage) (Ann Expr dom SrcTemplateStage)
                    -> String -> LocalRefactoring dom
 extractBinding selectDecl selectExpr name mod
-  = let conflicting = any (isConflicting name) (mod ^? selectDecl & biplateRef :: [Ann' QualifiedName dom])
+  = let conflicting = any (isConflicting name) (mod ^? selectDecl & biplateRef :: [Ann QualifiedName dom SrcTemplateStage])
         exprRange = getRange $ head (mod ^? selectDecl & selectExpr & annotation & sourceInfo)
         decl = last (mod ^? selectDecl)
         declRange = getRange $ last (mod ^? selectDecl & annotation & sourceInfo)
@@ -52,25 +50,32 @@ extractBinding selectDecl selectExpr name mod
                    case st of Just def -> return $ evalState (selectDecl !~ addLocalBinding declRange exprRange def $ res) False
                               Nothing -> refactError "There is no applicable expression to extract."
 
-isConflicting :: ExtractBindingDomain dom => String -> Ann' QualifiedName dom -> Bool
+-- | Decides if a new name defined to be the given string will conflict with the given AST element
+isConflicting :: ExtractBindingDomain dom => String -> Ann QualifiedName dom SrcTemplateStage -> Bool
 isConflicting name used
   = semanticsDefining (used ^. semantics)
       && (GHC.occNameString . GHC.getOccName <$> semanticsName (used ^. semantics)) == Just name
 
 -- Replaces the selected expression with a call and generates the called binding.
-extractThatBind :: ExtractBindingDomain dom => String -> Ann' Expr dom -> Ann' Expr dom -> StateT (Maybe (Ann' ValueBind dom)) (LocalRefactor dom) (Ann' Expr dom)
+extractThatBind :: ExtractBindingDomain dom 
+                => String -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage 
+                     -> StateT (Maybe (Ann ValueBind dom SrcTemplateStage)) (LocalRefactor dom) 
+                               (Ann Expr dom SrcTemplateStage)
 extractThatBind name cont e 
   = do ret <- get
        if (isJust ret) then return e 
           else case e of
             Paren {} | hasParameter -> element & exprInner !~ doExtract name cont $ e
-                     | otherwise -> doExtract name cont (fromJust $ e ^? element & exprInner)
+                     | otherwise    -> doExtract name cont (fromJust $ e ^? element & exprInner)
             Var {} -> lift $ refactError "The selected expression is too simple to be extracted."
             el | isParenLikeExpr el && hasParameter -> mkParen <$> doExtract name cont e
             el -> doExtract name cont e
   where hasParameter = not (null (getExternalBinds cont e))
 
-addLocalBinding :: SrcSpan -> SrcSpan -> Ann' ValueBind dom -> Ann ValueBind dom SrcTemplateStage -> State Bool (Ann ValueBind dom SrcTemplateStage)
+-- | Adds a local binding to the 
+addLocalBinding :: SrcSpan -> SrcSpan -> Ann ValueBind dom SrcTemplateStage -> Ann ValueBind dom SrcTemplateStage 
+                     -> State Bool (Ann ValueBind dom SrcTemplateStage)
+-- this uses the state monad to only add the local binding to the first selected element
 addLocalBinding declRange exprRange local bind 
   = do done <- get
        if not done then do put True
@@ -79,9 +84,11 @@ addLocalBinding declRange exprRange local bind
   where
     doAddBinding declRng _ local sb@(SimpleBind {}) = element&valBindLocals .- insertLocalBind declRng local $ sb
     doAddBinding declRng (RealSrcSpan rng) local fb@(FunctionBind {}) 
-      = element&funBindMatches & annList & filtered (isInside rng) & element & matchBinds .- insertLocalBind declRng local $ fb
+      = element&funBindMatches & annList & filtered (isInside rng) & element & matchBinds 
+          .- insertLocalBind declRng local $ fb
 
-insertLocalBind :: SrcSpan -> Ann' ValueBind dom -> AnnMaybe' LocalBinds dom -> AnnMaybe' LocalBinds dom
+insertLocalBind :: SrcSpan -> Ann ValueBind dom SrcTemplateStage -> AnnMaybe LocalBinds dom SrcTemplateStage 
+                     -> AnnMaybe LocalBinds dom SrcTemplateStage
 insertLocalBind declRng toInsert locals 
   | isAnnNothing locals
   , RealSrcSpan rng <- declRng = -- creates the new where clause indented 2 spaces from the declaration
@@ -107,7 +114,10 @@ isParenLikeExpr (Splice {}) = True
 isParenLikeExpr (QuasiQuoteExpr {}) = True
 isParenLikeExpr _ = False
 
-doExtract :: ExtractBindingDomain dom => String -> Ann' Expr dom -> Ann' Expr dom -> StateT (Maybe (Ann' ValueBind dom)) (LocalRefactor dom) (Ann' Expr dom)
+-- | Replaces the expression with the call and stores the binding of the call in its state
+doExtract :: ExtractBindingDomain dom 
+          => String -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage 
+               -> StateT (Maybe (Ann ValueBind dom SrcTemplateStage)) (LocalRefactor dom) (Ann Expr dom SrcTemplateStage)
 doExtract name cont e@(Lambda (AnnList bindings) inner)
   = do let params = getExternalBinds cont e
        put (Just (generateBind name (map mkVarPat params ++ bindings) inner))
@@ -118,17 +128,18 @@ doExtract name cont e
        return (generateCall name params)
 
 -- | Gets the values that have to be passed to the extracted definition
-getExternalBinds :: ExtractBindingDomain dom => Ann' Expr dom -> Ann' Expr dom -> [Ann' Name dom]
+getExternalBinds :: ExtractBindingDomain dom 
+                 => Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> [Ann Name dom SrcTemplateStage]
 getExternalBinds cont expr = map exprToName $ keepFirsts $ filter isApplicableName (expr ^? uniplateRef)
   where isApplicableName name@(getExprNameInfo -> Just nm) = inScopeForOriginal nm && notInScopeForExtracted nm
         isApplicableName _ = False
 
-        getExprNameInfo :: ExtractBindingDomain dom => Ann' Expr dom -> Maybe GHC.Name
+        getExprNameInfo :: ExtractBindingDomain dom => Ann Expr dom SrcTemplateStage -> Maybe GHC.Name
         getExprNameInfo expr = semanticsName =<< (listToMaybe $ expr ^? element & (exprName&element&simpleName &+& exprOperator&element&operatorName) 
                                                                                 & semantics)
 
         -- | Creates the parameter value to pass the name (operators are passed in parentheses)
-        exprToName :: Ann' Expr dom -> Ann' Name dom
+        exprToName :: Ann Expr dom SrcTemplateStage -> Ann Name dom SrcTemplateStage
         exprToName e | Just n <- e ^? element & exprName                               = n
                      | Just op <- e ^? element & exprOperator & element & operatorName = mkParenName op
         
@@ -149,11 +160,11 @@ actualContainingExpr (RealSrcSpan rng) = element & accessRhs & element & accessE
         accessExpr = rhsExpr &+& rhsGuards & annList & filtered (isInside rng) & element & guardExpr
 
 -- | Generates the expression that calls the local binding
-generateCall :: String -> [Ann' Name dom] -> Ann' Expr dom
+generateCall :: String -> [Ann Name dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage
 generateCall name args = foldl (\e a -> mkApp e (mkVar a)) (mkVar $ mkNormalName $ mkSimpleName name) args
 
 -- | Generates the local binding for the selected expression
-generateBind :: String -> [Ann' Pattern dom] -> Ann' Expr dom -> Ann' ValueBind dom
+generateBind :: String -> [Ann Pattern dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage -> Ann ValueBind dom SrcTemplateStage
 generateBind name [] e = mkSimpleBind (mkVarPat $ mkNormalName $ mkSimpleName name) (mkUnguardedRhs e) Nothing
 generateBind name args e = mkFunctionBind [mkMatch (mkMatchLhs (mkNormalName $ mkSimpleName name) args) (mkUnguardedRhs e) Nothing]
 

@@ -3,6 +3,8 @@
            , RankNTypes 
            , ScopedTypeVariables
            , TypeFamilies
+           , FlexibleInstances
+           , UndecidableInstances
            #-}
 
 -- | Helper functions for using the AST.
@@ -26,6 +28,7 @@ import Language.Haskell.Tools.AST.Types
 import Language.Haskell.Tools.AST.Base
 import Language.Haskell.Tools.AST.References
 import Language.Haskell.Tools.AST.SemaInfoTypes
+import Language.Haskell.Tools.AST.SemaInfoClasses
 
 import Debug.Trace
 
@@ -184,3 +187,16 @@ getNode sp node = case node ^? nodesWithRange sp of
   [] -> error "getNode: The node cannot be found"
   [n] -> n
   _ -> error "getNode: Multiple nodes"
+
+-- | A class to access the names of named elements. Have to locate where does the AST element store its name.
+-- The returned name will be the one that was marked isDefining.
+class NamedElement elem where
+  elementName :: elem -> [GHC.Name]
+
+instance HasNameInfo dom => NamedElement (Ann Decl dom st) where
+  elementName d = catMaybes names
+    where names = map semanticsName (d ^? element & declHead & dhNames) 
+                    ++ map semanticsName (d ^? element & declTypeFamily & element & tfHead & dhNames)
+                    ++ map semanticsName (d ^? element & declValBind & bindingName)
+                    ++ map semanticsName (d ^? element & declName & element & simpleName & semantics)
+                    ++ map semanticsName (d ^? element & declPatSyn & element & patLhs & element & (patName & element & simpleName &+& patSynOp & element & operatorName) & semantics)

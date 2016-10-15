@@ -19,15 +19,18 @@ import Control.Reference hiding (element)
 import Data.Generics.Uniplate.Data
 import Debug.Trace
 
-tryItOut moduleName sp = tryRefactor (localRefactoring $ dollarApp (readSrcSpan (toFileName "." moduleName) sp)) moduleName
+tryItOut moduleName sp 
+  = tryRefactor (localRefactoring $ dollarApp (readSrcSpan (toFileName "." moduleName) sp)) moduleName
 
-type RefactMonad dom = StateT [SrcSpan] (LocalRefactor dom)
+type DollarMonad dom = StateT [SrcSpan] (LocalRefactor dom)
 type DollarDomain dom = (HasImportInfo dom, HasModuleInfo dom, HasFixityInfo dom, HasNameInfo dom)
 
 dollarApp :: DollarDomain dom => RealSrcSpan -> LocalRefactoring dom
-dollarApp sp = flip evalStateT [] . ((nodesContained sp !~ (\e -> get >>= replaceExpr e)) >=> (biplateRef !~ parenExpr))
+dollarApp sp = flip evalStateT [] . ((nodesContained sp !~ (\e -> get >>= replaceExpr e)) 
+                                        >=> (biplateRef !~ parenExpr))
 
-replaceExpr :: DollarDomain dom => Ann Expr dom SrcTemplateStage -> [SrcSpan] -> RefactMonad dom (Ann Expr dom SrcTemplateStage)
+replaceExpr :: DollarDomain dom => Ann Expr dom SrcTemplateStage -> [SrcSpan] 
+                                     -> DollarMonad dom (Ann Expr dom SrcTemplateStage)
 replaceExpr expr@(App fun (Paren (InfixApp _ op arg))) replacedRanges
   | not (getRange arg `elem` replacedRanges)
   , sema <- op ^. element&operatorName&semantics
@@ -38,10 +41,10 @@ replaceExpr (App fun (Paren arg)) _ = do modify $ (getRange arg :)
                                          mkInfixApp fun <$> lift (referenceOperator dollarName) <*> pure arg
 replaceExpr e _ = return e
 
-parenExpr :: Ann Expr dom SrcTemplateStage -> RefactMonad dom (Ann Expr dom SrcTemplateStage)
+parenExpr :: Ann Expr dom SrcTemplateStage -> DollarMonad dom (Ann Expr dom SrcTemplateStage)
 parenExpr e = (element&exprLhs !~ parenDollar True) =<< (element&exprRhs !~ parenDollar False $ e)
 
-parenDollar :: Bool -> Ann Expr dom SrcTemplateStage -> RefactMonad dom (Ann Expr dom SrcTemplateStage)
+parenDollar :: Bool -> Ann Expr dom SrcTemplateStage -> DollarMonad dom (Ann Expr dom SrcTemplateStage)
 parenDollar lhs expr@(InfixApp _ _ arg) 
   = do replacedRanges <- get
        if getRange arg `elem` replacedRanges && (lhs || getRange expr `notElem` replacedRanges)
