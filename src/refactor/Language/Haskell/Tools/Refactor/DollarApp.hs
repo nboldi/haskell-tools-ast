@@ -33,7 +33,7 @@ replaceExpr :: DollarDomain dom => Ann Expr dom SrcTemplateStage -> [SrcSpan]
                                      -> DollarMonad dom (Ann Expr dom SrcTemplateStage)
 replaceExpr expr@(App fun (Paren (InfixApp _ op arg))) replacedRanges
   | not (getRange arg `elem` replacedRanges)
-  , sema <- op ^. element&operatorName&semantics
+  , sema <- op ^. operatorName&semantics
   , semanticsName sema /= Just dollarName 
   , case semanticsFixity sema of Just (Fixity _ p _) | p > 0 -> False; _ -> True
   = return expr
@@ -42,7 +42,7 @@ replaceExpr (App fun (Paren arg)) _ = do modify $ (getRange arg :)
 replaceExpr e _ = return e
 
 parenExpr :: Ann Expr dom SrcTemplateStage -> DollarMonad dom (Ann Expr dom SrcTemplateStage)
-parenExpr e = (element&exprLhs !~ parenDollar True) =<< (element&exprRhs !~ parenDollar False $ e)
+parenExpr e = (exprLhs !~ parenDollar True) =<< (exprRhs !~ parenDollar False $ e)
 
 parenDollar :: Bool -> Ann Expr dom SrcTemplateStage -> DollarMonad dom (Ann Expr dom SrcTemplateStage)
 parenDollar lhs expr@(InfixApp _ _ arg) 

@@ -20,12 +20,10 @@ ifToGuards' :: Ann ValueBind dom SrcTemplateStage -> Ann ValueBind dom SrcTempla
 ifToGuards' (SimpleBind (VarPat name) (UnguardedRhs (If pred thenE elseE)) locals) 
   = mkFunctionBind [mkMatch (mkMatchLhs name []) (createSimpleIfRhss pred thenE elseE) (locals ^. annMaybe) ]
 ifToGuards' fbs@(FunctionBind {}) 
-  = element&funBindMatches&annList&element&matchRhs .- trfRhs $ fbs
+  = funBindMatches&annList&matchRhs .- trfRhs $ fbs
   where trfRhs :: Ann Rhs dom SrcTemplateStage -> Ann Rhs dom SrcTemplateStage
         trfRhs (UnguardedRhs (If pred thenE elseE)) = createSimpleIfRhss pred thenE elseE
         trfRhs e = e -- don't transform already guarded right-hand sides to avoid multiple evaluation of the same condition
-
-e = (^. element)
 
 createSimpleIfRhss :: Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage 
                         -> Ann Rhs dom SrcTemplateStage

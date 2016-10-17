@@ -2,7 +2,8 @@
 -- Generated references for handling the custom AST
 module Language.Haskell.Tools.AST.References where
 
-import Control.Reference
+import Control.Reference hiding (element)
+import Language.Haskell.Tools.AST.MakeASTReferences
 
 import Language.Haskell.Tools.AST.Modules
 import Language.Haskell.Tools.AST.TH
@@ -18,107 +19,107 @@ import Language.Haskell.Tools.AST.Base
 import Language.Haskell.Tools.AST.Ann
 
 -- Modules
-makeReferences ''Module
-makeReferences ''ModuleHead
-makeReferences ''ExportSpecList
-makeReferences ''ExportSpec
-makeReferences ''IESpec
-makeReferences ''SubSpec
-makeReferences ''ModulePragma
-makeReferences ''ImportDecl
-makeReferences ''ImportSpec
-makeReferences ''ImportQualified
-makeReferences ''ImportSource
-makeReferences ''ImportSafe
-makeReferences ''TypeNamespace
-makeReferences ''ImportRenaming
+$(toASTReferences (makeReferences ''Module))
+$(toASTReferences (makeReferences ''ModuleHead))
+$(toASTReferences (makeReferences ''ExportSpecList))
+$(toASTReferences (makeReferences ''ExportSpec))
+$(toASTReferences (makeReferences ''IESpec))
+$(toASTReferences (makeReferences ''SubSpec))
+$(toASTReferences (makeReferences ''ModulePragma))
+$(toASTReferences (makeReferences ''ImportDecl))
+$(toASTReferences (makeReferences ''ImportSpec))
+$(toASTReferences (makeReferences ''ImportQualified))
+$(toASTReferences (makeReferences ''ImportSource))
+$(toASTReferences (makeReferences ''ImportSafe))
+$(toASTReferences (makeReferences ''TypeNamespace))
+$(toASTReferences (makeReferences ''ImportRenaming))
 
 -- Declarations
-makeReferences ''Decl
-makeReferences ''ClassBody
-makeReferences ''ClassElement
-makeReferences ''DeclHead
-makeReferences ''InstBody
-makeReferences ''InstBodyDecl
-makeReferences ''GadtConDecl
-makeReferences ''GadtConType
-makeReferences ''FunDeps
-makeReferences ''FunDep
-makeReferences ''ConDecl
-makeReferences ''FieldDecl
-makeReferences ''Deriving
-makeReferences ''InstanceRule
-makeReferences ''InstanceHead
-makeReferences ''TypeEqn
-makeReferences ''KindConstraint
-makeReferences ''TyVar
-makeReferences ''Type
-makeReferences ''Kind
-makeReferences ''Context
-makeReferences ''Assertion
-makeReferences ''Expr
-makeReferences ''Stmt'
-makeReferences ''CompStmt
-makeReferences ''ValueBind
-makeReferences ''Pattern
-makeReferences ''PatternField
-makeReferences ''Splice
-makeReferences ''QQString
-makeReferences ''Match
-makeReferences ''Alt'
-makeReferences ''Rhs
-makeReferences ''GuardedRhs
-makeReferences ''FieldUpdate
-makeReferences ''Bracket
-makeReferences ''TopLevelPragma
-makeReferences ''Rule
-makeReferences ''AnnotationSubject
-makeReferences ''MinimalFormula
-makeReferences ''ExprPragma
-makeReferences ''SourceRange
-makeReferences ''Number
-makeReferences ''QuasiQuote
-makeReferences ''RhsGuard
-makeReferences ''LocalBind
-makeReferences ''LocalBinds
-makeReferences ''FixitySignature
-makeReferences ''TypeSignature
-makeReferences ''ListCompBody
-makeReferences ''TupSecElem
-makeReferences ''TypeFamily
-makeReferences ''TypeFamilySpec
-makeReferences ''InjectivityAnn
-makeReferences ''CaseRhs'
-makeReferences ''GuardedCaseRhs'
-makeReferences ''PatternSynonym
-makeReferences ''PatSynRhs
-makeReferences ''PatSynLhs
-makeReferences ''PatSynWhere
-makeReferences ''PatternTypeSignature
-makeReferences ''Role
-makeReferences ''LanguageExtension
-makeReferences ''MatchLhs
+$(toASTReferences (makeReferences ''Decl))
+$(toASTReferences (makeReferences ''ClassBody))
+$(toASTReferences (makeReferences ''ClassElement))
+$(toASTReferences (makeReferences ''DeclHead))
+$(toASTReferences (makeReferences ''InstBody))
+$(toASTReferences (makeReferences ''InstBodyDecl))
+$(toASTReferences (makeReferences ''GadtConDecl))
+$(toASTReferences (makeReferences ''GadtConType))
+$(toASTReferences (makeReferences ''FunDeps))
+$(toASTReferences (makeReferences ''FunDep))
+$(toASTReferences (makeReferences ''ConDecl))
+$(toASTReferences (makeReferences ''FieldDecl))
+$(toASTReferences (makeReferences ''Deriving))
+$(toASTReferences (makeReferences ''InstanceRule))
+$(toASTReferences (makeReferences ''InstanceHead))
+$(toASTReferences (makeReferences ''TypeEqn))
+$(toASTReferences (makeReferences ''KindConstraint))
+$(toASTReferences (makeReferences ''TyVar))
+$(toASTReferences (makeReferences ''Type))
+$(toASTReferences (makeReferences ''Kind))
+$(toASTReferences (makeReferences ''Context))
+$(toASTReferences (makeReferences ''Assertion))
+$(toASTReferences (makeReferences ''Expr))
+$(toASTReferences (makeReferences ''Stmt'))
+$(toASTReferences (makeReferences ''CompStmt))
+$(toASTReferences (makeReferences ''ValueBind))
+$(toASTReferences (makeReferences ''Pattern))
+$(toASTReferences (makeReferences ''PatternField))
+$(toASTReferences (makeReferences ''Splice))
+$(toASTReferences (makeReferences ''QQString))
+$(toASTReferences (makeReferences ''Match))
+$(toASTReferences (makeReferences ''Alt'))
+$(toASTReferences (makeReferences ''Rhs))
+$(toASTReferences (makeReferences ''GuardedRhs))
+$(toASTReferences (makeReferences ''FieldUpdate))
+$(toASTReferences (makeReferences ''Bracket))
+$(toASTReferences (makeReferences ''TopLevelPragma))
+$(toASTReferences (makeReferences ''Rule))
+$(toASTReferences (makeReferences ''AnnotationSubject))
+$(toASTReferences (makeReferences ''MinimalFormula))
+$(toASTReferences (makeReferences ''ExprPragma))
+$(toASTReferences (makeReferences ''SourceRange))
+$(toASTReferences (makeReferences ''Number))
+$(toASTReferences (makeReferences ''QuasiQuote))
+$(toASTReferences (makeReferences ''RhsGuard))
+$(toASTReferences (makeReferences ''LocalBind))
+$(toASTReferences (makeReferences ''LocalBinds))
+$(toASTReferences (makeReferences ''FixitySignature))
+$(toASTReferences (makeReferences ''TypeSignature))
+$(toASTReferences (makeReferences ''ListCompBody))
+$(toASTReferences (makeReferences ''TupSecElem))
+$(toASTReferences (makeReferences ''TypeFamily))
+$(toASTReferences (makeReferences ''TypeFamilySpec))
+$(toASTReferences (makeReferences ''InjectivityAnn))
+$(toASTReferences (makeReferences ''CaseRhs'))
+$(toASTReferences (makeReferences ''GuardedCaseRhs'))
+$(toASTReferences (makeReferences ''PatternSynonym))
+$(toASTReferences (makeReferences ''PatSynRhs))
+$(toASTReferences (makeReferences ''PatSynLhs))
+$(toASTReferences (makeReferences ''PatSynWhere))
+$(toASTReferences (makeReferences ''PatternTypeSignature))
+$(toASTReferences (makeReferences ''Role))
+$(toASTReferences (makeReferences ''LanguageExtension))
+$(toASTReferences (makeReferences ''MatchLhs))
 
 -- Literal
-makeReferences ''Literal
-makeReferences ''Promoted
+$(toASTReferences (makeReferences ''Literal))
+$(toASTReferences (makeReferences ''Promoted))
 
 -- Base
-makeReferences ''Operator
-makeReferences ''Name
-makeReferences ''QualifiedName
-makeReferences ''ModuleName
-makeReferences ''NamePart
-makeReferences ''StringNode
-makeReferences ''DataOrNewtypeKeyword
-makeReferences ''DoKind
-makeReferences ''TypeKeyword
-makeReferences ''OverlapPragma
-makeReferences ''CallConv
-makeReferences ''ArrowAppl
-makeReferences ''Safety
-makeReferences ''Assoc
-makeReferences ''Precedence
-makeReferences ''PhaseControl
-makeReferences ''PhaseNumber
-makeReferences ''PhaseInvert
+$(toASTReferences (makeReferences ''Operator))
+$(toASTReferences (makeReferences ''Name))
+$(toASTReferences (makeReferences ''QualifiedName))
+$(toASTReferences (makeReferences ''ModuleName))
+$(toASTReferences (makeReferences ''NamePart))
+$(toASTReferences (makeReferences ''StringNode))
+$(toASTReferences (makeReferences ''DataOrNewtypeKeyword))
+$(toASTReferences (makeReferences ''DoKind))
+$(toASTReferences (makeReferences ''TypeKeyword))
+$(toASTReferences (makeReferences ''OverlapPragma))
+$(toASTReferences (makeReferences ''CallConv))
+$(toASTReferences (makeReferences ''ArrowAppl))
+$(toASTReferences (makeReferences ''Safety))
+$(toASTReferences (makeReferences ''Assoc))
+$(toASTReferences (makeReferences ''Precedence))
+$(toASTReferences (makeReferences ''PhaseControl))
+$(toASTReferences (makeReferences ''PhaseNumber))
+$(toASTReferences (makeReferences ''PhaseInvert))

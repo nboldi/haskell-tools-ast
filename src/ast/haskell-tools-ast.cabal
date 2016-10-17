@@ -39,6 +39,7 @@ library
                      , Language.Haskell.Tools.AST.TH.SemanticTraversal
                      , Language.Haskell.Tools.AST.TH.SourceInfoTraversal
                      , Language.Haskell.Tools.AST.References
+                     , Language.Haskell.Tools.AST.MakeASTReferences
                      , Language.Haskell.Tools.AST.Helpers
                      , Language.Haskell.Tools.AST.Utils.OrdSrcSpan
                      , Language.Haskell.Tools.AST.Utils.GHCInstances

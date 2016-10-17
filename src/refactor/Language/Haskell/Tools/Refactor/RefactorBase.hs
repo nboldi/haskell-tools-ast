@@ -64,13 +64,13 @@ localRefactoringRes :: HasModuleInfo dom
                           -> LocalRefactor dom a
                           -> Refactor a
 localRefactoringRes access mod trf
-  = let init = RefactorCtx (semanticsModule $ mod ^. semantics) mod (mod ^? element&modImports&annList)
+  = let init = RefactorCtx (semanticsModule $ mod ^. semantics) mod (mod ^? modImports&annList)
      in flip runReaderT init $ do (mod, newNames) <- runWriterT (fromRefactorT trf)
                                   return $ access (addGeneratedImports newNames) mod
 
 -- | Adds the imports that bring names into scope that are needed by the refactoring
 addGeneratedImports :: [GHC.Name] -> Ann Module dom SrcTemplateStage -> Ann Module dom SrcTemplateStage
-addGeneratedImports names m = element&modImports&annListElems .- (++ addImports names) $ m
+addGeneratedImports names m = modImports&annListElems .- (++ addImports names) $ m
   where addImports :: [GHC.Name] -> [Ann ImportDecl dom SrcTemplateStage]
         addImports names = map createImport $ groupBy ((==) `on` GHC.nameModule) $ nub $ sort names
 
@@ -186,9 +186,9 @@ referenceBy makeName name imps =
    in makeName (minimumBy (compare `on` (length . concat)) prefixes) name
   where importQualifier :: Ann ImportDecl dom SrcTemplateStage -> [String]
         importQualifier imp 
-          = if isJust (imp ^? element&importQualified&annJust) 
-              then case imp ^? element&importAs&annJust&element&importRename&element of 
-                      Nothing -> splitOn "." (imp ^. element&importModule&element&moduleNameString) -- fully qualified import
+          = if isJust (imp ^? importQualified&annJust) 
+              then case imp ^? importAs&annJust&importRename of 
+                      Nothing -> splitOn "." (imp ^. importModule&moduleNameString) -- fully qualified import
                       Just asName -> splitOn "." (asName ^. moduleNameString) -- the name given by as clause
               else [] -- unqualified import
 

@@ -4,17 +4,17 @@ module Language.Haskell.Tools.AST.Match.Stmts where
 
 import Language.Haskell.Tools.AST
 
-pattern BindStmt :: Ann Pattern dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+pattern BindStmt :: Ann Pattern dom stage -> Ann Expr dom stage -> Ann Stmt dom stage
 pattern BindStmt bound expr <- Ann _ (UBindStmt bound expr)
 
-pattern ExprStmt :: Ann Expr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+pattern ExprStmt :: Ann Expr dom stage -> Ann Stmt dom stage
 pattern ExprStmt expr <- Ann _ (UExprStmt expr)
 
-pattern LetStmt :: AnnList LocalBind dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+pattern LetStmt :: AnnList LocalBind dom stage -> Ann Stmt dom stage
 pattern LetStmt binds <- Ann _ (ULetStmt binds)
 
-pattern ListCompBody :: AnnList CompStmt dom SrcTemplateStage -> Ann ListCompBody dom SrcTemplateStage
+pattern ListCompBody :: AnnList CompStmt dom stage -> Ann ListCompBody dom stage
 pattern ListCompBody stmts <- Ann _ (UListCompBody stmts)
 
-pattern CompStmt :: Ann Stmt dom SrcTemplateStage -> Ann CompStmt dom SrcTemplateStage
+pattern CompStmt :: Ann Stmt dom stage -> Ann CompStmt dom stage
 pattern CompStmt stmt <- Ann _ (UCompStmt stmt)

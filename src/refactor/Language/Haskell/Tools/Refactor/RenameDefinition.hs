@@ -17,8 +17,7 @@ import SrcLoc
 import Outputable
 import Unique
 
-import Control.Reference hiding (element)
-import qualified Control.Reference as Ref
+import Control.Reference as Ref
 import Control.Monad.State
 import Control.Monad.Trans.Except
 import Data.Data
@@ -44,7 +43,7 @@ renameDefinition' sp str mod mods
         where bindsWithSameName :: GHC.Name -> [Ann FieldWildcard dom SrcTemplateStage] -> [GHC.Name]
               bindsWithSameName name wcs = catMaybes $ map ((lookup name) . semanticsImplicitFlds . (^. semantics)) wcs
       Nothing -> case getNodeContaining sp (snd mod) of
-                   Just modName -> renameModule (modName ^. element&moduleNameString) str mod mods
+                   Just modName -> renameModule (modName ^. moduleNameString) str mod mods
                    Nothing -> refactError "No name is selected"
 
 renameModule :: forall dom . DomainRenameDefinition dom => String -> String -> Refactoring dom
@@ -54,23 +53,23 @@ renameModule from to m mods
     | otherwise = fmap (\ls -> ModuleRemoved from : map (\(ContentChanged (mod,res)) -> ContentChanged (if mod == from then to else mod, res)) ls)
                     $ localRefactoring (replaceModuleNames >=> alterNormalNames) m mods
   where replaceModuleNames :: LocalRefactoring dom
-        replaceModuleNames = biplateRef @_ @(Ann ModuleName dom SrcTemplateStage) & filtered (\e -> (e ^. element&moduleNameString) == from) != mkModuleName to
+        replaceModuleNames = biplateRef @_ @(Ann ModuleName dom SrcTemplateStage) & filtered (\e -> (e ^. moduleNameString) == from) != mkModuleName to
 
         alterNormalNames :: LocalRefactoring dom
         alterNormalNames mod = if from `elem` moduleQualifiers mod 
-           then biplateRef @_ @(Ann QualifiedName dom SrcTemplateStage) & filtered (\e -> concat (intersperse "." (e ^? element&qualifiers&annList&element&simpleNameStr)) == from)
-                  !- (\e -> mkQualifiedName (splitOn "." to) (e ^. element&unqualifiedName&element&simpleNameStr)) $ mod
+           then biplateRef @_ @(Ann QualifiedName dom SrcTemplateStage) & filtered (\e -> concat (intersperse "." (e ^? qualifiers&annList&simpleNameStr)) == from)
+                  !- (\e -> mkQualifiedName (splitOn "." to) (e ^. unqualifiedName&simpleNameStr)) $ mod
            else return mod
 
         moduleQualifiers :: Ann Module dom SrcTemplateStage -> [String]
-        moduleQualifiers mod = mod ^? element & modImports & annList & element & filtered (\m -> isAnnNothing (m ^. importAs)) 
-                                              & importModule & element & moduleNameString
+        moduleQualifiers mod = mod ^? modImports & annList & filtered (\m -> isAnnNothing (m ^. importAs)) 
+                                              & importModule & moduleNameString
 
         nameConflict :: String -> Ann Module dom SrcTemplateStage -> Bool
         nameConflict to mod 
-          = let modName = mod ^? element&modHead&annJust&element&mhName&element&moduleNameString
-                imports = mod ^? element&modImports&annList&element
-                importNames = map (\imp -> fromMaybe (imp ^. importModule) (imp ^? importAs&annJust&element&importRename) ^. element&moduleNameString) imports
+          = let modName = mod ^? modHead&annJust&mhName&moduleNameString
+                imports = mod ^? modImports&annList
+                importNames = map (\imp -> fromMaybe (imp ^. importModule) (imp ^? importAs&annJust&importRename) ^. moduleNameString) imports
              in modName == Just to || to `elem` importNames
 
 renameDefinition :: DomainRenameDefinition dom => GHC.Name -> [GHC.Name] -> String -> Refactoring dom
@@ -99,7 +98,7 @@ renameDefinition toChangeOrig toChangeWith newName mod mods
       = do put True -- state that something is changed in the local state
            when (actualName == Just toChangeOrig) 
              $ lift $ modify (|| semanticsDefining (name ^. semantics)) -- state that the definition is renamed in the global state
-           return $ element & unqualifiedName .= mkNamePart str $ name -- found the changed name (or a name that have to be changed too)
+           return $ unqualifiedName .= mkNamePart str $ name -- found the changed name (or a name that have to be changed too)
       | let namesInScope = semanticsScope (name ^. semantics)
          in case semanticsName (name ^. semantics) of 
               Just (getName -> exprName) -> str == occNameString (getOccName exprName) && sameNamespace toChangeOrig exprName

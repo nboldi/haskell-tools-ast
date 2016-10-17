@@ -162,7 +162,7 @@ trfModuleRename :: ModSummary -> Ann AST.Module (Dom RdrName) RangeStage
 trfModuleRename mod rangeMod (gr,imports,exps,_) hsMod 
     = do info <- createModuleInfo mod
          trfLocCorrect (pure info) (\sr -> combineSrcSpans sr <$> (uniqueTokenAnywhere AnnEofPos)) (trfModuleRename' (info ^. AST.implicitNames)) hsMod      
-  where roleAnnots = rangeMod ^? AST.element&AST.modDecl&AST.annList&filtered ((\case AST.URoleDecl {} -> True; _ -> False) . (^. AST.element))
+  where roleAnnots = rangeMod ^? AST.modDecl&AST.annList&filtered ((\case Ann _ (AST.URoleDecl {}) -> True; _ -> False))
         originalNames = Map.fromList $ catMaybes $ map getSourceAndInfo (rangeMod ^? biplateRef) 
         getSourceAndInfo :: Ann AST.QualifiedName (Dom RdrName) RangeStage -> Maybe (SrcSpan, RdrName)
         getSourceAndInfo n = (,) <$> (n ^? annotation&sourceInfo&nodeSpan) <*> (n ^? semantics&nameInfo)
@@ -263,12 +263,12 @@ trfImports (filter (not . ideclImplicit . unLoc) -> imps)
                              <$> (combineSrcSpans <$> asks (srcLocSpan . srcSpanStart . contRange) 
                                                   <*> (srcLocSpan . srcSpanEnd <$> tokenLoc AnnWhere))
 trfImport :: TransformName n r => LImportDecl n -> Trf (Ann AST.ImportDecl (Dom r) RangeStage)
-trfImport (L l (GHC.ImportDecl src name pkg isSrc isSafe isQual isImpl declAs declHiding)) =
+trfImport (L l impDecl@(GHC.ImportDecl src name pkg isSrc isSafe isQual isImpl declAs declHiding)) =
   let -- default positions of optional parts of an import declaration
       annBeforeQual = if isSrc then AnnClose else AnnImport
       annBeforeSafe = if isQual then AnnQualified else annBeforeQual
       annBeforePkg = if isSafe then AnnSafe else annBeforeSafe
-  in (\impdecl -> annLoc (createImportData =<< impdecl) (pure l) impdecl) $ AST.UImportDecl 
+  in annLoc (createImportData impDecl) (pure l) $ AST.UImportDecl 
        <$> (if isSrc then makeJust <$> annLocNoSema (tokensLoc [AnnOpen, AnnClose]) (pure AST.UImportSource)
                      else nothing " " "" (after AnnImport))
        <*> (if isQual then makeJust <$> (annLocNoSema (tokenLoc AnnQualified) (pure AST.UImportQualified)) 

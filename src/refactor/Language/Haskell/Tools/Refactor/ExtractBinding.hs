@@ -65,8 +65,8 @@ extractThatBind name cont e
   = do ret <- get
        if (isJust ret) then return e 
           else case e of
-            Paren {} | hasParameter -> element & exprInner !~ doExtract name cont $ e
-                     | otherwise    -> doExtract name cont (fromJust $ e ^? element & exprInner)
+            Paren {} | hasParameter -> exprInner !~ doExtract name cont $ e
+                     | otherwise    -> doExtract name cont (fromJust $ e ^? exprInner)
             Var {} -> lift $ refactError "The selected expression is too simple to be extracted."
             el | isParenLikeExpr el && hasParameter -> mkParen <$> doExtract name cont e
             el -> doExtract name cont e
@@ -82,9 +82,9 @@ addLocalBinding declRange exprRange local bind
                            return $ doAddBinding declRange exprRange local bind
                    else return bind 
   where
-    doAddBinding declRng _ local sb@(SimpleBind {}) = element&valBindLocals .- insertLocalBind declRng local $ sb
+    doAddBinding declRng _ local sb@(SimpleBind {}) = valBindLocals .- insertLocalBind declRng local $ sb
     doAddBinding declRng (RealSrcSpan rng) local fb@(FunctionBind {}) 
-      = element&funBindMatches & annList & filtered (isInside rng) & element & matchBinds 
+      = funBindMatches & annList & filtered (isInside rng) & matchBinds 
           .- insertLocalBind declRng local $ fb
 
 insertLocalBind :: SrcSpan -> Ann ValueBind dom SrcTemplateStage -> AnnMaybe LocalBinds dom SrcTemplateStage 
@@ -93,7 +93,7 @@ insertLocalBind declRng toInsert locals
   | isAnnNothing locals
   , RealSrcSpan rng <- declRng = -- creates the new where clause indented 2 spaces from the declaration
                                  mkLocalBinds (srcLocCol (realSrcSpanStart rng) + 2) [mkLocalValBind toInsert]
-  | otherwise = annJust & element & localBinds .- insertWhere (mkLocalValBind toInsert) (const True) isNothing $ locals
+  | otherwise = annJust & localBinds .- insertWhere (mkLocalValBind toInsert) (const True) isNothing $ locals
 
 -- | All expressions that are bound stronger than function application.
 isParenLikeExpr :: Ann Expr dom SrcTemplateStage -> Bool
@@ -135,13 +135,12 @@ getExternalBinds cont expr = map exprToName $ keepFirsts $ filter isApplicableNa
         isApplicableName _ = False
 
         getExprNameInfo :: ExtractBindingDomain dom => Ann Expr dom SrcTemplateStage -> Maybe GHC.Name
-        getExprNameInfo expr = semanticsName =<< (listToMaybe $ expr ^? element & (exprName&element&simpleName &+& exprOperator&element&operatorName) 
-                                                                                & semantics)
+        getExprNameInfo expr = semanticsName =<< (listToMaybe $ expr ^? (exprName&simpleName &+& exprOperator&operatorName) & semantics)
 
         -- | Creates the parameter value to pass the name (operators are passed in parentheses)
         exprToName :: Ann Expr dom SrcTemplateStage -> Ann Name dom SrcTemplateStage
-        exprToName e | Just n <- e ^? element & exprName                               = n
-                     | Just op <- e ^? element & exprOperator & element & operatorName = mkParenName op
+        exprToName e | Just n <- e ^? exprName                     = n
+                     | Just op <- e ^? exprOperator & operatorName = mkParenName op
         
         notInScopeForExtracted :: GHC.Name -> Bool
         notInScopeForExtracted n = notElem @[] n (semanticsScope (cont ^. semantics) ^? traversal & traversal)
@@ -153,11 +152,11 @@ getExternalBinds cont expr = map exprToName $ keepFirsts $ filter isApplicableNa
         keepFirsts [] = []
 
 actualContainingExpr :: SourceInfo st => SrcSpan -> Simple Traversal (Ann ValueBind dom st) (Ann Expr dom st)
-actualContainingExpr (RealSrcSpan rng) = element & accessRhs & element & accessExpr
-  where accessRhs :: SourceInfo st => Simple Traversal (ValueBind dom st) (Ann Rhs dom st)
-        accessRhs = valBindRhs &+& funBindMatches & annList & filtered (isInside rng) & element & matchRhs
-        accessExpr :: SourceInfo st => Simple Traversal (Rhs dom st) (Ann Expr dom st)
-        accessExpr = rhsExpr &+& rhsGuards & annList & filtered (isInside rng) & element & guardExpr
+actualContainingExpr (RealSrcSpan rng) = accessRhs & accessExpr
+  where accessRhs :: SourceInfo st => Simple Traversal (Ann ValueBind dom st) (Ann Rhs dom st)
+        accessRhs = valBindRhs &+& funBindMatches & annList & filtered (isInside rng) & matchRhs
+        accessExpr :: SourceInfo st => Simple Traversal (Ann Rhs dom st) (Ann Expr dom st)
+        accessExpr = rhsExpr &+& rhsGuards & annList & filtered (isInside rng) & guardExpr
 
 -- | Generates the expression that calls the local binding
 generateCall :: String -> [Ann Name dom SrcTemplateStage] -> Ann Expr dom SrcTemplateStage

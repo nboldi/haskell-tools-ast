@@ -16,6 +16,7 @@ import SrcLoc
 import GHC
 import Avail
 import HscTypes
+import BasicTypes
 import HsSyn
 import Module
 import Name
@@ -63,11 +64,10 @@ createImplicitFldInfo select flds = return (ImplicitFieldInfo (map getLabelAndEx
                               , head $ hsGetNames $ select (hsRecFieldArg fld) )
 
 -- | Adds semantic information to an impord declaration. See ImportInfo.
-createImportData :: (HsHasName n, GHCName n) => AST.ImportDecl (Dom n) stage -> Trf (ImportInfo n)
-createImportData imp = 
-  do (mod,importedNames) <- getImportedNames (imp ^. importModule&element&AST.moduleNameString)
-                                             (imp ^? importPkg&annJust&element&stringNodeStr)
-     names <- liftGhc $ filterM (checkImportVisible imp) importedNames
+createImportData :: (GHCName r, HsHasName n) => GHC.ImportDecl n -> Trf (ImportInfo r)
+createImportData (GHC.ImportDecl src name pkg isSrc isSafe isQual isImpl declAs declHiding) = 
+  do (mod,importedNames) <- getImportedNames (Module.moduleNameString $ unLoc name) (fmap (unpackFS . sl_fs) pkg)
+     names <- liftGhc $ filterM (checkImportVisible declHiding) importedNames
      lookedUpNames <- liftGhc $ mapM (getFromNameUsing getTopLevelId) names
      lookedUpImported <- liftGhc $ mapM (getFromNameUsing getTopLevelId) importedNames
      return $ ImportInfo mod (catMaybes lookedUpImported) (catMaybes lookedUpNames)
@@ -85,16 +85,14 @@ getImportedNames name pkg = liftGhc $ do
   return (mod, ifaceNames ++ loadedNames)
 
 -- | Check is a given name is imported from an import with given import specification.
-checkImportVisible :: (HsHasName n, GhcMonad m) => AST.ImportDecl (Dom n) stage -> GHC.Name -> m Bool
-checkImportVisible imp name
-  | importIsExact imp 
-  = or @[] <$> mapM (`ieSpecMatches` name) (imp ^? importExacts)
-  | importIsHiding imp 
-  = not . or  @[] <$> mapM (`ieSpecMatches` name) (imp ^? importHidings)
-  | otherwise = return True
+checkImportVisible :: (HsHasName name, GhcMonad m) => Maybe (Bool, Located [LIE name]) -> GHC.Name -> m Bool
+checkImportVisible (Just (isHiding, specs)) name
+  | isHiding  = not . or  @[] <$> mapM (`ieSpecMatches` name) (map unLoc (unLoc specs))
+  | otherwise = or @[] <$> mapM (`ieSpecMatches` name) (map unLoc (unLoc specs))
+checkImportVisible _ _ = return True
 
-ieSpecMatches :: (HsHasName n, GhcMonad m) => AST.IESpec (Dom n) stage -> GHC.Name -> m Bool
-ieSpecMatches (AST.UIESpec (hsGetNames <=< (^? element&simpleName&semantics&nameInfo) -> [n]) ss) name
+ieSpecMatches :: (HsHasName name, GhcMonad m) => IE name -> GHC.Name -> m Bool
+ieSpecMatches (hsGetNames . HsSyn.ieName -> [n]) name
   | n == name = return True
   | isTyConName n
   = (\case Just (ATyCon tc) -> name `elem` map getName (tyConDataCons tc)) 

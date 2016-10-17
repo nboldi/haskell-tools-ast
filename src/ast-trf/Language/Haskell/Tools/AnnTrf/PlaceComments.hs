@@ -62,8 +62,8 @@ resizeAnnots comments elem
         -- if a comment that could be attached to more than one documentable element (possibly nested) 
         -- the order of different documentable elements here decide which will be chosen
         
-        element&modImports&annList !~ expandAnnot -- expand imports to cover their comments
-          >=> element&modDecl&annList !~ expandTopLevelDecl -- expand declarations to cover their comments
+        modImports&annList !~ expandAnnot -- expand imports to cover their comments
+          >=> modDecl&annList !~ expandTopLevelDecl -- expand declarations to cover their comments
           >=> expandAnnot -- expand the module itself to cover its comments
       $ elem
 
@@ -71,41 +71,41 @@ type ExpandType elem dom stage = Ann elem dom stage -> State [((SrcLoc, SrcLoc),
 
 expandTopLevelDecl :: RangeInfo stage => ExpandType Decl dom stage
 expandTopLevelDecl
-  = element & declBody & annJust & element & cbElements & annList !~ expandClsElement
-      >=> element & declCons & annList !~ expandConDecl
-      >=> element & declGadt & annList !~ expandGadtConDecl
-      >=> element & declTypeSig !~ expandTypeSig
+  = declBody & annJust & cbElements & annList !~ expandClsElement
+      >=> declCons & annList !~ expandConDecl
+      >=> declGadt & annList !~ expandGadtConDecl
+      >=> declTypeSig !~ expandTypeSig
       >=> expandAnnot
 
 expandTypeSig :: RangeInfo stage => ExpandType TypeSignature dom stage
 expandTypeSig
-  = element & tsType & typeParams !~ expandAnnot >=> expandAnnot
+  = tsType & typeParams !~ expandAnnot >=> expandAnnot
 
 expandClsElement :: RangeInfo stage => ExpandType ClassElement dom stage
 expandClsElement
-  = element & ceTypeSig !~ expandTypeSig
-      >=> element & ceBind !~ expandValueBind
+  = ceTypeSig !~ expandTypeSig
+      >=> ceBind !~ expandValueBind
       >=> expandAnnot
 
 expandValueBind :: RangeInfo stage => ExpandType ValueBind dom stage
 expandValueBind
-  = element & valBindLocals & annJust & element & localBinds & annList !~ expandLocalBind 
-      >=> element & funBindMatches & annList & element & matchBinds & annJust & element & localBinds & annList !~ expandLocalBind
+  = valBindLocals & annJust & localBinds & annList !~ expandLocalBind 
+      >=> funBindMatches & annList & matchBinds & annJust & localBinds & annList !~ expandLocalBind
       >=> expandAnnot
 
 expandLocalBind :: RangeInfo stage => ExpandType LocalBind dom stage
 expandLocalBind
-  = element & localVal !~ expandValueBind 
-      >=> element & localSig !~ expandTypeSig 
+  = localVal !~ expandValueBind 
+      >=> localSig !~ expandTypeSig 
       >=> expandAnnot
 
 expandConDecl :: RangeInfo stage => ExpandType ConDecl dom stage
 expandConDecl
-  = element & conDeclFields & annList !~ expandAnnot >=> expandAnnot
+  = conDeclFields & annList !~ expandAnnot >=> expandAnnot
 
 expandGadtConDecl :: RangeInfo stage => ExpandType GadtConDecl dom stage
 expandGadtConDecl
-  = element & gadtConType & element & gadtConRecordFields & annList !~ expandAnnot >=> expandAnnot
+  = gadtConType & gadtConRecordFields & annList !~ expandAnnot >=> expandAnnot
 
 -- | Expands tree elements to contain the comments that should be attached to them.
 expandAnnot :: forall elem dom stage . RangeInfo stage => ExpandType elem dom stage

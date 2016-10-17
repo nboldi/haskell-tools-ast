@@ -39,7 +39,7 @@ generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Ann Mo
                                 -- ^ Access for a top-level definition if it is the selected definition
                            -> Simple Traversal (Ann Module dom SrcTemplateStage) (AnnList LocalBind dom SrcTemplateStage) 
                                 -- ^ Access for a definition list if it contains the selected definition
-                           -> (forall d . (Show (d dom SrcTemplateStage), Data (d dom SrcTemplateStage), Typeable d, BindingElem d) 
+                           -> (forall d . (Show (Ann d dom SrcTemplateStage), Data (Ann d dom SrcTemplateStage), Typeable d, BindingElem d) 
                                 => AnnList d dom SrcTemplateStage -> Maybe (Ann ValueBind dom SrcTemplateStage)) 
                                 -- ^ Selector for either local or top-level declaration in the definition list
                            -> LocalRefactoring dom
@@ -54,7 +54,7 @@ genTypeSig vbAccess ls
   | Just vb <- vbAccess ls 
   , not (typeSignatureAlreadyExist ls vb)
     = do let id = getBindingName vb
-             isTheBind (Just ((^.element) -> decl)) 
+             isTheBind (Just decl) 
                = isBinding decl && map semanticsId (decl ^? bindName) == map semanticsId (vb ^? bindingName)
              isTheBind _ = False
              
@@ -63,7 +63,7 @@ genTypeSig vbAccess ls
            then return ls
            else do put True
                    typeSig <- lift $ generateTSFor (getName id) (idType id)
-                   return $ insertWhere (wrapperAnn $ createTypeSig typeSig) (const True) isTheBind ls
+                   return $ insertWhere (createTypeSig typeSig) (const True) isTheBind ls
   | otherwise = return ls
 
 
@@ -129,10 +129,54 @@ generateTypeFor prec t
 -- | Check whether the definition already has a type signature
 typeSignatureAlreadyExist :: (GenerateSignatureDomain dom, BindingElem d) => AnnList d dom SrcTemplateStage -> Ann ValueBind dom SrcTemplateStage -> Bool
 typeSignatureAlreadyExist ls vb = 
-  getBindingName vb `elem` (map semanticsId $ concatMap (^? bindName) (filter isTypeSig $ ls ^? annList&element))
+  getBindingName vb `elem` (map semanticsId $ concatMap (^? bindName) (filter isTypeSig $ ls ^? annList))
   
 getBindingName :: GenerateSignatureDomain dom => Ann ValueBind dom SrcTemplateStage -> GHC.Id
 getBindingName vb = case nub $ map semanticsId $ vb ^? bindingName of 
   [n] -> n
   [] -> error "Trying to generate a signature for a binding with no name"
   _ -> error "Trying to generate a signature for a binding with multiple names"
+
+
+-- TODO: put these into a utility module
+
+-- | A type class for transformations that work on both top-level and local definitions
+class BindingElem d where
+  sigBind :: Simple Partial (Ann d dom stage) (Ann TypeSignature dom stage)
+  valBind :: Simple Partial (Ann d dom stage) (Ann ValueBind dom stage)
+  createTypeSig :: Ann TypeSignature dom SrcTemplateStage -> Ann d dom SrcTemplateStage
+  createBinding :: Ann ValueBind dom SrcTemplateStage -> Ann d dom SrcTemplateStage
+  isTypeSig :: Ann d dom stage -> Bool
+  isBinding :: Ann d dom stage -> Bool
+  
+instance BindingElem Decl where
+  sigBind = declTypeSig
+  valBind = declValBind
+  createTypeSig = mkTypeSigDecl
+  createBinding = mkValueBinding
+  isTypeSig TypeSigDecl {} = True
+  isTypeSig _ = False
+  isBinding ValueBinding {} = True
+  isBinding _ = False
+
+instance BindingElem LocalBind where
+  sigBind = localSig
+  valBind = localVal
+  createTypeSig = mkLocalTypeSig
+  createBinding = mkLocalValBind
+  isTypeSig LocalTypeSig {} = True
+  isTypeSig _ = False
+  isBinding LocalValBind {} = True
+  isBinding _ = False
+
+bindName :: (BindingElem d, SemanticInfo dom QualifiedName ~ k) => Simple Traversal (Ann d dom stage) k
+bindName = valBind&bindingName &+& sigBind&tsName&annList&simpleName&semantics
+
+valBindsInList :: BindingElem d => Simple Traversal (AnnList d dom stage) (Ann ValueBind dom stage)
+valBindsInList = annList & valBind
+     
+getValBindInList :: (BindingElem d, SourceInfo stage) => RealSrcSpan -> AnnList d dom stage -> Maybe (Ann ValueBind dom stage)
+getValBindInList sp ls = case ls ^? valBindsInList & filtered (isInside sp) of
+  [] -> Nothing
+  [n] -> Just n
+  _ -> error "getValBindInList: Multiple nodes"

@@ -13,7 +13,7 @@ module Language.Haskell.Tools.AST.Helpers where
 import SrcLoc
 import qualified Name as GHC
 
-import Control.Reference hiding (element)
+import Control.Reference
 import Control.Monad
 import Data.List
 import Data.Maybe
@@ -32,52 +32,52 @@ import Language.Haskell.Tools.AST.SemaInfoClasses
 
 import Debug.Trace
 
-ordByOccurrence :: QualifiedName dom stage -> QualifiedName dom stage -> Ordering
+ordByOccurrence :: Ann QualifiedName dom stage -> Ann QualifiedName dom stage -> Ordering
 ordByOccurrence = compare `on` nameElements
 
 -- | The occurrence of the name.
-nameString :: QualifiedName dom stage -> String
+nameString :: Ann QualifiedName dom stage -> String
 nameString = intercalate "." . nameElements
 
 -- | The qualifiers and the unqualified name
-nameElements :: QualifiedName dom stage -> [String]
-nameElements n = (n ^? qualifiers&annList&element&simpleNameStr) 
-                    ++ [n ^. unqualifiedName&element&simpleNameStr]
+nameElements :: Ann QualifiedName dom stage -> [String]
+nameElements n = (n ^? qualifiers&annList&simpleNameStr) 
+                    ++ [n ^. unqualifiedName&simpleNameStr]
 
 -- | The qualifier of the name
-nameQualifier :: QualifiedName dom stage -> [String]
-nameQualifier n = n ^? qualifiers&annList&element&simpleNameStr
+nameQualifier :: Ann QualifiedName dom stage -> [String]
+nameQualifier n = n ^? qualifiers&annList&simpleNameStr
          
 -- | Does the import declaration import only the explicitly listed elements?
-importIsExact :: ImportDecl dom stage -> Bool
-importIsExact = isJust . (^? importSpec&annJust&element&importSpecList)  
+importIsExact :: Ann ImportDecl dom stage -> Bool
+importIsExact = isJust . (^? importSpec&annJust&importSpecList)  
   
 -- | Does the import declaration has a 'hiding' clause?
-importIsHiding :: ImportDecl dom stage -> Bool
-importIsHiding = isJust . (^? importSpec&annJust&element&importSpecHiding)
+importIsHiding :: Ann ImportDecl dom stage -> Bool
+importIsHiding = isJust . (^? importSpec&annJust&importSpecHiding)
        
 -- | All elements that are explicitly listed to be imported in the import declaration
-importExacts :: Simple Traversal (ImportDecl dom stage) (IESpec dom stage)
-importExacts = importSpec&annJust&element&importSpecList&annList&element
+importExacts :: Simple Traversal (Ann ImportDecl dom stage) (Ann IESpec dom stage)
+importExacts = importSpec&annJust&importSpecList&annList
 
 -- | All elements that are hidden in an import
-importHidings :: Simple Traversal (ImportDecl dom stage) (IESpec dom stage)
-importHidings = importSpec&annJust&element&importSpecList&annList&element
+importHidings :: Simple Traversal (Ann ImportDecl dom stage) (Ann IESpec dom stage)
+importHidings = importSpec&annJust&importSpecList&annList
          
 -- | Possible qualifiers to use imported definitions         
-importQualifiers :: ImportDecl dom stage -> [[String]]
+importQualifiers :: Ann ImportDecl dom stage -> [[String]]
 importQualifiers imp 
   = (if isAnnNothing (imp ^. importQualified) then [[]] else [])
-      ++ [imp ^? importAs&annJust&element&importRename&element&moduleNameString]
+      ++ [imp ^? importAs&annJust&importRename&moduleNameString]
         
 bindingName :: (SemanticInfo dom QualifiedName ~ ni) => Simple Traversal (Ann ValueBind dom stage) ni
-bindingName = element&(valBindPat&element&patternName&element&simpleName 
-                        &+& funBindMatches&annList&element&matchLhs&element
-                              &(matchLhsName&element&simpleName &+& matchLhsOperator&element&operatorName))
+bindingName = (valBindPat&patternName&simpleName 
+                        &+& funBindMatches&annList&matchLhs
+                              &(matchLhsName&simpleName &+& matchLhsOperator&operatorName))
                      &semantics
                      
 declHeadNames :: Simple Traversal (Ann DeclHead dom stage) (Ann QualifiedName dom stage)
-declHeadNames = element & (dhName&element&simpleName &+& dhBody&declHeadNames &+& dhAppFun&declHeadNames &+& dhOperator&element&operatorName)
+declHeadNames = (dhName&simpleName &+& dhBody&declHeadNames &+& dhAppFun&declHeadNames &+& dhOperator&operatorName)
 
                
 typeParams :: Simple Traversal (Ann Type dom stage) (Ann Type dom stage)
@@ -95,47 +95,6 @@ semantics = annotation&semanticInfo
 
 dhNames :: (SemanticInfo dom QualifiedName ~ k) => Simple Traversal (Ann DeclHead dom stage) k
 dhNames = declHeadNames & semantics
-
--- | A type class for transformations that work on both top-level and local definitions
-class BindingElem d where
-  sigBind :: Simple Partial (d dom stage) (Ann TypeSignature dom stage)
-  valBind :: Simple Partial (d dom stage) (Ann ValueBind dom stage)
-  createTypeSig :: Ann TypeSignature dom stage -> d dom stage
-  createBinding :: Ann ValueBind dom stage -> d dom stage
-  isTypeSig :: d dom stage -> Bool
-  isBinding :: d dom stage -> Bool
-  
-instance BindingElem Decl where
-  sigBind = declTypeSig
-  valBind = declValBind
-  createTypeSig = UTypeSigDecl
-  createBinding = UValueBinding
-  isTypeSig (UTypeSigDecl _) = True
-  isTypeSig _ = False
-  isBinding (UValueBinding _) = True
-  isBinding _ = False
-
-instance BindingElem LocalBind where
-  sigBind = localSig
-  valBind = localVal
-  createTypeSig = ULocalSignature
-  createBinding = ULocalValBind
-  isTypeSig (ULocalSignature _) = True
-  isTypeSig _ = False
-  isBinding (ULocalValBind _) = True
-  isBinding _ = False
-
-bindName :: (BindingElem d, SemanticInfo dom QualifiedName ~ k) => Simple Traversal (d dom stage) k
-bindName = valBind&bindingName &+& sigBind&element&tsName&annList&element&simpleName&semantics
-
-valBindsInList :: BindingElem d => Simple Traversal (AnnList d dom stage) (Ann ValueBind dom stage)
-valBindsInList = annList & element & valBind
-     
-getValBindInList :: (BindingElem d, SourceInfo stage) => RealSrcSpan -> AnnList d dom stage -> Maybe (Ann ValueBind dom stage)
-getValBindInList sp ls = case ls ^? valBindsInList & filtered (isInside sp) of
-  [] -> Nothing
-  [n] -> Just n
-  _ -> error "getValBindInList: Multiple nodes"
 
 -- | Get all nodes that contain a given source range
 nodesContaining :: (HasRange (inner dom stage), Biplate (node dom stage) (inner dom stage), SourceInfo stage) 
@@ -195,8 +154,8 @@ class NamedElement elem where
 
 instance HasNameInfo dom => NamedElement (Ann Decl dom st) where
   elementName d = catMaybes names
-    where names = map semanticsName (d ^? element & declHead & dhNames) 
-                    ++ map semanticsName (d ^? element & declTypeFamily & element & tfHead & dhNames)
-                    ++ map semanticsName (d ^? element & declValBind & bindingName)
-                    ++ map semanticsName (d ^? element & declName & element & simpleName & semantics)
-                    ++ map semanticsName (d ^? element & declPatSyn & element & patLhs & element & (patName & element & simpleName &+& patSynOp & element & operatorName) & semantics)
+    where names = map semanticsName (d ^? declHead & dhNames) 
+                    ++ map semanticsName (d ^? declTypeFamily & tfHead & dhNames)
+                    ++ map semanticsName (d ^? declValBind & bindingName)
+                    ++ map semanticsName (d ^? declName & simpleName & semantics)
+                    ++ map semanticsName (d ^? declPatSyn & patLhs & (patName & simpleName &+& patSynOp & operatorName) & semantics)

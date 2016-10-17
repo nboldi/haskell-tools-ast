@@ -20,13 +20,13 @@ type DomGenerateExports dom = (Domain dom, HasNameInfo dom)
 
 -- | Creates an export list that imports standalone top-level definitions with all of their contained definitions
 generateExports :: DomGenerateExports dom => LocalRefactoring dom
-generateExports mod = return (element & modHead & annJust & element & mhExports & annMaybe 
+generateExports mod = return (modHead & annJust & mhExports & annMaybe 
                                 .= Just (createExports (getTopLevels mod)) $ mod)
 
 -- | Get all the top-level definitions with flags that mark if they can contain other top-level definitions 
 -- (classes and data declarations).
 getTopLevels :: DomGenerateExports dom => Ann Module dom SrcTemplateStage -> [(GHC.Name, Bool)]
-getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d) (listToMaybe $ elementName d)) (mod ^? element & modDecl & annList)
+getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d) (listToMaybe $ elementName d)) (mod ^? modDecl & annList)
   where exportContainOthers :: Ann Decl dom SrcTemplateStage -> Bool
         exportContainOthers (DataDecl {}) = True
         exportContainOthers (ClassDecl {}) = True
