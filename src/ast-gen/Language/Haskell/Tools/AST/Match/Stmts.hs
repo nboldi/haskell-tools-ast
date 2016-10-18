@@ -4,10 +4,10 @@ module Language.Haskell.Tools.AST.Match.Stmts where
 
 import Language.Haskell.Tools.AST
 
-pattern BindStmt :: Ann Pattern dom stage -> Ann Expr dom stage -> Ann Stmt dom stage
+pattern BindStmt :: Ann Pattern dom stage -> Ann UExpr dom stage -> Ann Stmt dom stage
 pattern BindStmt bound expr <- Ann _ (UBindStmt bound expr)
 
-pattern ExprStmt :: Ann Expr dom stage -> Ann Stmt dom stage
+pattern ExprStmt :: Ann UExpr dom stage -> Ann Stmt dom stage
 pattern ExprStmt expr <- Ann _ (UExprStmt expr)
 
 pattern LetStmt :: AnnList ULocalBind dom stage -> Ann Stmt dom stage

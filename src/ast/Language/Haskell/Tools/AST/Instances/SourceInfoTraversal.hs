@@ -46,7 +46,7 @@ deriveSourceInfoTraversal ''UInstBody
 deriveSourceInfoTraversal ''UInstBodyDecl
 deriveSourceInfoTraversal ''UGadtConDecl
 deriveSourceInfoTraversal ''UGadtConType
-deriveSourceInfoTraversal ''FieldWildcard
+deriveSourceInfoTraversal ''UFieldWildcard
 deriveSourceInfoTraversal ''UFunDeps
 deriveSourceInfoTraversal ''UFunDep
 deriveSourceInfoTraversal ''UConDecl
@@ -61,7 +61,7 @@ deriveSourceInfoTraversal ''Type
 deriveSourceInfoTraversal ''Kind
 deriveSourceInfoTraversal ''Context
 deriveSourceInfoTraversal ''Assertion
-deriveSourceInfoTraversal ''Expr
+deriveSourceInfoTraversal ''UExpr
 deriveSourceInfoTraversal ''CompStmt
 deriveSourceInfoTraversal ''UValueBind
 deriveSourceInfoTraversal ''Pattern
@@ -71,7 +71,7 @@ deriveSourceInfoTraversal ''QQString
 deriveSourceInfoTraversal ''UMatch
 deriveSourceInfoTraversal ''URhs
 deriveSourceInfoTraversal ''UGuardedRhs
-deriveSourceInfoTraversal ''FieldUpdate
+deriveSourceInfoTraversal ''UFieldUpdate
 deriveSourceInfoTraversal ''Bracket
 deriveSourceInfoTraversal ''TopLevelPragma
 deriveSourceInfoTraversal ''Rule
@@ -87,7 +87,7 @@ deriveSourceInfoTraversal ''ULocalBinds
 deriveSourceInfoTraversal ''UFixitySignature
 deriveSourceInfoTraversal ''UTypeSignature
 deriveSourceInfoTraversal ''ListCompBody
-deriveSourceInfoTraversal ''TupSecElem
+deriveSourceInfoTraversal ''UTupSecElem
 deriveSourceInfoTraversal ''UTypeFamily
 deriveSourceInfoTraversal ''UTypeFamilySpec
 deriveSourceInfoTraversal ''UInjectivityAnn
@@ -101,9 +101,9 @@ deriveSourceInfoTraversal ''Cmd
 deriveSourceInfoTraversal ''LanguageExtension
 deriveSourceInfoTraversal ''UMatchLhs
 deriveSourceInfoTraversal ''Stmt'
-deriveSourceInfoTraversal ''Alt'
-deriveSourceInfoTraversal ''CaseRhs'
-deriveSourceInfoTraversal ''GuardedCaseRhs'
+deriveSourceInfoTraversal ''UAlt'
+deriveSourceInfoTraversal ''UCaseRhs'
+deriveSourceInfoTraversal ''UGuardedCaseRhs'
 
 -- Literal
 deriveSourceInfoTraversal ''Literal

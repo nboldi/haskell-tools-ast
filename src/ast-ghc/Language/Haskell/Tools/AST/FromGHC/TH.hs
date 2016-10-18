@@ -40,7 +40,7 @@ trfSplice' :: TransformName n r => HsSplice n -> Trf (AST.Splice (Dom r) RangeSt
 trfSplice' (HsTypedSplice _ expr) = AST.ParenSplice <$> trfCorrectDollar expr
 trfSplice' (HsUntypedSplice _ expr) = AST.ParenSplice <$> trfCorrectDollar expr
 
-trfCorrectDollar :: TransformName n r => Located (HsExpr n) -> Trf (Ann AST.Expr (Dom r) RangeStage)
+trfCorrectDollar :: TransformName n r => Located (HsExpr n) -> Trf (Ann AST.UExpr (Dom r) RangeStage)
 trfCorrectDollar expr = 
   do isSplice <- allTokenLoc AnnThIdSplice
      case isSplice of [] -> trfExpr expr

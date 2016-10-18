@@ -46,7 +46,7 @@ pattern BangPat pat <- Ann _ (UBangPat pat)
 pattern TypeSigPat :: Ann Pattern dom stage -> Ann Type dom stage -> Ann Pattern dom stage
 pattern TypeSigPat pat typ <- Ann _ (UTypeSigPat pat typ)
 
-pattern ViewPat :: Ann Expr dom stage -> Ann Pattern dom stage -> Ann Pattern dom stage
+pattern ViewPat :: Ann UExpr dom stage -> Ann Pattern dom stage -> Ann Pattern dom stage
 pattern ViewPat name pat <- Ann _ (UViewPat name pat)
 
 pattern PatternField :: Ann UName dom stage -> Ann Pattern dom stage -> Ann PatternField dom stage

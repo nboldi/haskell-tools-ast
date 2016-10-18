@@ -29,7 +29,7 @@ import qualified Language.Haskell.Tools.AST as AST
 trfDoStmt :: TransformName n r => Located (Stmt n (LHsExpr n)) -> Trf (Ann AST.Stmt (Dom r) RangeStage)
 trfDoStmt = trfLocNoSema trfDoStmt'
 
-trfDoStmt' :: TransformName n r => Stmt n (Located (HsExpr n)) -> Trf (AST.Stmt' AST.Expr (Dom r) RangeStage)
+trfDoStmt' :: TransformName n r => Stmt n (Located (HsExpr n)) -> Trf (AST.Stmt' AST.UExpr (Dom r) RangeStage)
 trfDoStmt' = gTrfDoStmt' trfExpr
 
 gTrfDoStmt' :: TransformName n r => (Located (ge n) -> Trf (Ann ae (Dom r) RangeStage)) -> Stmt n (Located (ge n)) -> Trf (AST.Stmt' ae (Dom r) RangeStage)

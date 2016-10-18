@@ -44,7 +44,7 @@ class HasFixityInfo' si where
 instance HasFixityInfo' CNameInfo where
   semanticsFixity = (^. cnameFixity)
 
-type HasScopeInfo dom = (Domain dom, HasScopeInfo' (SemanticInfo dom UQualifiedName), HasScopeInfo' (SemanticInfo dom Expr))
+type HasScopeInfo dom = (Domain dom, HasScopeInfo' (SemanticInfo dom UQualifiedName), HasScopeInfo' (SemanticInfo dom UExpr))
 
 -- | Infos that contain the names that are available in theirs scope
 class HasScopeInfo' si where
@@ -105,7 +105,7 @@ instance HasImportInfo' (AST.ImportInfo GHC.Id) where
   semanticsAvailable = map idName . (^. availableNames)
   semanticsImported = map idName . (^. importedNames)
 
-type HasImplicitFieldsInfo dom = (Domain dom, HasImplicitFieldsInfo' (SemanticInfo dom AST.FieldWildcard))
+type HasImplicitFieldsInfo dom = (Domain dom, HasImplicitFieldsInfo' (SemanticInfo dom AST.UFieldWildcard))
   
 class HasImplicitFieldsInfo' si where
   semanticsImplicitFlds :: si -> [(GHC.Name, GHC.Name)]

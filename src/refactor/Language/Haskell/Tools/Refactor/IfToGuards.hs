@@ -25,7 +25,7 @@ ifToGuards' fbs@(FunctionBind {})
         trfRhs (UnguardedRhs (If pred thenE elseE)) = createSimpleIfRhss pred thenE elseE
         trfRhs e = e -- don't transform already guarded right-hand sides to avoid multiple evaluation of the same condition
 
-createSimpleIfRhss :: Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage 
+createSimpleIfRhss :: Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage 
                         -> Ann URhs dom SrcTemplateStage
 createSimpleIfRhss pred thenE elseE = mkGuardedRhss [ mkGuardedRhs [mkGuardCheck pred] thenE
                                                     , mkGuardedRhs [mkGuardCheck (mkVar (mkName "otherwise"))] elseE

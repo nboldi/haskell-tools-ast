@@ -16,10 +16,10 @@ import Language.Haskell.Tools.AST.Gen.Base
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
-mkBindStmt :: Ann Pattern dom SrcTemplateStage -> Ann Expr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+mkBindStmt :: Ann Pattern dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
 mkBindStmt bound expr = mkAnn (child <> " <- " <> child) $ UBindStmt bound expr
 
-mkExprStmt :: Ann Expr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+mkExprStmt :: Ann UExpr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
 mkExprStmt = mkAnn child . UExprStmt
 
 mkLetStmt :: [Ann ULocalBind dom SrcTemplateStage] -> Ann Stmt dom SrcTemplateStage

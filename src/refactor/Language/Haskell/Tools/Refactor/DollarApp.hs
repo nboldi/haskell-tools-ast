@@ -29,8 +29,8 @@ dollarApp :: DollarDomain dom => RealSrcSpan -> LocalRefactoring dom
 dollarApp sp = flip evalStateT [] . ((nodesContained sp !~ (\e -> get >>= replaceExpr e)) 
                                         >=> (biplateRef !~ parenExpr))
 
-replaceExpr :: DollarDomain dom => Ann Expr dom SrcTemplateStage -> [SrcSpan] 
-                                     -> DollarMonad dom (Ann Expr dom SrcTemplateStage)
+replaceExpr :: DollarDomain dom => Ann UExpr dom SrcTemplateStage -> [SrcSpan] 
+                                     -> DollarMonad dom (Ann UExpr dom SrcTemplateStage)
 replaceExpr expr@(App fun (Paren (InfixApp _ op arg))) replacedRanges
   | not (getRange arg `elem` replacedRanges)
   , sema <- op ^. operatorName&semantics
@@ -41,10 +41,10 @@ replaceExpr (App fun (Paren arg)) _ = do modify $ (getRange arg :)
                                          mkInfixApp fun <$> lift (referenceOperator dollarName) <*> pure arg
 replaceExpr e _ = return e
 
-parenExpr :: Ann Expr dom SrcTemplateStage -> DollarMonad dom (Ann Expr dom SrcTemplateStage)
+parenExpr :: Ann UExpr dom SrcTemplateStage -> DollarMonad dom (Ann UExpr dom SrcTemplateStage)
 parenExpr e = (exprLhs !~ parenDollar True) =<< (exprRhs !~ parenDollar False $ e)
 
-parenDollar :: Bool -> Ann Expr dom SrcTemplateStage -> DollarMonad dom (Ann Expr dom SrcTemplateStage)
+parenDollar :: Bool -> Ann UExpr dom SrcTemplateStage -> DollarMonad dom (Ann UExpr dom SrcTemplateStage)
 parenDollar lhs expr@(InfixApp _ _ arg) 
   = do replacedRanges <- get
        if getRange arg `elem` replacedRanges && (lhs || getRange expr `notElem` replacedRanges)

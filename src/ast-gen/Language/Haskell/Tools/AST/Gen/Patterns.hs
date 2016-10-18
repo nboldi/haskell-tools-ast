@@ -59,7 +59,7 @@ mkBangPat = mkAnn ("!" <> child) . UBangPat
 mkTypeSigPat :: Ann Pattern dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
 mkTypeSigPat pat typ = mkAnn (child <> " :: " <> child) $ UTypeSigPat pat typ
 
-mkViewPat :: Ann Expr dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkViewPat :: Ann UExpr dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
 mkViewPat name pat = mkAnn (child <> " -> " <> child) $ UViewPat name pat
 
 mkPatternField :: Ann UName dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann PatternField dom SrcTemplateStage

@@ -84,10 +84,10 @@ data SameInfoWildcardCls
 
 type family SemaInfoClassify (node :: * -> * -> *) where
   SemaInfoClassify UQualifiedName = SameInfoNameCls
-  SemaInfoClassify Expr          = SameInfoExprCls
+  SemaInfoClassify UExpr          = SameInfoExprCls
   SemaInfoClassify ImportDecl    = SameInfoImportCls
   SemaInfoClassify AST.Module    = SameInfoModuleCls
-  SemaInfoClassify FieldWildcard = SameInfoWildcardCls
+  SemaInfoClassify UFieldWildcard = SameInfoWildcardCls
   SemaInfoClassify a             = SameInfoDefaultCls
 
 type family SemanticInfo' (domain :: *) (nodecls :: *)

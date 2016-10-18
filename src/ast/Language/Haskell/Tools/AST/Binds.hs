@@ -67,7 +67,7 @@ data UFixitySignature dom stage
    
 -- | Right hand side of a value binding (possible with guards): (@ = 3 @ or @ | x == 1 = 3; | otherwise = 4 @)
 data URhs dom stage
-  = UUnguardedRhs { _rhsExpr :: Ann Expr dom stage
+  = UUnguardedRhs { _rhsExpr :: Ann UExpr dom stage
                   }
   | UGuardedRhss  { _rhsGuards :: AnnList UGuardedRhs dom stage
                   }
@@ -75,17 +75,17 @@ data URhs dom stage
 -- | A guarded right-hand side of a value binding (@ | x > 3 = 2 @)      
 data UGuardedRhs dom stage
   = UGuardedRhs { _guardStmts :: AnnList URhsGuard dom stage -- ^ Cannot be empty.
-                , _guardExpr :: Ann Expr dom stage
+                , _guardExpr :: Ann UExpr dom stage
                 } 
 
 -- | Guards for value bindings and pattern matches (@ Just v <- x, v > 1 @)
 data URhsGuard dom stage
   = UGuardBind  { _guardPat :: Ann Pattern dom stage
-                , _guardRhs :: Ann Expr dom stage
+                , _guardRhs :: Ann UExpr dom stage
                 }
   | UGuardLet   { _guardBinds :: AnnList ULocalBind dom stage
                 }
-  | UGuardCheck { _guardCheck :: Ann Expr dom stage
+  | UGuardCheck { _guardCheck :: Ann UExpr dom stage
                 }
 
 -- * Pragmas
@@ -101,7 +101,7 @@ data TopLevelPragma dom stage
                       , _pragmaMessage :: Ann UStringNode dom stage
                       }
   | UAnnPragma        { _annotationSubject :: Ann AnnotationSubject dom stage
-                      , _annotateExpr :: Ann Expr dom stage
+                      , _annotateExpr :: Ann UExpr dom stage
                       }
   | UInlinePragma     { _pragmaConlike :: AnnMaybe ConlikeAnnot dom stage
                       , _pragmaPhase :: AnnMaybe PhaseControl dom stage
@@ -127,8 +127,8 @@ data Rule dom stage
   = URule { _ruleName :: Ann UStringNode dom stage -- ^ User name of the rule
           , _rulePhase :: AnnMaybe PhaseControl dom stage -- ^ The compilation phases in which the rule can be applied
           , _ruleBounded :: AnnList TyVar dom stage -- ^ Variables bound in the rule
-          , _ruleLhs :: Ann Expr dom stage -- ^ The transformed expression
-          , _ruleRhs :: Ann Expr dom stage -- ^ The resulting expression
+          , _ruleLhs :: Ann UExpr dom stage -- ^ The transformed expression
+          , _ruleRhs :: Ann UExpr dom stage -- ^ The resulting expression
           }
  
 -- | Annotation allows you to connect an expression to any declaration. 

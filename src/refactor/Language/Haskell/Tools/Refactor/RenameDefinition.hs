@@ -40,7 +40,7 @@ renameDefinition' sp str mod mods
   = case (getNodeContaining sp (snd mod) :: Maybe (Ann UQualifiedName dom SrcTemplateStage)) >>= (fmap getName . (semanticsName =<<) . (^? semantics)) of 
       Just name -> do let sameNames = bindsWithSameName name (snd mod ^? biplateRef) 
                       renameDefinition name sameNames str mod mods
-        where bindsWithSameName :: GHC.Name -> [Ann FieldWildcard dom SrcTemplateStage] -> [GHC.Name]
+        where bindsWithSameName :: GHC.Name -> [Ann UFieldWildcard dom SrcTemplateStage] -> [GHC.Name]
               bindsWithSameName name wcs = catMaybes $ map ((lookup name) . semanticsImplicitFlds . (^. semantics)) wcs
       Nothing -> case getNodeContaining sp (snd mod) of
                    Just modName -> renameModule (modName ^. moduleNameString) str mod mods

@@ -46,7 +46,7 @@ deriveSemanticTraversal ''UInstBody
 deriveSemanticTraversal ''UInstBodyDecl
 deriveSemanticTraversal ''UGadtConDecl
 deriveSemanticTraversal ''UGadtConType
-deriveSemanticTraversal ''FieldWildcard
+deriveSemanticTraversal ''UFieldWildcard
 deriveSemanticTraversal ''UFunDeps
 deriveSemanticTraversal ''UFunDep
 deriveSemanticTraversal ''UConDecl
@@ -61,7 +61,7 @@ deriveSemanticTraversal ''Type
 deriveSemanticTraversal ''Kind
 deriveSemanticTraversal ''Context
 deriveSemanticTraversal ''Assertion
-deriveSemanticTraversal ''Expr
+deriveSemanticTraversal ''UExpr
 deriveSemanticTraversal ''CompStmt
 deriveSemanticTraversal ''UValueBind
 deriveSemanticTraversal ''Pattern
@@ -71,7 +71,7 @@ deriveSemanticTraversal ''QQString
 deriveSemanticTraversal ''UMatch
 deriveSemanticTraversal ''URhs
 deriveSemanticTraversal ''UGuardedRhs
-deriveSemanticTraversal ''FieldUpdate
+deriveSemanticTraversal ''UFieldUpdate
 deriveSemanticTraversal ''Bracket
 deriveSemanticTraversal ''TopLevelPragma
 deriveSemanticTraversal ''Rule
@@ -87,7 +87,7 @@ deriveSemanticTraversal ''ULocalBinds
 deriveSemanticTraversal ''UFixitySignature
 deriveSemanticTraversal ''UTypeSignature
 deriveSemanticTraversal ''ListCompBody
-deriveSemanticTraversal ''TupSecElem
+deriveSemanticTraversal ''UTupSecElem
 deriveSemanticTraversal ''UTypeFamily
 deriveSemanticTraversal ''UTypeFamilySpec
 deriveSemanticTraversal ''UInjectivityAnn
@@ -101,9 +101,9 @@ deriveSemanticTraversal ''Cmd
 deriveSemanticTraversal ''LanguageExtension
 deriveSemanticTraversal ''UMatchLhs
 deriveSemanticTraversal ''Stmt'
-deriveSemanticTraversal ''Alt'
-deriveSemanticTraversal ''CaseRhs'
-deriveSemanticTraversal ''GuardedCaseRhs'
+deriveSemanticTraversal ''UAlt'
+deriveSemanticTraversal ''UCaseRhs'
+deriveSemanticTraversal ''UGuardedCaseRhs'
 
 -- Literal
 deriveSemanticTraversal ''Literal

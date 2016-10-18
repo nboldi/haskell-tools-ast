@@ -13,7 +13,7 @@ import Language.Haskell.Tools.AST.Ann
 data Splice dom stage
   = IdSplice    { _spliceId :: Ann UName dom stage
                 } -- ^ A simple name splice: @$generateX@
-  | ParenSplice { _spliceExpr :: Ann Expr dom stage
+  | ParenSplice { _spliceExpr :: Ann UExpr dom stage
                 } -- ^ A splice with parentheses: @$(generate input)@
   
 -- | Template haskell quasi-quotation: @[quoter|str]@  
@@ -30,7 +30,7 @@ data QQString dom stage
           
 -- | Template Haskell bracket expressions
 data Bracket dom stage
-  = ExprBracket    { _bracketExpr :: Ann Expr dom stage
+  = ExprBracket    { _bracketExpr :: Ann UExpr dom stage
                    } -- ^ Expression bracket (@ [| x + y |] @)
   | PatternBracket { _bracketPattern :: Ann Pattern dom stage
                    } -- ^ Pattern bracket (@ [| Point x y |] @)

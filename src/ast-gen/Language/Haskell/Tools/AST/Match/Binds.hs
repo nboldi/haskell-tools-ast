@@ -49,20 +49,20 @@ pattern InfixR prec op <- Ann _ (UFixitySignature (Ann _ AssocRight) prec op)
 pattern Infix :: Ann Precedence dom stage -> AnnList UOperator dom stage -> Ann UFixitySignature dom stage
 pattern Infix prec op <- Ann _ (UFixitySignature (Ann _ AssocNone) prec op)
 
-pattern UnguardedRhs :: Ann Expr dom stage -> Ann URhs dom stage
+pattern UnguardedRhs :: Ann UExpr dom stage -> Ann URhs dom stage
 pattern UnguardedRhs expr <- Ann _ (UUnguardedRhs expr)
 
 pattern GuardedRhss :: AnnList UGuardedRhs dom stage -> Ann URhs dom stage
 pattern GuardedRhss rhss <- Ann _ (UGuardedRhss rhss)
 
-pattern GuardedRhs :: AnnList URhsGuard dom stage -> Ann Expr dom stage -> Ann UGuardedRhs dom stage
+pattern GuardedRhs :: AnnList URhsGuard dom stage -> Ann UExpr dom stage -> Ann UGuardedRhs dom stage
 pattern GuardedRhs guards expr <- Ann _ (UGuardedRhs guards expr)
 
-pattern GuardBind :: Ann Pattern dom stage -> Ann Expr dom stage -> Ann URhsGuard dom stage
+pattern GuardBind :: Ann Pattern dom stage -> Ann UExpr dom stage -> Ann URhsGuard dom stage
 pattern GuardBind pat expr <- Ann _ (UGuardBind pat expr)
 
 pattern GuardLet :: AnnList ULocalBind dom stage -> Ann URhsGuard dom stage
 pattern GuardLet binds <- Ann _ (UGuardLet binds)
 
-pattern GuardCheck :: Ann Expr dom stage -> Ann URhsGuard dom stage
+pattern GuardCheck :: Ann UExpr dom stage -> Ann URhsGuard dom stage
 pattern GuardCheck expr <- Ann _ (UGuardCheck expr)

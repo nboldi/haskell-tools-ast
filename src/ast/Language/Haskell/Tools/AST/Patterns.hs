@@ -5,7 +5,7 @@ import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Base  
 import Language.Haskell.Tools.AST.Literals
 import Language.Haskell.Tools.AST.Types
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Exprs (Expr, FieldWildcard)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Exprs (UExpr, UFieldWildcard)
 import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
 
         
@@ -46,7 +46,7 @@ data Pattern dom stage
   | UTypeSigPat     { _patternInner :: Ann Pattern dom stage
                     , _patternType :: Ann Type dom stage
                     } -- ^ Pattern with explicit type signature (@ __ :: Int @)
-  | UViewPat        { _patternExpr :: Ann Expr dom stage
+  | UViewPat        { _patternExpr :: Ann UExpr dom stage
                     , _patternInner :: Ann Pattern dom stage
                     } -- ^ View pattern (@ f -> Just 1 @)
   -- regular list pattern omitted
@@ -66,5 +66,5 @@ data PatternField dom stage
                           } -- ^ Named field pattern (@ p = Point 3 2 @)
   | UFieldPunPattern      { _fieldPatternName :: Ann UName dom stage
                           } -- ^ Named field pun (@ p @)
-  | UFieldWildcardPattern { _fieldPatternWildcard :: Ann FieldWildcard dom stage
+  | UFieldWildcardPattern { _fieldPatternWildcard :: Ann UFieldWildcard dom stage
                           } -- ^ Wildcard field pattern (@ .. @)
