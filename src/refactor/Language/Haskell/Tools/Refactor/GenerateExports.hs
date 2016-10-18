@@ -27,7 +27,7 @@ generateExports mod = return (modHead & annJust & mhExports & annMaybe
 -- (classes and data declarations).
 getTopLevels :: DomGenerateExports dom => Ann Module dom SrcTemplateStage -> [(GHC.Name, Bool)]
 getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d) (listToMaybe $ elementName d)) (mod ^? modDecl & annList)
-  where exportContainOthers :: Ann Decl dom SrcTemplateStage -> Bool
+  where exportContainOthers :: Ann UDecl dom SrcTemplateStage -> Bool
         exportContainOthers (DataDecl {}) = True
         exportContainOthers (ClassDecl {}) = True
         exportContainOthers _ = False

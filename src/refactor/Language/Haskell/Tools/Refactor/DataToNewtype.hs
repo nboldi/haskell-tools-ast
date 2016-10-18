@@ -15,7 +15,7 @@ dataToNewtype mod
         changedDecls = map changeDeclaration $ _annListElems modDecls
      in return mod { _element = modElem { _modDecl = modDecls { _annListElems = changedDecls } } }
 
-changeDeclaration :: Ann Decl dom SrcTemplateStage -> Ann Decl dom SrcTemplateStage
+changeDeclaration :: Ann UDecl dom SrcTemplateStage -> Ann UDecl dom SrcTemplateStage
 changeDeclaration dd@(DataDecl _ _ cons _) 
   | annLength cons == 1 
       && annLength (_conDeclArgs (_element (_annListElems cons !! 0))) == 1

@@ -5,7 +5,7 @@ module Language.Haskell.Tools.AST.Match.Modules where
 import Language.Haskell.Tools.AST
 
 pattern Module :: AnnList FilePragma dom stage -> AnnMaybe ModuleHead dom stage
-              -> AnnList ImportDecl dom stage -> AnnList Decl dom stage -> Ann Module dom stage
+              -> AnnList ImportDecl dom stage -> AnnList UDecl dom stage -> Ann Module dom stage
 pattern Module filePrags head imps decls  <- Ann _ (UModule filePrags head imps decls )
 
 pattern ModuleHead :: Ann UModuleName dom stage -> AnnMaybe ExportSpecList dom stage 

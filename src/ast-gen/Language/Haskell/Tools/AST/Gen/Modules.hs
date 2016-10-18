@@ -18,7 +18,7 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
 mkModule :: [Ann FilePragma dom SrcTemplateStage] -> Maybe (Ann ModuleHead dom SrcTemplateStage)
-              -> [Ann ImportDecl dom SrcTemplateStage] -> [Ann Decl dom SrcTemplateStage] -> Ann Module dom SrcTemplateStage
+              -> [Ann ImportDecl dom SrcTemplateStage] -> [Ann UDecl dom SrcTemplateStage] -> Ann Module dom SrcTemplateStage
 mkModule filePrags head imps decls 
   = mkAnn (child <> child <> child <> child) 
       $ UModule (mkAnnList (listSepAfter "\n" "\n") filePrags) (mkAnnMaybe opt head)

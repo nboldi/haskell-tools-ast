@@ -13,7 +13,7 @@ data Module dom stage
   = UModule { _filePragmas :: AnnList FilePragma dom stage
             , _modHead :: AnnMaybe ModuleHead dom stage
             , _modImports :: AnnList ImportDecl dom stage
-            , _modDecl :: AnnList Decl dom stage
+            , _modDecl :: AnnList UDecl dom stage
             }
 
 -- | Module declaration with name and (optional) exports

@@ -76,7 +76,7 @@ bindingName = (valBindPat&patternName&simpleName
                               &(matchLhsName&simpleName &+& matchLhsOperator&operatorName))
                      &semantics
                      
-declHeadNames :: Simple Traversal (Ann DeclHead dom stage) (Ann UQualifiedName dom stage)
+declHeadNames :: Simple Traversal (Ann UDeclHead dom stage) (Ann UQualifiedName dom stage)
 declHeadNames = (dhName&simpleName &+& dhBody&declHeadNames &+& dhAppFun&declHeadNames &+& dhOperator&operatorName)
 
                
@@ -93,7 +93,7 @@ typeParams = fromTraversal typeParamsTrav
 semantics :: Simple Lens (Ann elem dom stage) (SemanticInfo dom elem)
 semantics = annotation&semanticInfo
 
-dhNames :: (SemanticInfo dom UQualifiedName ~ k) => Simple Traversal (Ann DeclHead dom stage) k
+dhNames :: (SemanticInfo dom UQualifiedName ~ k) => Simple Traversal (Ann UDeclHead dom stage) k
 dhNames = declHeadNames & semantics
 
 -- | Get all nodes that contain a given source range
@@ -152,7 +152,7 @@ getNode sp node = case node ^? nodesWithRange sp of
 class NamedElement elem where
   elementName :: elem -> [GHC.Name]
 
-instance HasNameInfo dom => NamedElement (Ann Decl dom st) where
+instance HasNameInfo dom => NamedElement (Ann UDecl dom st) where
   elementName d = catMaybes names
     where names = map semanticsName (d ^? declHead & dhNames) 
                     ++ map semanticsName (d ^? declTypeFamily & tfHead & dhNames)

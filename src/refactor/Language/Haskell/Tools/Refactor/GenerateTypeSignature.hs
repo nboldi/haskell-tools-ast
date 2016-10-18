@@ -35,7 +35,7 @@ generateTypeSignature' :: GenerateSignatureDomain dom => RealSrcSpan -> LocalRef
 generateTypeSignature' sp = generateTypeSignature (nodesContaining sp) (nodesContaining sp) (getValBindInList sp) 
 
 -- | Perform the refactoring on either local or top-level definition
-generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Ann Module dom SrcTemplateStage) (AnnList Decl dom SrcTemplateStage) 
+generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Ann Module dom SrcTemplateStage) (AnnList UDecl dom SrcTemplateStage) 
                                 -- ^ Access for a top-level definition if it is the selected definition
                            -> Simple Traversal (Ann Module dom SrcTemplateStage) (AnnList ULocalBind dom SrcTemplateStage) 
                                 -- ^ Access for a definition list if it contains the selected definition
@@ -149,7 +149,7 @@ class BindingElem d where
   isTypeSig :: Ann d dom stage -> Bool
   isBinding :: Ann d dom stage -> Bool
   
-instance BindingElem Decl where
+instance BindingElem UDecl where
   sigBind = declTypeSig
   valBind = declValBind
   createTypeSig = mkTypeSigDecl

@@ -69,7 +69,7 @@ resizeAnnots comments elem
 
 type ExpandType elem dom stage = Ann elem dom stage -> State [((SrcLoc, SrcLoc), Located AnnotationComment)] (Ann elem dom stage)
 
-expandTopLevelDecl :: RangeInfo stage => ExpandType Decl dom stage
+expandTopLevelDecl :: RangeInfo stage => ExpandType UDecl dom stage
 expandTopLevelDecl
   = declBody & annJust & cbElements & annList !~ expandClsElement
       >=> declCons & annList !~ expandConDecl
@@ -81,7 +81,7 @@ expandTypeSig :: RangeInfo stage => ExpandType UTypeSignature dom stage
 expandTypeSig
   = tsType & typeParams !~ expandAnnot >=> expandAnnot
 
-expandClsElement :: RangeInfo stage => ExpandType ClassElement dom stage
+expandClsElement :: RangeInfo stage => ExpandType UClassElement dom stage
 expandClsElement
   = ceTypeSig !~ expandTypeSig
       >=> ceBind !~ expandValueBind
@@ -99,11 +99,11 @@ expandLocalBind
       >=> localSig !~ expandTypeSig 
       >=> expandAnnot
 
-expandConDecl :: RangeInfo stage => ExpandType ConDecl dom stage
+expandConDecl :: RangeInfo stage => ExpandType UConDecl dom stage
 expandConDecl
   = conDeclFields & annList !~ expandAnnot >=> expandAnnot
 
-expandGadtConDecl :: RangeInfo stage => ExpandType GadtConDecl dom stage
+expandGadtConDecl :: RangeInfo stage => ExpandType UGadtConDecl dom stage
 expandGadtConDecl
   = gadtConType & gadtConRecordFields & annList !~ expandAnnot >=> expandAnnot
 
