@@ -28,6 +28,7 @@ import Data.Generics.Uniplate.Data
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AST.Rewrite
+import Language.Haskell.Tools.Refactor.ASTElements
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 import Debug.Trace
@@ -37,10 +38,10 @@ type DomainRenameDefinition dom = ( HasNameInfo dom, HasScopeInfo dom, HasDefini
 
 renameDefinition' :: forall dom . DomainRenameDefinition dom => RealSrcSpan -> String -> Refactoring dom
 renameDefinition' sp str mod mods
-  = case (getNodeContaining sp (snd mod) :: Maybe (Ann UQualifiedName dom SrcTemplateStage)) >>= (fmap getName . (semanticsName =<<) . (^? semantics)) of 
+  = case (getNodeContaining sp (snd mod) :: Maybe (QualifiedName dom)) >>= (fmap getName . (semanticsName =<<) . (^? semantics)) of 
       Just name -> do let sameNames = bindsWithSameName name (snd mod ^? biplateRef) 
                       renameDefinition name sameNames str mod mods
-        where bindsWithSameName :: GHC.Name -> [Ann UFieldWildcard dom SrcTemplateStage] -> [GHC.Name]
+        where bindsWithSameName :: GHC.Name -> [FieldWildcard dom] -> [GHC.Name]
               bindsWithSameName name wcs = catMaybes $ map ((lookup name) . semanticsImplicitFlds . (^. semantics)) wcs
       Nothing -> case getNodeContaining sp (snd mod) of
                    Just modName -> renameModule (modName ^. moduleNameString) str mod mods
@@ -53,19 +54,19 @@ renameModule from to m mods
     | otherwise = fmap (\ls -> ModuleRemoved from : map (\(ContentChanged (mod,res)) -> ContentChanged (if mod == from then to else mod, res)) ls)
                     $ localRefactoring (replaceModuleNames >=> alterNormalNames) m mods
   where replaceModuleNames :: LocalRefactoring dom
-        replaceModuleNames = biplateRef @_ @(Ann UModuleName dom SrcTemplateStage) & filtered (\e -> (e ^. moduleNameString) == from) != mkModuleName to
+        replaceModuleNames = biplateRef @_ @(ModuleName dom) & filtered (\e -> (e ^. moduleNameString) == from) != mkModuleName to
 
         alterNormalNames :: LocalRefactoring dom
         alterNormalNames mod = if from `elem` moduleQualifiers mod 
-           then biplateRef @_ @(Ann UQualifiedName dom SrcTemplateStage) & filtered (\e -> concat (intersperse "." (e ^? qualifiers&annList&simpleNameStr)) == from)
+           then biplateRef @_ @(QualifiedName dom) & filtered (\e -> concat (intersperse "." (e ^? qualifiers&annList&simpleNameStr)) == from)
                   !- (\e -> mkQualifiedName (splitOn "." to) (e ^. unqualifiedName&simpleNameStr)) $ mod
            else return mod
 
-        moduleQualifiers :: Ann UModule dom SrcTemplateStage -> [String]
+        moduleQualifiers :: Module dom -> [String]
         moduleQualifiers mod = mod ^? modImports & annList & filtered (\m -> isAnnNothing (m ^. importAs)) 
                                               & importModule & moduleNameString
 
-        nameConflict :: String -> Ann UModule dom SrcTemplateStage -> Bool
+        nameConflict :: String -> Module dom -> Bool
         nameConflict to mod 
           = let modName = mod ^? modHead&annJust&mhName&moduleNameString
                 imports = mod ^? modImports&annList
@@ -87,8 +88,8 @@ renameDefinition toChangeOrig toChangeWith newName mod mods
              if isChanged then return $ Just (name, res)
                           else return Nothing
 
-    changeName :: DomainRenameDefinition dom => GHC.Name -> [GHC.Name] -> String -> Ann UQualifiedName dom SrcTemplateStage 
-                                                         -> StateT Bool (StateT Bool (LocalRefactor dom)) (Ann UQualifiedName dom SrcTemplateStage)
+    changeName :: DomainRenameDefinition dom => GHC.Name -> [GHC.Name] -> String -> QualifiedName dom 
+                                                         -> StateT Bool (StateT Bool (LocalRefactor dom)) (QualifiedName dom)
     changeName toChangeOrig toChangeWith str name
       | maybe False (`elem` toChange) actualName
           && semanticsDefining (name ^. semantics) == False

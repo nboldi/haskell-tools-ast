@@ -8,7 +8,7 @@
            #-}
 module Language.Haskell.Tools.Refactor.GenerateTypeSignature (generateTypeSignature, generateTypeSignature', GenerateSignatureDomain) where
 
-import GHC hiding (UModule)
+import GHC hiding (Module)
 import Type as GHC
 import TyCon as GHC
 import OccName as GHC
@@ -27,6 +27,7 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.AST as AST
+import Language.Haskell.Tools.Refactor.ASTElements as AST
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 type GenerateSignatureDomain dom = ( HasModuleInfo dom, HasIdInfo dom, HasImportInfo dom ) 
@@ -35,12 +36,12 @@ generateTypeSignature' :: GenerateSignatureDomain dom => RealSrcSpan -> LocalRef
 generateTypeSignature' sp = generateTypeSignature (nodesContaining sp) (nodesContaining sp) (getValBindInList sp) 
 
 -- | Perform the refactoring on either local or top-level definition
-generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Ann UModule dom SrcTemplateStage) (AnnList UDecl dom SrcTemplateStage) 
+generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Module dom) (DeclList dom) 
                                 -- ^ Access for a top-level definition if it is the selected definition
-                           -> Simple Traversal (Ann UModule dom SrcTemplateStage) (AnnList ULocalBind dom SrcTemplateStage) 
+                           -> Simple Traversal (Module dom) (LocalBindList dom) 
                                 -- ^ Access for a definition list if it contains the selected definition
                            -> (forall d . (Show (Ann d dom SrcTemplateStage), Data (Ann d dom SrcTemplateStage), Typeable d, BindingElem d) 
-                                => AnnList d dom SrcTemplateStage -> Maybe (Ann UValueBind dom SrcTemplateStage)) 
+                                => AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom)) 
                                 -- ^ Selector for either local or top-level declaration in the definition list
                            -> LocalRefactoring dom
 generateTypeSignature topLevelRef localRef vbAccess
@@ -48,7 +49,7 @@ generateTypeSignature topLevelRef localRef vbAccess
      (topLevelRef !~ genTypeSig vbAccess
         <=< localRef !~ genTypeSig vbAccess)
   
-genTypeSig :: (GenerateSignatureDomain dom, BindingElem d) => (AnnList d dom SrcTemplateStage -> Maybe (Ann UValueBind dom SrcTemplateStage))  
+genTypeSig :: (GenerateSignatureDomain dom, BindingElem d) => (AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom))  
                 -> AnnList d dom SrcTemplateStage -> StateT Bool (LocalRefactor dom) (AnnList d dom SrcTemplateStage)
 genTypeSig vbAccess ls 
   | Just vb <- vbAccess ls 
@@ -67,11 +68,11 @@ genTypeSig vbAccess ls
   | otherwise = return ls
 
 
-generateTSFor :: GenerateSignatureDomain dom => GHC.Name -> GHC.Type -> LocalRefactor dom (Ann UTypeSignature dom SrcTemplateStage)
+generateTSFor :: GenerateSignatureDomain dom => GHC.Name -> GHC.Type -> LocalRefactor dom (TypeSignature dom)
 generateTSFor n t = mkTypeSignature (mkUnqualName' n) <$> generateTypeFor (-1) (dropForAlls t)
 
 -- | Generates the source-level type for a GHC internal type
-generateTypeFor :: GenerateSignatureDomain dom => Int -> GHC.Type -> LocalRefactor dom (Ann AST.UType dom SrcTemplateStage) 
+generateTypeFor :: GenerateSignatureDomain dom => Int -> GHC.Type -> LocalRefactor dom (AST.Type dom) 
 generateTypeFor prec t 
   -- context
   | (break (not . isPredTy) -> (preds, other), rt) <- splitFunTys t
@@ -114,24 +115,24 @@ generateTypeFor prec t
   | (tvs@(_:_), t') <- splitForAllTys t
   = wrapParen (-1) <$> (mkTyForall (map (mkTypeVar' . getName) tvs) <$> generateTypeFor 0 t')
   | otherwise = error ("Cannot represent type: " ++ showSDocUnsafe (ppr t))
-  where wrapParen :: Int -> Ann AST.UType dom SrcTemplateStage -> Ann AST.UType dom SrcTemplateStage
+  where wrapParen :: Int -> AST.Type dom -> AST.Type dom
         wrapParen prec' node = if prec' < prec then mkTyParen node else node
 
         getTCId :: GHC.TyCon -> GHC.Id
         getTCId tc = GHC.mkVanillaGlobal (GHC.tyConName tc) (tyConKind tc)
 
-        generateAssertionFor :: GenerateSignatureDomain dom => GHC.Type -> LocalRefactor dom (Ann AST.UAssertion dom SrcTemplateStage)
+        generateAssertionFor :: GenerateSignatureDomain dom => GHC.Type -> LocalRefactor dom (Assertion dom)
         generateAssertionFor t 
           | Just (tc, types) <- splitTyConApp_maybe t
           = mkClassAssert <$> referenceName (idName $ getTCId tc) <*> mapM (generateTypeFor 0) types
         -- TODO: infix things
     
 -- | Check whether the definition already has a type signature
-typeSignatureAlreadyExist :: (GenerateSignatureDomain dom, BindingElem d) => AnnList d dom SrcTemplateStage -> Ann UValueBind dom SrcTemplateStage -> Bool
+typeSignatureAlreadyExist :: (GenerateSignatureDomain dom, BindingElem d) => AnnList d dom SrcTemplateStage -> ValueBind dom -> Bool
 typeSignatureAlreadyExist ls vb = 
   getBindingName vb `elem` (map semanticsId $ concatMap (^? bindName) (filter isTypeSig $ ls ^? annList))
   
-getBindingName :: GenerateSignatureDomain dom => Ann UValueBind dom SrcTemplateStage -> GHC.Id
+getBindingName :: GenerateSignatureDomain dom => ValueBind dom -> GHC.Id
 getBindingName vb = case nub $ map semanticsId $ vb ^? bindingName of 
   [n] -> n
   [] -> error "Trying to generate a signature for a binding with no name"
@@ -142,10 +143,10 @@ getBindingName vb = case nub $ map semanticsId $ vb ^? bindingName of
 
 -- | A type class for transformations that work on both top-level and local definitions
 class BindingElem d where
-  sigBind :: Simple Partial (Ann d dom stage) (Ann UTypeSignature dom stage)
-  valBind :: Simple Partial (Ann d dom stage) (Ann UValueBind dom stage)
-  createTypeSig :: Ann UTypeSignature dom SrcTemplateStage -> Ann d dom SrcTemplateStage
-  createBinding :: Ann UValueBind dom SrcTemplateStage -> Ann d dom SrcTemplateStage
+  sigBind :: Simple Partial (Ann d dom SrcTemplateStage) (TypeSignature dom)
+  valBind :: Simple Partial (Ann d dom SrcTemplateStage) (ValueBind dom)
+  createTypeSig :: TypeSignature dom -> Ann d dom SrcTemplateStage
+  createBinding :: ValueBind dom -> Ann d dom SrcTemplateStage
   isTypeSig :: Ann d dom stage -> Bool
   isBinding :: Ann d dom stage -> Bool
   
@@ -169,13 +170,13 @@ instance BindingElem ULocalBind where
   isBinding LocalValBind {} = True
   isBinding _ = False
 
-bindName :: (BindingElem d, SemanticInfo dom UQualifiedName ~ k) => Simple Traversal (Ann d dom stage) k
+bindName :: (BindingElem d, SemanticInfo dom UQualifiedName ~ k) => Simple Traversal (Ann d dom SrcTemplateStage) k
 bindName = valBind&bindingName &+& sigBind&tsName&annList&simpleName&semantics
 
-valBindsInList :: BindingElem d => Simple Traversal (AnnList d dom stage) (Ann UValueBind dom stage)
+valBindsInList :: BindingElem d => Simple Traversal (AnnList d dom SrcTemplateStage) (ValueBind dom)
 valBindsInList = annList & valBind
      
-getValBindInList :: (BindingElem d, SourceInfo stage) => RealSrcSpan -> AnnList d dom stage -> Maybe (Ann UValueBind dom stage)
+getValBindInList :: (BindingElem d) => RealSrcSpan -> AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom)
 getValBindInList sp ls = case ls ^? valBindsInList & filtered (isInside sp) of
   [] -> Nothing
   [n] -> Just n

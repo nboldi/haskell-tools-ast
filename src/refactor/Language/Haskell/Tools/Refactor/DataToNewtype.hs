@@ -2,6 +2,7 @@ module Language.Haskell.Tools.Refactor.DataToNewtype (dataToNewtype) where
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Rewrite
+import Language.Haskell.Tools.Refactor.ASTElements
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 import Language.Haskell.Tools.Refactor (tryRefactor)
@@ -15,7 +16,7 @@ dataToNewtype mod
         changedDecls = map changeDeclaration $ _annListElems modDecls
      in return mod { _element = modElem { _modDecl = modDecls { _annListElems = changedDecls } } }
 
-changeDeclaration :: Ann UDecl dom SrcTemplateStage -> Ann UDecl dom SrcTemplateStage
+changeDeclaration :: Decl dom -> Decl dom
 changeDeclaration dd@(DataDecl _ _ cons _) 
   | annLength cons == 1 
       && annLength (_conDeclArgs (_element (_annListElems cons !! 0))) == 1

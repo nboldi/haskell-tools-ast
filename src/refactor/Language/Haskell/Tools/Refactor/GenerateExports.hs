@@ -14,6 +14,7 @@ import Data.Maybe
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AST.Rewrite
+import Language.Haskell.Tools.Refactor.ASTElements
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 type DomGenerateExports dom = (Domain dom, HasNameInfo dom)
@@ -25,15 +26,15 @@ generateExports mod = return (modHead & annJust & mhExports & annMaybe
 
 -- | Get all the top-level definitions with flags that mark if they can contain other top-level definitions 
 -- (classes and data declarations).
-getTopLevels :: DomGenerateExports dom => Ann UModule dom SrcTemplateStage -> [(GHC.Name, Bool)]
+getTopLevels :: DomGenerateExports dom => Module dom -> [(GHC.Name, Bool)]
 getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d) (listToMaybe $ elementName d)) (mod ^? modDecl & annList)
-  where exportContainOthers :: Ann UDecl dom SrcTemplateStage -> Bool
+  where exportContainOthers :: Decl dom -> Bool
         exportContainOthers (DataDecl {}) = True
         exportContainOthers (ClassDecl {}) = True
         exportContainOthers _ = False
 
 -- | Create the export for a give name.
-createExports :: DomGenerateExports dom => [(GHC.Name, Bool)] -> Ann UExportSpecList dom SrcTemplateStage
+createExports :: DomGenerateExports dom => [(GHC.Name, Bool)] -> ExportSpecList dom
 createExports elems = mkExportSpecList $ map (mkExportSpec . createExport) elems
   where createExport (n, False) = mkIeSpec (mkUnqualName' (GHC.getName n)) Nothing
         createExport (n, True)  = mkIeSpec (mkUnqualName' (GHC.getName n)) (Just mkSubAll)

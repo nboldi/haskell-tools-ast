@@ -6,6 +6,7 @@ import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.RefactorBase
+import Language.Haskell.Tools.Refactor.ASTElements
 
 import SrcLoc (RealSrcSpan, SrcSpan)
 import Unique (getUnique)
@@ -29,8 +30,7 @@ dollarApp :: DollarDomain dom => RealSrcSpan -> LocalRefactoring dom
 dollarApp sp = flip evalStateT [] . ((nodesContained sp !~ (\e -> get >>= replaceExpr e)) 
                                         >=> (biplateRef !~ parenExpr))
 
-replaceExpr :: DollarDomain dom => Ann UExpr dom SrcTemplateStage -> [SrcSpan] 
-                                     -> DollarMonad dom (Ann UExpr dom SrcTemplateStage)
+replaceExpr :: DollarDomain dom => Expr dom -> [SrcSpan] -> DollarMonad dom (Expr dom)
 replaceExpr expr@(App fun (Paren (InfixApp _ op arg))) replacedRanges
   | not (getRange arg `elem` replacedRanges)
   , sema <- op ^. operatorName&semantics
@@ -41,10 +41,10 @@ replaceExpr (App fun (Paren arg)) _ = do modify $ (getRange arg :)
                                          mkInfixApp fun <$> lift (referenceOperator dollarName) <*> pure arg
 replaceExpr e _ = return e
 
-parenExpr :: Ann UExpr dom SrcTemplateStage -> DollarMonad dom (Ann UExpr dom SrcTemplateStage)
+parenExpr :: Expr dom -> DollarMonad dom (Expr dom)
 parenExpr e = (exprLhs !~ parenDollar True) =<< (exprRhs !~ parenDollar False $ e)
 
-parenDollar :: Bool -> Ann UExpr dom SrcTemplateStage -> DollarMonad dom (Ann UExpr dom SrcTemplateStage)
+parenDollar :: Bool -> Expr dom -> DollarMonad dom (Expr dom)
 parenDollar lhs expr@(InfixApp _ _ arg) 
   = do replacedRanges <- get
        if getRange arg `elem` replacedRanges && (lhs || getRange expr `notElem` replacedRanges)
