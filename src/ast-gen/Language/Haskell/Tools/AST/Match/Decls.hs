@@ -7,7 +7,7 @@ import Language.Haskell.Tools.AST.Match.Base
 
 -- * Declarations
 
-pattern TypeDecl :: Ann UDeclHead dom stage -> Ann Type dom stage -> Ann UDecl dom stage 
+pattern TypeDecl :: Ann UDeclHead dom stage -> Ann UType dom stage -> Ann UDecl dom stage 
 pattern TypeDecl dh typ <- Ann _ (UTypeDecl dh typ)
 
 pattern TypeFamily :: Ann UDeclHead dom stage -> AnnMaybe UTypeFamilySpec dom stage -> Ann UDecl dom stage
@@ -19,19 +19,19 @@ pattern DataFamily dh kind <- Ann _ (UTypeFamilyDecl (Ann _ (UDataFamily dh kind
 pattern ClosedTypeFamily :: Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UTypeEqn dom stage -> Ann UDecl dom stage
 pattern ClosedTypeFamily dh kind typeqs <- Ann _ (UClosedTypeFamilyDecl dh kind typeqs)
 
-pattern DataDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
+pattern DataDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
 pattern DataDecl ctx dh cons derivs <- Ann _ (UDataDecl DataKeyword ctx dh cons derivs)
 
-pattern NewtypeDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
+pattern NewtypeDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
 pattern NewtypeDecl ctx dh cons derivs <- Ann _ (UDataDecl NewtypeKeyword ctx dh cons derivs)
 
-pattern GADTDataDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
+pattern GADTDataDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
 pattern GADTDataDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl DataKeyword ctx dh kind cons derivs )
 
-pattern GADTNewtypeDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
+pattern GADTNewtypeDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
 pattern GADTNewtypeDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl NewtypeKeyword ctx dh kind cons derivs )
 
-pattern TypeInstance :: Ann UInstanceRule dom stage -> Ann Type dom stage -> Ann UDecl dom stage
+pattern TypeInstance :: Ann UInstanceRule dom stage -> Ann UType dom stage -> Ann UDecl dom stage
 pattern TypeInstance instRule typ <- Ann _ (UTypeInstDecl instRule typ)
 
 pattern DataInstance :: Ann UInstanceRule dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage
@@ -46,7 +46,7 @@ pattern GadtDataInstance :: Ann UInstanceRule dom stage -> AnnMaybe UKindConstra
                        -> Ann UDecl dom stage
 pattern GadtDataInstance instRule kind cons  <- Ann _ (UGDataInstDecl DataKeyword instRule kind cons )
 
-pattern ClassDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnMaybe UClassBody dom stage -> Ann UDecl dom stage
+pattern ClassDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnMaybe UClassBody dom stage -> Ann UDecl dom stage
 pattern ClassDecl ctx dh body <- Ann _ (UClassDecl ctx dh _ body)
 
 pattern InstanceDecl :: Ann UInstanceRule dom stage -> AnnMaybe UInstBody dom stage -> Ann UDecl dom stage
@@ -64,7 +64,7 @@ pattern TypeSigDecl typeSig <- Ann _ (UTypeSigDecl typeSig)
 pattern ValueBinding :: Ann UValueBind dom stage -> Ann UDecl dom stage
 pattern ValueBinding bind <- Ann _ (UValueBinding bind)
 
-pattern ForeignImport :: Ann CallConv dom stage -> Ann UName dom stage -> Ann Type dom stage -> Ann UDecl dom stage
+pattern ForeignImport :: Ann CallConv dom stage -> Ann UName dom stage -> Ann UType dom stage -> Ann UDecl dom stage
 pattern ForeignImport cc name typ <- Ann _ (UForeignImport cc _ name typ)
 
 pattern PatternSynonym :: Ann UPatSynLhs dom stage -> Ann UPatSynRhs dom stage -> Ann UDecl dom stage
@@ -90,7 +90,7 @@ pattern OneWayPatSyn pat <- Ann _ (UOneDirectionalPatSyn pat)
 pattern TwoWayPatSyn :: Ann UPattern dom stage -> AnnList UMatch dom stage -> Ann UPatSynRhs dom stage
 pattern TwoWayPatSyn pat match <- Ann _ (UBidirectionalPatSyn pat (AnnJust (Ann _ (UPatSynWhere match))))
 
--- * Type families
+-- * UType families
 
 pattern TypeFamilyKindSpec :: Ann UKindConstraint dom stage -> Ann UTypeFamilySpec dom stage
 pattern TypeFamilyKindSpec kind <- Ann _ (UTypeFamilyKind kind)
@@ -123,10 +123,10 @@ pattern NameDeclHead name <- Ann _ (UDeclHead name)
 pattern ParenDeclHead :: Ann UDeclHead dom stage -> Ann UDeclHead dom stage
 pattern ParenDeclHead dh <- Ann _ (UDHParen dh)
 
-pattern DeclHeadApp :: Ann UDeclHead dom stage -> Ann TyVar dom stage -> Ann UDeclHead dom stage
+pattern DeclHeadApp :: Ann UDeclHead dom stage -> Ann UTyVar dom stage -> Ann UDeclHead dom stage
 pattern DeclHeadApp dh tv <- Ann _ (UDHApp dh tv)
 
-pattern InfixDeclHead :: Ann TyVar dom stage -> Ann UOperator dom stage -> Ann TyVar dom stage -> Ann UDeclHead dom stage
+pattern InfixDeclHead :: Ann UTyVar dom stage -> Ann UOperator dom stage -> Ann UTyVar dom stage -> Ann UDeclHead dom stage
 pattern InfixDeclHead lhs op rhs <- Ann _ (UDHInfix lhs op rhs)
 
 -- * Elements of class instances
@@ -154,19 +154,19 @@ pattern InstanceElemGadtDataDef instRule kind cons derivs  <- Ann _ (UInstBodyGa
 
 -- * Data type definitions
 
-pattern GadtConDecl :: AnnList UName dom stage -> Ann Type dom stage -> Ann UGadtConDecl dom stage
+pattern GadtConDecl :: AnnList UName dom stage -> Ann UType dom stage -> Ann UGadtConDecl dom stage
 pattern GadtConDecl names typ <- Ann _ (UGadtConDecl names (Ann _ (UGadtNormalType typ)))
 
-pattern ConDecl :: Ann UName dom stage -> AnnList Type dom stage -> Ann UConDecl dom stage
+pattern ConDecl :: Ann UName dom stage -> AnnList UType dom stage -> Ann UConDecl dom stage
 pattern ConDecl name args <- Ann _ (UConDecl name args)
 
 pattern RecordConDecl :: Ann UName dom stage -> AnnList UFieldDecl dom stage -> Ann UConDecl dom stage
 pattern RecordConDecl name fields <- Ann _ (URecordDecl name fields)
 
-pattern InfixConDecl :: Ann Type dom stage -> Ann UOperator dom stage -> Ann Type dom stage -> Ann UConDecl dom stage
+pattern InfixConDecl :: Ann UType dom stage -> Ann UOperator dom stage -> Ann UType dom stage -> Ann UConDecl dom stage
 pattern InfixConDecl lhs op rhs <- Ann _ (UInfixConDecl lhs op rhs)
 
-pattern FieldDecl :: AnnList UName dom stage -> Ann Type dom stage -> Ann UFieldDecl dom stage
+pattern FieldDecl :: AnnList UName dom stage -> Ann UType dom stage -> Ann UFieldDecl dom stage
 pattern FieldDecl names typ <- Ann _ (UFieldDecl names typ)
 
 pattern DerivingOne :: Ann UInstanceHead dom stage -> Ann UDeriving dom stage
@@ -175,20 +175,20 @@ pattern DerivingOne deriv <- Ann _ (UDerivingOne deriv)
 pattern DerivingMulti :: AnnList UInstanceHead dom stage -> Ann UDeriving dom stage
 pattern DerivingMulti derivs <- Ann _ (UDerivings derivs)
 
-pattern InstanceRule :: AnnMaybe (AnnList TyVar) dom stage -> AnnMaybe Context dom stage -> Ann UInstanceHead dom stage -> Ann UInstanceRule dom stage
+pattern InstanceRule :: AnnMaybe (AnnList UTyVar) dom stage -> AnnMaybe UContext dom stage -> Ann UInstanceHead dom stage -> Ann UInstanceRule dom stage
 pattern InstanceRule tvs ctx ih <- Ann _ (UInstanceRule tvs ctx ih)
 
 pattern InstanceHead :: Ann UName dom stage -> Ann UInstanceHead dom stage
 pattern InstanceHead name <- Ann _ (UInstanceHeadCon name)
 
-pattern InfixInstanceHead :: Ann Type dom stage -> Ann UName dom stage -> Ann UInstanceHead dom stage
+pattern InfixInstanceHead :: Ann UType dom stage -> Ann UName dom stage -> Ann UInstanceHead dom stage
 pattern InfixInstanceHead typ n <- Ann _ (UInstanceHeadInfix typ n)
 
 pattern ParenInstanceHead :: Ann UInstanceHead dom stage -> Ann UInstanceHead dom stage
 pattern ParenInstanceHead ih <- Ann _ (UInstanceHeadParen ih)
 
-pattern AppInstanceHead :: Ann UInstanceHead dom stage -> Ann Type dom stage -> Ann UInstanceHead dom stage
+pattern AppInstanceHead :: Ann UInstanceHead dom stage -> Ann UType dom stage -> Ann UInstanceHead dom stage
 pattern AppInstanceHead fun arg <- Ann _ (UInstanceHeadApp fun arg)
 
-pattern TypeEqn :: Ann Type dom stage -> Ann Type dom stage -> Ann UTypeEqn dom stage
+pattern TypeEqn :: Ann UType dom stage -> Ann UType dom stage -> Ann UTypeEqn dom stage
 pattern TypeEqn lhs rhs <- Ann _ (UTypeEqn lhs rhs)

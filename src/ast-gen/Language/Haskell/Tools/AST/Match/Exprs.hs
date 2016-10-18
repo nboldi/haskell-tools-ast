@@ -79,7 +79,7 @@ pattern Enum from step to <- Ann _ (UEnum from step to)
 pattern ParArrayEnum :: Ann UExpr dom stage -> AnnMaybe UExpr dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
 pattern ParArrayEnum from step to <- Ann _ (UParArrayEnum from step to)
 
-pattern TypeSig :: Ann UExpr dom stage -> Ann Type dom stage -> Ann UExpr dom stage
+pattern TypeSig :: Ann UExpr dom stage -> Ann UType dom stage -> Ann UExpr dom stage
 pattern TypeSig lhs typ <- Ann _ (UTypeSig lhs typ)
 
 pattern BracketExpr :: Ann Bracket dom stage -> Ann UExpr dom stage

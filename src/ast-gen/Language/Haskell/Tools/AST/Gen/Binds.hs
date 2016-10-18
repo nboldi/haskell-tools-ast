@@ -58,7 +58,7 @@ mkLocalTypeSig = mkAnn child . ULocalSignature
 mkLocalFixity :: Ann UFixitySignature dom SrcTemplateStage -> Ann ULocalBind dom SrcTemplateStage
 mkLocalFixity = mkAnn child . ULocalFixity
 
-mkTypeSignature :: Ann UName dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann UTypeSignature dom SrcTemplateStage
+mkTypeSignature :: Ann UName dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UTypeSignature dom SrcTemplateStage
 mkTypeSignature n t = mkAnn (child <> " :: " <> child) (UTypeSignature (mkAnnList (listSep ", ") [n]) t)
 
 mkInfixL :: Int -> Ann UOperator dom SrcTemplateStage -> Ann UFixitySignature dom SrcTemplateStage

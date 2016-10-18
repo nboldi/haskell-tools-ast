@@ -55,7 +55,7 @@ data ULocalBind dom stage
 -- | A type signature (@ _f :: Int -> Int @)
 data UTypeSignature dom stage
   = UTypeSignature { _tsName :: AnnList UName dom stage
-                   , _tsType :: Ann Type dom stage
+                   , _tsType :: Ann UType dom stage
                    }     
                    
 -- | A fixity signature (@ infixl 5 +, - @).
@@ -119,14 +119,14 @@ data TopLevelPragma dom stage
                       }
   | USpecializePragma { _pragmaPhase :: AnnMaybe PhaseControl dom stage
                       , _specializeDef :: Ann UName dom stage
-                      , _specializeType :: AnnList Type dom stage
+                      , _specializeType :: AnnList UType dom stage
                       }
 
 -- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
 data Rule dom stage
   = URule { _ruleName :: Ann UStringNode dom stage -- ^ User name of the rule
           , _rulePhase :: AnnMaybe PhaseControl dom stage -- ^ The compilation phases in which the rule can be applied
-          , _ruleBounded :: AnnList TyVar dom stage -- ^ Variables bound in the rule
+          , _ruleBounded :: AnnList UTyVar dom stage -- ^ Variables bound in the rule
           , _ruleLhs :: Ann UExpr dom stage -- ^ The transformed expression
           , _ruleRhs :: Ann UExpr dom stage -- ^ The resulting expression
           }

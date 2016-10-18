@@ -79,7 +79,7 @@ mkRecUpdate expr flds = mkAnn (child <> " { " <> child <> " }") $ URecUpdate exp
 mkEnum :: Ann UExpr dom SrcTemplateStage -> Maybe (Ann UExpr dom SrcTemplateStage) -> Maybe (Ann UExpr dom SrcTemplateStage) -> Ann UExpr dom SrcTemplateStage
 mkEnum from step to = mkAnn ("[" <> child <> child <> ".." <> child <> "]") $ UEnum from (mkAnnMaybe (optBefore ",") step) (mkAnnMaybe (optBefore ",") to)
 
-mkExprTypeSig :: Ann UExpr dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkExprTypeSig :: Ann UExpr dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
 mkExprTypeSig lhs typ = mkAnn (child <> " :: " <> child) $ UExplTypeApp lhs typ
 
 -- * Field updates

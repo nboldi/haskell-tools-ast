@@ -44,7 +44,7 @@ data UPattern dom stage
   | UBangPat        { _patternInner :: Ann UPattern dom stage
                     } -- ^ Bang pattern (@ !x @)
   | UTypeSigPat     { _patternInner :: Ann UPattern dom stage
-                    , _patternType :: Ann Type dom stage
+                    , _patternType :: Ann UType dom stage
                     } -- ^ UPattern with explicit type signature (@ __ :: Int @)
   | UViewPat        { _patternExpr :: Ann UExpr dom stage
                     , _patternInner :: Ann UPattern dom stage

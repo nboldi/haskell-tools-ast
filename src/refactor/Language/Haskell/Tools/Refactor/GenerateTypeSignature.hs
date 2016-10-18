@@ -71,7 +71,7 @@ generateTSFor :: GenerateSignatureDomain dom => GHC.Name -> GHC.Type -> LocalRef
 generateTSFor n t = mkTypeSignature (mkUnqualName' n) <$> generateTypeFor (-1) (dropForAlls t)
 
 -- | Generates the source-level type for a GHC internal type
-generateTypeFor :: GenerateSignatureDomain dom => Int -> GHC.Type -> LocalRefactor dom (Ann AST.Type dom SrcTemplateStage) 
+generateTypeFor :: GenerateSignatureDomain dom => Int -> GHC.Type -> LocalRefactor dom (Ann AST.UType dom SrcTemplateStage) 
 generateTypeFor prec t 
   -- context
   | (break (not . isPredTy) -> (preds, other), rt) <- splitFunTys t
@@ -114,13 +114,13 @@ generateTypeFor prec t
   | (tvs@(_:_), t') <- splitForAllTys t
   = wrapParen (-1) <$> (mkTyForall (map (mkTypeVar' . getName) tvs) <$> generateTypeFor 0 t')
   | otherwise = error ("Cannot represent type: " ++ showSDocUnsafe (ppr t))
-  where wrapParen :: Int -> Ann AST.Type dom SrcTemplateStage -> Ann AST.Type dom SrcTemplateStage
+  where wrapParen :: Int -> Ann AST.UType dom SrcTemplateStage -> Ann AST.UType dom SrcTemplateStage
         wrapParen prec' node = if prec' < prec then mkTyParen node else node
 
         getTCId :: GHC.TyCon -> GHC.Id
         getTCId tc = GHC.mkVanillaGlobal (GHC.tyConName tc) (tyConKind tc)
 
-        generateAssertionFor :: GenerateSignatureDomain dom => GHC.Type -> LocalRefactor dom (Ann AST.Assertion dom SrcTemplateStage)
+        generateAssertionFor :: GenerateSignatureDomain dom => GHC.Type -> LocalRefactor dom (Ann AST.UAssertion dom SrcTemplateStage)
         generateAssertionFor t 
           | Just (tc, types) <- splitTyConApp_maybe t
           = mkClassAssert <$> referenceName (idName $ getTCId tc) <*> mapM (generateTypeFor 0) types

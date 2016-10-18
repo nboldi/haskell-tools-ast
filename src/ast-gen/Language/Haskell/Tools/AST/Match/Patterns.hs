@@ -43,7 +43,7 @@ pattern IrrefutablePat pat <- Ann _ (UIrrefutablePat pat)
 pattern BangPat :: Ann UPattern dom stage -> Ann UPattern dom stage
 pattern BangPat pat <- Ann _ (UBangPat pat)
 
-pattern TypeSigPat :: Ann UPattern dom stage -> Ann Type dom stage -> Ann UPattern dom stage
+pattern TypeSigPat :: Ann UPattern dom stage -> Ann UType dom stage -> Ann UPattern dom stage
 pattern TypeSigPat pat typ <- Ann _ (UTypeSigPat pat typ)
 
 pattern ViewPat :: Ann UExpr dom stage -> Ann UPattern dom stage -> Ann UPattern dom stage

@@ -16,7 +16,7 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
 -- | Haskell declaration
 data UDecl dom stage
   = UTypeDecl             { _declHead :: Ann UDeclHead dom stage
-                          , _declType :: Ann Type dom stage
+                          , _declType :: Ann UType dom stage
                           } -- ^ A type synonym ( @type String = [Char]@ )
   | UTypeFamilyDecl       { _declTypeFamily :: Ann UTypeFamily dom stage
                           }
@@ -25,22 +25,22 @@ data UDecl dom stage
                           , _declDecl :: AnnList UTypeEqn dom stage -- ^ cannot be empty
                           } -- ^ A closed type family declaration
   | UDataDecl             { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
-                          , _declCtx  :: AnnMaybe Context dom stage
+                          , _declCtx  :: AnnMaybe UContext dom stage
                           , _declHead :: Ann UDeclHead dom stage
                           , _declCons :: AnnList UConDecl dom stage
                           , _declDeriving :: AnnMaybe UDeriving dom stage
                           } -- ^ A data or newtype declaration. Empty data type declarations without 
                             -- where keyword are always belong to DataDecl.
   | UGDataDecl            { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
-                          , _declCtx  :: AnnMaybe Context dom stage
+                          , _declCtx  :: AnnMaybe UContext dom stage
                           , _declHead :: Ann UDeclHead dom stage
                           , _declKind :: AnnMaybe UKindConstraint dom stage
                           , _declGadt :: AnnList UGadtConDecl dom stage
                           , _declDeriving :: AnnMaybe UDeriving dom stage
                           } -- ^ A data or newtype declaration.
   | UTypeInstDecl         { _declInstance :: Ann UInstanceRule dom stage
-                          , _declAssignedType :: Ann Type dom stage
-                          } -- ^ Type instance declaration (@ type instance Fam T = AssignedT @)
+                          , _declAssignedType :: Ann UType dom stage
+                          } -- ^ UType instance declaration (@ type instance Fam T = AssignedT @)
   | UDataInstDecl         { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
                           , _declInstance :: Ann UInstanceRule dom stage
                           , _declCons :: AnnList UConDecl dom stage
@@ -51,11 +51,11 @@ data UDecl dom stage
                           , _declKind :: AnnMaybe UKindConstraint dom stage
                           , _declGadt :: AnnList UGadtConDecl dom stage
                           } -- ^ Gadt style data instance declaration (@ data instance Fam T where ... @)
-  | UClassDecl            { _declCtx :: AnnMaybe Context dom stage
+  | UClassDecl            { _declCtx :: AnnMaybe UContext dom stage
                           , _declHead :: Ann UDeclHead dom stage
                           , _declFunDeps :: AnnMaybe UFunDeps dom stage
                           , _declBody :: AnnMaybe UClassBody dom stage
-                          } -- ^ Type class declaration (@ class X a [where f = ...] @)
+                          } -- ^ UType class declaration (@ class X a [where f = ...] @)
   | UInstDecl             { _declOverlap :: AnnMaybe OverlapPragma dom stage
                           , _declInstRule :: Ann UInstanceRule dom stage
                           , _declInstDecl :: AnnMaybe UInstBody dom stage
@@ -67,22 +67,22 @@ data UDecl dom stage
                           } -- ^ Standalone deriving declaration (@ deriving instance X T @)
   | UFixityDecl           { _declFixity :: Ann UFixitySignature dom stage
                           } -- ^ Fixity declaration (@ infixl 5 +, - @)
-  | UDefaultDecl          { _declTypes :: AnnList Type dom stage
+  | UDefaultDecl          { _declTypes :: AnnList UType dom stage
                           } -- ^ Default types (@ default (T1, T2) @)
   | UTypeSigDecl          { _declTypeSig :: Ann UTypeSignature dom stage
-                          } -- ^ Type signature declaration (@ _f :: Int -> Int @)
+                          } -- ^ UType signature declaration (@ _f :: Int -> Int @)
   | UPatTypeSigDecl       { _declPatTypeSig :: Ann UPatternTypeSignature dom stage
-                          } -- ^ Type signature declaration (@ _f :: Int -> Int @)
+                          } -- ^ UType signature declaration (@ _f :: Int -> Int @)
   | UValueBinding         { _declValBind :: Ann UValueBind dom stage
                           } -- ^ Function binding (@ f x = 12 @)
   | UForeignImport        { _declCallConv :: Ann CallConv dom stage
                           , _declSafety :: AnnMaybe Safety dom stage
                           , _declName :: Ann UName dom stage
-                          , _declType :: Ann Type dom stage
+                          , _declType :: Ann UType dom stage
                           } -- ^ Foreign import (@ foreign import _foo :: Int -> IO Int @)
   | UForeignExport        { _declCallConv :: Ann CallConv dom stage
                           , _declName :: Ann UName dom stage
-                          , _declType :: Ann Type dom stage
+                          , _declType :: Ann UType dom stage
                           } -- ^ foreign export (@ foreign export ccall _foo :: Int -> IO Int @)
   | UPragmaDecl           { _declPragma :: Ann TopLevelPragma dom stage
                           } -- ^ top level pragmas
@@ -101,7 +101,7 @@ data UTypeFamily dom stage
                 , _tfKind :: AnnMaybe UKindConstraint dom stage
                 } -- ^ Data family declaration
 
--- | Type family specification with kinds specification and injectivity.
+-- | UType family specification with kinds specification and injectivity.
 data UTypeFamilySpec dom stage
   = UTypeFamilyKind { _tfSpecKind :: Ann UKindConstraint dom stage
                     }
@@ -128,10 +128,10 @@ data UClassElement dom stage
   | UClsTypeFam { _ceTypeFam :: Ann UTypeFamily dom stage
                 } -- ^ Declaration of an associated type synonym: @ type T _x :: * @ 
   | UClsTypeDef { _ceHead :: Ann UDeclHead dom stage
-                , _ceKind :: Ann Type dom stage
+                , _ceKind :: Ann UType dom stage
                 } -- ^ Default choice for type synonym: @ type T x = TE @ or @ type instance T x = TE @ 
   | UClsDefSig  { _ceName :: Ann UName dom stage
-                , _ceType :: Ann Type dom stage
+                , _ceType :: Ann UType dom stage
                 } -- ^ Default signature (by using @DefaultSignatures@): @ default _enum :: (Generic a, GEnum (Rep a)) => [a] @
   | UClsMinimal { _pragmaFormula :: Ann MinimalFormula dom stage
                 } -- ^ Minimal pragma: @ {-# MINIMAL (==) | (/=) #-} @
@@ -143,15 +143,15 @@ data UClassElement dom stage
 -- The declared (possibly parameterized) type (@ A x :+: B y @).
 data UDeclHead dom stage
   = UDeclHead { _dhName :: Ann UName dom stage
-              } -- ^ Type or class name
+              } -- ^ UType or class name
   | UDHParen  { _dhBody :: Ann UDeclHead dom stage
               } -- ^ Parenthesized type
   | UDHApp    { _dhAppFun :: Ann UDeclHead dom stage
-              , _dhAppOperand :: Ann TyVar dom stage
-              } -- ^ Type application
-  | UDHInfix  { _dhLeft :: Ann TyVar dom stage
+              , _dhAppOperand :: Ann UTyVar dom stage
+              } -- ^ UType application
+  | UDHInfix  { _dhLeft :: Ann UTyVar dom stage
               , _dhOperator :: Ann UOperator dom stage
-              , _dhRight :: Ann TyVar dom stage
+              , _dhRight :: Ann UTyVar dom stage
               } -- ^ Infix application of the type/class name to the left operand
        
 -- | Instance body is the implementation of the class functions (@ where a x = 1; b x = 2 @)
@@ -164,7 +164,7 @@ data UInstBodyDecl dom stage
   = UInstBodyNormalDecl   { _instBodyDeclFunbind :: Ann UValueBind dom stage
                           } -- ^ A normal declaration (@ f x = 12 @)
   | UInstBodyTypeSig      { _instBodyTypeSig :: Ann UTypeSignature dom stage
-                          } -- ^ Type signature in instance definition with @InstanceSigs@
+                          } -- ^ UType signature in instance definition with @InstanceSigs@
   | UInstBodyTypeDecl     { _instBodyTypeEqn :: Ann UTypeEqn dom stage
                           } -- ^ An associated type definition (@ type A X = B @)
   | UInstBodyDataDecl     { _instBodyDataNew :: Ann UDataOrNewtypeKeyword dom stage
@@ -178,7 +178,7 @@ data UInstBodyDecl dom stage
                           , _instBodyGadtCons :: AnnList UGadtConDecl dom stage
                           , _instBodyDerivings :: AnnMaybe UDeriving dom stage
                           } -- ^ An associated data type implemented using GADT style
-  | USpecializeInstance   { _specializeInstanceType :: Ann Type dom stage
+  | USpecializeInstance   { _specializeInstanceType :: Ann UType dom stage
                           } -- ^ Specialize instance pragma (no phase selection is allowed)
   -- not supported yet
   | UInstBodyPatSyn       { _instBodyPatSyn :: Ann UPatternSynonym dom stage
@@ -190,12 +190,12 @@ data UGadtConDecl dom stage
                  , _gadtConType :: Ann UGadtConType dom stage
                  }
              
--- | Type of GADT constructors (can be record types: @{ _val :: Int }@)
+-- | UType of GADT constructors (can be record types: @{ _val :: Int }@)
 data UGadtConType dom stage
-  = UGadtNormalType { _gadtConNormalType :: Ann Type dom stage
+  = UGadtNormalType { _gadtConNormalType :: Ann UType dom stage
                     }
   | UGadtRecordType { _gadtConRecordFields :: AnnList UFieldDecl dom stage
-                    , _gadtConResultType :: Ann Type dom stage
+                    , _gadtConResultType :: Ann UType dom stage
                     }
 
 -- | A list of functional dependencies: @ | a -> b, c -> d @ separated by commas  
@@ -212,20 +212,20 @@ data UFunDep dom stage
 -- | A constructor declaration for a datatype
 data UConDecl dom stage
   = UConDecl      { _conDeclName :: Ann UName dom stage
-                  , _conDeclArgs :: AnnList Type dom stage
+                  , _conDeclArgs :: AnnList UType dom stage
                   } -- ^ ordinary data constructor (@ C t1 t2 @)
   | URecordDecl   { _conDeclName :: Ann UName dom stage
                   , _conDeclFields :: AnnList UFieldDecl dom stage
                   } -- ^ record data constructor (@ C { _n1 :: t1, _n2 :: t2 } @)
-  | UInfixConDecl { _conDeclLhs :: Ann Type dom stage
+  | UInfixConDecl { _conDeclLhs :: Ann UType dom stage
                   , _conDeclOp :: Ann UOperator dom stage
-                  , _conDeclRhs :: Ann Type dom stage
+                  , _conDeclRhs :: Ann UType dom stage
                   } -- ^ infix data constructor (@ t1 :+: t2 @)
   
 -- | Field declaration (@ _fld :: Int @)
 data UFieldDecl dom stage
   = UFieldDecl { _fieldNames :: AnnList UName dom stage
-               , _fieldType :: Ann Type dom stage
+               , _fieldType :: Ann UType dom stage
                }
   
 -- | A deriving clause following a data type declaration. (@ deriving Show @ or @ deriving (Show, Eq) @)
@@ -235,8 +235,8 @@ data UDeriving dom stage
   
 -- | The instance declaration rule, which is, roughly, the part of the instance declaration before the where keyword.
 data UInstanceRule dom stage
-  = UInstanceRule  { _irVars :: AnnMaybe (AnnList TyVar) dom stage
-                   , _irCtx :: AnnMaybe Context dom stage
+  = UInstanceRule  { _irVars :: AnnMaybe (AnnList UTyVar) dom stage
+                   , _irCtx :: AnnMaybe UContext dom stage
                    , _irHead :: Ann UInstanceHead dom stage
                    }
   | UInstanceParen { _irRule :: Ann UInstanceRule dom stage
@@ -245,26 +245,26 @@ data UInstanceRule dom stage
 -- | The specification of the class instance declaration
 data UInstanceHead dom stage
   = UInstanceHeadCon   { _ihConName :: Ann UName dom stage
-                       } -- ^ Type or class name
-  | UInstanceHeadInfix { _ihLeftOp :: Ann Type dom stage
+                       } -- ^ UType or class name
+  | UInstanceHeadInfix { _ihLeftOp :: Ann UType dom stage
                        , _ihOperator :: Ann UName dom stage
                        } -- ^ Infix application of the type/class name to the left operand
   | UInstanceHeadParen { _ihHead :: Ann UInstanceHead dom stage
                        } -- ^ Parenthesized instance head
   | UInstanceHeadApp   { _ihFun :: Ann UInstanceHead dom stage
-                       , _ihType :: Ann Type dom stage
+                       , _ihType :: Ann UType dom stage
                        } -- ^ Application to one more type
         
--- | Type equations as found in closed type families (@ T A = S @)
+-- | UType equations as found in closed type families (@ T A = S @)
 data UTypeEqn dom stage
-  = UTypeEqn { _teLhs :: Ann Type dom stage
-             , _teRhs :: Ann Type dom stage
+  = UTypeEqn { _teLhs :: Ann UType dom stage
+             , _teRhs :: Ann UType dom stage
              }
 
 -- | A pattern type signature (@ pattern p :: Int -> T @)
 data UPatternTypeSignature dom stage
   = UPatternTypeSignature { _patSigName :: Ann UName dom stage
-                          , _patSigType :: Ann Type dom stage
+                          , _patSigType :: Ann UType dom stage
                           }   
 
 -- | UPattern synonyms: @ pattern Arrow t1 t2 = App "->" [t1, t2] @

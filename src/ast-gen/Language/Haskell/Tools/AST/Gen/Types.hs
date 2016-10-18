@@ -19,76 +19,76 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
 -- * Generation of types
 
-mkTyForall :: [Ann TyVar dom SrcTemplateStage] -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyForall :: [Ann UTyVar dom SrcTemplateStage] -> Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyForall vars t = mkAnn ("forall " <> child <> " . " <> child) (UTyForall (mkAnnList (listSep " ") vars) t)
 
-mkTypeVar' :: GHC.Name -> Ann TyVar dom SrcTemplateStage
+mkTypeVar' :: GHC.Name -> Ann UTyVar dom SrcTemplateStage
 mkTypeVar' = mkTypeVar . mkUnqualName'
 
-mkTyCtx :: Ann Context dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyCtx :: Ann UContext dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyCtx ctx t = mkAnn (child <> " " <> child) (UTyCtx ctx t)
 
-mkTyFun :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyFun :: Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyFun at rt = mkAnn (child <> " -> " <> child) (UTyFun at rt)
 
-mkTyTuple :: [Ann Type dom SrcTemplateStage] -> Ann Type dom SrcTemplateStage
+mkTyTuple :: [Ann UType dom SrcTemplateStage] -> Ann UType dom SrcTemplateStage
 mkTyTuple args = mkAnn ("(" <> child <> ")") (UTyTuple (mkAnnList (listSep ", ") args))
 
-mkTyUnbTuple :: [Ann Type dom SrcTemplateStage] -> Ann Type dom SrcTemplateStage
+mkTyUnbTuple :: [Ann UType dom SrcTemplateStage] -> Ann UType dom SrcTemplateStage
 mkTyUnbTuple args = mkAnn ("(#" <> child <> "#)") (UTyUnbTuple (mkAnnList (listSep ", ") args))
 
-mkTyList :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyList :: Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyList = mkAnn ("[" <> child <> "]") . UTyList
 
-mkTyParArray :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyParArray :: Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyParArray = mkAnn ("[:" <> child <> ":]") . UTyParArray
 
-mkTyApp :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyApp :: Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyApp ft at = mkAnn (child <> " " <> child) (UTyApp ft at)
 
-mkTyInfix :: Ann Type dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyInfix :: Ann UType dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyInfix left op right = mkAnn (child <> " " <> child <> " " <> child) (UTyInfix left op right)
              
-mkTyParen :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyParen :: Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyParen = mkAnn ("(" <> child <> ")") . UTyParen
            
-mkTypeVar :: Ann UName dom SrcTemplateStage -> Ann TyVar dom SrcTemplateStage
+mkTypeVar :: Ann UName dom SrcTemplateStage -> Ann UTyVar dom SrcTemplateStage
 mkTypeVar n = mkAnn (child <> child) (UTyVarDecl n noth)
 
-mkTyVar :: Ann UName dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyVar :: Ann UName dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyVar = wrapperAnn . UTyVar
 
-mkTyKinded :: Ann Type dom SrcTemplateStage -> Ann UKind dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyKinded :: Ann UType dom SrcTemplateStage -> Ann UKind dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyKinded t k = mkAnn (child <> " :: " <> child) (UTyKinded t k)
 
-mkTyBang :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyBang :: Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyBang = mkAnn ("!" <> child) . UTyBang
 
-mkTyLazy :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyLazy :: Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyLazy = mkAnn ("~" <> child) . UTyLazy
 
-mkTyUnpack :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyUnpack :: Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyUnpack = mkAnn ("{-# UNPACK #-} " <> child) . UTyUnpack
 
-mkTyWildcard :: Ann Type dom SrcTemplateStage
+mkTyWildcard :: Ann UType dom SrcTemplateStage
 mkTyWildcard = mkAnn "_" UTyWildcard
 
-mkTyNamedWildcard :: Ann UName dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyNamedWildcard :: Ann UName dom SrcTemplateStage -> Ann UType dom SrcTemplateStage
 mkTyNamedWildcard = mkAnn ("_" <> child) . UTyNamedWildc
 
 -- * Generation of contexts
 
-mkContextOne :: Ann Assertion dom SrcTemplateStage -> Ann Context dom SrcTemplateStage
+mkContextOne :: Ann UAssertion dom SrcTemplateStage -> Ann UContext dom SrcTemplateStage
 mkContextOne = mkAnn (child <> " =>") . UContextOne
 
-mkContextMulti :: [Ann Assertion dom SrcTemplateStage] -> Ann Context dom SrcTemplateStage
+mkContextMulti :: [Ann UAssertion dom SrcTemplateStage] -> Ann UContext dom SrcTemplateStage
 mkContextMulti = mkAnn ("(" <> child <> ") =>") . UContextMulti . mkAnnList (listSep ", ")
 
 -- * Generation of assertions
 
-mkClassAssert :: Ann UName dom SrcTemplateStage -> [Ann Type dom SrcTemplateStage] -> Ann Assertion dom SrcTemplateStage
+mkClassAssert :: Ann UName dom SrcTemplateStage -> [Ann UType dom SrcTemplateStage] -> Ann UAssertion dom SrcTemplateStage
 -- fixme: class assertion without parameters should not have the last space
 mkClassAssert n args = mkAnn (child <> " " <> child) $ UClassAssert n (mkAnnList (listSep " ") args)
 
-mkInfixAssert :: Ann Type dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Assertion dom SrcTemplateStage
+mkInfixAssert :: Ann UType dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UAssertion dom SrcTemplateStage
 mkInfixAssert left op right = mkAnn (child <> " " <> child <> " " <> child) $ UInfixAssert left op right

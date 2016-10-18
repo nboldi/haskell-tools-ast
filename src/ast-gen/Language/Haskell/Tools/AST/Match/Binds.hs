@@ -36,7 +36,7 @@ pattern LocalTypeSig typeSig <- Ann _ (ULocalSignature typeSig)
 pattern LocalFixity :: Ann UFixitySignature dom stage -> Ann ULocalBind dom stage
 pattern LocalFixity fixity <- Ann _ (ULocalFixity fixity)
 
-pattern TypeSignature :: AnnList UName dom stage -> Ann Type dom stage 
+pattern TypeSignature :: AnnList UName dom stage -> Ann UType dom stage 
                           -> Ann UTypeSignature dom stage
 pattern TypeSignature n t <- Ann _ (UTypeSignature n t)
 

@@ -173,11 +173,11 @@ class ( Typeable stage
       , HasRange (OptionalInfo stage)
       ) 
          => SourceInfo stage where
-  -- | Type of source info for normal AST elements
+  -- | UType of source info for normal AST elements
   data SpanInfo stage :: *
-  -- | Type of source info for lists of AST elements
+  -- | UType of source info for lists of AST elements
   data ListInfo stage :: *
-  -- | Type of source info for optional AST elements
+  -- | UType of source info for optional AST elements
   data OptionalInfo stage :: *
 
 

@@ -56,11 +56,11 @@ deriveSourceInfoTraversal ''UInstanceRule
 deriveSourceInfoTraversal ''UInstanceHead
 deriveSourceInfoTraversal ''UTypeEqn
 deriveSourceInfoTraversal ''UKindConstraint
-deriveSourceInfoTraversal ''TyVar
-deriveSourceInfoTraversal ''Type
+deriveSourceInfoTraversal ''UTyVar
+deriveSourceInfoTraversal ''UType
 deriveSourceInfoTraversal ''UKind
-deriveSourceInfoTraversal ''Context
-deriveSourceInfoTraversal ''Assertion
+deriveSourceInfoTraversal ''UContext
+deriveSourceInfoTraversal ''UAssertion
 deriveSourceInfoTraversal ''UExpr
 deriveSourceInfoTraversal ''UCompStmt
 deriveSourceInfoTraversal ''UValueBind

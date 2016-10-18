@@ -86,10 +86,10 @@ data UExpr dom stage
                     , _compBody :: AnnList UListCompBody dom stage
                     } -- ^ Parallel array comprehensions @ [: (x, y) | x <- xs , y <- ys :] @ enabled by @ParallelArrays@
   | UTypeSig        { _exprInner :: Ann UExpr dom stage
-                    , _exprSig :: Ann Type dom stage
+                    , _exprSig :: Ann UType dom stage
                     } -- ^ Explicit type signature (@ _x :: Int @)
   | UExplTypeApp    { _exprInner :: Ann UExpr dom stage
-                    , _exprType :: Ann Type dom stage
+                    , _exprType :: Ann UType dom stage
                     } -- ^ Explicit type application (@ show \@Integer (read "5") @)
   | UVarQuote       { _quotedName :: Ann UName dom stage
                     } -- ^ @'x@ for template haskell reifying of expressions

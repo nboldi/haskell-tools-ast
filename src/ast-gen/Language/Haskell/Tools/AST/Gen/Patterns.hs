@@ -56,7 +56,7 @@ mkIrrefutablePat = mkAnn ("~" <> child) . UIrrefutablePat
 mkBangPat :: Ann UPattern dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkBangPat = mkAnn ("!" <> child) . UBangPat
 
-mkTypeSigPat :: Ann UPattern dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
+mkTypeSigPat :: Ann UPattern dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkTypeSigPat pat typ = mkAnn (child <> " :: " <> child) $ UTypeSigPat pat typ
 
 mkViewPat :: Ann UExpr dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage

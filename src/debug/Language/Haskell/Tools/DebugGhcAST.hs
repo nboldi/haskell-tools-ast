@@ -312,7 +312,7 @@ instance Show TyCon where
   show = showSDocUnsafe . ppr
 instance Show ClsInst where
   show = showSDocUnsafe . ppr
-instance Show Type where
+instance Show UType where
   show = showSDocUnsafe . ppr
 instance Show OccName where
   show = showSDocUnsafe . ppr

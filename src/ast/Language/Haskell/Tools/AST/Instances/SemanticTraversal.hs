@@ -56,11 +56,11 @@ deriveSemanticTraversal ''UInstanceRule
 deriveSemanticTraversal ''UInstanceHead
 deriveSemanticTraversal ''UTypeEqn
 deriveSemanticTraversal ''UKindConstraint
-deriveSemanticTraversal ''TyVar
-deriveSemanticTraversal ''Type
+deriveSemanticTraversal ''UTyVar
+deriveSemanticTraversal ''UType
 deriveSemanticTraversal ''UKind
-deriveSemanticTraversal ''Context
-deriveSemanticTraversal ''Assertion
+deriveSemanticTraversal ''UContext
+deriveSemanticTraversal ''UAssertion
 deriveSemanticTraversal ''UExpr
 deriveSemanticTraversal ''UCompStmt
 deriveSemanticTraversal ''UValueBind

@@ -80,7 +80,7 @@ declHeadNames :: Simple Traversal (Ann UDeclHead dom stage) (Ann UQualifiedName 
 declHeadNames = (dhName&simpleName &+& dhBody&declHeadNames &+& dhAppFun&declHeadNames &+& dhOperator&operatorName)
 
                
-typeParams :: Simple Traversal (Ann Type dom stage) (Ann Type dom stage)
+typeParams :: Simple Traversal (Ann UType dom stage) (Ann UType dom stage)
 typeParams = fromTraversal typeParamsTrav
   where typeParamsTrav f (Ann a (UTyFun p r)) = Ann a <$> (UTyFun <$> f p <*> typeParamsTrav f r)
         typeParamsTrav f (Ann a (UTyForall vs t)) = Ann a <$> (UTyForall vs <$> typeParamsTrav f t)

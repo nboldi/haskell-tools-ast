@@ -272,12 +272,12 @@ trfTypeEqs (Just eqs) = makeNonemptyList "\n" (mapM trfTypeEq eqs)
 trfTypeEq :: TransformName n r => Located (TyFamInstEqn n) -> Trf (Ann AST.UTypeEqn (Dom r) RangeStage)
 trfTypeEq = trfLocNoSema $ \(TyFamEqn name pats rhs) 
   -> AST.UTypeEqn <$> defineTypeVars (focusBefore AnnEqual (combineTypes name (hsib_body pats))) <*> trfType rhs
-  where combineTypes :: TransformName n r => Located n -> [LHsType n] -> Trf (Ann AST.Type (Dom r) RangeStage)
+  where combineTypes :: TransformName n r => Located n -> [LHsType n] -> Trf (Ann AST.UType (Dom r) RangeStage)
         combineTypes name (lhs : rhs : rest) | srcSpanStart (getLoc name) > srcSpanEnd (getLoc lhs)
           = annContNoSema $ AST.UTyInfix <$> trfType lhs <*> trfOperator name <*> trfType rhs
         combineTypes name pats = wrapTypes (annLocNoSema (pure $ getLoc name) (AST.UTyVar <$> trfName name)) pats
 
-        wrapTypes :: TransformName n r => Trf (Ann AST.Type (Dom r) RangeStage) -> [LHsType n] -> Trf (Ann AST.Type (Dom r) RangeStage)
+        wrapTypes :: TransformName n r => Trf (Ann AST.UType (Dom r) RangeStage) -> [LHsType n] -> Trf (Ann AST.UType (Dom r) RangeStage)
         wrapTypes base pats 
           = foldl (\t p -> do typ <- t
                               annLocNoSema (pure $ combineSrcSpans (getRange typ) (getLoc p)) 

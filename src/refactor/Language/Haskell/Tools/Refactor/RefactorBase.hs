@@ -197,7 +197,7 @@ data NameClass = Variable         -- ^ Normal value definitions: functions, vari
                | Ctor             -- ^ Data constructors 
                | ValueOperator    -- ^ Functions with operator-like names
                | DataCtorOperator -- ^ Constructors with operator-like names
-               | SynonymOperator  -- ^ Type definitions with operator-like names
+               | SynonymOperator  -- ^ UType definitions with operator-like names
 
 -- | Get which category does a given name belong to
 classifyName :: RefactorMonad m => GHC.Name -> m NameClass
@@ -228,7 +228,7 @@ nameValid n str | str `elem` reservedNames = False
 -- Operators that are data constructors (must start with ':')
 nameValid DataCtorOperator (':' : nameRest)
   = all isOperatorChar nameRest
--- Type families and synonyms that are operators (can start with ':')
+-- UType families and synonyms that are operators (can start with ':')
 nameValid SynonymOperator (c : nameRest)
   = isOperatorChar c && all isOperatorChar nameRest
 -- Normal value operators (cannot start with ':')
