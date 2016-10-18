@@ -11,7 +11,7 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
 
 -- | Value binding for top-level and local bindings
 data UValueBind dom stage
-  = USimpleBind { _valBindPat :: Ann Pattern dom stage
+  = USimpleBind { _valBindPat :: Ann UPattern dom stage
                 , _valBindRhs :: Ann URhs dom stage
                 , _valBindLocals :: AnnMaybe ULocalBinds dom stage
                 } -- ^ Non-function binding (@ v = "12" @)  
@@ -29,12 +29,12 @@ data UMatch dom stage
 -- | Something on the left side of the match
 data UMatchLhs dom stage
   = UNormalLhs { _matchLhsName :: Ann UName dom stage
-               , _matchLhsArgs :: AnnList Pattern dom stage
+               , _matchLhsArgs :: AnnList UPattern dom stage
                }
-  | UInfixLhs { _matchLhsLhs :: Ann Pattern dom stage
+  | UInfixLhs { _matchLhsLhs :: Ann UPattern dom stage
               , _matchLhsOperator :: Ann UOperator dom stage
-              , _matchLhsRhs :: Ann Pattern dom stage
-              , _matchLhsArgs :: AnnList Pattern dom stage
+              , _matchLhsRhs :: Ann UPattern dom stage
+              , _matchLhsArgs :: AnnList UPattern dom stage
               }
     
 -- | Local bindings attached to a declaration (@ where x = 42 @)             
@@ -80,7 +80,7 @@ data UGuardedRhs dom stage
 
 -- | Guards for value bindings and pattern matches (@ Just v <- x, v > 1 @)
 data URhsGuard dom stage
-  = UGuardBind  { _guardPat :: Ann Pattern dom stage
+  = UGuardBind  { _guardPat :: Ann UPattern dom stage
                 , _guardRhs :: Ann UExpr dom stage
                 }
   | UGuardLet   { _guardBinds :: AnnList ULocalBind dom stage

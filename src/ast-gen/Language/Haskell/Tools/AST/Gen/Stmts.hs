@@ -16,17 +16,17 @@ import Language.Haskell.Tools.AST.Gen.Base
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
-mkBindStmt :: Ann Pattern dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+mkBindStmt :: Ann UPattern dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UStmt dom SrcTemplateStage
 mkBindStmt bound expr = mkAnn (child <> " <- " <> child) $ UBindStmt bound expr
 
-mkExprStmt :: Ann UExpr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
+mkExprStmt :: Ann UExpr dom SrcTemplateStage -> Ann UStmt dom SrcTemplateStage
 mkExprStmt = mkAnn child . UExprStmt
 
-mkLetStmt :: [Ann ULocalBind dom SrcTemplateStage] -> Ann Stmt dom SrcTemplateStage
+mkLetStmt :: [Ann ULocalBind dom SrcTemplateStage] -> Ann UStmt dom SrcTemplateStage
 mkLetStmt = mkAnn ("let " <> child) . ULetStmt . mkAnnList indentedList
 
-mkListCompBody :: [Ann CompStmt dom SrcTemplateStage] -> Ann ListCompBody dom SrcTemplateStage
+mkListCompBody :: [Ann UCompStmt dom SrcTemplateStage] -> Ann UListCompBody dom SrcTemplateStage
 mkListCompBody = mkAnn child . UListCompBody . mkAnnList (listSep " ")
 
-mkCompStmt :: Ann Stmt dom SrcTemplateStage -> Ann CompStmt dom SrcTemplateStage
+mkCompStmt :: Ann UStmt dom SrcTemplateStage -> Ann UCompStmt dom SrcTemplateStage
 mkCompStmt = mkAnn child . UCompStmt

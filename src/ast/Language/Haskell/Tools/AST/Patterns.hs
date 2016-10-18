@@ -10,44 +10,44 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
 
         
 -- | Representation of patterns for pattern bindings
-data Pattern dom stage
+data UPattern dom stage
   = UVarPat         { _patternName :: Ann UName dom stage
-                    } -- ^ Pattern name binding
+                    } -- ^ UPattern name binding
   | ULitPat         { _patternLiteral :: Ann ULiteral dom stage
                     } -- ^ ULiteral pattern
-  | UInfixAppPat    { _patternLhs :: Ann Pattern dom stage
+  | UInfixAppPat    { _patternLhs :: Ann UPattern dom stage
                     , _patternOperator :: Ann UOperator dom stage
-                    , _patternRhs :: Ann Pattern dom stage
+                    , _patternRhs :: Ann UPattern dom stage
                     } -- ^ Infix constructor application pattern (@ a :+: b @)
   | UAppPat         { _patternName :: Ann UName dom stage
-                    , _patternArgs :: AnnList Pattern dom stage
+                    , _patternArgs :: AnnList UPattern dom stage
                     } -- ^ Constructor application pattern (@ Point x y @)
-  | UTuplePat       { _patternElems :: AnnList Pattern dom stage
+  | UTuplePat       { _patternElems :: AnnList UPattern dom stage
                     } -- ^ Tuple pattern (@ (x,y) @)
-  | UUnboxTuplePat  { _patternElems :: AnnList Pattern dom stage
+  | UUnboxTuplePat  { _patternElems :: AnnList UPattern dom stage
                     } -- ^ Unboxed tuple pattern (@ (# x, y #) @)
-  | UListPat        { _patternElems :: AnnList Pattern dom stage
+  | UListPat        { _patternElems :: AnnList UPattern dom stage
                     } -- ^ List pattern (@ [1,2,a,x] @)
-  | UParArrPat      { _patternElems :: AnnList Pattern dom stage
+  | UParArrPat      { _patternElems :: AnnList UPattern dom stage
                     } -- ^ Parallel array pattern (@ [:1,2,a,x:] @)
-  | UParenPat       { _patternInner :: Ann Pattern dom stage
+  | UParenPat       { _patternInner :: Ann UPattern dom stage
                     } -- ^ Parenthesised patterns
   | URecPat         { _patternName :: Ann UName dom stage
-                    , _patternFields :: AnnList PatternField dom stage
+                    , _patternFields :: AnnList UPatternField dom stage
                     } -- ^ Record pattern (@ Point { x = 3, y } @)
   | UAsPat          { _patternName :: Ann UName dom stage
-                    , _patternInner :: Ann Pattern dom stage
+                    , _patternInner :: Ann UPattern dom stage
                     } -- ^ As-pattern (explicit name binding) (@ ls\@(hd:_) @)
   | UWildPat       -- ^ Wildcard pattern: (@ _ @)
-  | UIrrefutablePat { _patternInner :: Ann Pattern dom stage
+  | UIrrefutablePat { _patternInner :: Ann UPattern dom stage
                     } -- ^ Irrefutable pattern (@ ~(x:_) @)
-  | UBangPat        { _patternInner :: Ann Pattern dom stage
+  | UBangPat        { _patternInner :: Ann UPattern dom stage
                     } -- ^ Bang pattern (@ !x @)
-  | UTypeSigPat     { _patternInner :: Ann Pattern dom stage
+  | UTypeSigPat     { _patternInner :: Ann UPattern dom stage
                     , _patternType :: Ann Type dom stage
-                    } -- ^ Pattern with explicit type signature (@ __ :: Int @)
+                    } -- ^ UPattern with explicit type signature (@ __ :: Int @)
   | UViewPat        { _patternExpr :: Ann UExpr dom stage
-                    , _patternInner :: Ann Pattern dom stage
+                    , _patternInner :: Ann UPattern dom stage
                     } -- ^ View pattern (@ f -> Just 1 @)
   -- regular list pattern omitted
   -- xml patterns omitted
@@ -60,9 +60,9 @@ data Pattern dom stage
                    }
                   
 -- Field specification of a record pattern
-data PatternField dom stage
+data UPatternField dom stage
   = UNormalFieldPattern   { _fieldPatternName :: Ann UName dom stage
-                          , _fieldPattern :: Ann Pattern dom stage
+                          , _fieldPattern :: Ann UPattern dom stage
                           } -- ^ Named field pattern (@ p = Point 3 2 @)
   | UFieldPunPattern      { _fieldPatternName :: Ann UName dom stage
                           } -- ^ Named field pun (@ p @)

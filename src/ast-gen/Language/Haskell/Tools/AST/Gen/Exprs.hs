@@ -34,7 +34,7 @@ mkPrefixApp op rhs = mkAnn (child <> child) $ UPrefixApp op rhs
 mkApp :: Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
 mkApp f e = mkAnn (child <> " " <> child) (UApp f e)
 
-mkLambda :: [Ann Pattern dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkLambda :: [Ann UPattern dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
 mkLambda pats rhs = mkAnn ("\\" <> child <> " -> " <> child) $ ULambda (mkAnnList (listSep " ") pats) rhs
 
 mkLet :: [Ann ULocalBind dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
@@ -49,7 +49,7 @@ mkMultiIf cases = mkAnn ("if" <> child) $ UMultiIf (mkAnnList indentedList cases
 mkCase :: Ann UExpr dom SrcTemplateStage -> [Ann UAlt dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
 mkCase expr cases = mkAnn ("case " <> child <> " of " <> child) $ UCase expr (mkAnnList indentedList cases)
 
-mkDoBlock :: [Ann Stmt dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
+mkDoBlock :: [Ann UStmt dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
 mkDoBlock stmts = mkAnn (child <> " " <> child) $ UDo (mkAnn "do" UDoKeyword) (mkAnnList indentedList stmts)
 
 mkTuple :: [Ann UExpr dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
@@ -94,9 +94,9 @@ mkFieldWildcard :: Ann UFieldWildcard dom SrcTemplateStage -> Ann UFieldUpdate d
 mkFieldWildcard name = mkAnn child $ UFieldWildcard name
 
 
--- * Pattern matching and guards
+-- * UPattern matching and guards
 
-mkAlt :: Ann Pattern dom SrcTemplateStage -> Ann UCaseRhs dom SrcTemplateStage -> Maybe (Ann ULocalBinds dom SrcTemplateStage) -> Ann UAlt dom SrcTemplateStage
+mkAlt :: Ann UPattern dom SrcTemplateStage -> Ann UCaseRhs dom SrcTemplateStage -> Maybe (Ann ULocalBinds dom SrcTemplateStage) -> Ann UAlt dom SrcTemplateStage
 mkAlt pat rhs locals = mkAnn (child <> child <> child) $ UAlt pat rhs (mkAnnMaybe (optBefore " where ") locals)
 
 mkCaseRhs :: Ann UExpr dom SrcTemplateStage -> Ann UCaseRhs dom SrcTemplateStage

@@ -1,4 +1,4 @@
--- | Pattern matching on UModule-level AST fragments for refactorings.
+-- | UPattern matching on UModule-level AST fragments for refactorings.
 {-# LANGUAGE PatternSynonyms #-}
 module Language.Haskell.Tools.AST.Match.Modules where
 

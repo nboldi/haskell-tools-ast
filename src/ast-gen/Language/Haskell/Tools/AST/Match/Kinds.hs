@@ -1,4 +1,4 @@
--- | Pattern matching on statement-level AST fragments for refactorings.
+-- | UPattern matching on statement-level AST fragments for refactorings.
 {-# LANGUAGE PatternSynonyms #-}
 module Language.Haskell.Tools.AST.Match.Kinds where
 

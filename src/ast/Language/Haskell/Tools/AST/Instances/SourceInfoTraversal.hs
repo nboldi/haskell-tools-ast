@@ -62,10 +62,10 @@ deriveSourceInfoTraversal ''UKind
 deriveSourceInfoTraversal ''Context
 deriveSourceInfoTraversal ''Assertion
 deriveSourceInfoTraversal ''UExpr
-deriveSourceInfoTraversal ''CompStmt
+deriveSourceInfoTraversal ''UCompStmt
 deriveSourceInfoTraversal ''UValueBind
-deriveSourceInfoTraversal ''Pattern
-deriveSourceInfoTraversal ''PatternField
+deriveSourceInfoTraversal ''UPattern
+deriveSourceInfoTraversal ''UPatternField
 deriveSourceInfoTraversal ''Splice
 deriveSourceInfoTraversal ''QQString
 deriveSourceInfoTraversal ''UMatch
@@ -86,7 +86,7 @@ deriveSourceInfoTraversal ''ULocalBind
 deriveSourceInfoTraversal ''ULocalBinds
 deriveSourceInfoTraversal ''UFixitySignature
 deriveSourceInfoTraversal ''UTypeSignature
-deriveSourceInfoTraversal ''ListCompBody
+deriveSourceInfoTraversal ''UListCompBody
 deriveSourceInfoTraversal ''UTupSecElem
 deriveSourceInfoTraversal ''UTypeFamily
 deriveSourceInfoTraversal ''UTypeFamilySpec
@@ -100,7 +100,7 @@ deriveSourceInfoTraversal ''Role
 deriveSourceInfoTraversal ''Cmd
 deriveSourceInfoTraversal ''ULanguageExtension
 deriveSourceInfoTraversal ''UMatchLhs
-deriveSourceInfoTraversal ''Stmt'
+deriveSourceInfoTraversal ''UStmt'
 deriveSourceInfoTraversal ''UAlt'
 deriveSourceInfoTraversal ''UCaseRhs'
 deriveSourceInfoTraversal ''UGuardedCaseRhs'

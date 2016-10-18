@@ -21,13 +21,13 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 mkSimpleBind' :: Ann UName dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UValueBind dom SrcTemplateStage
 mkSimpleBind' n e = mkSimpleBind (mkVarPat n) (mkUnguardedRhs e) Nothing
 
-mkSimpleBind :: Ann Pattern dom SrcTemplateStage -> Ann URhs dom SrcTemplateStage -> Maybe (Ann ULocalBinds dom SrcTemplateStage) -> Ann UValueBind dom SrcTemplateStage
+mkSimpleBind :: Ann UPattern dom SrcTemplateStage -> Ann URhs dom SrcTemplateStage -> Maybe (Ann ULocalBinds dom SrcTemplateStage) -> Ann UValueBind dom SrcTemplateStage
 mkSimpleBind p r l = mkAnn (child <> child <> child) (USimpleBind p r (mkAnnMaybe opt l))
 
 mkFunctionBind :: [Ann UMatch dom SrcTemplateStage] -> Ann UValueBind dom SrcTemplateStage
 mkFunctionBind = mkAnn child . UFunBind . mkAnnList indentedList
 
-mkFunctionBind' :: Ann UName dom SrcTemplateStage -> [([Ann Pattern dom SrcTemplateStage], Ann UExpr dom SrcTemplateStage)] -> Ann UValueBind dom SrcTemplateStage
+mkFunctionBind' :: Ann UName dom SrcTemplateStage -> [([Ann UPattern dom SrcTemplateStage], Ann UExpr dom SrcTemplateStage)] -> Ann UValueBind dom SrcTemplateStage
 mkFunctionBind' name matches = mkFunctionBind $ map (\(args, rhs) -> mkMatch (mkMatchLhs name args) (mkUnguardedRhs rhs) Nothing) matches
 
 mkMatch :: Ann UMatchLhs dom SrcTemplateStage -> Ann URhs dom SrcTemplateStage -> Maybe (Ann ULocalBinds dom SrcTemplateStage) -> Ann UMatch dom SrcTemplateStage
@@ -35,11 +35,11 @@ mkMatch lhs rhs locs
   = mkAnn (child <> child <> child) 
       $ UMatch lhs rhs (mkAnnMaybe (optBefore " ") locs)
 
-mkMatchLhs :: Ann UName dom SrcTemplateStage -> [Ann Pattern dom SrcTemplateStage] -> Ann UMatchLhs dom SrcTemplateStage
+mkMatchLhs :: Ann UName dom SrcTemplateStage -> [Ann UPattern dom SrcTemplateStage] -> Ann UMatchLhs dom SrcTemplateStage
 mkMatchLhs n pats = mkAnn (child <> child) $ UNormalLhs n (mkAnnList (listSepBefore " " " ") pats)
 
-mkInfixLhs :: Ann Pattern dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage 
-                -> [Ann Pattern dom SrcTemplateStage] -> Ann UMatchLhs dom SrcTemplateStage
+mkInfixLhs :: Ann UPattern dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage 
+                -> [Ann UPattern dom SrcTemplateStage] -> Ann UMatchLhs dom SrcTemplateStage
 mkInfixLhs lhs op rhs pats = mkAnn (child <> child <> child <> child) $ UInfixLhs lhs op rhs (mkAnnList (listSepBefore " " " ") pats)
 
 mkLocalBinds :: Int -> [Ann ULocalBind dom SrcTemplateStage] -> AnnMaybe ULocalBinds dom SrcTemplateStage
@@ -82,7 +82,7 @@ mkGuardedRhss = mkAnn child . UGuardedRhss . mkAnnList indentedList
 mkGuardedRhs :: [Ann URhsGuard dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UGuardedRhs dom SrcTemplateStage
 mkGuardedRhs guards expr = mkAnn ("| " <> child <> " = " <> child) $ UGuardedRhs (mkAnnList (listSep ", ") guards) expr
 
-mkGuardBind :: Ann Pattern dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann URhsGuard dom SrcTemplateStage
+mkGuardBind :: Ann UPattern dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann URhsGuard dom SrcTemplateStage
 mkGuardBind pat expr = mkAnn (child <> " <- " <> child) $ UGuardBind pat expr
 
 mkGuardLet :: [Ann ULocalBind dom SrcTemplateStage] -> Ann URhsGuard dom SrcTemplateStage

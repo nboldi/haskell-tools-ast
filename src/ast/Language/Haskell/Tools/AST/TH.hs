@@ -32,10 +32,10 @@ data QQString dom stage
 data Bracket dom stage
   = ExprBracket    { _bracketExpr :: Ann UExpr dom stage
                    } -- ^ Expression bracket (@ [| x + y |] @)
-  | PatternBracket { _bracketPattern :: Ann Pattern dom stage
-                   } -- ^ Pattern bracket (@ [| Point x y |] @)
+  | PatternBracket { _bracketPattern :: Ann UPattern dom stage
+                   } -- ^ UPattern bracket (@ [| Point x y |] @)
   | TypeBracket    { _bracketType :: Ann Type dom stage
-                   } -- ^ Pattern bracket (@ [| (Int,Int) |] @)
+                   } -- ^ UPattern bracket (@ [| (Int,Int) |] @)
   | DeclsBracket   { _bracketDecl :: AnnList UDecl dom stage
                    } -- ^ Declaration bracket (@ [| _f :: Int -> Int; f x = x*x |] @)
             

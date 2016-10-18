@@ -27,7 +27,7 @@ data UExpr dom stage
                     , _exprArg :: Ann UExpr dom stage
                     } -- ^ Function application (@ f 4 @)
                     -- unary minus omitted
-  | ULambda         { _exprBindings :: AnnList Pattern dom stage -- ^ at least one
+  | ULambda         { _exprBindings :: AnnList UPattern dom stage -- ^ at least one
                     , _exprInner :: Ann UExpr dom stage
                     } -- ^ Lambda expression (@ \a b -> a + b @)
   | ULet            { _exprFunBind :: AnnList ULocalBind dom stage -- ^ nonempty
@@ -41,9 +41,9 @@ data UExpr dom stage
                     } -- ^ Multi way if expressions with @MultiWayIf@ extension (@ if | guard1 -> expr1; guard2 -> expr2 @)
   | UCase           { _exprCase :: Ann UExpr dom stage
                     , _exprAlts :: AnnList UAlt dom stage
-                    } -- ^ Pattern matching expression (@ case expr of pat1 -> expr1; pat2 -> expr2 @)
+                    } -- ^ UPattern matching expression (@ case expr of pat1 -> expr1; pat2 -> expr2 @)
   | UDo             { _doKind :: Ann UDoKind dom stage
-                    , _exprStmts :: AnnList Stmt dom stage
+                    , _exprStmts :: AnnList UStmt dom stage
                     } -- ^ Do-notation expressions (@ do x <- act1; act2 @)
   | UTuple          { _tupleElems :: AnnList UExpr dom stage
                     } -- ^ Tuple expression (@ (e1, e2, e3) @)
@@ -80,10 +80,10 @@ data UExpr dom stage
                     , _enumToFix :: Ann UExpr dom stage
                     } -- ^ Parallel array enumeration (@ [: 1,3 .. 10 :] @)
   | UListComp       { _compExpr :: Ann UExpr dom stage
-                    , _compBody :: AnnList ListCompBody dom stage -- ^ Can only have 1 element without @ParallelListComp@
+                    , _compBody :: AnnList UListCompBody dom stage -- ^ Can only have 1 element without @ParallelListComp@
                     } -- ^ List comprehension (@ [ (x, y) | x <- xs | y <- ys ] @)
   | UParArrayComp   { _compExpr :: Ann UExpr dom stage
-                    , _compBody :: AnnList ListCompBody dom stage
+                    , _compBody :: AnnList UListCompBody dom stage
                     } -- ^ Parallel array comprehensions @ [: (x, y) | x <- xs , y <- ys :] @ enabled by @ParallelArrays@
   | UTypeSig        { _exprInner :: Ann UExpr dom stage
                     , _exprSig :: Ann Type dom stage
@@ -104,7 +104,7 @@ data UExpr dom stage
   | UExprPragma     { _exprPragma :: Ann ExprPragma dom stage
                     }
   -- Arrows
-  | UProc           { _procPattern :: Ann Pattern dom stage
+  | UProc           { _procPattern :: Ann UPattern dom stage
                     , _procExpr :: Ann Cmd dom stage
                     } -- ^ Arrow definition: @proc a -> f -< a+1@
   | UArrowApp       { _exprLhs :: Ann UExpr dom stage
@@ -138,7 +138,7 @@ data UTupSecElem dom stage
   
 -- | Clause of case expression          
 data UAlt' expr dom stage
-  = UAlt { _altPattern :: Ann Pattern dom stage
+  = UAlt { _altPattern :: Ann UPattern dom stage
          , _altRhs :: Ann (UCaseRhs' expr) dom stage
          , _altBinds :: AnnMaybe ULocalBinds dom stage
          }
@@ -200,7 +200,7 @@ data Cmd dom stage
                   , _cmdOperator :: Ann UName dom stage
                   , _cmdRightCmd :: Ann Cmd dom stage
                   }
-  | LambdaCmd     { _cmdBindings :: AnnList Pattern dom stage -- ^ at least one
+  | LambdaCmd     { _cmdBindings :: AnnList UPattern dom stage -- ^ at least one
                   , _cmdInner :: Ann Cmd dom stage
                   }
   | ParenCmd      { _cmdInner :: Ann Cmd dom stage
@@ -215,6 +215,6 @@ data Cmd dom stage
   | LetCmd        { _cmdBinds :: AnnList ULocalBind dom stage -- ^ nonempty
                   , _cmdInner :: Ann Cmd dom stage
                   }
-  | DoCmd         { _cmdStmts :: AnnList (Stmt' Cmd) dom stage
+  | DoCmd         { _cmdStmts :: AnnList (UStmt' Cmd) dom stage
                   }
  

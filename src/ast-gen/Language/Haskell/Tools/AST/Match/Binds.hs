@@ -1,10 +1,10 @@
--- | Pattern matching on binding-level AST fragments for refactorings.
+-- | UPattern matching on binding-level AST fragments for refactorings.
 {-# LANGUAGE PatternSynonyms #-}
 module Language.Haskell.Tools.AST.Match.Binds where
 
 import Language.Haskell.Tools.AST
 
-pattern SimpleBind :: Ann Pattern dom stage -> Ann URhs dom stage 
+pattern SimpleBind :: Ann UPattern dom stage -> Ann URhs dom stage 
                         -> AnnMaybe ULocalBinds dom stage -> Ann UValueBind dom stage
 pattern SimpleBind p r l <- Ann _ (USimpleBind p r l)
 
@@ -15,12 +15,12 @@ pattern Match :: Ann UMatchLhs dom stage -> Ann URhs dom stage
                    -> AnnMaybe ULocalBinds dom stage -> Ann UMatch dom stage
 pattern Match lhs rhs locs <- Ann _ (UMatch lhs rhs locs)
 
-pattern MatchLhs :: Ann UName dom stage -> AnnList Pattern dom stage 
+pattern MatchLhs :: Ann UName dom stage -> AnnList UPattern dom stage 
                        -> Ann UMatchLhs dom stage
 pattern MatchLhs n pats <- Ann _ (UNormalLhs n pats)
 
-pattern InfixLhs :: Ann Pattern dom stage -> Ann UOperator dom stage 
-                      -> Ann Pattern dom stage -> AnnList Pattern dom stage
+pattern InfixLhs :: Ann UPattern dom stage -> Ann UOperator dom stage 
+                      -> Ann UPattern dom stage -> AnnList UPattern dom stage
                       -> Ann UMatchLhs dom stage
 pattern InfixLhs lhs op rhs pats <- Ann _ (UInfixLhs lhs op rhs pats)
 
@@ -58,7 +58,7 @@ pattern GuardedRhss rhss <- Ann _ (UGuardedRhss rhss)
 pattern GuardedRhs :: AnnList URhsGuard dom stage -> Ann UExpr dom stage -> Ann UGuardedRhs dom stage
 pattern GuardedRhs guards expr <- Ann _ (UGuardedRhs guards expr)
 
-pattern GuardBind :: Ann Pattern dom stage -> Ann UExpr dom stage -> Ann URhsGuard dom stage
+pattern GuardBind :: Ann UPattern dom stage -> Ann UExpr dom stage -> Ann URhsGuard dom stage
 pattern GuardBind pat expr <- Ann _ (UGuardBind pat expr)
 
 pattern GuardLet :: AnnList ULocalBind dom stage -> Ann URhsGuard dom stage

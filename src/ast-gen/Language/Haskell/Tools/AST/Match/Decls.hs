@@ -1,4 +1,4 @@
--- | Pattern matching on declaration-level AST fragments for refactorings.
+-- | UPattern matching on declaration-level AST fragments for refactorings.
 {-# LANGUAGE PatternSynonyms #-}
 module Language.Haskell.Tools.AST.Match.Decls where
 
@@ -70,7 +70,7 @@ pattern ForeignImport cc name typ <- Ann _ (UForeignImport cc _ name typ)
 pattern PatternSynonym :: Ann UPatSynLhs dom stage -> Ann UPatSynRhs dom stage -> Ann UDecl dom stage
 pattern PatternSynonym lhs rhs <- Ann _ (UPatternSynonymDecl (Ann _ (UPatternSynonym lhs rhs)))
 
--- * Pattern synonyms
+-- * UPattern synonyms
 
 pattern ConPatSyn :: Ann UName dom stage -> AnnList UName dom stage -> Ann UPatSynLhs dom stage
 pattern ConPatSyn con args <- Ann _ (UNormalPatSyn con args)
@@ -81,13 +81,13 @@ pattern InfixPatSyn lhs op rhs <- Ann _ (UInfixPatSyn lhs op rhs)
 pattern RecordPatSyn :: Ann UName dom stage -> AnnList UName dom stage -> Ann UPatSynLhs dom stage
 pattern RecordPatSyn con args <- Ann _ (URecordPatSyn con args)
 
-pattern SymmetricPatSyn :: Ann Pattern dom stage -> Ann UPatSynRhs dom stage
+pattern SymmetricPatSyn :: Ann UPattern dom stage -> Ann UPatSynRhs dom stage
 pattern SymmetricPatSyn pat <- Ann _ (UBidirectionalPatSyn pat AnnNothing)
 
-pattern OneWayPatSyn :: Ann Pattern dom stage -> Ann UPatSynRhs dom stage
+pattern OneWayPatSyn :: Ann UPattern dom stage -> Ann UPatSynRhs dom stage
 pattern OneWayPatSyn pat <- Ann _ (UOneDirectionalPatSyn pat)
 
-pattern TwoWayPatSyn :: Ann Pattern dom stage -> AnnList UMatch dom stage -> Ann UPatSynRhs dom stage
+pattern TwoWayPatSyn :: Ann UPattern dom stage -> AnnList UMatch dom stage -> Ann UPatSynRhs dom stage
 pattern TwoWayPatSyn pat match <- Ann _ (UBidirectionalPatSyn pat (AnnJust (Ann _ (UPatSynWhere match))))
 
 -- * Type families

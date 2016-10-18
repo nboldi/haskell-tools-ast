@@ -61,7 +61,7 @@ data UDecl dom stage
                           , _declInstDecl :: AnnMaybe UInstBody dom stage
                           } -- ^ Instance declaration (@ instance X T [where f = ...] @)
   | UPatternSynonymDecl   { _declPatSyn :: Ann UPatternSynonym dom stage
-                          } -- ^ Pattern synonyms (@ pattern Arrow t1 t2 = App "->" [t1, t2] @)
+                          } -- ^ UPattern synonyms (@ pattern Arrow t1 t2 = App "->" [t1, t2] @)
   | UDerivDecl            { _declOverlap :: AnnMaybe OverlapPragma dom stage
                           , _declInstRule :: Ann UInstanceRule dom stage
                           } -- ^ Standalone deriving declaration (@ deriving instance X T @)
@@ -138,7 +138,7 @@ data UClassElement dom stage
 
    -- not supported yet (GHC 7.10.3)
   | UClsPatSig  { _cePatSig :: Ann UPatternTypeSignature dom stage
-                } -- ^ Pattern signature in a class declaration (by using @PatternSynonyms@)
+                } -- ^ UPattern signature in a class declaration (by using @PatternSynonyms@)
        
 -- The declared (possibly parameterized) type (@ A x :+: B y @).
 data UDeclHead dom stage
@@ -267,7 +267,7 @@ data UPatternTypeSignature dom stage
                           , _patSigType :: Ann Type dom stage
                           }   
 
--- | Pattern synonyms: @ pattern Arrow t1 t2 = App "->" [t1, t2] @
+-- | UPattern synonyms: @ pattern Arrow t1 t2 = App "->" [t1, t2] @
 data UPatternSynonym dom stage
   = UPatternSynonym { _patLhs :: Ann UPatSynLhs dom stage
                     , _patRhs :: Ann UPatSynRhs dom stage
@@ -289,10 +289,10 @@ data UPatSynLhs dom stage
 -- | Right-hand side of pattern synonym
 data UPatSynRhs dom stage
   -- TODO: this feels bad, changing _patRhsOpposite may switch between <- and =
-  = UBidirectionalPatSyn { _patRhsPat :: Ann Pattern dom stage
+  = UBidirectionalPatSyn { _patRhsPat :: Ann UPattern dom stage
                          , _patRhsOpposite :: AnnMaybe UPatSynWhere dom stage
                          } -- ^ @ pattern Int = App "Int" [] @ or @ pattern Int <- App "Int" [] where Int = App "Int" [] @
-  | UOneDirectionalPatSyn { _patRhsPat :: Ann Pattern dom stage
+  | UOneDirectionalPatSyn { _patRhsPat :: Ann UPattern dom stage
                           } -- ^ @ pattern Int <- App "Int" [] @
 
 -- | Where clause of pattern synonym (explicit expression direction)

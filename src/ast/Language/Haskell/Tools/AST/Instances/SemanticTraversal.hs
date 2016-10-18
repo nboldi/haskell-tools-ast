@@ -62,10 +62,10 @@ deriveSemanticTraversal ''UKind
 deriveSemanticTraversal ''Context
 deriveSemanticTraversal ''Assertion
 deriveSemanticTraversal ''UExpr
-deriveSemanticTraversal ''CompStmt
+deriveSemanticTraversal ''UCompStmt
 deriveSemanticTraversal ''UValueBind
-deriveSemanticTraversal ''Pattern
-deriveSemanticTraversal ''PatternField
+deriveSemanticTraversal ''UPattern
+deriveSemanticTraversal ''UPatternField
 deriveSemanticTraversal ''Splice
 deriveSemanticTraversal ''QQString
 deriveSemanticTraversal ''UMatch
@@ -86,7 +86,7 @@ deriveSemanticTraversal ''ULocalBind
 deriveSemanticTraversal ''ULocalBinds
 deriveSemanticTraversal ''UFixitySignature
 deriveSemanticTraversal ''UTypeSignature
-deriveSemanticTraversal ''ListCompBody
+deriveSemanticTraversal ''UListCompBody
 deriveSemanticTraversal ''UTupSecElem
 deriveSemanticTraversal ''UTypeFamily
 deriveSemanticTraversal ''UTypeFamilySpec
@@ -100,7 +100,7 @@ deriveSemanticTraversal ''Role
 deriveSemanticTraversal ''Cmd
 deriveSemanticTraversal ''ULanguageExtension
 deriveSemanticTraversal ''UMatchLhs
-deriveSemanticTraversal ''Stmt'
+deriveSemanticTraversal ''UStmt'
 deriveSemanticTraversal ''UAlt'
 deriveSemanticTraversal ''UCaseRhs'
 deriveSemanticTraversal ''UGuardedCaseRhs'

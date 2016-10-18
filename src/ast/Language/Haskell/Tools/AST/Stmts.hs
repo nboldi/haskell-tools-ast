@@ -8,26 +8,26 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.Exprs (UExpr, Cmd)
 import {-# SOURCE #-} Language.Haskell.Tools.AST.Binds (ULocalBind)
 
 -- | Normal monadic statements
-data Stmt' expr dom stage
-  = UBindStmt { _stmtPattern :: Ann Pattern dom stage
+data UStmt' expr dom stage
+  = UBindStmt { _stmtPattern :: Ann UPattern dom stage
               , _stmtExpr :: Ann expr dom stage
               } -- ^ Binding statement (@ x <- action @)
   | UExprStmt { _stmtExpr :: Ann expr dom stage
               } -- ^ Non-binding statement (@ action @)
   | ULetStmt  { _stmtBinds :: AnnList ULocalBind dom stage
               } -- ^ Let statement (@ let x = 3; y = 4 @)
-  | URecStmt  { _cmdStmtBinds :: AnnList (Stmt' expr) dom stage
+  | URecStmt  { _cmdStmtBinds :: AnnList (UStmt' expr) dom stage
               } -- ^ A recursive binding statement with (@ rec b <- f a c; c <- f b a @)
-type Stmt = Stmt' UExpr
+type UStmt = UStmt' UExpr
 
 -- | Body of a list comprehension: (@ | x <- [1..10] @)
-data ListCompBody dom stage
-  = UListCompBody { _compStmts :: AnnList CompStmt dom stage
+data UListCompBody dom stage
+  = UListCompBody { _compStmts :: AnnList UCompStmt dom stage
                   } 
          
 -- | List comprehension statement
-data CompStmt dom stage
-  = UCompStmt  { _compStmt :: Ann Stmt dom stage
+data UCompStmt dom stage
+  = UCompStmt  { _compStmt :: Ann UStmt dom stage
                } -- ^ Normal monadic statement of a list comprehension
   | UThenStmt  { _thenExpr :: Ann UExpr dom stage
                , _byExpr :: AnnMaybe UExpr dom stage

@@ -1,4 +1,4 @@
--- | Pattern matching on literals for refactorings.
+-- | UPattern matching on literals for refactorings.
 {-# LANGUAGE PatternSynonyms #-}
 module Language.Haskell.Tools.AST.Match.Literals where
 

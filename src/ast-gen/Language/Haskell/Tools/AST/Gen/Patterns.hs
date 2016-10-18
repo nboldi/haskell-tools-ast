@@ -17,50 +17,50 @@ import Language.Haskell.Tools.AST.Gen.Base
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
-mkVarPat :: Ann UName dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkVarPat :: Ann UName dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkVarPat = mkAnn child . UVarPat
 
-mkLitPat :: Ann ULiteral dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkLitPat :: Ann ULiteral dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkLitPat = mkAnn child . ULitPat
 
-mkInfixAppPat :: Ann Pattern dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkInfixAppPat :: Ann UPattern dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkInfixAppPat lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ UInfixAppPat lhs op rhs
 
-mkAppPat :: Ann UName dom SrcTemplateStage -> [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
+mkAppPat :: Ann UName dom SrcTemplateStage -> [Ann UPattern dom SrcTemplateStage] -> Ann UPattern dom SrcTemplateStage
 mkAppPat n pat = mkAnn (child <> child) $ UAppPat n (mkAnnList (listSepBefore " " " ") pat)
 
-mkTuplePat :: [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
+mkTuplePat :: [Ann UPattern dom SrcTemplateStage] -> Ann UPattern dom SrcTemplateStage
 mkTuplePat pats = mkAnn ("(" <> child <> ")") $ UTuplePat (mkAnnList (listSep ", ") pats)
 
-mkUnboxTuplePat :: [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
+mkUnboxTuplePat :: [Ann UPattern dom SrcTemplateStage] -> Ann UPattern dom SrcTemplateStage
 mkUnboxTuplePat pats = mkAnn ("(# " <> child <> " #)") $ UUnboxTuplePat (mkAnnList (listSep ", ") pats)
 
-mkListPat :: [Ann Pattern dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
+mkListPat :: [Ann UPattern dom SrcTemplateStage] -> Ann UPattern dom SrcTemplateStage
 mkListPat pats = mkAnn ("[" <> child <> "]") $ UListPat (mkAnnList (listSep ", ") pats)
 
-mkParenPat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkParenPat :: Ann UPattern dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkParenPat = mkAnn ("(" <> child <> ")") . UParenPat
 
-mkRecPat :: Ann UName dom SrcTemplateStage -> [Ann PatternField dom SrcTemplateStage] -> Ann Pattern dom SrcTemplateStage
+mkRecPat :: Ann UName dom SrcTemplateStage -> [Ann UPatternField dom SrcTemplateStage] -> Ann UPattern dom SrcTemplateStage
 mkRecPat name flds = mkAnn (child <> "{ " <> child <> " }") $ URecPat name (mkAnnList (listSep ", ") flds)
 
-mkAsPat :: Ann UName dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkAsPat :: Ann UName dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkAsPat name pat = mkAnn (child <> "@" <> child) $ UAsPat name pat
 
-mkWildPat :: Ann Pattern dom SrcTemplateStage
+mkWildPat :: Ann UPattern dom SrcTemplateStage
 mkWildPat = mkAnn "_" UWildPat
 
-mkIrrefutablePat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkIrrefutablePat :: Ann UPattern dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkIrrefutablePat = mkAnn ("~" <> child) . UIrrefutablePat
 
-mkBangPat :: Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkBangPat :: Ann UPattern dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkBangPat = mkAnn ("!" <> child) . UBangPat
 
-mkTypeSigPat :: Ann Pattern dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkTypeSigPat :: Ann UPattern dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkTypeSigPat pat typ = mkAnn (child <> " :: " <> child) $ UTypeSigPat pat typ
 
-mkViewPat :: Ann UExpr dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkViewPat :: Ann UExpr dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage
 mkViewPat name pat = mkAnn (child <> " -> " <> child) $ UViewPat name pat
 
-mkPatternField :: Ann UName dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann PatternField dom SrcTemplateStage
+mkPatternField :: Ann UName dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage -> Ann UPatternField dom SrcTemplateStage
 mkPatternField name pat = mkAnn (child <> " = " <> child) $ UNormalFieldPattern name pat

@@ -163,7 +163,7 @@ generateCall :: String -> [Ann UName dom SrcTemplateStage] -> Ann UExpr dom SrcT
 generateCall name args = foldl (\e a -> mkApp e (mkVar a)) (mkVar $ mkNormalName $ mkSimpleName name) args
 
 -- | Generates the local binding for the selected expression
-generateBind :: String -> [Ann Pattern dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UValueBind dom SrcTemplateStage
+generateBind :: String -> [Ann UPattern dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UValueBind dom SrcTemplateStage
 generateBind name [] e = mkSimpleBind (mkVarPat $ mkNormalName $ mkSimpleName name) (mkUnguardedRhs e) Nothing
 generateBind name args e = mkFunctionBind [mkMatch (mkMatchLhs (mkNormalName $ mkSimpleName name) args) (mkUnguardedRhs e) Nothing]
 

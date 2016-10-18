@@ -1,4 +1,4 @@
--- | Pattern matching expression-level AST fragments for refactorings.
+-- | UPattern matching expression-level AST fragments for refactorings.
 {-# LANGUAGE PatternSynonyms #-}
 module Language.Haskell.Tools.AST.Match.Exprs where
 
@@ -22,7 +22,7 @@ pattern PrefixApp op rhs <- Ann _ (UPrefixApp op rhs)
 pattern App :: Ann UExpr dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
 pattern App f e <- Ann _ (UApp f e)
 
-pattern Lambda :: AnnList Pattern dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
+pattern Lambda :: AnnList UPattern dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
 pattern Lambda pats rhs <- Ann _ (ULambda pats rhs)
 
 pattern Let :: AnnList ULocalBind dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
@@ -37,13 +37,13 @@ pattern MultiIf cases <- Ann _ (UMultiIf cases)
 pattern Case :: Ann UExpr dom stage -> AnnList UAlt dom stage -> Ann UExpr dom stage
 pattern Case expr cases <- Ann _ (UCase expr cases)
 
-pattern Do :: AnnList Stmt dom stage -> Ann UExpr dom stage
+pattern Do :: AnnList UStmt dom stage -> Ann UExpr dom stage
 pattern Do stmts <- Ann _ (UDo DoKeyword stmts)
 
-pattern ListComp :: Ann UExpr dom stage -> AnnList ListCompBody dom stage -> Ann UExpr dom stage
+pattern ListComp :: Ann UExpr dom stage -> AnnList UListCompBody dom stage -> Ann UExpr dom stage
 pattern ListComp expr stmts <- Ann _ (UListComp expr stmts)
 
-pattern ParArrayComp :: Ann UExpr dom stage -> AnnList ListCompBody dom stage -> Ann UExpr dom stage
+pattern ParArrayComp :: Ann UExpr dom stage -> AnnList UListCompBody dom stage -> Ann UExpr dom stage
 pattern ParArrayComp expr stmts <- Ann _ (UParArrayComp expr stmts)
 
 pattern Tuple :: AnnList UExpr dom stage -> Ann UExpr dom stage
@@ -102,9 +102,9 @@ pattern FieldPun n <- Ann _ (UFieldPun n)
 pattern FieldWildcard :: Ann UFieldWildcard dom stage -> Ann UFieldUpdate dom stage
 pattern FieldWildcard wc <- Ann _ (UFieldWildcard wc)
 
--- * Pattern matching and guards
+-- * UPattern matching and guards
 
-pattern Alt :: Ann Pattern dom stage -> Ann UCaseRhs dom stage -> AnnMaybe ULocalBinds dom stage -> Ann UAlt dom stage
+pattern Alt :: Ann UPattern dom stage -> Ann UCaseRhs dom stage -> AnnMaybe ULocalBinds dom stage -> Ann UAlt dom stage
 pattern Alt pat rhs locals <- Ann _ (UAlt pat rhs locals) 
 
 pattern CaseRhs :: Ann UExpr dom stage -> Ann UCaseRhs dom stage
