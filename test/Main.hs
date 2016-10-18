@@ -428,7 +428,7 @@ performRefactors command workingDir flags target = do
                     Left l -> Left l) 
            $ res
 
-type ParsedModule = Ann AST.Module (Dom RdrName) SrcTemplateStage
+type ParsedModule = Ann AST.UModule (Dom RdrName) SrcTemplateStage
 
 parseAST :: ModSummary -> Ghc ParsedModule
 parseAST modSum = do
@@ -438,7 +438,7 @@ parseAST modSum = do
   rangeToSource srcBuffer . cutUpRanges . fixRanges . placeComments (snd annots) 
      <$> (runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule modSum $ pm_parsed_source p)          
 
-type RenamedModule = Ann AST.Module (Dom GHC.Name) SrcTemplateStage
+type RenamedModule = Ann AST.UModule (Dom GHC.Name) SrcTemplateStage
 
 parseRenamed :: ModSummary -> Ghc RenamedModule
 parseRenamed modSum = do
