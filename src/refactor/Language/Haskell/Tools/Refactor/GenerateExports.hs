@@ -25,7 +25,7 @@ generateExports mod = return (modHead & annJust & mhExports & annMaybe
 
 -- | Get all the top-level definitions with flags that mark if they can contain other top-level definitions 
 -- (classes and data declarations).
-getTopLevels :: DomGenerateExports dom => Ann Module dom SrcTemplateStage -> [(GHC.Name, Bool)]
+getTopLevels :: DomGenerateExports dom => Ann UModule dom SrcTemplateStage -> [(GHC.Name, Bool)]
 getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d) (listToMaybe $ elementName d)) (mod ^? modDecl & annList)
   where exportContainOthers :: Ann UDecl dom SrcTemplateStage -> Bool
         exportContainOthers (DataDecl {}) = True
@@ -33,7 +33,7 @@ getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d) (listToM
         exportContainOthers _ = False
 
 -- | Create the export for a give name.
-createExports :: DomGenerateExports dom => [(GHC.Name, Bool)] -> Ann ExportSpecList dom SrcTemplateStage
+createExports :: DomGenerateExports dom => [(GHC.Name, Bool)] -> Ann UExportSpecList dom SrcTemplateStage
 createExports elems = mkExportSpecList $ map (mkExportSpec . createExport) elems
   where createExport (n, False) = mkIeSpec (mkUnqualName' (GHC.getName n)) Nothing
         createExport (n, True)  = mkIeSpec (mkUnqualName' (GHC.getName n)) (Just mkSubAll)

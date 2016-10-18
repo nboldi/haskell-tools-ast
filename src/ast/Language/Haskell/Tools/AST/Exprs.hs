@@ -14,7 +14,7 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.Binds (ULocalBind, ULocalBinds,
 data UExpr dom stage
   = UVar            { _exprName :: Ann UName dom stage 
                     } -- ^ A variable or a data constructor (@ a @)
-  | ULit            { _exprLit :: Ann Literal dom stage
+  | ULit            { _exprLit :: Ann ULiteral dom stage
                     } -- ^ Primitive literal
   | UInfixApp       { _exprLhs :: Ann UExpr dom stage
                     , _exprOperator :: Ann UOperator dom stage

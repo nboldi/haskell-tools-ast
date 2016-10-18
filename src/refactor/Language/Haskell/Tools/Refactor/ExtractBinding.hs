@@ -36,7 +36,7 @@ extractBinding' sp name mod
 -- | Safely performs the transformation to introduce the local binding and replace the expression with the call.
 -- Checks if the introduction of the name causes a name conflict.
 extractBinding :: forall dom . ExtractBindingDomain dom 
-               => Simple Traversal (Ann Module dom SrcTemplateStage) (Ann UValueBind dom SrcTemplateStage)
+               => Simple Traversal (Ann UModule dom SrcTemplateStage) (Ann UValueBind dom SrcTemplateStage)
                    -> Simple Traversal (Ann UValueBind dom SrcTemplateStage) (Ann UExpr dom SrcTemplateStage)
                    -> String -> LocalRefactoring dom
 extractBinding selectDecl selectExpr name mod

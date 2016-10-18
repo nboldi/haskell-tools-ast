@@ -10,7 +10,7 @@ import Language.Haskell.Tools.AST.Match.Base
 pattern Var :: Ann UName dom stage -> Ann UExpr dom stage
 pattern Var name <- Ann _ (UVar name)
 
-pattern Lit :: Ann Literal dom stage -> Ann UExpr dom stage
+pattern Lit :: Ann ULiteral dom stage -> Ann UExpr dom stage
 pattern Lit lit <- Ann _ (ULit lit)
 
 pattern InfixApp :: Ann UExpr dom stage -> Ann UOperator dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage

@@ -13,8 +13,8 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
 data Pattern dom stage
   = UVarPat         { _patternName :: Ann UName dom stage
                     } -- ^ Pattern name binding
-  | ULitPat         { _patternLiteral :: Ann Literal dom stage
-                    } -- ^ Literal pattern
+  | ULitPat         { _patternLiteral :: Ann ULiteral dom stage
+                    } -- ^ ULiteral pattern
   | UInfixAppPat    { _patternLhs :: Ann Pattern dom stage
                     , _patternOperator :: Ann UOperator dom stage
                     , _patternRhs :: Ann Pattern dom stage
@@ -56,7 +56,7 @@ data Pattern dom stage
   | UQuasiQuotePat { _patQQ :: Ann QuasiQuote dom stage
                    } -- ^ Quasi-quoted patterns: @[| 1 + 2 |]@
   | UNPlusKPat     { _patternName :: Ann UName dom stage
-                   , _patternLit :: Ann Literal dom stage
+                   , _patternLit :: Ann ULiteral dom stage
                    }
                   
 -- Field specification of a record pattern

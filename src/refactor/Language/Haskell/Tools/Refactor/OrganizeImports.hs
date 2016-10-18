@@ -43,21 +43,21 @@ organizeImports mod
                                 $ (universeBi (mod ^. modHead) ++ universeBi (mod ^. modDecl) :: [Ann UQualifiedName dom SrcTemplateStage])
         
 -- | Sorts the imports in alphabetical order
-sortImports :: [Ann ImportDecl dom SrcTemplateStage] -> [Ann ImportDecl dom SrcTemplateStage]
+sortImports :: [Ann UImportDecl dom SrcTemplateStage] -> [Ann UImportDecl dom SrcTemplateStage]
 sortImports = sortBy (compare `on` (^. importModule&AST.moduleNameString))
 
 -- | Modify an import to only import  names that are used.
 narrowImports :: forall dom . OrganizeImportsDomain dom 
-              => [GHC.Name] -> [Ann ImportDecl dom SrcTemplateStage] -> LocalRefactor dom [Ann ImportDecl dom SrcTemplateStage]
+              => [GHC.Name] -> [Ann UImportDecl dom SrcTemplateStage] -> LocalRefactor dom [Ann UImportDecl dom SrcTemplateStage]
 narrowImports usedNames imps = foldM (narrowOneImport usedNames) imps imps 
-  where narrowOneImport :: [GHC.Name] -> [Ann ImportDecl dom SrcTemplateStage] -> Ann ImportDecl dom SrcTemplateStage -> LocalRefactor dom [Ann ImportDecl dom SrcTemplateStage]
+  where narrowOneImport :: [GHC.Name] -> [Ann UImportDecl dom SrcTemplateStage] -> Ann UImportDecl dom SrcTemplateStage -> LocalRefactor dom [Ann UImportDecl dom SrcTemplateStage]
         narrowOneImport names all one =
           (\case Just x -> map (\e -> if e == one then x else e) all
                  Nothing -> delete one all) <$> narrowImport names (map (semanticsImportedModule . (^. semantics)) all) one 
         
 narrowImport :: OrganizeImportsDomain dom
-             => [GHC.Name] -> [GHC.Module] -> Ann ImportDecl dom SrcTemplateStage 
-                           -> LocalRefactor dom (Maybe (Ann ImportDecl dom SrcTemplateStage))
+             => [GHC.Name] -> [GHC.Module] -> Ann UImportDecl dom SrcTemplateStage 
+                           -> LocalRefactor dom (Maybe (Ann UImportDecl dom SrcTemplateStage))
 narrowImport usedNames otherModules imp
   | importIsExact imp
   = Just <$> (importSpec&annJust&importSpecList !~ narrowImportSpecs usedNames $ imp)
@@ -72,11 +72,11 @@ narrowImport usedNames otherModules imp
     
 -- | Narrows the import specification (explicitely imported elements)
 narrowImportSpecs :: forall dom . OrganizeImportsDomain dom
-                  => [GHC.Name] -> AnnList IESpec dom SrcTemplateStage -> LocalRefactor dom (AnnList IESpec dom SrcTemplateStage)
+                  => [GHC.Name] -> AnnList UIESpec dom SrcTemplateStage -> LocalRefactor dom (AnnList UIESpec dom SrcTemplateStage)
 narrowImportSpecs usedNames 
   = (annList !~ narrowSpecSubspec usedNames) 
        >=> return . filterList isNeededSpec
-  where narrowSpecSubspec :: [GHC.Name] -> Ann IESpec dom SrcTemplateStage -> LocalRefactor dom (Ann IESpec dom SrcTemplateStage)
+  where narrowSpecSubspec :: [GHC.Name] -> Ann UIESpec dom SrcTemplateStage -> LocalRefactor dom (Ann UIESpec dom SrcTemplateStage)
         narrowSpecSubspec usedNames spec 
           = do let Just specName = semanticsName =<< (spec ^? ieName&simpleName&annotation&semanticInfo)
                Just tt <- GHC.lookupName (getName specName)
@@ -85,7 +85,7 @@ narrowImportSpecs usedNames
                                                 _ -> usedNames
                ieSubspec&annJust !- narrowImportSubspecs subspecsInScope $ spec
   
-        isNeededSpec :: Ann IESpec dom SrcTemplateStage -> Bool
+        isNeededSpec :: Ann UIESpec dom SrcTemplateStage -> Bool
         isNeededSpec ie = 
           -- if the name is used, it is needed
           fmap getName (semanticsName =<< (ie ^? ieName&simpleName&annotation&semanticInfo)) `elem` map Just usedNames
@@ -93,7 +93,7 @@ narrowImportSpecs usedNames
             || ((ie ^? ieSubspec&annJust&essList&annList) /= [])
             || (case ie ^? ieSubspec&annJust of Just SubAll -> True; _ -> False)     
   
-narrowImportSubspecs :: OrganizeImportsDomain dom => [GHC.Name] -> Ann SubSpec dom SrcTemplateStage -> Ann SubSpec dom SrcTemplateStage
+narrowImportSubspecs :: OrganizeImportsDomain dom => [GHC.Name] -> Ann USubSpec dom SrcTemplateStage -> Ann USubSpec dom SrcTemplateStage
 narrowImportSubspecs [] SubAll = mkSubList []
 narrowImportSubspecs _ ss@SubAll = ss
 narrowImportSubspecs usedNames ss@(SubList {}) 

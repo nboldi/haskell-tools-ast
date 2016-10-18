@@ -20,7 +20,7 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 mkVarPat :: Ann UName dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
 mkVarPat = mkAnn child . UVarPat
 
-mkLitPat :: Ann Literal dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
+mkLitPat :: Ann ULiteral dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage
 mkLitPat = mkAnn child . ULitPat
 
 mkInfixAppPat :: Ann Pattern dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage -> Ann Pattern dom SrcTemplateStage

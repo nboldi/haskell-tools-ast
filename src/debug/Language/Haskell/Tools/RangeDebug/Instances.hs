@@ -28,21 +28,21 @@ instance TreeDebug e dom st => TreeDebug (AnnMaybe e) dom st where
   treeDebug' i (AnnMaybe a e) = identLine i ++ show (a ^. sourceInfo) ++ " <?>" ++ maybe "" (\e -> treeDebug' (i + 1) e) e
   
 -- Modules
-instance (SourceInfo st, Domain dom) => TreeDebug Module dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ModuleHead dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ExportSpecList dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ExportSpec dom st
-instance (SourceInfo st, Domain dom) => TreeDebug IESpec dom st
-instance (SourceInfo st, Domain dom) => TreeDebug SubSpec dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ModulePragma dom st
-instance (SourceInfo st, Domain dom) => TreeDebug FilePragma dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ImportDecl dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ImportSpec dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ImportQualified dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ImportSource dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ImportSafe dom st
-instance (SourceInfo st, Domain dom) => TreeDebug TypeNamespace dom st
-instance (SourceInfo st, Domain dom) => TreeDebug ImportRenaming dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UModule dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UModuleHead dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UExportSpecList dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UExportSpec dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UIESpec dom st
+instance (SourceInfo st, Domain dom) => TreeDebug USubSpec dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UModulePragma dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UFilePragma dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UImportDecl dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UImportSpec dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UImportQualified dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UImportSource dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UImportSafe dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UTypeNamespace dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UImportRenaming dom st
 
 -- Declarations
 instance (SourceInfo st, Domain dom) => TreeDebug UDecl dom st
@@ -62,10 +62,10 @@ instance (SourceInfo st, Domain dom) => TreeDebug UDeriving dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UInstanceRule dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UInstanceHead dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UTypeEqn dom st
-instance (SourceInfo st, Domain dom) => TreeDebug KindConstraint dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UKindConstraint dom st
 instance (SourceInfo st, Domain dom) => TreeDebug TyVar dom st
 instance (SourceInfo st, Domain dom) => TreeDebug Type dom st
-instance (SourceInfo st, Domain dom) => TreeDebug Kind dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UKind dom st
 instance (SourceInfo st, Domain dom) => TreeDebug Context dom st
 instance (SourceInfo st, Domain dom) => TreeDebug Assertion dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UExpr dom st
@@ -109,12 +109,12 @@ instance (SourceInfo st, Domain dom) => TreeDebug UPatSynWhere dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UPatternTypeSignature dom st
 instance (SourceInfo st, Domain dom) => TreeDebug Role dom st
 instance (SourceInfo st, Domain dom) => TreeDebug Cmd dom st
-instance (SourceInfo st, Domain dom) => TreeDebug LanguageExtension dom st
+instance (SourceInfo st, Domain dom) => TreeDebug ULanguageExtension dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UMatchLhs dom st
 
--- Literal
-instance (SourceInfo st, Domain dom) => TreeDebug Literal dom st
-instance (SourceInfo st, Domain dom, TreeDebug k dom st, Generic (k dom st)) => TreeDebug (Promoted k) dom st
+-- ULiteral
+instance (SourceInfo st, Domain dom) => TreeDebug ULiteral dom st
+instance (SourceInfo st, Domain dom, TreeDebug k dom st, Generic (k dom st)) => TreeDebug (UPromoted k) dom st
 
 -- Base
 instance (SourceInfo st, Domain dom) => TreeDebug UOperator dom st

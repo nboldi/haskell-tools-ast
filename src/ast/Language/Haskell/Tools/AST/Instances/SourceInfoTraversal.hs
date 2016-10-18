@@ -21,21 +21,21 @@ import Language.Haskell.Tools.AST.Ann
 
 
 -- Modules
-deriveSourceInfoTraversal ''Module
-deriveSourceInfoTraversal ''ModuleHead
-deriveSourceInfoTraversal ''ExportSpecList
-deriveSourceInfoTraversal ''ExportSpec
-deriveSourceInfoTraversal ''IESpec
-deriveSourceInfoTraversal ''SubSpec
-deriveSourceInfoTraversal ''ModulePragma
-deriveSourceInfoTraversal ''FilePragma
-deriveSourceInfoTraversal ''ImportDecl
-deriveSourceInfoTraversal ''ImportSpec
-deriveSourceInfoTraversal ''ImportQualified
-deriveSourceInfoTraversal ''ImportSource
-deriveSourceInfoTraversal ''ImportSafe
-deriveSourceInfoTraversal ''TypeNamespace
-deriveSourceInfoTraversal ''ImportRenaming
+deriveSourceInfoTraversal ''UModule
+deriveSourceInfoTraversal ''UModuleHead
+deriveSourceInfoTraversal ''UExportSpecList
+deriveSourceInfoTraversal ''UExportSpec
+deriveSourceInfoTraversal ''UIESpec
+deriveSourceInfoTraversal ''USubSpec
+deriveSourceInfoTraversal ''UModulePragma
+deriveSourceInfoTraversal ''UFilePragma
+deriveSourceInfoTraversal ''UImportDecl
+deriveSourceInfoTraversal ''UImportSpec
+deriveSourceInfoTraversal ''UImportQualified
+deriveSourceInfoTraversal ''UImportSource
+deriveSourceInfoTraversal ''UImportSafe
+deriveSourceInfoTraversal ''UTypeNamespace
+deriveSourceInfoTraversal ''UImportRenaming
 
 -- Declarations
 deriveSourceInfoTraversal ''UDecl
@@ -55,10 +55,10 @@ deriveSourceInfoTraversal ''UDeriving
 deriveSourceInfoTraversal ''UInstanceRule
 deriveSourceInfoTraversal ''UInstanceHead
 deriveSourceInfoTraversal ''UTypeEqn
-deriveSourceInfoTraversal ''KindConstraint
+deriveSourceInfoTraversal ''UKindConstraint
 deriveSourceInfoTraversal ''TyVar
 deriveSourceInfoTraversal ''Type
-deriveSourceInfoTraversal ''Kind
+deriveSourceInfoTraversal ''UKind
 deriveSourceInfoTraversal ''Context
 deriveSourceInfoTraversal ''Assertion
 deriveSourceInfoTraversal ''UExpr
@@ -98,16 +98,16 @@ deriveSourceInfoTraversal ''UPatSynWhere
 deriveSourceInfoTraversal ''UPatternTypeSignature
 deriveSourceInfoTraversal ''Role
 deriveSourceInfoTraversal ''Cmd
-deriveSourceInfoTraversal ''LanguageExtension
+deriveSourceInfoTraversal ''ULanguageExtension
 deriveSourceInfoTraversal ''UMatchLhs
 deriveSourceInfoTraversal ''Stmt'
 deriveSourceInfoTraversal ''UAlt'
 deriveSourceInfoTraversal ''UCaseRhs'
 deriveSourceInfoTraversal ''UGuardedCaseRhs'
 
--- Literal
-deriveSourceInfoTraversal ''Literal
-deriveSourceInfoTraversal ''Promoted
+-- ULiteral
+deriveSourceInfoTraversal ''ULiteral
+deriveSourceInfoTraversal ''UPromoted
 
 -- Base
 deriveSourceInfoTraversal ''UOperator

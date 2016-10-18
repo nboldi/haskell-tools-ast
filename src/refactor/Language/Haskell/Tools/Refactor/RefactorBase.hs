@@ -33,7 +33,7 @@ import Control.Monad.Trans.Except
 import Control.Monad.Writer
 import Control.Monad.State
 
-type UnnamedModule dom = Ann AST.Module dom SrcTemplateStage
+type UnnamedModule dom = Ann AST.UModule dom SrcTemplateStage
 
 -- | The name of the module and the AST
 type ModuleDom dom = (String, UnnamedModule dom)
@@ -69,13 +69,13 @@ localRefactoringRes access mod trf
                                   return $ access (addGeneratedImports newNames) mod
 
 -- | Adds the imports that bring names into scope that are needed by the refactoring
-addGeneratedImports :: [GHC.Name] -> Ann Module dom SrcTemplateStage -> Ann Module dom SrcTemplateStage
+addGeneratedImports :: [GHC.Name] -> Ann UModule dom SrcTemplateStage -> Ann UModule dom SrcTemplateStage
 addGeneratedImports names m = modImports&annListElems .- (++ addImports names) $ m
-  where addImports :: [GHC.Name] -> [Ann ImportDecl dom SrcTemplateStage]
+  where addImports :: [GHC.Name] -> [Ann UImportDecl dom SrcTemplateStage]
         addImports names = map createImport $ groupBy ((==) `on` GHC.nameModule) $ nub $ sort names
 
         -- TODO: group names like constructors into correct IESpecs
-        createImport :: [GHC.Name] -> Ann ImportDecl dom SrcTemplateStage
+        createImport :: [GHC.Name] -> Ann UImportDecl dom SrcTemplateStage
         createImport names = mkImportDecl False False False Nothing (mkModuleName $ GHC.moduleNameString $ GHC.moduleName $ GHC.nameModule $ head names)
                                           Nothing (Just $ mkImportSpecList (map (\n -> mkIeSpec (mkUnqualName' n) Nothing) names))
 
@@ -110,8 +110,8 @@ newtype LocalRefactorT dom m a = LocalRefactorT { fromRefactorT :: WriterT [GHC.
 
 -- | The information a refactoring can use
 data RefactorCtx dom = RefactorCtx { refModuleName :: GHC.Module
-                                   , refCtxRoot :: Ann Module dom SrcTemplateStage
-                                   , refCtxImports :: [Ann ImportDecl dom SrcTemplateStage] 
+                                   , refCtxRoot :: Ann UModule dom SrcTemplateStage
+                                   , refCtxImports :: [Ann UImportDecl dom SrcTemplateStage] 
                                    }
 
 instance MonadTrans (LocalRefactorT dom) where
@@ -180,11 +180,11 @@ referenceName' makeName name
                                      -- use it according to the best available import
 
 -- | Reference the name by the shortest suitable import
-referenceBy :: ([String] -> GHC.Name -> Ann nt dom SrcTemplateStage) -> GHC.Name -> [Ann ImportDecl dom SrcTemplateStage] -> Ann nt dom SrcTemplateStage
+referenceBy :: ([String] -> GHC.Name -> Ann nt dom SrcTemplateStage) -> GHC.Name -> [Ann UImportDecl dom SrcTemplateStage] -> Ann nt dom SrcTemplateStage
 referenceBy makeName name imps = 
   let prefixes = map importQualifier imps
    in makeName (minimumBy (compare `on` (length . concat)) prefixes) name
-  where importQualifier :: Ann ImportDecl dom SrcTemplateStage -> [String]
+  where importQualifier :: Ann UImportDecl dom SrcTemplateStage -> [String]
         importQualifier imp 
           = if isJust (imp ^? importQualified&annJust) 
               then case imp ^? importAs&annJust&importRename of 

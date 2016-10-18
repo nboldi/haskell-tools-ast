@@ -21,21 +21,21 @@ import Language.Haskell.Tools.AST.Ann
 
 
 -- Modules
-deriveSemanticTraversal ''Module
-deriveSemanticTraversal ''ModuleHead
-deriveSemanticTraversal ''ExportSpecList
-deriveSemanticTraversal ''ExportSpec
-deriveSemanticTraversal ''IESpec
-deriveSemanticTraversal ''SubSpec
-deriveSemanticTraversal ''ModulePragma
-deriveSemanticTraversal ''FilePragma
-deriveSemanticTraversal ''ImportDecl
-deriveSemanticTraversal ''ImportSpec
-deriveSemanticTraversal ''ImportQualified
-deriveSemanticTraversal ''ImportSource
-deriveSemanticTraversal ''ImportSafe
-deriveSemanticTraversal ''TypeNamespace
-deriveSemanticTraversal ''ImportRenaming
+deriveSemanticTraversal ''UModule
+deriveSemanticTraversal ''UModuleHead
+deriveSemanticTraversal ''UExportSpecList
+deriveSemanticTraversal ''UExportSpec
+deriveSemanticTraversal ''UIESpec
+deriveSemanticTraversal ''USubSpec
+deriveSemanticTraversal ''UModulePragma
+deriveSemanticTraversal ''UFilePragma
+deriveSemanticTraversal ''UImportDecl
+deriveSemanticTraversal ''UImportSpec
+deriveSemanticTraversal ''UImportQualified
+deriveSemanticTraversal ''UImportSource
+deriveSemanticTraversal ''UImportSafe
+deriveSemanticTraversal ''UTypeNamespace
+deriveSemanticTraversal ''UImportRenaming
 
 -- Declarations
 deriveSemanticTraversal ''UDecl
@@ -55,10 +55,10 @@ deriveSemanticTraversal ''UDeriving
 deriveSemanticTraversal ''UInstanceRule
 deriveSemanticTraversal ''UInstanceHead
 deriveSemanticTraversal ''UTypeEqn
-deriveSemanticTraversal ''KindConstraint
+deriveSemanticTraversal ''UKindConstraint
 deriveSemanticTraversal ''TyVar
 deriveSemanticTraversal ''Type
-deriveSemanticTraversal ''Kind
+deriveSemanticTraversal ''UKind
 deriveSemanticTraversal ''Context
 deriveSemanticTraversal ''Assertion
 deriveSemanticTraversal ''UExpr
@@ -98,16 +98,16 @@ deriveSemanticTraversal ''UPatSynWhere
 deriveSemanticTraversal ''UPatternTypeSignature
 deriveSemanticTraversal ''Role
 deriveSemanticTraversal ''Cmd
-deriveSemanticTraversal ''LanguageExtension
+deriveSemanticTraversal ''ULanguageExtension
 deriveSemanticTraversal ''UMatchLhs
 deriveSemanticTraversal ''Stmt'
 deriveSemanticTraversal ''UAlt'
 deriveSemanticTraversal ''UCaseRhs'
 deriveSemanticTraversal ''UGuardedCaseRhs'
 
--- Literal
-deriveSemanticTraversal ''Literal
-deriveSemanticTraversal ''Promoted
+-- ULiteral
+deriveSemanticTraversal ''ULiteral
+deriveSemanticTraversal ''UPromoted
 
 -- Base
 deriveSemanticTraversal ''UOperator

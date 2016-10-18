@@ -58,7 +58,7 @@ mkTypeVar n = mkAnn (child <> child) (UTyVarDecl n noth)
 mkTyVar :: Ann UName dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyVar = wrapperAnn . UTyVar
 
-mkTyKinded :: Ann Type dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyKinded :: Ann Type dom SrcTemplateStage -> Ann UKind dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyKinded t k = mkAnn (child <> " :: " <> child) (UTyKinded t k)
 
 mkTyBang :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage

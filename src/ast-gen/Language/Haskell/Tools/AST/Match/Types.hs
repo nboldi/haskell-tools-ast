@@ -40,7 +40,7 @@ pattern TyParen t <- Ann _ (UTyParen t)
 pattern TyVar :: Ann UName dom stage -> Ann Type dom stage
 pattern TyVar n <- Ann _ (UTyVar n)
 
-pattern TyKinded :: Ann Type dom stage -> Ann Kind dom stage -> Ann Type dom stage
+pattern TyKinded :: Ann Type dom stage -> Ann UKind dom stage -> Ann Type dom stage
 pattern TyKinded t k <- Ann _ (UTyKinded t k)
 
 pattern TyBang :: Ann Type dom stage -> Ann Type dom stage

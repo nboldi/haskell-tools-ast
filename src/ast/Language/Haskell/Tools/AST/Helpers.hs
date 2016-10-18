@@ -49,23 +49,23 @@ nameQualifier :: Ann UQualifiedName dom stage -> [String]
 nameQualifier n = n ^? qualifiers&annList&simpleNameStr
          
 -- | Does the import declaration import only the explicitly listed elements?
-importIsExact :: Ann ImportDecl dom stage -> Bool
+importIsExact :: Ann UImportDecl dom stage -> Bool
 importIsExact = isJust . (^? importSpec&annJust&importSpecList)  
   
 -- | Does the import declaration has a 'hiding' clause?
-importIsHiding :: Ann ImportDecl dom stage -> Bool
+importIsHiding :: Ann UImportDecl dom stage -> Bool
 importIsHiding = isJust . (^? importSpec&annJust&importSpecHiding)
        
 -- | All elements that are explicitly listed to be imported in the import declaration
-importExacts :: Simple Traversal (Ann ImportDecl dom stage) (Ann IESpec dom stage)
+importExacts :: Simple Traversal (Ann UImportDecl dom stage) (Ann UIESpec dom stage)
 importExacts = importSpec&annJust&importSpecList&annList
 
 -- | All elements that are hidden in an import
-importHidings :: Simple Traversal (Ann ImportDecl dom stage) (Ann IESpec dom stage)
+importHidings :: Simple Traversal (Ann UImportDecl dom stage) (Ann UIESpec dom stage)
 importHidings = importSpec&annJust&importSpecList&annList
          
 -- | Possible qualifiers to use imported definitions         
-importQualifiers :: Ann ImportDecl dom stage -> [[String]]
+importQualifiers :: Ann UImportDecl dom stage -> [[String]]
 importQualifiers imp 
   = (if isAnnNothing (imp ^. importQualified) then [[]] else [])
       ++ [imp ^? importAs&annJust&importRename&moduleNameString]

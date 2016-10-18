@@ -21,7 +21,7 @@ data UDecl dom stage
   | UTypeFamilyDecl       { _declTypeFamily :: Ann UTypeFamily dom stage
                           }
   | UClosedTypeFamilyDecl { _declHead :: Ann UDeclHead dom stage
-                          , _declKind :: AnnMaybe KindConstraint dom stage
+                          , _declKind :: AnnMaybe UKindConstraint dom stage
                           , _declDecl :: AnnList UTypeEqn dom stage -- ^ cannot be empty
                           } -- ^ A closed type family declaration
   | UDataDecl             { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
@@ -34,7 +34,7 @@ data UDecl dom stage
   | UGDataDecl            { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
                           , _declCtx  :: AnnMaybe Context dom stage
                           , _declHead :: Ann UDeclHead dom stage
-                          , _declKind :: AnnMaybe KindConstraint dom stage
+                          , _declKind :: AnnMaybe UKindConstraint dom stage
                           , _declGadt :: AnnList UGadtConDecl dom stage
                           , _declDeriving :: AnnMaybe UDeriving dom stage
                           } -- ^ A data or newtype declaration.
@@ -48,7 +48,7 @@ data UDecl dom stage
                           } -- ^ Data instance declaration (@ data instance Fam T = Con1 | Con2 @)
   | UGDataInstDecl        { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
                           , _declInstance :: Ann UInstanceRule dom stage
-                          , _declKind :: AnnMaybe KindConstraint dom stage
+                          , _declKind :: AnnMaybe UKindConstraint dom stage
                           , _declGadt :: AnnList UGadtConDecl dom stage
                           } -- ^ Gadt style data instance declaration (@ data instance Fam T where ... @)
   | UClassDecl            { _declCtx :: AnnMaybe Context dom stage
@@ -98,12 +98,12 @@ data UTypeFamily dom stage
                 , _tfSpec :: AnnMaybe UTypeFamilySpec dom stage
                 } -- ^ A type family declaration (@ type family A _a :: * -> * @)    
   | UDataFamily { _tfHead :: Ann UDeclHead dom stage
-                , _tfKind :: AnnMaybe KindConstraint dom stage
+                , _tfKind :: AnnMaybe UKindConstraint dom stage
                 } -- ^ Data family declaration
 
 -- | Type family specification with kinds specification and injectivity.
 data UTypeFamilySpec dom stage
-  = UTypeFamilyKind { _tfSpecKind :: Ann KindConstraint dom stage
+  = UTypeFamilyKind { _tfSpecKind :: Ann UKindConstraint dom stage
                     }
   | UTypeFamilyInjectivity { _tfInjectivity :: Ann UInjectivityAnn dom stage
                            }
@@ -174,7 +174,7 @@ data UInstBodyDecl dom stage
                           } -- ^ An associated data type implementation (@ data A X = C1 | C2 @)
   | UInstBodyGadtDataDecl { _instBodyDataNew :: Ann UDataOrNewtypeKeyword dom stage
                           , _instBodyLhsType :: Ann UInstanceRule dom stage
-                          , _instBodyDataKind :: AnnMaybe KindConstraint dom stage
+                          , _instBodyDataKind :: AnnMaybe UKindConstraint dom stage
                           , _instBodyGadtCons :: AnnList UGadtConDecl dom stage
                           , _instBodyDerivings :: AnnMaybe UDeriving dom stage
                           } -- ^ An associated data type implemented using GADT style

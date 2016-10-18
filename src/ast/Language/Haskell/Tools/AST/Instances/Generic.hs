@@ -23,21 +23,21 @@ deriving instance (Domain dom, SourceInfo stage, Generic (e dom stage)) => Gener
 deriving instance (Domain dom, SourceInfo stage, Generic (e dom stage)) => Generic (AnnList e dom stage)
 
 -- Modules
-deriving instance (Domain dom, SourceInfo stage) => Generic (Module dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ModuleHead dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ExportSpecList dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ExportSpec dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (IESpec dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (SubSpec dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ModulePragma dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (FilePragma dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ImportDecl dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ImportSpec dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ImportQualified dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ImportSource dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ImportSafe dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (TypeNamespace dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (ImportRenaming dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UModule dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UModuleHead dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UExportSpecList dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UExportSpec dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UIESpec dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (USubSpec dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UModulePragma dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UFilePragma dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UImportDecl dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UImportSpec dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UImportQualified dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UImportSource dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UImportSafe dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UTypeNamespace dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UImportRenaming dom stage)
 
 -- Declarations
 deriving instance (Domain dom, SourceInfo stage) => Generic (UDecl dom stage)
@@ -57,10 +57,10 @@ deriving instance (Domain dom, SourceInfo stage) => Generic (UDeriving dom stage
 deriving instance (Domain dom, SourceInfo stage) => Generic (UInstanceRule dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (UInstanceHead dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (UTypeEqn dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (KindConstraint dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UKindConstraint dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (TyVar dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (Type dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (Kind dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UKind dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (Context dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (Assertion dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (UExpr dom stage)
@@ -104,13 +104,13 @@ deriving instance (Domain dom, SourceInfo stage) => Generic (UPatSynWhere dom st
 deriving instance (Domain dom, SourceInfo stage) => Generic (UPatternTypeSignature dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (Role dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (Cmd dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (LanguageExtension dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (ULanguageExtension dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (UMatchLhs dom stage)
 
 
--- Literal
-deriving instance (Domain dom, SourceInfo stage) => Generic (Literal dom stage)
-deriving instance (Domain dom, SourceInfo stage, Generic (k dom stage)) => Generic (Promoted k dom stage)
+-- ULiteral
+deriving instance (Domain dom, SourceInfo stage) => Generic (ULiteral dom stage)
+deriving instance (Domain dom, SourceInfo stage, Generic (k dom stage)) => Generic (UPromoted k dom stage)
 
 -- Base
 deriving instance (Domain dom, SourceInfo stage) => Generic (UOperator dom stage)

@@ -5,7 +5,7 @@ import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Base
 
 -- | Haskell literals
-data Literal dom stage
+data ULiteral dom stage
   = UCharLit { _charLitValue :: Char 
              } -- ^ Character literal: @'c'@
   | UStringLit { _stringLitValue :: String 

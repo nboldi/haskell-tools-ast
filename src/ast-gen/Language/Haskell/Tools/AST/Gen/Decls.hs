@@ -23,10 +23,10 @@ mkTypeDecl dh typ = mkAnn (child <> " :: " <> child) $ UTypeDecl dh typ
 mkTypeFamily :: Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann UTypeFamilySpec dom SrcTemplateStage) -> Ann UDecl dom SrcTemplateStage
 mkTypeFamily dh famSpec = mkAnn child $ UTypeFamilyDecl (mkAnn (child <> child) $ UTypeFamily dh (mkAnnMaybe (optBefore " ") famSpec))
 
-mkDataFamily :: Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann KindConstraint dom SrcTemplateStage) -> Ann UDecl dom SrcTemplateStage
+mkDataFamily :: Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann UKindConstraint dom SrcTemplateStage) -> Ann UDecl dom SrcTemplateStage
 mkDataFamily dh kind = mkAnn child $ UTypeFamilyDecl (mkAnn (child <> child) $ UDataFamily dh (mkAnnMaybe (optBefore " ") kind))
 
-mkClosedTypeFamily :: Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann KindConstraint dom SrcTemplateStage) -> [Ann UTypeEqn dom SrcTemplateStage]
+mkClosedTypeFamily :: Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann UKindConstraint dom SrcTemplateStage) -> [Ann UTypeEqn dom SrcTemplateStage]
                        -> Ann UDecl dom SrcTemplateStage
 mkClosedTypeFamily dh kind typeqs = mkAnn (child <> child <> " where " <> child) 
                                       $ UClosedTypeFamilyDecl dh (mkAnnMaybe (optBefore " ") kind) (mkAnnList indentedList typeqs)
@@ -45,7 +45,7 @@ mkNewtypeDecl ctx dh cons derivs
       $ UDataDecl mkNewtypeKeyword (mkAnnMaybe (optBefore " ") ctx) dh 
                  (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
-mkGADTDataDecl :: Maybe (Ann Context dom SrcTemplateStage) -> Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann KindConstraint dom SrcTemplateStage)
+mkGADTDataDecl :: Maybe (Ann Context dom SrcTemplateStage) -> Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann UKindConstraint dom SrcTemplateStage)
                     -> [Ann UGadtConDecl dom SrcTemplateStage] -> Maybe (Ann UDeriving dom SrcTemplateStage) -> Ann UDecl dom SrcTemplateStage
 mkGADTDataDecl ctx dh kind cons derivs 
   = mkAnn (child <> " " <> child <> child <> child <> child <> child) 
@@ -67,7 +67,7 @@ mkNewtypeInstance instRule cons derivs
   = mkAnn (child <> " instance " <> child <> " = " <> child <> child) 
       $ UDataInstDecl mkNewtypeKeyword instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
-mkGadtDataInstance :: Ann UInstanceRule dom SrcTemplateStage -> Maybe (Ann KindConstraint dom SrcTemplateStage) -> [Ann UGadtConDecl dom SrcTemplateStage]
+mkGadtDataInstance :: Ann UInstanceRule dom SrcTemplateStage -> Maybe (Ann UKindConstraint dom SrcTemplateStage) -> [Ann UGadtConDecl dom SrcTemplateStage]
                        -> Ann UDecl dom SrcTemplateStage
 mkGadtDataInstance instRule kind cons 
   = mkAnn (child <> " instance " <> child <> child <> " where " <> child) 
@@ -93,7 +93,7 @@ mkTypeSigDecl = mkAnn child . UTypeSigDecl
 mkValueBinding :: Ann UValueBind dom SrcTemplateStage -> Ann UDecl dom SrcTemplateStage
 mkValueBinding = mkAnn child . UValueBinding
 
-mkTypeFamilyKindSpec :: Ann KindConstraint dom SrcTemplateStage -> Ann UTypeFamilySpec dom SrcTemplateStage
+mkTypeFamilyKindSpec :: Ann UKindConstraint dom SrcTemplateStage -> Ann UTypeFamilySpec dom SrcTemplateStage
 mkTypeFamilyKindSpec = mkAnn child . UTypeFamilyKind
 
 mkTypeFamilyInjectivitySpec :: Ann UName dom SrcTemplateStage -> [Ann UName dom SrcTemplateStage] -> Ann UTypeFamilySpec dom SrcTemplateStage
@@ -112,7 +112,7 @@ mkClassElemDef = mkAnn child . UClsDef
 mkClassElemTypeFam :: Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann UTypeFamilySpec dom SrcTemplateStage) -> Ann UClassElement dom SrcTemplateStage
 mkClassElemTypeFam dh tfSpec = mkAnn ("type " <> child) $ UClsTypeFam (mkAnn (child <> child) $ UTypeFamily dh (mkAnnMaybe opt tfSpec))
 
-mkClassElemDataFam :: Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann KindConstraint dom SrcTemplateStage) -> Ann UClassElement dom SrcTemplateStage
+mkClassElemDataFam :: Ann UDeclHead dom SrcTemplateStage -> Maybe (Ann UKindConstraint dom SrcTemplateStage) -> Ann UClassElement dom SrcTemplateStage
 mkClassElemDataFam dh kind = mkAnn ("data " <> child) $ UClsTypeFam (mkAnn (child <> child) $ UDataFamily dh (mkAnnMaybe opt kind))
 
 mkNameDeclHead :: Ann UName dom SrcTemplateStage -> Ann UDeclHead dom SrcTemplateStage
@@ -148,7 +148,7 @@ mkInstanceElemNewtypeDef instRule cons derivs
   = mkAnn (child <> " " <> child <> child <> child) 
       $ UInstBodyDataDecl mkNewtypeKeyword instRule (mkAnnList (listSepBefore " | " " = ") cons) (mkAnnMaybe (optBefore " deriving ") derivs)
 
-mkInstanceElemGadtDataDef :: Ann UInstanceRule dom SrcTemplateStage -> Maybe (Ann KindConstraint dom SrcTemplateStage) -> [Ann UGadtConDecl dom SrcTemplateStage] 
+mkInstanceElemGadtDataDef :: Ann UInstanceRule dom SrcTemplateStage -> Maybe (Ann UKindConstraint dom SrcTemplateStage) -> [Ann UGadtConDecl dom SrcTemplateStage] 
                                -> Maybe (Ann UDeriving dom SrcTemplateStage) -> Ann UInstBodyDecl dom SrcTemplateStage
 mkInstanceElemGadtDataDef instRule kind cons derivs 
   = mkAnn (child <> " " <> child <> child <> child) 

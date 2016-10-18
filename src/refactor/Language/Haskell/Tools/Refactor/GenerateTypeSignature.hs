@@ -8,7 +8,7 @@
            #-}
 module Language.Haskell.Tools.Refactor.GenerateTypeSignature (generateTypeSignature, generateTypeSignature', GenerateSignatureDomain) where
 
-import GHC hiding (Module)
+import GHC hiding (UModule)
 import Type as GHC
 import TyCon as GHC
 import OccName as GHC
@@ -35,9 +35,9 @@ generateTypeSignature' :: GenerateSignatureDomain dom => RealSrcSpan -> LocalRef
 generateTypeSignature' sp = generateTypeSignature (nodesContaining sp) (nodesContaining sp) (getValBindInList sp) 
 
 -- | Perform the refactoring on either local or top-level definition
-generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Ann Module dom SrcTemplateStage) (AnnList UDecl dom SrcTemplateStage) 
+generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Ann UModule dom SrcTemplateStage) (AnnList UDecl dom SrcTemplateStage) 
                                 -- ^ Access for a top-level definition if it is the selected definition
-                           -> Simple Traversal (Ann Module dom SrcTemplateStage) (AnnList ULocalBind dom SrcTemplateStage) 
+                           -> Simple Traversal (Ann UModule dom SrcTemplateStage) (AnnList ULocalBind dom SrcTemplateStage) 
                                 -- ^ Access for a definition list if it contains the selected definition
                            -> (forall d . (Show (Ann d dom SrcTemplateStage), Data (Ann d dom SrcTemplateStage), Typeable d, BindingElem d) 
                                 => AnnList d dom SrcTemplateStage -> Maybe (Ann UValueBind dom SrcTemplateStage)) 

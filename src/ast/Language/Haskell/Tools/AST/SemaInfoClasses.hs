@@ -71,7 +71,7 @@ instance HasDefiningInfo' (NameInfo n) where
 instance HasDefiningInfo' CNameInfo where
   semanticsDefining = (^. cnameIsDefined)
 
-type HasModuleInfo dom = (Domain dom, HasModuleInfo' (SemanticInfo dom AST.Module))
+type HasModuleInfo dom = (Domain dom, HasModuleInfo' (SemanticInfo dom AST.UModule))
 
 class HasModuleInfo' si where
   semanticsModule :: si -> GHC.Module
@@ -88,7 +88,7 @@ instance HasModuleInfo' (AST.ModuleInfo GHC.Id) where
   isBootModule = (^. defIsBootModule)
   semanticsImplicitImports = map idName . (^. implicitNames)
 
-type HasImportInfo dom = (Domain dom, HasImportInfo' (SemanticInfo dom AST.ImportDecl))
+type HasImportInfo dom = (Domain dom, HasImportInfo' (SemanticInfo dom AST.UImportDecl))
   
 class HasImportInfo' si where
   semanticsImportedModule :: si -> GHC.Module

@@ -39,8 +39,8 @@ isPragma _ = False
 -- | Puts comments in the nodes they should be attached to. Leaves the AST in a state where parent nodes
 -- does not contain all of their children.
 placeComments :: RangeInfo stage => Map.Map SrcSpan [Located AnnotationComment] 
-              -> Ann Module dom stage
-              -> Ann Module dom stage
+              -> Ann UModule dom stage
+              -> Ann UModule dom stage
 placeComments comms mod
   = resizeAnnots (concatMap (map nextSrcLoc . snd) (Map.toList comms)) mod
   where spans = allElemSpans mod
@@ -55,8 +55,8 @@ allElemSpans :: (SourceInfoTraversal node, RangeInfo stage) => Ann node dom stag
 allElemSpans = execWriter . sourceInfoTraverse (SourceInfoTrf (\ni -> tell [ni ^. nodeSpan] >> pure ni) pure pure)
                                                  
 resizeAnnots :: RangeInfo stage => [((SrcLoc, SrcLoc), Located AnnotationComment)]
-              -> Ann Module dom stage
-              -> Ann Module dom stage
+              -> Ann UModule dom stage
+              -> Ann UModule dom stage
 resizeAnnots comments elem
   = flip evalState comments $ 
         -- if a comment that could be attached to more than one documentable element (possibly nested) 

@@ -119,7 +119,7 @@ loadModule workingDir moduleName
        getModSummary $ mkModuleName moduleName
     
 -- | The final version of our AST, with type infromation added
-type TypedModule = Ann AST.Module IdDom SrcTemplateStage
+type TypedModule = Ann AST.UModule IdDom SrcTemplateStage
 
 -- | Get the typed representation from a type-correct program.
 parseTyped :: ModSummary -> Ghc TypedModule

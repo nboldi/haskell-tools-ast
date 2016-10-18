@@ -61,11 +61,11 @@ renameModule from to m mods
                   !- (\e -> mkQualifiedName (splitOn "." to) (e ^. unqualifiedName&simpleNameStr)) $ mod
            else return mod
 
-        moduleQualifiers :: Ann Module dom SrcTemplateStage -> [String]
+        moduleQualifiers :: Ann UModule dom SrcTemplateStage -> [String]
         moduleQualifiers mod = mod ^? modImports & annList & filtered (\m -> isAnnNothing (m ^. importAs)) 
                                               & importModule & moduleNameString
 
-        nameConflict :: String -> Ann Module dom SrcTemplateStage -> Bool
+        nameConflict :: String -> Ann UModule dom SrcTemplateStage -> Bool
         nameConflict to mod 
           = let modName = mod ^? modHead&annJust&mhName&moduleNameString
                 imports = mod ^? modImports&annList

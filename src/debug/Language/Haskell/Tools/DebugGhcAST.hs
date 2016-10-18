@@ -85,7 +85,7 @@ deriving instance Show (HsType RdrName)
 deriving instance Show (HsValBindsLR RdrName RdrName)
 deriving instance Show (HsWildCardInfo RdrName)
 deriving instance Show (IE RdrName)
-deriving instance Show (ImportDecl RdrName)
+deriving instance Show (UImportDecl RdrName)
 deriving instance Show (InstDecl RdrName)
 deriving instance Show (LHsQTyVars RdrName)
 deriving instance Show a => Show (UMatch RdrName a)
@@ -162,7 +162,7 @@ deriving instance Show (HsType UName)
 deriving instance Show (HsValBindsLR UName UName)
 deriving instance Show (HsWildCardInfo UName)
 deriving instance Show (IE UName)
-deriving instance Show (ImportDecl UName)
+deriving instance Show (UImportDecl UName)
 deriving instance Show (InstDecl UName)
 deriving instance Show (LHsQTyVars UName)
 deriving instance Show a => Show (UMatch UName a)
@@ -239,7 +239,7 @@ deriving instance Show (HsType Id)
 deriving instance Show (HsValBindsLR Id Id)
 deriving instance Show (HsWildCardInfo Id)
 deriving instance Show (IE Id)
-deriving instance Show (ImportDecl Id)
+deriving instance Show (UImportDecl Id)
 deriving instance Show (InstDecl Id)
 deriving instance Show (LHsQTyVars Id)
 deriving instance Show a => Show (UMatch Id a)
@@ -320,7 +320,7 @@ instance Show OccName where
   -- show = showSDocUnsafe . ppr
   
 deriving instance Show RdrName
-deriving instance Show Module
+deriving instance Show UModule
 deriving instance Show StringLiteral
 deriving instance Show UntypedSpliceFlavour
 deriving instance Show SrcUnpackedness

@@ -7,7 +7,7 @@ import Language.Haskell.Tools.AST
 pattern VarPat :: Ann UName dom stage -> Ann Pattern dom stage
 pattern VarPat var <- Ann _ (UVarPat var)
 
-pattern LitPat :: Ann Literal dom stage -> Ann Pattern dom stage
+pattern LitPat :: Ann ULiteral dom stage -> Ann Pattern dom stage
 pattern LitPat lit <- Ann _ (ULitPat lit)
 
 pattern InfixAppPat :: Ann Pattern dom stage -> Ann UOperator dom stage -> Ann Pattern dom stage -> Ann Pattern dom stage

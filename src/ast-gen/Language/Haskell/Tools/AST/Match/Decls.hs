@@ -13,10 +13,10 @@ pattern TypeDecl dh typ <- Ann _ (UTypeDecl dh typ)
 pattern TypeFamily :: Ann UDeclHead dom stage -> AnnMaybe UTypeFamilySpec dom stage -> Ann UDecl dom stage
 pattern TypeFamily dh famSpec <- Ann _ (UTypeFamilyDecl (Ann _ (UTypeFamily dh famSpec)))
 
-pattern DataFamily :: Ann UDeclHead dom stage -> AnnMaybe KindConstraint dom stage -> Ann UDecl dom stage
+pattern DataFamily :: Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> Ann UDecl dom stage
 pattern DataFamily dh kind <- Ann _ (UTypeFamilyDecl (Ann _ (UDataFamily dh kind)))
 
-pattern ClosedTypeFamily :: Ann UDeclHead dom stage -> AnnMaybe KindConstraint dom stage -> AnnList UTypeEqn dom stage -> Ann UDecl dom stage
+pattern ClosedTypeFamily :: Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UTypeEqn dom stage -> Ann UDecl dom stage
 pattern ClosedTypeFamily dh kind typeqs <- Ann _ (UClosedTypeFamilyDecl dh kind typeqs)
 
 pattern DataDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
@@ -25,10 +25,10 @@ pattern DataDecl ctx dh cons derivs <- Ann _ (UDataDecl DataKeyword ctx dh cons 
 pattern NewtypeDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
 pattern NewtypeDecl ctx dh cons derivs <- Ann _ (UDataDecl NewtypeKeyword ctx dh cons derivs)
 
-pattern GADTDataDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnMaybe KindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
+pattern GADTDataDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
 pattern GADTDataDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl DataKeyword ctx dh kind cons derivs )
 
-pattern GADTNewtypeDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnMaybe KindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
+pattern GADTNewtypeDecl :: AnnMaybe Context dom stage -> Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
 pattern GADTNewtypeDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl NewtypeKeyword ctx dh kind cons derivs )
 
 pattern TypeInstance :: Ann UInstanceRule dom stage -> Ann Type dom stage -> Ann UDecl dom stage
@@ -42,7 +42,7 @@ pattern NewtypeInstance :: Ann UInstanceRule dom stage -> AnnList UConDecl dom s
                        -> Ann UDecl dom stage
 pattern NewtypeInstance instRule cons derivs  <- Ann _ (UDataInstDecl NewtypeKeyword instRule cons derivs )
 
-pattern GadtDataInstance :: Ann UInstanceRule dom stage -> AnnMaybe KindConstraint dom stage -> AnnList UGadtConDecl dom stage
+pattern GadtDataInstance :: Ann UInstanceRule dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage
                        -> Ann UDecl dom stage
 pattern GadtDataInstance instRule kind cons  <- Ann _ (UGDataInstDecl DataKeyword instRule kind cons )
 
@@ -92,7 +92,7 @@ pattern TwoWayPatSyn pat match <- Ann _ (UBidirectionalPatSyn pat (AnnJust (Ann 
 
 -- * Type families
 
-pattern TypeFamilyKindSpec :: Ann KindConstraint dom stage -> Ann UTypeFamilySpec dom stage
+pattern TypeFamilyKindSpec :: Ann UKindConstraint dom stage -> Ann UTypeFamilySpec dom stage
 pattern TypeFamilyKindSpec kind <- Ann _ (UTypeFamilyKind kind)
 
 pattern TypeFamilyInjectivitySpec :: Ann UName dom stage -> AnnList UName dom stage -> Ann UTypeFamilySpec dom stage
@@ -112,7 +112,7 @@ pattern ClassElemDef def <- Ann _ (UClsDef def)
 pattern ClassElemTypeFam :: Ann UDeclHead dom stage -> AnnMaybe UTypeFamilySpec dom stage -> Ann UClassElement dom stage
 pattern ClassElemTypeFam dh tfSpec <- Ann _ (UClsTypeFam (Ann _ (UTypeFamily dh tfSpec)))
 
-pattern ClassElemDataFam :: Ann UDeclHead dom stage -> AnnMaybe KindConstraint dom stage -> Ann UClassElement dom stage
+pattern ClassElemDataFam :: Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> Ann UClassElement dom stage
 pattern ClassElemDataFam dh kind <- Ann _ (UClsTypeFam (Ann _ (UDataFamily dh kind)))
 
 -- * Declaration heads
@@ -148,7 +148,7 @@ pattern InstanceElemNewtypeDef :: Ann UInstanceRule dom stage -> AnnList UConDec
                            -> Ann UInstBodyDecl dom stage
 pattern InstanceElemNewtypeDef instRule cons derivs  <- Ann _ (UInstBodyDataDecl NewtypeKeyword instRule cons derivs )
 
-pattern InstanceElemGadtDataDef :: Ann UInstanceRule dom stage -> AnnMaybe KindConstraint dom stage -> AnnList UGadtConDecl dom stage 
+pattern InstanceElemGadtDataDef :: Ann UInstanceRule dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage 
                                -> AnnMaybe UDeriving dom stage -> Ann UInstBodyDecl dom stage
 pattern InstanceElemGadtDataDef instRule kind cons derivs  <- Ann _ (UInstBodyGadtDataDecl _ instRule kind cons derivs )
 

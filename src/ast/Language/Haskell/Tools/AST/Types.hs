@@ -10,7 +10,7 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
 -- | Type variable declaration
 data TyVar dom stage
   = UTyVarDecl { _tyVarName :: Ann UName dom stage
-               , _tyVarKind :: AnnMaybe KindConstraint dom stage
+               , _tyVarKind :: AnnMaybe UKindConstraint dom stage
                }
 
 -- | Haskell types
@@ -44,9 +44,9 @@ data Type dom stage
                   , _typeRight :: Ann Type dom stage
                   } -- ^ Infix type constructor (@ (a <: b) @)
   | UTyKinded     { _typeInner :: Ann Type dom stage
-                  , _typeKind :: Ann Kind dom stage
+                  , _typeKind :: Ann UKind dom stage
                   } -- ^ Type with explicit kind signature (@ _a :: * @)
-  | UTyPromoted   { _tpPromoted :: Ann (Promoted Type) dom stage
+  | UTyPromoted   { _tpPromoted :: Ann (UPromoted Type) dom stage
                   } -- A promoted data type with @-XDataKinds@ (@ 3 @, @ Left @, @ 'Left @).
   | UTySplice     { _tsSplice :: Splice dom stage
                   } -- ^ a Template Haskell splice type (@ $(genType) @).

@@ -22,7 +22,7 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 mkVar :: Ann UName dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
 mkVar = mkAnn child . UVar
 
-mkLit :: Ann Literal dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkLit :: Ann ULiteral dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
 mkLit = mkAnn child . ULit
 
 mkInfixApp :: Ann UExpr dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage

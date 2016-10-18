@@ -427,7 +427,7 @@ trfPatternSynonym (PSB id _ lhs def dir)
         trfPatSynWhere :: TransformName n r => MatchGroup n (LHsExpr n) -> Trf (Ann AST.UPatSynWhere (Dom r) RangeStage)
         trfPatSynWhere (MG { mg_alts = alts }) = annLocNoSema (pure $ getLoc alts) (AST.UPatSynWhere <$> makeIndentedList (after AnnWhere) (mapM (trfMatch (unLoc id)) (unLoc alts)))
 
-trfFamilyKind :: TransformName n r => Located (FamilyResultSig n) -> Trf (AnnMaybe AST.KindConstraint (Dom r) RangeStage)
+trfFamilyKind :: TransformName n r => Located (FamilyResultSig n) -> Trf (AnnMaybe AST.UKindConstraint (Dom r) RangeStage)
 trfFamilyKind (unLoc -> fr) = case fr of
   NoSig -> nothing "" " " atTheEnd
   KindSig k -> trfKindSig (Just k)
