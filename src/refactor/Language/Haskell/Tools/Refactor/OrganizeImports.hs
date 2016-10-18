@@ -40,7 +40,7 @@ organizeImports mod
   = modImports&annListElems !~ narrowImports usedNames . sortImports $ mod
   where usedNames = map getName $ catMaybes
                                 $ map (semanticsName . (^. (annotation&semanticInfo)))
-                                $ (universeBi (mod ^. modHead) ++ universeBi (mod ^. modDecl) :: [Ann QualifiedName dom SrcTemplateStage])
+                                $ (universeBi (mod ^. modHead) ++ universeBi (mod ^. modDecl) :: [Ann UQualifiedName dom SrcTemplateStage])
         
 -- | Sorts the imports in alphabetical order
 sortImports :: [Ann ImportDecl dom SrcTemplateStage] -> [Ann ImportDecl dom SrcTemplateStage]

@@ -11,14 +11,14 @@ import Language.Haskell.Tools.AST.Ann
               
 -- | A template haskell splice          
 data Splice dom stage
-  = IdSplice    { _spliceId :: Ann Name dom stage
+  = IdSplice    { _spliceId :: Ann UName dom stage
                 } -- ^ A simple name splice: @$generateX@
   | ParenSplice { _spliceExpr :: Ann Expr dom stage
                 } -- ^ A splice with parentheses: @$(generate input)@
   
 -- | Template haskell quasi-quotation: @[quoter|str]@  
 data QuasiQuote dom stage
-  = QuasiQuote { _qqExprName :: Ann Name dom stage
+  = QuasiQuote { _qqExprName :: Ann UName dom stage
                , _qqExprBody :: Ann QQString dom stage
                } 
         

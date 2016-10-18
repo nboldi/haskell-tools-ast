@@ -164,7 +164,7 @@ trfModuleRename mod rangeMod (gr,imports,exps,_) hsMod
          trfLocCorrect (pure info) (\sr -> combineSrcSpans sr <$> (uniqueTokenAnywhere AnnEofPos)) (trfModuleRename' (info ^. AST.implicitNames)) hsMod      
   where roleAnnots = rangeMod ^? AST.modDecl&AST.annList&filtered ((\case Ann _ (AST.URoleDecl {}) -> True; _ -> False))
         originalNames = Map.fromList $ catMaybes $ map getSourceAndInfo (rangeMod ^? biplateRef) 
-        getSourceAndInfo :: Ann AST.QualifiedName (Dom RdrName) RangeStage -> Maybe (SrcSpan, RdrName)
+        getSourceAndInfo :: Ann AST.UQualifiedName (Dom RdrName) RangeStage -> Maybe (SrcSpan, RdrName)
         getSourceAndInfo n = (,) <$> (n ^? annotation&sourceInfo&nodeSpan) <*> (n ^? semantics&nameInfo)
         
         trfModuleRename' preludeImports hsMod@(HsModule name exports _ decls deprec _) = do
@@ -239,7 +239,7 @@ trfModulePragma = trfMaybeDefault " " "" (trfLocNoSema $ \case WarningTxt _ txts
                                                                DeprecatedTxt _ txts -> AST.UModuleDeprecatedPragma <$> trfAnnList " " trfText' txts) 
                                   (before AnnWhere)
 
-trfText' :: StringLiteral -> Trf (AST.StringNode (Dom r) RangeStage)
+trfText' :: StringLiteral -> Trf (AST.UStringNode (Dom r) RangeStage)
 trfText' = pure . AST.UStringNode . unpackFS . sl_fs
 
 

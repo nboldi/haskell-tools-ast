@@ -1,11 +1,11 @@
 {-# LANGUAGE RoleAnnotations #-}
 module Language.Haskell.Tools.AST.Binds where
 
-type role LocalBind nominal nominal
-data LocalBind dom stage
+type role ULocalBind nominal nominal
+data ULocalBind dom stage
 
-type role LocalBinds nominal nominal
-data LocalBinds dom stage
+type role ULocalBinds nominal nominal
+data ULocalBinds dom stage
 
-type role RhsGuard nominal nominal
-data RhsGuard dom stage
+type role URhsGuard nominal nominal
+data URhsGuard dom stage

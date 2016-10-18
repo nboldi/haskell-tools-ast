@@ -9,7 +9,7 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
 
 -- | Type variable declaration
 data TyVar dom stage
-  = UTyVarDecl { _tyVarName :: Ann Name dom stage
+  = UTyVarDecl { _tyVarName :: Ann UName dom stage
                , _tyVarKind :: AnnMaybe KindConstraint dom stage
                }
 
@@ -35,12 +35,12 @@ data Type dom stage
   | UTyApp        { _typeCon :: Ann Type dom stage
                   , _typeArg :: Ann Type dom stage
                   } -- ^ Type application (@ F a @)
-  | UTyVar        { _typeName :: Ann Name dom stage
+  | UTyVar        { _typeName :: Ann UName dom stage
                   } -- ^ type variable or constructor (@ a @)
   | UTyParen      { _typeInner :: Ann Type dom stage
                   } -- ^ type surrounded by parentheses (@ (T a) @)
   | UTyInfix      { _typeLeft :: Ann Type dom stage
-                  , _typeOperator :: Ann Operator dom stage
+                  , _typeOperator :: Ann UOperator dom stage
                   , _typeRight :: Ann Type dom stage
                   } -- ^ Infix type constructor (@ (a <: b) @)
   | UTyKinded     { _typeInner :: Ann Type dom stage
@@ -61,7 +61,7 @@ data Type dom stage
   | UTyNoUnpack   { _typeInner :: Ann Type dom stage
                   } -- ^ Strict type marked with NOUNPACK pragma. (Usually contains the bang mark.)
   | UTyWildcard   -- ^ A wildcard type (@ _ @) with @-XPartialTypeSignatures@
-  | UTyNamedWildc { _typeWildcardName :: Ann Name dom stage
+  | UTyNamedWildc { _typeWildcardName :: Ann UName dom stage
                   } -- ^ A named wildcard type (@ _t @) with @-XPartialTypeSignatures@
 
 -- One or more assertions
@@ -73,14 +73,14 @@ data Context dom stage
 
 -- | A single assertion in the context
 data Assertion dom stage
-  = UClassAssert { _assertClsName :: Ann Name dom stage
+  = UClassAssert { _assertClsName :: Ann UName dom stage
                  , _assertTypes :: AnnList Type dom stage
                  } -- ^ Class assertion (@Cls x@)
   | UInfixAssert { _assertLhs :: Ann Type dom stage
-                 , _assertOp :: Ann Operator dom stage
+                 , _assertOp :: Ann UOperator dom stage
                  , _assertRhs :: Ann Type dom stage
                  } -- ^ Infix class assertion, also contains type equations (@ a ~ X y @)
-  | UImplicitAssert { _assertImplVar :: Ann Name dom stage
+  | UImplicitAssert { _assertImplVar :: Ann UName dom stage
                     , _assertImplType :: Ann Type dom stage
                     } -- ^ Assertion for implicit parameter binding (@ ?cmp :: a -> a -> Bool @)
                  

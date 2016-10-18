@@ -13,6 +13,10 @@ import Data.Function (on)
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 
+type ASTElement node dom = Ann node dom SrcTemplateStage
+type ASTOptional node dom = AnnMaybe node dom SrcTemplateStage
+type ASTMulti node dom = AnnList node dom SrcTemplateStage
+
 filterList :: (Ann e dom SrcTemplateStage -> Bool) -> AnnList e dom SrcTemplateStage -> AnnList e dom SrcTemplateStage
 -- QUESTION: is it OK? No problem from losing separators?
 filterList pred ls = replaceList (filter pred (ls ^. annListElems)) ls   

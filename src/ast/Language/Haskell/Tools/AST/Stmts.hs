@@ -5,7 +5,7 @@ import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Base
 import Language.Haskell.Tools.AST.Patterns
 import {-# SOURCE #-} Language.Haskell.Tools.AST.Exprs (Expr, Cmd)
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Binds (LocalBind)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Binds (ULocalBind)
 
 -- | Normal monadic statements
 data Stmt' expr dom stage
@@ -14,7 +14,7 @@ data Stmt' expr dom stage
               } -- ^ Binding statement (@ x <- action @)
   | UExprStmt { _stmtExpr :: Ann expr dom stage
               } -- ^ Non-binding statement (@ action @)
-  | ULetStmt  { _stmtBinds :: AnnList LocalBind dom stage
+  | ULetStmt  { _stmtBinds :: AnnList ULocalBind dom stage
               } -- ^ Let statement (@ let x = 3; y = 4 @)
   | URecStmt  { _cmdStmtBinds :: AnnList (Stmt' expr) dom stage
               } -- ^ A recursive binding statement with (@ rec b <- f a c; c <- f b a @)

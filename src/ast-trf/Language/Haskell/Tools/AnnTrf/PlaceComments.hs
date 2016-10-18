@@ -77,7 +77,7 @@ expandTopLevelDecl
       >=> declTypeSig !~ expandTypeSig
       >=> expandAnnot
 
-expandTypeSig :: RangeInfo stage => ExpandType TypeSignature dom stage
+expandTypeSig :: RangeInfo stage => ExpandType UTypeSignature dom stage
 expandTypeSig
   = tsType & typeParams !~ expandAnnot >=> expandAnnot
 
@@ -87,13 +87,13 @@ expandClsElement
       >=> ceBind !~ expandValueBind
       >=> expandAnnot
 
-expandValueBind :: RangeInfo stage => ExpandType ValueBind dom stage
+expandValueBind :: RangeInfo stage => ExpandType UValueBind dom stage
 expandValueBind
   = valBindLocals & annJust & localBinds & annList !~ expandLocalBind 
       >=> funBindMatches & annList & matchBinds & annJust & localBinds & annList !~ expandLocalBind
       >=> expandAnnot
 
-expandLocalBind :: RangeInfo stage => ExpandType LocalBind dom stage
+expandLocalBind :: RangeInfo stage => ExpandType ULocalBind dom stage
 expandLocalBind
   = localVal !~ expandValueBind 
       >=> localSig !~ expandTypeSig 

@@ -44,28 +44,28 @@ import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils
 
-trfOperator :: TransformName n r => Located n -> Trf (Ann AST.Operator (Dom r) RangeStage)
+trfOperator :: TransformName n r => Located n -> Trf (Ann AST.UOperator (Dom r) RangeStage)
 trfOperator = trfLocNoSema trfOperator'
 
-trfOperator' :: TransformName n r => n -> Trf (AST.Operator (Dom r) RangeStage)
+trfOperator' :: TransformName n r => n -> Trf (AST.UOperator (Dom r) RangeStage)
 trfOperator' n
   | isSymOcc (occName n) = AST.UNormalOp <$> (annCont (createNameInfo (transformName n)) (trfQualifiedName' n))
   | otherwise = AST.UBacktickOp <$> (annLoc (createNameInfo (transformName n)) loc (trfQualifiedName' n))
      where loc = mkSrcSpan <$> (updateCol (+1) <$> atTheStart) <*> (updateCol (subtract 1) <$> atTheEnd)
 
-trfName :: TransformName n r => Located n -> Trf (Ann AST.Name (Dom r) RangeStage)
+trfName :: TransformName n r => Located n -> Trf (Ann AST.UName (Dom r) RangeStage)
 trfName = trfLocNoSema trfName'
 
-trfName' :: TransformName n r => n -> Trf (AST.Name (Dom r) RangeStage)
+trfName' :: TransformName n r => n -> Trf (AST.UName (Dom r) RangeStage)
 trfName' n
   | isSymOcc (occName n) = AST.UParenName <$> (annLoc (createNameInfo (transformName n)) loc (trfQualifiedName' n))
   | otherwise = AST.UNormalName <$> (annCont (createNameInfo (transformName n)) (trfQualifiedName' n))
      where loc = mkSrcSpan <$> (updateCol (+1) <$> atTheStart) <*> (updateCol (subtract 1) <$> atTheEnd)
 
-trfAmbiguousFieldName :: TransformName n r => Located (AmbiguousFieldOcc n) -> Trf (Ann AST.Name (Dom r) RangeStage)
+trfAmbiguousFieldName :: TransformName n r => Located (AmbiguousFieldOcc n) -> Trf (Ann AST.UName (Dom r) RangeStage)
 trfAmbiguousFieldName all@(L l af) = trfAmbiguousFieldName' l af
 
-trfAmbiguousFieldName' :: forall n r . TransformName n r => SrcSpan -> AmbiguousFieldOcc n -> Trf (Ann AST.Name (Dom r) RangeStage)
+trfAmbiguousFieldName' :: forall n r . TransformName n r => SrcSpan -> AmbiguousFieldOcc n -> Trf (Ann AST.UName (Dom r) RangeStage)
 trfAmbiguousFieldName' l (Unambiguous (L _ rdr) pr) = annLocNoSema (pure l) $ trfName' (unpackPostRn @n rdr pr)
 -- no Id transformation is done, so we can basically ignore the postTC value
 trfAmbiguousFieldName' _ (Ambiguous (L l rdr) _) 
@@ -91,7 +91,7 @@ instance TransformableName GHC.Name where
   fromGHCName = id
 
 -- | This class allows us to use the same transformation code for multiple variants of the GHC AST.
--- GHC Name annotated with 'name' can be transformed to our representation with semantic annotations of 'res'.
+-- GHC UName annotated with 'name' can be transformed to our representation with semantic annotations of 'res'.
 class (TransformableName name, HsHasName name, TransformableName res, HsHasName res, GHCName res) 
         => TransformName name res where
   -- | Demote a given name
@@ -103,24 +103,24 @@ instance {-# OVERLAPPABLE #-} (n ~ r, TransformableName n, HsHasName n) => Trans
 instance {-# OVERLAPS #-} (TransformableName res, GHCName res, HsHasName res) => TransformName GHC.Name res where
   transformName = fromGHCName
 
-trfImplicitName :: HsIPName -> Trf (Ann AST.Name (Dom r) RangeStage)
+trfImplicitName :: HsIPName -> Trf (Ann AST.UName (Dom r) RangeStage)
 trfImplicitName (HsIPName fs) 
   = let nstr = unpackFS fs 
      in do rng <- asks contRange
            let rng' = mkSrcSpan (updateCol (+1) (srcSpanStart rng)) (srcSpanEnd rng)
            annContNoSema (AST.UImplicitName <$> annLoc (createImplicitNameInfo nstr) (pure rng') (AST.nameFromList <$> trfNameStr nstr))
 
-trfQualifiedName :: TransformName n r => Located n -> Trf (Ann AST.QualifiedName (Dom r) RangeStage)
+trfQualifiedName :: TransformName n r => Located n -> Trf (Ann AST.UQualifiedName (Dom r) RangeStage)
 trfQualifiedName name@(L l n) = annLoc (createNameInfo (transformName n)) (pure l) (trfQualifiedName' n)
 
-trfQualifiedName' :: TransformName n r => n -> Trf (AST.QualifiedName (Dom r) RangeStage)
+trfQualifiedName' :: TransformName n r => n -> Trf (AST.UQualifiedName (Dom r) RangeStage)
 trfQualifiedName' n = AST.nameFromList <$> (trfNameStr =<< correctNameString n)
 
 -- | Creates a qualified name from a name string
-trfNameStr :: String -> Trf (AnnList AST.NamePart (Dom r) RangeStage)
+trfNameStr :: String -> Trf (AnnList AST.UNamePart (Dom r) RangeStage)
 trfNameStr str = makeList "." atTheStart (trfNameStr' str <$> atTheStart)
 
-trfNameStr' :: String -> SrcLoc -> [Ann AST.NamePart (Dom r) RangeStage]
+trfNameStr' :: String -> SrcLoc -> [Ann AST.UNamePart (Dom r) RangeStage]
 trfNameStr' str srcLoc = fst $
   foldl (\(r,loc) np -> let nextLoc = advanceAllSrcLoc loc np
                          in ( r ++ [Ann (noSemaInfo $ AST.NodeSpan (mkSrcSpan loc nextLoc)) (AST.UNamePart np)], advanceAllSrcLoc nextLoc "." ) ) 
@@ -142,16 +142,16 @@ trfNameStr' str srcLoc = fst $
         nameParts' carry [] = [reverse carry]
         nameParts' carry str = error $ "nameParts': " ++ show carry ++ " " ++ show str
   
-trfModuleName :: Located ModuleName -> Trf (Ann AST.ModuleName (Dom r) RangeStage)
+trfModuleName :: Located ModuleName -> Trf (Ann AST.UModuleName (Dom r) RangeStage)
 trfModuleName = trfLocNoSema trfModuleName'
 
-trfModuleName' :: ModuleName -> Trf (AST.ModuleName (Dom r) RangeStage)
+trfModuleName' :: ModuleName -> Trf (AST.UModuleName (Dom r) RangeStage)
 trfModuleName' = pure . AST.UModuleName . moduleNameString
 
-trfFastString :: Located FastString -> Trf (Ann AST.StringNode (Dom r) RangeStage)
+trfFastString :: Located FastString -> Trf (Ann AST.UStringNode (Dom r) RangeStage)
 trfFastString = trfLocNoSema $ pure . AST.UStringNode . unpackFS
   
-trfDataKeyword ::  NewOrData -> Trf (Ann AST.DataOrNewtypeKeyword (Dom r) RangeStage)
+trfDataKeyword ::  NewOrData -> Trf (Ann AST.UDataOrNewtypeKeyword (Dom r) RangeStage)
 trfDataKeyword NewType = annLocNoSema (tokenLoc AnnNewtype) (pure AST.UNewtypeKeyword)
 trfDataKeyword DataType = annLocNoSema (tokenLoc AnnData) (pure AST.UDataKeyword)
      

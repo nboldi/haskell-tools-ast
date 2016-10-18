@@ -22,7 +22,7 @@ mkBindStmt bound expr = mkAnn (child <> " <- " <> child) $ UBindStmt bound expr
 mkExprStmt :: Ann Expr dom SrcTemplateStage -> Ann Stmt dom SrcTemplateStage
 mkExprStmt = mkAnn child . UExprStmt
 
-mkLetStmt :: [Ann LocalBind dom SrcTemplateStage] -> Ann Stmt dom SrcTemplateStage
+mkLetStmt :: [Ann ULocalBind dom SrcTemplateStage] -> Ann Stmt dom SrcTemplateStage
 mkLetStmt = mkAnn ("let " <> child) . ULetStmt . mkAnnList indentedList
 
 mkListCompBody :: [Ann CompStmt dom SrcTemplateStage] -> Ann ListCompBody dom SrcTemplateStage

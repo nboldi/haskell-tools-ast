@@ -11,15 +11,15 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
         
 -- | Representation of patterns for pattern bindings
 data Pattern dom stage
-  = UVarPat         { _patternName :: Ann Name dom stage
+  = UVarPat         { _patternName :: Ann UName dom stage
                     } -- ^ Pattern name binding
   | ULitPat         { _patternLiteral :: Ann Literal dom stage
                     } -- ^ Literal pattern
   | UInfixAppPat    { _patternLhs :: Ann Pattern dom stage
-                    , _patternOperator :: Ann Operator dom stage
+                    , _patternOperator :: Ann UOperator dom stage
                     , _patternRhs :: Ann Pattern dom stage
                     } -- ^ Infix constructor application pattern (@ a :+: b @)
-  | UAppPat         { _patternName :: Ann Name dom stage
+  | UAppPat         { _patternName :: Ann UName dom stage
                     , _patternArgs :: AnnList Pattern dom stage
                     } -- ^ Constructor application pattern (@ Point x y @)
   | UTuplePat       { _patternElems :: AnnList Pattern dom stage
@@ -32,10 +32,10 @@ data Pattern dom stage
                     } -- ^ Parallel array pattern (@ [:1,2,a,x:] @)
   | UParenPat       { _patternInner :: Ann Pattern dom stage
                     } -- ^ Parenthesised patterns
-  | URecPat         { _patternName :: Ann Name dom stage
+  | URecPat         { _patternName :: Ann UName dom stage
                     , _patternFields :: AnnList PatternField dom stage
                     } -- ^ Record pattern (@ Point { x = 3, y } @)
-  | UAsPat          { _patternName :: Ann Name dom stage
+  | UAsPat          { _patternName :: Ann UName dom stage
                     , _patternInner :: Ann Pattern dom stage
                     } -- ^ As-pattern (explicit name binding) (@ ls\@(hd:_) @)
   | UWildPat       -- ^ Wildcard pattern: (@ _ @)
@@ -55,16 +55,16 @@ data Pattern dom stage
                    } -- ^ Splice patterns: @$(generateX inp)@
   | UQuasiQuotePat { _patQQ :: Ann QuasiQuote dom stage
                    } -- ^ Quasi-quoted patterns: @[| 1 + 2 |]@
-  | UNPlusKPat     { _patternName :: Ann Name dom stage
+  | UNPlusKPat     { _patternName :: Ann UName dom stage
                    , _patternLit :: Ann Literal dom stage
                    }
                   
 -- Field specification of a record pattern
 data PatternField dom stage
-  = UNormalFieldPattern   { _fieldPatternName :: Ann Name dom stage
+  = UNormalFieldPattern   { _fieldPatternName :: Ann UName dom stage
                           , _fieldPattern :: Ann Pattern dom stage
                           } -- ^ Named field pattern (@ p = Point 3 2 @)
-  | UFieldPunPattern      { _fieldPatternName :: Ann Name dom stage
+  | UFieldPunPattern      { _fieldPatternName :: Ann UName dom stage
                           } -- ^ Named field pun (@ p @)
   | UFieldWildcardPattern { _fieldPatternWildcard :: Ann FieldWildcard dom stage
                           } -- ^ Wildcard field pattern (@ .. @)

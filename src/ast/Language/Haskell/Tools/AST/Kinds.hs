@@ -19,7 +19,7 @@ data Kind dom stage
                   } -- ^ @->@, the kind of type constructor
   | UParenKind    { _kindParen :: Ann Kind dom stage
                   } -- ^ A parenthesised kind
-  | UVarKind      { _kindVar :: Ann Name dom stage
+  | UVarKind      { _kindVar :: Ann UName dom stage
                   } -- ^ kind variable (using @PolyKinds@ extension)
   | UAppKind      { _kindAppFun :: Ann Kind dom stage
                   , _kindAppArg :: Ann Kind dom stage 
@@ -32,7 +32,7 @@ data Kind dom stage
 data Promoted t dom stage
   = UPromotedInt    { _promotedIntValue :: Integer }
   | UPromotedString { _promotedStringValue :: String }
-  | UPromotedCon    { _promotedConName :: Ann Name dom stage }
+  | UPromotedCon    { _promotedConName :: Ann UName dom stage }
   | UPromotedList   { _promotedElements :: AnnList t dom stage }
   | UPromotedTuple  { _promotedElements :: AnnList t dom stage }
   | UPromotedUnit

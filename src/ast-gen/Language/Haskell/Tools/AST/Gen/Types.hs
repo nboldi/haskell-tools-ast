@@ -46,16 +46,16 @@ mkTyParArray = mkAnn ("[:" <> child <> ":]") . UTyParArray
 mkTyApp :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyApp ft at = mkAnn (child <> " " <> child) (UTyApp ft at)
 
-mkTyInfix :: Ann Type dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyInfix :: Ann Type dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyInfix left op right = mkAnn (child <> " " <> child <> " " <> child) (UTyInfix left op right)
              
 mkTyParen :: Ann Type dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyParen = mkAnn ("(" <> child <> ")") . UTyParen
            
-mkTypeVar :: Ann Name dom SrcTemplateStage -> Ann TyVar dom SrcTemplateStage
+mkTypeVar :: Ann UName dom SrcTemplateStage -> Ann TyVar dom SrcTemplateStage
 mkTypeVar n = mkAnn (child <> child) (UTyVarDecl n noth)
 
-mkTyVar :: Ann Name dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyVar :: Ann UName dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyVar = wrapperAnn . UTyVar
 
 mkTyKinded :: Ann Type dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
@@ -73,7 +73,7 @@ mkTyUnpack = mkAnn ("{-# UNPACK #-} " <> child) . UTyUnpack
 mkTyWildcard :: Ann Type dom SrcTemplateStage
 mkTyWildcard = mkAnn "_" UTyWildcard
 
-mkTyNamedWildcard :: Ann Name dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
+mkTyNamedWildcard :: Ann UName dom SrcTemplateStage -> Ann Type dom SrcTemplateStage
 mkTyNamedWildcard = mkAnn ("_" <> child) . UTyNamedWildc
 
 -- * Generation of contexts
@@ -86,9 +86,9 @@ mkContextMulti = mkAnn ("(" <> child <> ") =>") . UContextMulti . mkAnnList (lis
 
 -- * Generation of assertions
 
-mkClassAssert :: Ann Name dom SrcTemplateStage -> [Ann Type dom SrcTemplateStage] -> Ann Assertion dom SrcTemplateStage
+mkClassAssert :: Ann UName dom SrcTemplateStage -> [Ann Type dom SrcTemplateStage] -> Ann Assertion dom SrcTemplateStage
 -- fixme: class assertion without parameters should not have the last space
 mkClassAssert n args = mkAnn (child <> " " <> child) $ UClassAssert n (mkAnnList (listSep " ") args)
 
-mkInfixAssert :: Ann Type dom SrcTemplateStage -> Ann Operator dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Assertion dom SrcTemplateStage
+mkInfixAssert :: Ann Type dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann Type dom SrcTemplateStage -> Ann Assertion dom SrcTemplateStage
 mkInfixAssert left op right = mkAnn (child <> " " <> child <> " " <> child) $ UInfixAssert left op right

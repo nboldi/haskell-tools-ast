@@ -31,7 +31,7 @@ mkKindFun lhs rhs = mkAnn (child <> " -> " <> child) $ UFunKind lhs rhs
 mkKindParen :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
 mkKindParen = mkAnn ("(" <> child <> ")") . UParenKind
 
-mkKindVar :: Ann Name dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+mkKindVar :: Ann UName dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
 mkKindVar = mkAnn child . UVarKind
 
 mkKindApp :: Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
@@ -46,7 +46,7 @@ mkIntKind i = mkAnn child $ UPromotedKind $ mkAnn (fromString $ show i) (UPromot
 mkStringKind :: String -> Ann Kind dom SrcTemplateStage
 mkStringKind i = mkAnn child $ UPromotedKind $ mkAnn (fromString $ show i) (UPromotedString i)
 
-mkConKind :: Ann Name dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
+mkConKind :: Ann UName dom SrcTemplateStage -> Ann Kind dom SrcTemplateStage
 mkConKind = mkAnn child . UPromotedKind . mkAnn child . UPromotedCon
 
 mkListKind :: [Ann Kind dom SrcTemplateStage] -> Ann Kind dom SrcTemplateStage

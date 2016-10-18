@@ -83,7 +83,7 @@ data SameInfoDefaultCls
 data SameInfoWildcardCls
 
 type family SemaInfoClassify (node :: * -> * -> *) where
-  SemaInfoClassify QualifiedName = SameInfoNameCls
+  SemaInfoClassify UQualifiedName = SameInfoNameCls
   SemaInfoClassify Expr          = SameInfoExprCls
   SemaInfoClassify ImportDecl    = SameInfoImportCls
   SemaInfoClassify AST.Module    = SameInfoModuleCls
@@ -316,7 +316,6 @@ annLength (AnnListC _ ls) = length ls
 -- | A non-existing AST part
 annNothing :: NodeInfo (SemanticInfo d (AnnMaybe e)) (OptionalInfo s) -> AnnMaybe e d s
 annNothing a = AnnMaybe a Nothing
-
 
 -- * Info types
 

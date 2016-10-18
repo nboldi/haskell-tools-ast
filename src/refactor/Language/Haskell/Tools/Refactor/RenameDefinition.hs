@@ -37,7 +37,7 @@ type DomainRenameDefinition dom = ( HasNameInfo dom, HasScopeInfo dom, HasDefini
 
 renameDefinition' :: forall dom . DomainRenameDefinition dom => RealSrcSpan -> String -> Refactoring dom
 renameDefinition' sp str mod mods
-  = case (getNodeContaining sp (snd mod) :: Maybe (Ann QualifiedName dom SrcTemplateStage)) >>= (fmap getName . (semanticsName =<<) . (^? semantics)) of 
+  = case (getNodeContaining sp (snd mod) :: Maybe (Ann UQualifiedName dom SrcTemplateStage)) >>= (fmap getName . (semanticsName =<<) . (^? semantics)) of 
       Just name -> do let sameNames = bindsWithSameName name (snd mod ^? biplateRef) 
                       renameDefinition name sameNames str mod mods
         where bindsWithSameName :: GHC.Name -> [Ann FieldWildcard dom SrcTemplateStage] -> [GHC.Name]
@@ -48,16 +48,16 @@ renameDefinition' sp str mod mods
 
 renameModule :: forall dom . DomainRenameDefinition dom => String -> String -> Refactoring dom
 renameModule from to m mods 
-    | any (nameConflict to) (map snd $ m:mods) = refactError "Name conflict when renaming module" 
+    | any (nameConflict to) (map snd $ m:mods) = refactError "UName conflict when renaming module" 
     | not (validModuleName to) = refactError "The given name is not a valid module name" 
     | otherwise = fmap (\ls -> ModuleRemoved from : map (\(ContentChanged (mod,res)) -> ContentChanged (if mod == from then to else mod, res)) ls)
                     $ localRefactoring (replaceModuleNames >=> alterNormalNames) m mods
   where replaceModuleNames :: LocalRefactoring dom
-        replaceModuleNames = biplateRef @_ @(Ann ModuleName dom SrcTemplateStage) & filtered (\e -> (e ^. moduleNameString) == from) != mkModuleName to
+        replaceModuleNames = biplateRef @_ @(Ann UModuleName dom SrcTemplateStage) & filtered (\e -> (e ^. moduleNameString) == from) != mkModuleName to
 
         alterNormalNames :: LocalRefactoring dom
         alterNormalNames mod = if from `elem` moduleQualifiers mod 
-           then biplateRef @_ @(Ann QualifiedName dom SrcTemplateStage) & filtered (\e -> concat (intersperse "." (e ^? qualifiers&annList&simpleNameStr)) == from)
+           then biplateRef @_ @(Ann UQualifiedName dom SrcTemplateStage) & filtered (\e -> concat (intersperse "." (e ^? qualifiers&annList&simpleNameStr)) == from)
                   !- (\e -> mkQualifiedName (splitOn "." to) (e ^. unqualifiedName&simpleNameStr)) $ mod
            else return mod
 
@@ -87,8 +87,8 @@ renameDefinition toChangeOrig toChangeWith newName mod mods
              if isChanged then return $ Just (name, res)
                           else return Nothing
 
-    changeName :: DomainRenameDefinition dom => GHC.Name -> [GHC.Name] -> String -> Ann QualifiedName dom SrcTemplateStage 
-                                                         -> StateT Bool (StateT Bool (LocalRefactor dom)) (Ann QualifiedName dom SrcTemplateStage)
+    changeName :: DomainRenameDefinition dom => GHC.Name -> [GHC.Name] -> String -> Ann UQualifiedName dom SrcTemplateStage 
+                                                         -> StateT Bool (StateT Bool (LocalRefactor dom)) (Ann UQualifiedName dom SrcTemplateStage)
     changeName toChangeOrig toChangeWith str name
       | maybe False (`elem` toChange) actualName
           && semanticsDefining (name ^. semantics) == False

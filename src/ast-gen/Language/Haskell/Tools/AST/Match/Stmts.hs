@@ -10,7 +10,7 @@ pattern BindStmt bound expr <- Ann _ (UBindStmt bound expr)
 pattern ExprStmt :: Ann Expr dom stage -> Ann Stmt dom stage
 pattern ExprStmt expr <- Ann _ (UExprStmt expr)
 
-pattern LetStmt :: AnnList LocalBind dom stage -> Ann Stmt dom stage
+pattern LetStmt :: AnnList ULocalBind dom stage -> Ann Stmt dom stage
 pattern LetStmt binds <- Ann _ (ULetStmt binds)
 
 pattern ListCompBody :: AnnList CompStmt dom stage -> Ann ListCompBody dom stage

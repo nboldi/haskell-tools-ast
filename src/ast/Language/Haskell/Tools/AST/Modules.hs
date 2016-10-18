@@ -18,7 +18,7 @@ data Module dom stage
 
 -- | Module declaration with name and (optional) exports
 data ModuleHead dom stage
-  = UModuleHead { _mhName :: Ann ModuleName dom stage
+  = UModuleHead { _mhName :: Ann UModuleName dom stage
                 , _mhExports :: AnnMaybe ExportSpecList dom stage
                 , _mhPragma :: AnnMaybe ModulePragma dom stage
                 }
@@ -31,44 +31,44 @@ data ExportSpecList dom stage
 data ExportSpec dom stage
   = UDeclExport { _exportDecl :: Ann IESpec dom stage
                 } -- ^ Export a name and related names
-  | UModuleExport { _exportModuleName :: Ann ModuleName dom stage
+  | UModuleExport { _exportModuleName :: Ann UModuleName dom stage
                   } -- ^ The export of an imported module (@ module A @)
   
 -- | Marks a name to be imported or exported with related names (subspecifier)
 data IESpec dom stage
-  = UIESpec { _ieName :: Ann Name dom stage
+  = UIESpec { _ieName :: Ann UName dom stage
             , _ieSubspec :: AnnMaybe SubSpec dom stage
             }
   
 -- | Marks how related names will be imported or exported with a given name
 data SubSpec dom stage
   = USubSpecAll -- @(..)@: a class exported with all of its methods, or a datatype exported with all of its constructors.
-  | USubSpecList { _essList :: AnnList Name dom stage } -- @(a,b,c)@: a class exported with some of its methods, or a datatype exported with some of its constructors.
+  | USubSpecList { _essList :: AnnList UName dom stage } -- @(a,b,c)@: a class exported with some of its methods, or a datatype exported with some of its constructors.
            
 -- | Pragmas that must be used before defining the module         
 data FilePragma dom stage
   = ULanguagePragma { _lpPragmas :: AnnList LanguageExtension dom stage
                     }  -- ^ LANGUAGE pragmdom stage
-  | UOptionsPragma {  _opStr :: Ann StringNode dom stage
+  | UOptionsPragma {  _opStr :: Ann UStringNode dom stage
                    } -- ^ OPTIONS pragma, possibly qualified with a tool, e.g. OPTIONS_GHC
                         
 -- | Pragmas that must be used after the module head  
 data ModulePragma dom stage
-  = UModuleWarningPragma { _modWarningStr :: AnnList StringNode dom stage
+  = UModuleWarningPragma { _modWarningStr :: AnnList UStringNode dom stage
                          }  -- ^ a warning pragma attached to the module
-  | UModuleDeprecatedPragma {  _modDeprecatedPragma :: AnnList StringNode dom stage
+  | UModuleDeprecatedPragma {  _modDeprecatedPragma :: AnnList UStringNode dom stage
                             } -- ^ a deprecated pragma attached to the module
 
 -- | The name of the enabled language extension, for example (@ LambdaCase @)
 data LanguageExtension dom stage = ULanguageExtension { _langExt :: String }
 
--- | An import declaration: @import Module.Name@         
+-- | An import declaration: @import Module.UName@         
 data ImportDecl dom stage
   = UImportDecl { _importSource :: AnnMaybe ImportSource dom stage
                 , _importQualified :: AnnMaybe ImportQualified dom stage
                 , _importSafe :: AnnMaybe ImportSafe dom stage
-                , _importPkg :: AnnMaybe StringNode dom stage
-                , _importModule :: Ann ModuleName dom stage
+                , _importPkg :: AnnMaybe UStringNode dom stage
+                , _importModule :: Ann UModuleName dom stage
                 , _importAs :: AnnMaybe ImportRenaming dom stage
                 , _importSpec :: AnnMaybe ImportSpec dom stage
                 }
@@ -93,4 +93,4 @@ data ImportSafe dom stage = UImportSafe
 data TypeNamespace dom stage = UTypeNamespace
 
 -- | Renaming imports (@ as A @)
-data ImportRenaming dom stage = UImportRenaming { _importRename :: Ann ModuleName dom stage }
+data ImportRenaming dom stage = UImportRenaming { _importRename :: Ann UModuleName dom stage }

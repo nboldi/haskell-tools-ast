@@ -3,7 +3,6 @@
            #-}
 module Language.Haskell.Tools.AST.Match.Types where
 
-import qualified Name as GHC
 import Language.Haskell.Tools.AST
 
 -- * Types
@@ -32,13 +31,13 @@ pattern TyParArray t <- Ann _ (UTyParArray t)
 pattern TyApp :: Ann Type dom stage -> Ann Type dom stage -> Ann Type dom stage
 pattern TyApp ft at <- Ann _ (UTyApp ft at)
 
-pattern TyInfix :: Ann Type dom stage -> Ann Operator dom stage -> Ann Type dom stage -> Ann Type dom stage
+pattern TyInfix :: Ann Type dom stage -> Ann UOperator dom stage -> Ann Type dom stage -> Ann Type dom stage
 pattern TyInfix left op right <- Ann _ (UTyInfix left op right)
 
 pattern TyParen :: Ann Type dom stage -> Ann Type dom stage
 pattern TyParen t <- Ann _ (UTyParen t)
 
-pattern TyVar :: Ann Name dom stage -> Ann Type dom stage
+pattern TyVar :: Ann UName dom stage -> Ann Type dom stage
 pattern TyVar n <- Ann _ (UTyVar n)
 
 pattern TyKinded :: Ann Type dom stage -> Ann Kind dom stage -> Ann Type dom stage
@@ -56,12 +55,12 @@ pattern TyUnpack n <- Ann _ (UTyUnpack n)
 pattern TyWildcard :: Ann Type dom stage
 pattern TyWildcard <- Ann _ UTyWildcard
 
-pattern TyNamedWildcard :: Ann Name dom stage -> Ann Type dom stage
+pattern TyNamedWildcard :: Ann UName dom stage -> Ann Type dom stage
 pattern TyNamedWildcard n <- Ann _ (UTyNamedWildc n)
 
 -- * Type variable
 
-pattern TyVarDecl :: Ann Name dom stage -> Ann TyVar dom stage
+pattern TyVarDecl :: Ann UName dom stage -> Ann TyVar dom stage
 pattern TyVarDecl n <- Ann _ (UTyVarDecl n _)
 
 -- * Contexts
@@ -74,8 +73,8 @@ pattern ContextMulti n <- Ann _ (UContextMulti n)
 
 -- * Assertions
 
-pattern ClassAssert :: Ann Name dom stage -> AnnList Type dom stage -> Ann Assertion dom stage
+pattern ClassAssert :: Ann UName dom stage -> AnnList Type dom stage -> Ann Assertion dom stage
 pattern ClassAssert n args <- Ann _ (UClassAssert n args)
 
-pattern InfixAssert :: Ann Type dom stage -> Ann Operator dom stage -> Ann Type dom stage -> Ann Assertion dom stage
+pattern InfixAssert :: Ann Type dom stage -> Ann UOperator dom stage -> Ann Type dom stage -> Ann Assertion dom stage
 pattern InfixAssert left op right <- Ann _ (UInfixAssert left op right)

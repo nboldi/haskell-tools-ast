@@ -32,20 +32,20 @@ import Language.Haskell.Tools.AST.SemaInfoClasses
 
 import Debug.Trace
 
-ordByOccurrence :: Ann QualifiedName dom stage -> Ann QualifiedName dom stage -> Ordering
+ordByOccurrence :: Ann UQualifiedName dom stage -> Ann UQualifiedName dom stage -> Ordering
 ordByOccurrence = compare `on` nameElements
 
 -- | The occurrence of the name.
-nameString :: Ann QualifiedName dom stage -> String
+nameString :: Ann UQualifiedName dom stage -> String
 nameString = intercalate "." . nameElements
 
 -- | The qualifiers and the unqualified name
-nameElements :: Ann QualifiedName dom stage -> [String]
+nameElements :: Ann UQualifiedName dom stage -> [String]
 nameElements n = (n ^? qualifiers&annList&simpleNameStr) 
                     ++ [n ^. unqualifiedName&simpleNameStr]
 
 -- | The qualifier of the name
-nameQualifier :: Ann QualifiedName dom stage -> [String]
+nameQualifier :: Ann UQualifiedName dom stage -> [String]
 nameQualifier n = n ^? qualifiers&annList&simpleNameStr
          
 -- | Does the import declaration import only the explicitly listed elements?
@@ -70,13 +70,13 @@ importQualifiers imp
   = (if isAnnNothing (imp ^. importQualified) then [[]] else [])
       ++ [imp ^? importAs&annJust&importRename&moduleNameString]
         
-bindingName :: (SemanticInfo dom QualifiedName ~ ni) => Simple Traversal (Ann ValueBind dom stage) ni
+bindingName :: (SemanticInfo dom UQualifiedName ~ ni) => Simple Traversal (Ann UValueBind dom stage) ni
 bindingName = (valBindPat&patternName&simpleName 
                         &+& funBindMatches&annList&matchLhs
                               &(matchLhsName&simpleName &+& matchLhsOperator&operatorName))
                      &semantics
                      
-declHeadNames :: Simple Traversal (Ann DeclHead dom stage) (Ann QualifiedName dom stage)
+declHeadNames :: Simple Traversal (Ann DeclHead dom stage) (Ann UQualifiedName dom stage)
 declHeadNames = (dhName&simpleName &+& dhBody&declHeadNames &+& dhAppFun&declHeadNames &+& dhOperator&operatorName)
 
                
@@ -93,7 +93,7 @@ typeParams = fromTraversal typeParamsTrav
 semantics :: Simple Lens (Ann elem dom stage) (SemanticInfo dom elem)
 semantics = annotation&semanticInfo
 
-dhNames :: (SemanticInfo dom QualifiedName ~ k) => Simple Traversal (Ann DeclHead dom stage) k
+dhNames :: (SemanticInfo dom UQualifiedName ~ k) => Simple Traversal (Ann DeclHead dom stage) k
 dhNames = declHeadNames & semantics
 
 -- | Get all nodes that contain a given source range

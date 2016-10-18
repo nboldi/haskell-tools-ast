@@ -155,10 +155,10 @@ qualifiedName name = case GHC.nameModule_maybe name of
   Just mod -> GHC.moduleNameString (GHC.moduleName mod) ++ "." ++ GHC.occNameString (GHC.nameOccName name)
   Nothing -> GHC.occNameString (GHC.nameOccName name)
 
-referenceName :: (HasImportInfo dom, HasModuleInfo dom) => GHC.Name -> LocalRefactor dom (Ann Name dom SrcTemplateStage)
+referenceName :: (HasImportInfo dom, HasModuleInfo dom) => GHC.Name -> LocalRefactor dom (Ann UName dom SrcTemplateStage)
 referenceName = referenceName' mkQualName'
 
-referenceOperator :: (HasImportInfo dom, HasModuleInfo dom) => GHC.Name -> LocalRefactor dom (Ann Operator dom SrcTemplateStage)
+referenceOperator :: (HasImportInfo dom, HasModuleInfo dom) => GHC.Name -> LocalRefactor dom (Ann UOperator dom SrcTemplateStage)
 referenceOperator = referenceName' mkQualOp'
 
 -- | Create a name that references the definition. Generates an import if the definition is not yet imported.

@@ -24,29 +24,29 @@ mkModule filePrags head imps decls
       $ UModule (mkAnnList (listSepAfter "\n" "\n") filePrags) (mkAnnMaybe opt head)
                 (mkAnnList (indentedListBefore "\n") imps) (mkAnnList (indentedListBefore "\n") decls)
                
-mkModuleHead :: Ann ModuleName dom SrcTemplateStage -> Maybe (Ann ExportSpecList dom SrcTemplateStage) 
+mkModuleHead :: Ann UModuleName dom SrcTemplateStage -> Maybe (Ann ExportSpecList dom SrcTemplateStage) 
                   -> Maybe (Ann ModulePragma dom SrcTemplateStage) -> Ann ModuleHead dom SrcTemplateStage
 mkModuleHead n es pr = mkAnn ("module " <> child <> child <> child <> " where") $ UModuleHead n (mkAnnMaybe opt es) (mkAnnMaybe (optBefore "\n") pr)
 
 mkExportSpecList :: [Ann ExportSpec dom SrcTemplateStage] -> Ann ExportSpecList dom SrcTemplateStage
 mkExportSpecList = mkAnn ("(" <> child <> ")") . UExportSpecList . mkAnnList (listSep ", ")
 
-mkModuleExport :: Ann ModuleName dom SrcTemplateStage -> Ann ExportSpec dom SrcTemplateStage
+mkModuleExport :: Ann UModuleName dom SrcTemplateStage -> Ann ExportSpec dom SrcTemplateStage
 mkModuleExport = mkAnn ("module " <> child) . UModuleExport
 
 mkExportSpec :: Ann IESpec dom SrcTemplateStage -> Ann ExportSpec dom SrcTemplateStage
 mkExportSpec = mkAnn child . UDeclExport
 
-mkIeSpec :: Ann Name dom SrcTemplateStage -> Maybe (Ann SubSpec dom SrcTemplateStage) -> Ann IESpec dom SrcTemplateStage
+mkIeSpec :: Ann UName dom SrcTemplateStage -> Maybe (Ann SubSpec dom SrcTemplateStage) -> Ann IESpec dom SrcTemplateStage
 mkIeSpec name ss = mkAnn (child <> child) (UIESpec name (mkAnnMaybe opt ss))
         
-mkSubList :: [Ann Name dom SrcTemplateStage] -> Ann SubSpec dom SrcTemplateStage
+mkSubList :: [Ann UName dom SrcTemplateStage] -> Ann SubSpec dom SrcTemplateStage
 mkSubList = mkAnn ("(" <> child <> ")") . USubSpecList . mkAnnList (listSep ", ")
 
 mkSubAll :: Ann SubSpec dom SrcTemplateStage
 mkSubAll = mkAnn "(..)" USubSpecAll
 
-mkImportDecl :: Bool -> Bool -> Bool -> Maybe String -> Ann ModuleName dom SrcTemplateStage 
+mkImportDecl :: Bool -> Bool -> Bool -> Maybe String -> Ann UModuleName dom SrcTemplateStage 
                      -> Maybe String -> Maybe (Ann ImportSpec dom SrcTemplateStage) 
                      -> Ann ImportDecl dom SrcTemplateStage       
 mkImportDecl source qualified safe pkg name rename spec

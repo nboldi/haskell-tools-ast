@@ -55,16 +55,16 @@ pattern InstanceDecl instRule body <- Ann _ (UInstDecl _ instRule body)
 pattern StandaloneDeriving :: Ann InstanceRule dom stage -> Ann Decl dom stage
 pattern StandaloneDeriving instRule <- Ann _ (UDerivDecl _ instRule)
 
-pattern FixityDecl :: Ann FixitySignature dom stage -> Ann Decl dom stage
+pattern FixityDecl :: Ann UFixitySignature dom stage -> Ann Decl dom stage
 pattern FixityDecl fixity <- Ann _ (UFixityDecl fixity)
 
-pattern TypeSigDecl :: Ann TypeSignature dom stage -> Ann Decl dom stage
+pattern TypeSigDecl :: Ann UTypeSignature dom stage -> Ann Decl dom stage
 pattern TypeSigDecl typeSig <- Ann _ (UTypeSigDecl typeSig)
 
-pattern ValueBinding :: Ann ValueBind dom stage -> Ann Decl dom stage
+pattern ValueBinding :: Ann UValueBind dom stage -> Ann Decl dom stage
 pattern ValueBinding bind <- Ann _ (UValueBinding bind)
 
-pattern ForeignImport :: Ann CallConv dom stage -> Ann Name dom stage -> Ann Type dom stage -> Ann Decl dom stage
+pattern ForeignImport :: Ann CallConv dom stage -> Ann UName dom stage -> Ann Type dom stage -> Ann Decl dom stage
 pattern ForeignImport cc name typ <- Ann _ (UForeignImport cc _ name typ)
 
 pattern PatternSynonym :: Ann PatSynLhs dom stage -> Ann PatSynRhs dom stage -> Ann Decl dom stage
@@ -72,13 +72,13 @@ pattern PatternSynonym lhs rhs <- Ann _ (UPatternSynonymDecl (Ann _ (UPatternSyn
 
 -- * Pattern synonyms
 
-pattern ConPatSyn :: Ann Name dom stage -> AnnList Name dom stage -> Ann PatSynLhs dom stage
+pattern ConPatSyn :: Ann UName dom stage -> AnnList UName dom stage -> Ann PatSynLhs dom stage
 pattern ConPatSyn con args <- Ann _ (UNormalPatSyn con args)
 
-pattern InfixPatSyn :: Ann Name dom stage -> Ann Operator dom stage -> Ann Name dom stage -> Ann PatSynLhs dom stage
+pattern InfixPatSyn :: Ann UName dom stage -> Ann UOperator dom stage -> Ann UName dom stage -> Ann PatSynLhs dom stage
 pattern InfixPatSyn lhs op rhs <- Ann _ (UInfixPatSyn lhs op rhs)
 
-pattern RecordPatSyn :: Ann Name dom stage -> AnnList Name dom stage -> Ann PatSynLhs dom stage
+pattern RecordPatSyn :: Ann UName dom stage -> AnnList UName dom stage -> Ann PatSynLhs dom stage
 pattern RecordPatSyn con args <- Ann _ (URecordPatSyn con args)
 
 pattern SymmetricPatSyn :: Ann Pattern dom stage -> Ann PatSynRhs dom stage
@@ -87,7 +87,7 @@ pattern SymmetricPatSyn pat <- Ann _ (UBidirectionalPatSyn pat AnnNothing)
 pattern OneWayPatSyn :: Ann Pattern dom stage -> Ann PatSynRhs dom stage
 pattern OneWayPatSyn pat <- Ann _ (UOneDirectionalPatSyn pat)
 
-pattern TwoWayPatSyn :: Ann Pattern dom stage -> AnnList Match dom stage -> Ann PatSynRhs dom stage
+pattern TwoWayPatSyn :: Ann Pattern dom stage -> AnnList UMatch dom stage -> Ann PatSynRhs dom stage
 pattern TwoWayPatSyn pat match <- Ann _ (UBidirectionalPatSyn pat (AnnJust (Ann _ (UPatSynWhere match))))
 
 -- * Type families
@@ -95,7 +95,7 @@ pattern TwoWayPatSyn pat match <- Ann _ (UBidirectionalPatSyn pat (AnnJust (Ann 
 pattern TypeFamilyKindSpec :: Ann KindConstraint dom stage -> Ann TypeFamilySpec dom stage
 pattern TypeFamilyKindSpec kind <- Ann _ (UTypeFamilyKind kind)
 
-pattern TypeFamilyInjectivitySpec :: Ann Name dom stage -> AnnList Name dom stage -> Ann TypeFamilySpec dom stage
+pattern TypeFamilyInjectivitySpec :: Ann UName dom stage -> AnnList UName dom stage -> Ann TypeFamilySpec dom stage
 pattern TypeFamilyInjectivitySpec res dependent <- Ann _ (UTypeFamilyInjectivity (Ann _ (UInjectivityAnn res dependent)))
 
 -- * Elements of type classes
@@ -103,10 +103,10 @@ pattern TypeFamilyInjectivitySpec res dependent <- Ann _ (UTypeFamilyInjectivity
 pattern ClassBody :: AnnList ClassElement dom stage -> Ann ClassBody dom stage
 pattern ClassBody body <- Ann _ (UClassBody body)
 
-pattern ClassElemSig :: Ann TypeSignature dom stage -> Ann ClassElement dom stage
+pattern ClassElemSig :: Ann UTypeSignature dom stage -> Ann ClassElement dom stage
 pattern ClassElemSig typeSig <- Ann _ (UClsSig typeSig)
 
-pattern ClassElemDef :: Ann ValueBind dom stage -> Ann ClassElement dom stage
+pattern ClassElemDef :: Ann UValueBind dom stage -> Ann ClassElement dom stage
 pattern ClassElemDef def <- Ann _ (UClsDef def)
 
 pattern ClassElemTypeFam :: Ann DeclHead dom stage -> AnnMaybe TypeFamilySpec dom stage -> Ann ClassElement dom stage
@@ -117,7 +117,7 @@ pattern ClassElemDataFam dh kind <- Ann _ (UClsTypeFam (Ann _ (UDataFamily dh ki
 
 -- * Declaration heads
 
-pattern NameDeclHead :: Ann Name dom stage -> Ann DeclHead dom stage
+pattern NameDeclHead :: Ann UName dom stage -> Ann DeclHead dom stage
 pattern NameDeclHead name <- Ann _ (UDeclHead name)
 
 pattern ParenDeclHead :: Ann DeclHead dom stage -> Ann DeclHead dom stage
@@ -126,7 +126,7 @@ pattern ParenDeclHead dh <- Ann _ (UDHParen dh)
 pattern DeclHeadApp :: Ann DeclHead dom stage -> Ann TyVar dom stage -> Ann DeclHead dom stage
 pattern DeclHeadApp dh tv <- Ann _ (UDHApp dh tv)
 
-pattern InfixDeclHead :: Ann TyVar dom stage -> Ann Operator dom stage -> Ann TyVar dom stage -> Ann DeclHead dom stage
+pattern InfixDeclHead :: Ann TyVar dom stage -> Ann UOperator dom stage -> Ann TyVar dom stage -> Ann DeclHead dom stage
 pattern InfixDeclHead lhs op rhs <- Ann _ (UDHInfix lhs op rhs)
 
 -- * Elements of class instances
@@ -134,7 +134,7 @@ pattern InfixDeclHead lhs op rhs <- Ann _ (UDHInfix lhs op rhs)
 pattern InstanceBody :: AnnList InstBodyDecl dom stage -> Ann InstBody dom stage
 pattern InstanceBody defs <- Ann _ (UInstBody defs)
 
-pattern InstanceElemDef :: Ann ValueBind dom stage -> Ann InstBodyDecl dom stage
+pattern InstanceElemDef :: Ann UValueBind dom stage -> Ann InstBodyDecl dom stage
 pattern InstanceElemDef bind <- Ann _ (UInstBodyNormalDecl bind)
 
 pattern InstanceElemTypeDef :: Ann TypeEqn dom stage -> Ann InstBodyDecl dom stage
@@ -154,19 +154,19 @@ pattern InstanceElemGadtDataDef instRule kind cons derivs  <- Ann _ (UInstBodyGa
 
 -- * Data type definitions
 
-pattern GadtConDecl :: AnnList Name dom stage -> Ann Type dom stage -> Ann GadtConDecl dom stage
+pattern GadtConDecl :: AnnList UName dom stage -> Ann Type dom stage -> Ann GadtConDecl dom stage
 pattern GadtConDecl names typ <- Ann _ (UGadtConDecl names (Ann _ (UGadtNormalType typ)))
 
-pattern ConDecl :: Ann Name dom stage -> AnnList Type dom stage -> Ann ConDecl dom stage
+pattern ConDecl :: Ann UName dom stage -> AnnList Type dom stage -> Ann ConDecl dom stage
 pattern ConDecl name args <- Ann _ (UConDecl name args)
 
-pattern RecordConDecl :: Ann Name dom stage -> AnnList FieldDecl dom stage -> Ann ConDecl dom stage
+pattern RecordConDecl :: Ann UName dom stage -> AnnList FieldDecl dom stage -> Ann ConDecl dom stage
 pattern RecordConDecl name fields <- Ann _ (URecordDecl name fields)
 
-pattern InfixConDecl :: Ann Type dom stage -> Ann Operator dom stage -> Ann Type dom stage -> Ann ConDecl dom stage
+pattern InfixConDecl :: Ann Type dom stage -> Ann UOperator dom stage -> Ann Type dom stage -> Ann ConDecl dom stage
 pattern InfixConDecl lhs op rhs <- Ann _ (UInfixConDecl lhs op rhs)
 
-pattern FieldDecl :: AnnList Name dom stage -> Ann Type dom stage -> Ann FieldDecl dom stage
+pattern FieldDecl :: AnnList UName dom stage -> Ann Type dom stage -> Ann FieldDecl dom stage
 pattern FieldDecl names typ <- Ann _ (UFieldDecl names typ)
 
 pattern DerivingOne :: Ann InstanceHead dom stage -> Ann Deriving dom stage
@@ -178,10 +178,10 @@ pattern DerivingMulti derivs <- Ann _ (UDerivings derivs)
 pattern InstanceRule :: AnnMaybe (AnnList TyVar) dom stage -> AnnMaybe Context dom stage -> Ann InstanceHead dom stage -> Ann InstanceRule dom stage
 pattern InstanceRule tvs ctx ih <- Ann _ (UInstanceRule tvs ctx ih)
 
-pattern InstanceHead :: Ann Name dom stage -> Ann InstanceHead dom stage
+pattern InstanceHead :: Ann UName dom stage -> Ann InstanceHead dom stage
 pattern InstanceHead name <- Ann _ (UInstanceHeadCon name)
 
-pattern InfixInstanceHead :: Ann Type dom stage -> Ann Name dom stage -> Ann InstanceHead dom stage
+pattern InfixInstanceHead :: Ann Type dom stage -> Ann UName dom stage -> Ann InstanceHead dom stage
 pattern InfixInstanceHead typ n <- Ann _ (UInstanceHeadInfix typ n)
 
 pattern ParenInstanceHead :: Ann InstanceHead dom stage -> Ann InstanceHead dom stage

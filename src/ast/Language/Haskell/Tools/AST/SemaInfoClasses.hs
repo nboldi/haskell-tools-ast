@@ -14,7 +14,7 @@ import Language.Haskell.Tools.AST.Base as AST
 import Language.Haskell.Tools.AST.Exprs as AST
 
 -- | Domains that have semantic information for names
-type HasNameInfo dom = (Domain dom, HasNameInfo' (SemanticInfo dom QualifiedName))
+type HasNameInfo dom = (Domain dom, HasNameInfo' (SemanticInfo dom UQualifiedName))
 
 -- | Infos that may have a name that can be extracted
 class HasNameInfo' si where
@@ -26,7 +26,7 @@ instance HasNameInfo' (NameInfo GHC.Name) where
 instance HasNameInfo' CNameInfo where
   semanticsName = fmap idName . (^? cnameInfo)
 
-type HasIdInfo dom = (Domain dom, HasIdInfo' (SemanticInfo dom QualifiedName))
+type HasIdInfo dom = (Domain dom, HasIdInfo' (SemanticInfo dom UQualifiedName))
 
 -- | Infos that may have a typed name that can be extracted
 class HasIdInfo' si where
@@ -35,7 +35,7 @@ class HasIdInfo' si where
 instance HasIdInfo' CNameInfo where
   semanticsId = (^. cnameInfo)
 
-type HasFixityInfo dom = (Domain dom, HasFixityInfo' (SemanticInfo dom QualifiedName))
+type HasFixityInfo dom = (Domain dom, HasFixityInfo' (SemanticInfo dom UQualifiedName))
 
 -- | Infos that may have a fixity information
 class HasFixityInfo' si where
@@ -44,7 +44,7 @@ class HasFixityInfo' si where
 instance HasFixityInfo' CNameInfo where
   semanticsFixity = (^. cnameFixity)
 
-type HasScopeInfo dom = (Domain dom, HasScopeInfo' (SemanticInfo dom QualifiedName), HasScopeInfo' (SemanticInfo dom Expr))
+type HasScopeInfo dom = (Domain dom, HasScopeInfo' (SemanticInfo dom UQualifiedName), HasScopeInfo' (SemanticInfo dom Expr))
 
 -- | Infos that contain the names that are available in theirs scope
 class HasScopeInfo' si where
@@ -59,7 +59,7 @@ instance HasScopeInfo' CNameInfo where
 instance HasScopeInfo' ScopeInfo where
   semanticsScope = (^. exprScopedLocals)
 
-type HasDefiningInfo dom = (Domain dom, HasDefiningInfo' (SemanticInfo dom QualifiedName))
+type HasDefiningInfo dom = (Domain dom, HasDefiningInfo' (SemanticInfo dom UQualifiedName))
 
 -- | Infos that store if they were used to define a name
 class HasDefiningInfo' si where

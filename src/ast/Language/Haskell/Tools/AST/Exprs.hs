@@ -8,19 +8,19 @@ import Language.Haskell.Tools.AST.Types
 import Language.Haskell.Tools.AST.Patterns
 import Language.Haskell.Tools.AST.Stmts
 import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Binds (LocalBind, LocalBinds, RhsGuard)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Binds (ULocalBind, ULocalBinds, URhsGuard)
 
 -- | Haskell expressions
 data Expr dom stage
-  = UVar            { _exprName :: Ann Name dom stage 
+  = UVar            { _exprName :: Ann UName dom stage 
                     } -- ^ A variable or a data constructor (@ a @)
   | ULit            { _exprLit :: Ann Literal dom stage
                     } -- ^ Primitive literal
   | UInfixApp       { _exprLhs :: Ann Expr dom stage
-                    , _exprOperator :: Ann Operator dom stage
+                    , _exprOperator :: Ann UOperator dom stage
                     , _exprRhs :: Ann Expr dom stage
                     } -- ^ Infix operator application (@ a + b @)
-  | UPrefixApp      { _exprOperator :: Ann Operator dom stage
+  | UPrefixApp      { _exprOperator :: Ann UOperator dom stage
                     , _exprRhs :: Ann Expr dom stage
                     } -- ^ Prefix operator application (@ -x @)
   | UApp            { _exprFun :: Ann Expr dom stage
@@ -30,7 +30,7 @@ data Expr dom stage
   | ULambda         { _exprBindings :: AnnList Pattern dom stage -- ^ at least one
                     , _exprInner :: Ann Expr dom stage
                     } -- ^ Lambda expression (@ \a b -> a + b @)
-  | ULet            { _exprFunBind :: AnnList LocalBind dom stage -- ^ nonempty
+  | ULet            { _exprFunBind :: AnnList ULocalBind dom stage -- ^ nonempty
                     , _exprInner :: Ann Expr dom stage
                     } -- ^ Local binding (@ let x = 2; y = 3 in e x y @)
   | UIf             { _exprCond :: Ann Expr dom stage
@@ -42,7 +42,7 @@ data Expr dom stage
   | UCase           { _exprCase :: Ann Expr dom stage
                     , _exprAlts :: AnnList Alt dom stage
                     } -- ^ Pattern matching expression (@ case expr of pat1 -> expr1; pat2 -> expr2 @)
-  | UDo             { _doKind :: Ann DoKind dom stage
+  | UDo             { _doKind :: Ann UDoKind dom stage
                     , _exprStmts :: AnnList Stmt dom stage
                     } -- ^ Do-notation expressions (@ do x <- act1; act2 @)
   | UTuple          { _tupleElems :: AnnList Expr dom stage
@@ -60,12 +60,12 @@ data Expr dom stage
   | UParen          { _exprInner :: Ann Expr dom stage
                     }
   | ULeftSection    { _exprLhs :: Ann Expr dom stage
-                    , _exprOperator :: Ann Operator dom stage
+                    , _exprOperator :: Ann UOperator dom stage
                     } -- ^ Left operator section: @(1+)@
-  | URightSection   { _exprOperator :: Ann Operator dom stage
+  | URightSection   { _exprOperator :: Ann UOperator dom stage
                     , _exprRhs :: Ann Expr dom stage
                     } -- ^ Right operator section: @(+1)@
-  | URecCon         { _exprRecName :: Ann Name dom stage
+  | URecCon         { _exprRecName :: Ann UName dom stage
                     , _exprRecFields :: AnnList FieldUpdate dom stage
                     } -- ^ Record value construction: @Point { x = 3, y = -2 }@
   | URecUpdate      { _exprInner :: Ann Expr dom stage
@@ -91,9 +91,9 @@ data Expr dom stage
   | UExplTypeApp    { _exprInner :: Ann Expr dom stage
                     , _exprType :: Ann Type dom stage
                     } -- ^ Explicit type application (@ show \@Integer (read "5") @)
-  | UVarQuote       { _quotedName :: Ann Name dom stage
+  | UVarQuote       { _quotedName :: Ann UName dom stage
                     } -- ^ @'x@ for template haskell reifying of expressions
-  | UTypeQuote      { _quotedName :: Ann Name dom stage
+  | UTypeQuote      { _quotedName :: Ann UName dom stage
                     } -- ^ @''T@ for template haskell reifying of types
   | UBracketExpr    { _bracket :: Ann Bracket dom stage
                     } -- ^ Template haskell bracket expression
@@ -119,10 +119,10 @@ data Expr dom stage
                    
 -- | Field update expressions
 data FieldUpdate dom stage
-  = UNormalFieldUpdate { _fieldName :: Ann Name dom stage
+  = UNormalFieldUpdate { _fieldName :: Ann UName dom stage
                        , _fieldValue :: Ann Expr dom stage
                        } -- ^ Update of a field (@ x = 1 @)
-  | UFieldPun          { _fieldUpdateName :: Ann Name dom stage
+  | UFieldPun          { _fieldUpdateName :: Ann UName dom stage
                        } -- ^ Update the field to the value of the same name (@ x @)
   | UFieldWildcard     { _fieldWildcard :: Ann FieldWildcard dom stage
                        } -- ^ Update the fields of the bounded names to their values (@ .. @). Must be the last initializer. Cannot be used in a record update expression.
@@ -140,7 +140,7 @@ data TupSecElem dom stage
 data Alt' expr dom stage
   = UAlt { _altPattern :: Ann Pattern dom stage
          , _altRhs :: Ann (CaseRhs' expr) dom stage
-         , _altBinds :: AnnMaybe LocalBinds dom stage
+         , _altBinds :: AnnMaybe ULocalBinds dom stage
          }
 type Alt = Alt' Expr
 type CmdAlt = Alt' Cmd
@@ -157,7 +157,7 @@ type CmdCaseRhs = CaseRhs' Cmd
                      
 -- | A guarded right-hand side of pattern matches binding (@ | x > 3 -> 2 @)      
 data GuardedCaseRhs' expr dom stage
-  = UGuardedCaseRhs { _caseGuardStmts :: AnnList RhsGuard dom stage -- ^ Cannot be empty.
+  = UGuardedCaseRhs { _caseGuardStmts :: AnnList URhsGuard dom stage -- ^ Cannot be empty.
                     , _caseGuardExpr :: Ann expr dom stage
                     } 
 type GuardedCaseRhs = GuardedCaseRhs' Expr
@@ -165,16 +165,16 @@ type CmdGuardedCaseRhs = GuardedCaseRhs' Cmd
                
 -- | Pragmas that can be applied to expressions
 data ExprPragma dom stage
-  = CorePragma      { _pragmaStr :: Ann StringNode dom stage
+  = CorePragma      { _pragmaStr :: Ann UStringNode dom stage
                     }
-  | SccPragma       { _pragmaStr :: Ann StringNode dom stage
+  | SccPragma       { _pragmaStr :: Ann UStringNode dom stage
                     }
   | GeneratedPragma { _pragmaSrcRange :: Ann SourceRange dom stage
                     }
 
 -- | In-AST source ranges (for generated pragmas)
 data SourceRange dom stage
-  = SourceRange { _srFileName :: Ann StringNode dom stage
+  = SourceRange { _srFileName :: Ann UStringNode dom stage
                 , _srFromLine :: Ann Number dom stage
                 , _srFromCol :: Ann Number dom stage
                 , _srToLine :: Ann Number dom stage
@@ -197,7 +197,7 @@ data Cmd dom stage
                   , _cmdApplied :: Ann Expr dom stage
                   }
   | InfixCmd      { _cmdLeftCmd :: Ann Cmd dom stage
-                  , _cmdOperator :: Ann Name dom stage
+                  , _cmdOperator :: Ann UName dom stage
                   , _cmdRightCmd :: Ann Cmd dom stage
                   }
   | LambdaCmd     { _cmdBindings :: AnnList Pattern dom stage -- ^ at least one
@@ -212,7 +212,7 @@ data Cmd dom stage
                   , _cmdThen :: Ann Cmd dom stage
                   , _cmdElse :: Ann Cmd dom stage
                   }
-  | LetCmd        { _cmdBinds :: AnnList LocalBind dom stage -- ^ nonempty
+  | LetCmd        { _cmdBinds :: AnnList ULocalBind dom stage -- ^ nonempty
                   , _cmdInner :: Ann Cmd dom stage
                   }
   | DoCmd         { _cmdStmts :: AnnList (Stmt' Cmd) dom stage

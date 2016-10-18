@@ -19,7 +19,7 @@ pattern FunKind a r <- Ann _ (UFunKind a r)
 pattern ParenKind :: Ann Kind dom stage -> Ann Kind dom stage
 pattern ParenKind k <- Ann _ (UParenKind k)
 
-pattern VarKind :: Ann Name dom stage -> Ann Kind dom stage
+pattern VarKind :: Ann UName dom stage -> Ann Kind dom stage
 pattern VarKind v <- Ann _ (UVarKind v)
 
 pattern AppKind :: Ann Kind dom stage -> Ann Kind dom stage -> Ann Kind dom stage
@@ -34,7 +34,7 @@ pattern IntKind i <- Ann _ (UPromotedKind (Ann _ (UPromotedInt i)))
 pattern StringKind :: String -> Ann Kind dom stage
 pattern StringKind s <- Ann _ (UPromotedKind (Ann _ (UPromotedString s)))
 
-pattern ConKind :: Ann Name dom stage -> Ann Kind dom stage
+pattern ConKind :: Ann UName dom stage -> Ann Kind dom stage
 pattern ConKind s <- Ann _ (UPromotedKind (Ann _ (UPromotedCon s)))
 
 pattern ListKindPromoted :: AnnList Kind dom stage -> Ann Kind dom stage
