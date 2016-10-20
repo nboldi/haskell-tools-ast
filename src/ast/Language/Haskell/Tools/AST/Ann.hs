@@ -28,9 +28,9 @@ import Outputable
 import Language.Haskell.Tools.AST.Utils.GHCInstances
 import Language.Haskell.Tools.AST.SemaInfoTypes
 
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Modules as AST
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Names as AST
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Exprs as AST
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Modules as AST
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Names as AST
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Exprs as AST
 
 -- * Annotation type resolution
 

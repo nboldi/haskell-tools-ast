@@ -1,5 +1,5 @@
 {-# LANGUAGE RoleAnnotations #-}
-module Language.Haskell.Tools.AST.TH where
+module Language.Haskell.Tools.AST.Representation.TH where
 
 type role Splice nominal nominal
 data Splice dom stage

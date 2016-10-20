@@ -1,11 +1,11 @@
 -- | Representation of Haskell types
-module Language.Haskell.Tools.AST.Types where
+module Language.Haskell.Tools.AST.Representation.Types where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Literals
-import Language.Haskell.Tools.AST.Names
-import Language.Haskell.Tools.AST.Kinds
-import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
+import Language.Haskell.Tools.AST.Representation.Literals
+import Language.Haskell.Tools.AST.Representation.Names
+import Language.Haskell.Tools.AST.Representation.Kinds
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.TH
 
 -- | UType variable declaration
 data UTyVar dom stage

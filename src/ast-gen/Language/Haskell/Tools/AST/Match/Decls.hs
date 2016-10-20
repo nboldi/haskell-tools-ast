@@ -5,6 +5,8 @@ module Language.Haskell.Tools.AST.Match.Decls where
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Match.Names
 
+-- WORKAROUND: nested pattern synonyms don't work in GHC 8.0, so I replaced them with longer but working pattern
+
 -- * Declarations
 
 pattern TypeDecl :: Ann UDeclHead dom stage -> Ann UType dom stage -> Ann UDecl dom stage 
@@ -20,31 +22,31 @@ pattern ClosedTypeFamily :: Ann UDeclHead dom stage -> AnnMaybe UKindConstraint 
 pattern ClosedTypeFamily dh kind typeqs <- Ann _ (UClosedTypeFamilyDecl dh kind typeqs)
 
 pattern DataDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
-pattern DataDecl ctx dh cons derivs <- Ann _ (UDataDecl DataKeyword ctx dh cons derivs)
+pattern DataDecl ctx dh cons derivs <- Ann _ (UDataDecl (Ann _ UDataKeyword) ctx dh cons derivs)
 
 pattern NewtypeDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
-pattern NewtypeDecl ctx dh cons derivs <- Ann _ (UDataDecl NewtypeKeyword ctx dh cons derivs)
+pattern NewtypeDecl ctx dh cons derivs <- Ann _ (UDataDecl (Ann _ UNewtypeKeyword) ctx dh cons derivs)
 
 pattern GADTDataDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
-pattern GADTDataDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl DataKeyword ctx dh kind cons derivs )
+pattern GADTDataDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl (Ann _ UDataKeyword) ctx dh kind cons derivs )
 
 pattern GADTNewtypeDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage -> AnnMaybe UDeriving dom stage -> Ann UDecl dom stage
-pattern GADTNewtypeDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl NewtypeKeyword ctx dh kind cons derivs )
+pattern GADTNewtypeDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl (Ann _ UNewtypeKeyword) ctx dh kind cons derivs )
 
 pattern TypeInstance :: Ann UInstanceRule dom stage -> Ann UType dom stage -> Ann UDecl dom stage
 pattern TypeInstance instRule typ <- Ann _ (UTypeInstDecl instRule typ)
 
 pattern DataInstance :: Ann UInstanceRule dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage
                     -> Ann UDecl dom stage
-pattern DataInstance instRule cons derivs  <- Ann _ (UDataInstDecl DataKeyword instRule cons derivs )
+pattern DataInstance instRule cons derivs  <- Ann _ (UDataInstDecl (Ann _ UDataKeyword) instRule cons derivs )
 
 pattern NewtypeInstance :: Ann UInstanceRule dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage
                        -> Ann UDecl dom stage
-pattern NewtypeInstance instRule cons derivs  <- Ann _ (UDataInstDecl NewtypeKeyword instRule cons derivs )
+pattern NewtypeInstance instRule cons derivs  <- Ann _ (UDataInstDecl (Ann _ UNewtypeKeyword) instRule cons derivs )
 
 pattern GadtDataInstance :: Ann UInstanceRule dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage
                        -> Ann UDecl dom stage
-pattern GadtDataInstance instRule kind cons  <- Ann _ (UGDataInstDecl DataKeyword instRule kind cons )
+pattern GadtDataInstance instRule kind cons  <- Ann _ (UGDataInstDecl (Ann _ UDataKeyword) instRule kind cons )
 
 pattern ClassDecl :: AnnMaybe UContext dom stage -> Ann UDeclHead dom stage -> AnnMaybe UClassBody dom stage -> Ann UDecl dom stage
 pattern ClassDecl ctx dh body <- Ann _ (UClassDecl ctx dh _ body)
@@ -142,11 +144,11 @@ pattern InstanceElemTypeDef typeEq <- Ann _ (UInstBodyTypeDecl typeEq)
 
 pattern InstanceElemDataDef :: Ann UInstanceRule dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage 
                            -> Ann UInstBodyDecl dom stage
-pattern InstanceElemDataDef instRule cons derivs  <- Ann _ (UInstBodyDataDecl DataKeyword instRule cons derivs )
+pattern InstanceElemDataDef instRule cons derivs  <- Ann _ (UInstBodyDataDecl (Ann _ UDataKeyword) instRule cons derivs )
 
 pattern InstanceElemNewtypeDef :: Ann UInstanceRule dom stage -> AnnList UConDecl dom stage -> AnnMaybe UDeriving dom stage 
                            -> Ann UInstBodyDecl dom stage
-pattern InstanceElemNewtypeDef instRule cons derivs  <- Ann _ (UInstBodyDataDecl NewtypeKeyword instRule cons derivs )
+pattern InstanceElemNewtypeDef instRule cons derivs  <- Ann _ (UInstBodyDataDecl (Ann _ UNewtypeKeyword) instRule cons derivs )
 
 pattern InstanceElemGadtDataDef :: Ann UInstanceRule dom stage -> AnnMaybe UKindConstraint dom stage -> AnnList UGadtConDecl dom stage 
                                -> AnnMaybe UDeriving dom stage -> Ann UInstBodyDecl dom stage

@@ -1,16 +1,16 @@
 -- | Representation of Haskell AST definitions. These include definition of data types, classes, instances and so on. 
 -- The definition of value bindings are in the Binds module.
-module Language.Haskell.Tools.AST.Decls where
+module Language.Haskell.Tools.AST.Representation.Decls where
 
-import Language.Haskell.Tools.AST.Binds
-import Language.Haskell.Tools.AST.Types
-import Language.Haskell.Tools.AST.Patterns
-import Language.Haskell.Tools.AST.Kinds
-import Language.Haskell.Tools.AST.Exprs
-import Language.Haskell.Tools.AST.Names
-import Language.Haskell.Tools.AST.Literals
+import Language.Haskell.Tools.AST.Representation.Binds
+import Language.Haskell.Tools.AST.Representation.Types
+import Language.Haskell.Tools.AST.Representation.Patterns
+import Language.Haskell.Tools.AST.Representation.Kinds
+import Language.Haskell.Tools.AST.Representation.Exprs
+import Language.Haskell.Tools.AST.Representation.Names
+import Language.Haskell.Tools.AST.Representation.Literals
 import Language.Haskell.Tools.AST.Ann
-import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.TH
 
 -- * Declarations
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE RoleAnnotations #-}
-module Language.Haskell.Tools.AST.Exprs where
+module Language.Haskell.Tools.AST.Representation.Exprs where
 
 type role UExpr nominal nominal
 data UExpr dom stage

@@ -1,8 +1,8 @@
 -- | Representation of Haskell literals
-module Language.Haskell.Tools.AST.Literals where
+module Language.Haskell.Tools.AST.Representation.Literals where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Names
+import Language.Haskell.Tools.AST.Representation.Names
 
 -- | Haskell literals
 data ULiteral dom stage

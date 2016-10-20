@@ -1,5 +1,5 @@
 {-# LANGUAGE RoleAnnotations #-}
-module Language.Haskell.Tools.AST.Modules where
+module Language.Haskell.Tools.AST.Representation.Modules where
 
 type role UModule nominal nominal
 data UModule dom stage

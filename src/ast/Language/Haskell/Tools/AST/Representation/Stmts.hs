@@ -1,11 +1,11 @@
 -- | Representation of Haskell statements (both do-notation and comprehensions)
-module Language.Haskell.Tools.AST.Stmts where
+module Language.Haskell.Tools.AST.Representation.Stmts where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Names
-import Language.Haskell.Tools.AST.Patterns
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Exprs (UExpr, Cmd)
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Binds (ULocalBind)
+import Language.Haskell.Tools.AST.Representation.Names
+import Language.Haskell.Tools.AST.Representation.Patterns
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Exprs (UExpr, Cmd)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Binds (ULocalBind)
 
 -- | Normal monadic statements
 data UStmt' expr dom stage

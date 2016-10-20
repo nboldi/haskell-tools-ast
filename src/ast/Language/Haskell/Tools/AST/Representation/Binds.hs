@@ -1,13 +1,13 @@
 -- | Representation of Haskell AST value and function bindings (both local and top-level)
-module Language.Haskell.Tools.AST.Binds where
+module Language.Haskell.Tools.AST.Representation.Binds where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Names
-import Language.Haskell.Tools.AST.Patterns
-import Language.Haskell.Tools.AST.Exprs
-import Language.Haskell.Tools.AST.Types
-import Language.Haskell.Tools.AST.Literals
-import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
+import Language.Haskell.Tools.AST.Representation.Names
+import Language.Haskell.Tools.AST.Representation.Patterns
+import Language.Haskell.Tools.AST.Representation.Exprs
+import Language.Haskell.Tools.AST.Representation.Types
+import Language.Haskell.Tools.AST.Representation.Literals
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.TH
 
 -- | Value binding for top-level and local bindings
 data UValueBind dom stage

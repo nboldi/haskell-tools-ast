@@ -21,11 +21,11 @@ import Data.Function hiding ((&))
 import Data.Generics.Uniplate.Operations
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Modules
-import Language.Haskell.Tools.AST.Decls
-import Language.Haskell.Tools.AST.Binds
-import Language.Haskell.Tools.AST.Types
-import Language.Haskell.Tools.AST.Names
+import Language.Haskell.Tools.AST.Representation.Modules
+import Language.Haskell.Tools.AST.Representation.Decls
+import Language.Haskell.Tools.AST.Representation.Binds
+import Language.Haskell.Tools.AST.Representation.Types
+import Language.Haskell.Tools.AST.Representation.Names
 import Language.Haskell.Tools.AST.References
 import Language.Haskell.Tools.AST.SemaInfoTypes
 import Language.Haskell.Tools.AST.SemaInfoClasses

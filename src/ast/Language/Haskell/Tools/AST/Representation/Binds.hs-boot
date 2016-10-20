@@ -1,5 +1,5 @@
 {-# LANGUAGE RoleAnnotations #-}
-module Language.Haskell.Tools.AST.Binds where
+module Language.Haskell.Tools.AST.Representation.Binds where
 
 type role ULocalBind nominal nominal
 data ULocalBind dom stage

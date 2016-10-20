@@ -1,12 +1,12 @@
 -- | Representation of Template Haskell AST elements
-module Language.Haskell.Tools.AST.TH where
+module Language.Haskell.Tools.AST.Representation.TH where
               
-import Language.Haskell.Tools.AST.Decls
-import Language.Haskell.Tools.AST.Binds
-import Language.Haskell.Tools.AST.Exprs
-import Language.Haskell.Tools.AST.Patterns
-import Language.Haskell.Tools.AST.Types
-import Language.Haskell.Tools.AST.Names
+import Language.Haskell.Tools.AST.Representation.Decls
+import Language.Haskell.Tools.AST.Representation.Binds
+import Language.Haskell.Tools.AST.Representation.Exprs
+import Language.Haskell.Tools.AST.Representation.Patterns
+import Language.Haskell.Tools.AST.Representation.Types
+import Language.Haskell.Tools.AST.Representation.Names
 import Language.Haskell.Tools.AST.Ann
               
 -- | A template haskell splice          

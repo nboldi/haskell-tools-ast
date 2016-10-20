@@ -5,7 +5,7 @@
            #-}
 
 -- | Simple AST elements of Haskell
-module Language.Haskell.Tools.AST.Names where
+module Language.Haskell.Tools.AST.Representation.Names where
   
 import Language.Haskell.Tools.AST.Ann
 

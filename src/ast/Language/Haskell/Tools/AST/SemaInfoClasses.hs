@@ -9,9 +9,9 @@ import Control.Reference
 
 import Language.Haskell.Tools.AST.Ann as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST
-import Language.Haskell.Tools.AST.Modules as AST
-import Language.Haskell.Tools.AST.Names as AST
-import Language.Haskell.Tools.AST.Exprs as AST
+import Language.Haskell.Tools.AST.Representation.Modules as AST
+import Language.Haskell.Tools.AST.Representation.Names as AST
+import Language.Haskell.Tools.AST.Representation.Exprs as AST
 
 -- | Domains that have semantic information for names
 type HasNameInfo dom = (Domain dom, HasNameInfo' (SemanticInfo dom UQualifiedName))

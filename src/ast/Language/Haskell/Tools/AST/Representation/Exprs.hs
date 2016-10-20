@@ -1,14 +1,14 @@
 -- | Representation of Haskell expressions
-module Language.Haskell.Tools.AST.Exprs where
+module Language.Haskell.Tools.AST.Representation.Exprs where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Names
-import Language.Haskell.Tools.AST.Literals
-import Language.Haskell.Tools.AST.Types
-import Language.Haskell.Tools.AST.Patterns
-import Language.Haskell.Tools.AST.Stmts
-import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Binds (ULocalBind, ULocalBinds, URhsGuard)
+import Language.Haskell.Tools.AST.Representation.Names
+import Language.Haskell.Tools.AST.Representation.Literals
+import Language.Haskell.Tools.AST.Representation.Types
+import Language.Haskell.Tools.AST.Representation.Patterns
+import Language.Haskell.Tools.AST.Representation.Stmts
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.TH
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Binds (ULocalBind, ULocalBinds, URhsGuard)
 
 -- | Haskell expressions
 data UExpr dom stage

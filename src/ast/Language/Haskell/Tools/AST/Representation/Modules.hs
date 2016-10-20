@@ -1,11 +1,11 @@
 -- | Representation of Haskell modules, imports and exports. Also contains file-level pragmas.
-module Language.Haskell.Tools.AST.Modules where
+module Language.Haskell.Tools.AST.Representation.Modules where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Names
-import Language.Haskell.Tools.AST.Exprs
-import Language.Haskell.Tools.AST.Binds
-import Language.Haskell.Tools.AST.Decls
+import Language.Haskell.Tools.AST.Representation.Names
+import Language.Haskell.Tools.AST.Representation.Exprs
+import Language.Haskell.Tools.AST.Representation.Binds
+import Language.Haskell.Tools.AST.Representation.Decls
 
 -- | The representation of a haskell module, that is a separate compilation unit.
 -- It may or may not have a header.

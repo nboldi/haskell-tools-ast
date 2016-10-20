@@ -14,21 +14,21 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Language.Haskell.Tools.AST    
-                     , Language.Haskell.Tools.AST.Modules
-                     , Language.Haskell.Tools.AST.TH
-                     , Language.Haskell.Tools.AST.Decls
-                     , Language.Haskell.Tools.AST.Binds
-                     , Language.Haskell.Tools.AST.Exprs
-                     , Language.Haskell.Tools.AST.Stmts
-                     , Language.Haskell.Tools.AST.Patterns
-                     , Language.Haskell.Tools.AST.Types
-                     , Language.Haskell.Tools.AST.Kinds
-                     , Language.Haskell.Tools.AST.Literals
-                     , Language.Haskell.Tools.AST.Names
+                     , Language.Haskell.Tools.AST.Representation.Modules
+                     , Language.Haskell.Tools.AST.Representation.TH
+                     , Language.Haskell.Tools.AST.Representation.Decls
+                     , Language.Haskell.Tools.AST.Representation.Binds
+                     , Language.Haskell.Tools.AST.Representation.Exprs
+                     , Language.Haskell.Tools.AST.Representation.Stmts
+                     , Language.Haskell.Tools.AST.Representation.Patterns
+                     , Language.Haskell.Tools.AST.Representation.Types
+                     , Language.Haskell.Tools.AST.Representation.Kinds
+                     , Language.Haskell.Tools.AST.Representation.Literals
+                     , Language.Haskell.Tools.AST.Representation.Names
+
                      , Language.Haskell.Tools.AST.Ann
                      , Language.Haskell.Tools.AST.SemaInfoTypes
-                     , Language.Haskell.Tools.AST.SemaInfoClasses
-                   
+                     , Language.Haskell.Tools.AST.SemaInfoClasses 
                      , Language.Haskell.Tools.AST.Instances
                      , Language.Haskell.Tools.AST.Instances.Eq
                      , Language.Haskell.Tools.AST.Instances.Show
