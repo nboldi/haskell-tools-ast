@@ -20,7 +20,7 @@ import Language.Haskell.Tools.AST.Patterns as Exported
 import Language.Haskell.Tools.AST.Types as Exported
 import Language.Haskell.Tools.AST.Kinds as Exported
 import Language.Haskell.Tools.AST.Literals as Exported
-import Language.Haskell.Tools.AST.Base as Exported
+import Language.Haskell.Tools.AST.Names as Exported
 import Language.Haskell.Tools.AST.Ann as Exported
 import Language.Haskell.Tools.AST.Utils.OrdSrcSpan as Exported
 import Language.Haskell.Tools.AST.SemaInfoTypes as Exported

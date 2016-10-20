@@ -13,7 +13,7 @@ import Data.Function (on)
 import Control.Reference
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Gen.Utils
-import Language.Haskell.Tools.AST.Gen.Base
+import Language.Haskell.Tools.AST.Gen.Names
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
@@ -192,3 +192,9 @@ mkAppInstanceHead fun arg = mkAnn (child <> " " <> child) $ UInstanceHeadApp fun
 
 mkTypeEqn :: Ann UType dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UTypeEqn dom SrcTemplateStage
 mkTypeEqn lhs rhs = mkAnn (child <> " = " <> child) $ UTypeEqn lhs rhs
+
+mkDataKeyword :: Ann UDataOrNewtypeKeyword dom SrcTemplateStage
+mkDataKeyword = mkAnn "data" UDataKeyword
+
+mkNewtypeKeyword :: Ann UDataOrNewtypeKeyword dom SrcTemplateStage
+mkNewtypeKeyword = mkAnn "newtype" UNewtypeKeyword

@@ -10,7 +10,7 @@ import BasicTypes as GHC
 import HsLit as GHC
 import HsTypes as GHC
 
-import Language.Haskell.Tools.AST.FromGHC.Base
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Utils
 

@@ -2,7 +2,7 @@
 module Language.Haskell.Tools.AST.Modules where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Base
+import Language.Haskell.Tools.AST.Names
 import Language.Haskell.Tools.AST.Exprs
 import Language.Haskell.Tools.AST.Binds
 import Language.Haskell.Tools.AST.Decls
@@ -94,3 +94,9 @@ data UTypeNamespace dom stage = UTypeNamespace
 
 -- | Renaming imports (@ as A @)
 data UImportRenaming dom stage = UImportRenaming { _importRename :: Ann UModuleName dom stage }
+
+-- | The name of a module
+data UModuleName dom stage = UModuleName { _moduleNameString :: String }
+
+-- | The @type@ keyword used to qualify that the type and not the constructor of the same name is referred
+data TypeKeyword dom stage = TypeKeyword

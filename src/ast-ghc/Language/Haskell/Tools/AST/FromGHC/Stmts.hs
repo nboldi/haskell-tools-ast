@@ -15,7 +15,7 @@ import HsPat as GHC
 import HsExpr as GHC
 import ApiAnnotation as GHC
 
-import Language.Haskell.Tools.AST.FromGHC.Base
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Types
 import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Exprs
 import Language.Haskell.Tools.AST.FromGHC.Patterns

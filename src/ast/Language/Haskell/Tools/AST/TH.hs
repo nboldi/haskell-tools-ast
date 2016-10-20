@@ -6,7 +6,7 @@ import Language.Haskell.Tools.AST.Binds
 import Language.Haskell.Tools.AST.Exprs
 import Language.Haskell.Tools.AST.Patterns
 import Language.Haskell.Tools.AST.Types
-import Language.Haskell.Tools.AST.Base
+import Language.Haskell.Tools.AST.Names
 import Language.Haskell.Tools.AST.Ann
               
 -- | A template haskell splice          

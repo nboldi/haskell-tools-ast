@@ -3,7 +3,7 @@ module Language.Haskell.Tools.AST.Kinds where
 
 import Language.Haskell.Tools.AST.Literals
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Base
+import Language.Haskell.Tools.AST.Names
 
 -- | UKind constraint (@ :: * -> * @)
 data UKindConstraint dom stage

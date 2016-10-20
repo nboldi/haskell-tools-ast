@@ -10,7 +10,7 @@ import Control.Reference
 import Language.Haskell.Tools.AST.Ann as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST
 import Language.Haskell.Tools.AST.Modules as AST
-import Language.Haskell.Tools.AST.Base as AST
+import Language.Haskell.Tools.AST.Names as AST
 import Language.Haskell.Tools.AST.Exprs as AST
 
 -- | Domains that have semantic information for names

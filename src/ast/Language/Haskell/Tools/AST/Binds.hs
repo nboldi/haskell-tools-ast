@@ -2,7 +2,7 @@
 module Language.Haskell.Tools.AST.Binds where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Base
+import Language.Haskell.Tools.AST.Names
 import Language.Haskell.Tools.AST.Patterns
 import Language.Haskell.Tools.AST.Exprs
 import Language.Haskell.Tools.AST.Types
@@ -57,14 +57,26 @@ data UTypeSignature dom stage
   = UTypeSignature { _tsName :: AnnList UName dom stage
                    , _tsType :: Ann UType dom stage
                    }     
-                   
+            
+-- * Fixities
+
 -- | A fixity signature (@ infixl 5 +, - @).
 data UFixitySignature dom stage
   = UFixitySignature { _fixityAssoc :: Ann Assoc dom stage
                      , _fixityPrecedence :: Ann Precedence dom stage
                      , _fixityOperators :: AnnList UOperator dom stage
                      }
+
+-- | Associativity of an operator.
+data Assoc dom stage
+  = AssocNone  -- ^ non-associative operator (declared with @infix@)
+  | AssocLeft  -- ^ left-associative operator (declared with @infixl@)
+  | AssocRight -- ^ right-associative operator (declared with @infixr@)
    
+-- | Numeric precedence of an operator
+data Precedence dom stage
+  = Precedence { _precedenceValue :: Int } 
+
 -- | Right hand side of a value binding (possible with guards): (@ = 3 @ or @ | x == 1 = 3; | otherwise = 4 @)
 data URhs dom stage
   = UUnguardedRhs { _rhsExpr :: Ann UExpr dom stage
@@ -87,65 +99,3 @@ data URhsGuard dom stage
                 }
   | UGuardCheck { _guardCheck :: Ann UExpr dom stage
                 }
-
--- * Pragmas
-
--- | Top level pragmas
-data TopLevelPragma dom stage
-  = URulePragma       { _pragmaRule :: AnnList Rule dom stage
-                      }
-  | UDeprPragma       { _pragmaObjects :: AnnList UName dom stage
-                      , _pragmaMessage :: Ann UStringNode dom stage
-                      }
-  | UWarningPragma    { _pragmaObjects :: AnnList UName dom stage
-                      , _pragmaMessage :: Ann UStringNode dom stage
-                      }
-  | UAnnPragma        { _annotationSubject :: Ann AnnotationSubject dom stage
-                      , _annotateExpr :: Ann UExpr dom stage
-                      }
-  | UInlinePragma     { _pragmaConlike :: AnnMaybe ConlikeAnnot dom stage
-                      , _pragmaPhase :: AnnMaybe PhaseControl dom stage
-                      , _inlineDef :: Ann UName dom stage
-                      }
-  | UNoInlinePragma   { _pragmaConlike :: AnnMaybe ConlikeAnnot dom stage
-                      , _pragmaPhase :: AnnMaybe PhaseControl dom stage
-                      , _noInlineDef :: Ann UName dom stage
-                      }
-  | UInlinablePragma  { _pragmaPhase :: AnnMaybe PhaseControl dom stage
-                      , _inlinableDef :: Ann UName dom stage
-                      }
-  | ULinePragma       { _pragmaLineNum :: Ann LineNumber dom stage
-                      , _pragmaFileName :: AnnMaybe UStringNode dom stage
-                      }
-  | USpecializePragma { _pragmaPhase :: AnnMaybe PhaseControl dom stage
-                      , _specializeDef :: Ann UName dom stage
-                      , _specializeType :: AnnList UType dom stage
-                      }
-
--- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
-data Rule dom stage
-  = URule { _ruleName :: Ann UStringNode dom stage -- ^ User name of the rule
-          , _rulePhase :: AnnMaybe PhaseControl dom stage -- ^ The compilation phases in which the rule can be applied
-          , _ruleBounded :: AnnList UTyVar dom stage -- ^ Variables bound in the rule
-          , _ruleLhs :: Ann UExpr dom stage -- ^ The transformed expression
-          , _ruleRhs :: Ann UExpr dom stage -- ^ The resulting expression
-          }
- 
--- | Annotation allows you to connect an expression to any declaration. 
-data AnnotationSubject dom stage
-  = UNameAnnotation { _annotateName :: Ann UName dom stage
-                    } -- ^ The definition with the given name is annotated
-  | UTypeAnnotation { _annotateName :: Ann UName dom stage
-                    } -- ^ A type with the given name is annotated
-  | UModuleAnnotation -- ^ The whole module is annotated
-
--- | Formulas of minimal annotations declaring which functions should be defined.
-data MinimalFormula dom stage
-  = UMinimalName  { _minimalName :: Ann UName dom stage
-                  }
-  | UMinimalParen { _minimalInner :: Ann MinimalFormula dom stage
-                  }
-  | UMinimalOr    { _minimalOrs :: AnnList MinimalFormula dom stage
-                  } -- ^ One of the minimal formulas are needed (@ min1 | min2 @)
-  | UMinimalAnd   { _minimalAnds :: AnnList MinimalFormula dom stage
-                  } -- ^ Both of the minimal formulas are needed (@ min1 , min2 @)

@@ -23,7 +23,7 @@ import BooleanFormula as GHC
 
 import Data.List
 
-import Language.Haskell.Tools.AST.FromGHC.Base
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Exprs
 import Language.Haskell.Tools.AST.FromGHC.Patterns
 import Language.Haskell.Tools.AST.FromGHC.Types
@@ -140,25 +140,3 @@ trfFixitySig (FixitySig names (Fixity _ prec dir))
         transformDir InfixN = annLocNoSema (srcLocSpan . srcSpanEnd <$> tokenLoc AnnInfix) (pure AST.AssocNone)
         
         directionChar = annLocNoSema ((\l -> mkSrcSpan (updateCol (subtract 1) l) l) . srcSpanEnd <$> tokenLoc AnnInfix)
-   
-trfRewriteRule :: TransformName n r => Located (RuleDecl n) -> Trf (Ann AST.Rule (Dom r) RangeStage)
-trfRewriteRule = trfLocNoSema $ \(HsRule (L nameLoc (_, ruleName)) act bndrs left _ right _) ->
-  AST.URule <$> trfFastString (L nameLoc ruleName) 
-            <*> trfPhase (before AnnForall) act
-            <*> makeNonemptyList " " (mapM trfRuleBndr bndrs)
-            <*> trfExpr left
-            <*> trfExpr right
-
-trfRuleBndr :: TransformName n r =>  Located (RuleBndr n) -> Trf (Ann AST.UTyVar (Dom r) RangeStage)
-trfRuleBndr = trfLocNoSema $ \case (RuleBndr n) -> AST.UTyVarDecl <$> trfName n <*> nothing " " "" atTheEnd
-                                   (RuleBndrSig n k) -> AST.UTyVarDecl <$> trfName n <*> (makeJust <$> (trfKindSig' (hswc_body $ hsib_body k)))
-
-trfMinimalFormula :: TransformName n r => Located (BooleanFormula (Located n)) -> Trf (Ann AST.MinimalFormula (Dom r) RangeStage)
-trfMinimalFormula = trfLocNoSema trfMinimalFormula'
-
-trfMinimalFormula' :: TransformName n r => BooleanFormula (Located n) -> Trf (AST.MinimalFormula (Dom r) RangeStage)
-trfMinimalFormula' (Var name) = AST.UMinimalName <$> trfName name
-trfMinimalFormula' (And formulas) = AST.UMinimalAnd <$> trfAnnList " & " trfMinimalFormula' formulas
-trfMinimalFormula' (Or formulas) = AST.UMinimalOr <$> trfAnnList " | " trfMinimalFormula' formulas
-trfMinimalFormula' (Parens formula) = AST.UMinimalParen <$> trfMinimalFormula formula
-

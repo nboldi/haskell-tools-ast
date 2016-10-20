@@ -69,7 +69,7 @@ import Language.Haskell.Tools.AST (Ann(..), AnnMaybe(..), AnnList(..), Dom, IdDo
                                   , semanticInfo, sourceInfo, semantics, annotation, nameInfo, nodeSpan, semaTraverse)
 import qualified Language.Haskell.Tools.AST as AST
 
-import Language.Haskell.Tools.AST.FromGHC.Base
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Decls
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Utils
@@ -306,4 +306,9 @@ trfIESpec' (IEThingWith n _ ls _)
                                                    (annContNoSema $ AST.USubSpecList <$> makeList ", " (after AnnOpenP) (mapM trfName ls))))
 trfIESpec' _ = pure Nothing
   
+trfModuleName :: Located ModuleName -> Trf (Ann AST.UModuleName (Dom r) RangeStage)
+trfModuleName = trfLocNoSema trfModuleName'
+
+trfModuleName' :: ModuleName -> Trf (AST.UModuleName (Dom r) RangeStage)
+trfModuleName' = pure . AST.UModuleName . moduleNameString 
  

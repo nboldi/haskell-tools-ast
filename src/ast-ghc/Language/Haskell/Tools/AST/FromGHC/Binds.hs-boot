@@ -7,7 +7,7 @@ import HsBinds as GHC
 import HsExpr as GHC
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Utils
-import Language.Haskell.Tools.AST.FromGHC.Base
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST (Ann(..), AnnMaybe(..), AnnList(..), Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST
 

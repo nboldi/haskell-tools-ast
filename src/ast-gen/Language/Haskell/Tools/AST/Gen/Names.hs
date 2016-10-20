@@ -3,7 +3,7 @@
            , ViewPatterns
            , TypeFamilies
            #-}
-module Language.Haskell.Tools.AST.Gen.Base where
+module Language.Haskell.Tools.AST.Gen.Names where
 
 import qualified Name as GHC
 import qualified Module as GHC
@@ -77,13 +77,3 @@ mkSimpleName n = mkAnn (child <> child)
 
 mkStringNode :: String -> Ann UStringNode dom SrcTemplateStage
 mkStringNode s = mkAnn (fromString s) (UStringNode s)
-
-mkModuleName :: String -> Ann UModuleName dom SrcTemplateStage
-mkModuleName s = mkAnn (fromString s) (UModuleName s)
-
-mkDataKeyword :: Ann UDataOrNewtypeKeyword dom SrcTemplateStage
-mkDataKeyword = mkAnn "data" UDataKeyword
-
-mkNewtypeKeyword :: Ann UDataOrNewtypeKeyword dom SrcTemplateStage
-mkNewtypeKeyword = mkAnn "newtype" UNewtypeKeyword
-

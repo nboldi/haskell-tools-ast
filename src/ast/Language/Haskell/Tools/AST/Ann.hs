@@ -29,7 +29,7 @@ import Language.Haskell.Tools.AST.Utils.GHCInstances
 import Language.Haskell.Tools.AST.SemaInfoTypes
 
 import {-# SOURCE #-} Language.Haskell.Tools.AST.Modules as AST
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Base as AST
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Names as AST
 import {-# SOURCE #-} Language.Haskell.Tools.AST.Exprs as AST
 
 -- * Annotation type resolution

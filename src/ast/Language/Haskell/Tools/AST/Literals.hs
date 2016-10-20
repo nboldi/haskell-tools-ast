@@ -2,7 +2,7 @@
 module Language.Haskell.Tools.AST.Literals where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Base
+import Language.Haskell.Tools.AST.Names
 
 -- | Haskell literals
 data ULiteral dom stage

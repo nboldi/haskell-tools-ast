@@ -14,7 +14,7 @@ import Language.Haskell.Tools.AST.Patterns
 import Language.Haskell.Tools.AST.Types
 import Language.Haskell.Tools.AST.Kinds
 import Language.Haskell.Tools.AST.Literals
-import Language.Haskell.Tools.AST.Base
+import Language.Haskell.Tools.AST.Names
 import Language.Haskell.Tools.AST.Ann
 
 -- Annotations

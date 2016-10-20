@@ -7,11 +7,12 @@ import Language.Haskell.Tools.AST.Types
 import Language.Haskell.Tools.AST.Patterns
 import Language.Haskell.Tools.AST.Kinds
 import Language.Haskell.Tools.AST.Exprs
-import Language.Haskell.Tools.AST.Base
+import Language.Haskell.Tools.AST.Names
 import Language.Haskell.Tools.AST.Literals
 import Language.Haskell.Tools.AST.Ann
 import {-# SOURCE #-} Language.Haskell.Tools.AST.TH
 
+-- * Declarations
 
 -- | Haskell declaration
 data UDecl dom stage
@@ -91,28 +92,22 @@ data UDecl dom stage
                           } -- ^ role annotations (@ type role Ptr representational @)
   | USpliceDecl           { _declSplice :: Ann Splice dom stage
                           } -- ^ A Template Haskell splice declaration (@ $(generateDecls) @)
-    
--- | Open type and data families
-data UTypeFamily dom stage
-  = UTypeFamily { _tfHead :: Ann UDeclHead dom stage
-                , _tfSpec :: AnnMaybe UTypeFamilySpec dom stage
-                } -- ^ A type family declaration (@ type family A _a :: * -> * @)    
-  | UDataFamily { _tfHead :: Ann UDeclHead dom stage
-                , _tfKind :: AnnMaybe UKindConstraint dom stage
-                } -- ^ Data family declaration
 
--- | UType family specification with kinds specification and injectivity.
-data UTypeFamilySpec dom stage
-  = UTypeFamilyKind { _tfSpecKind :: Ann UKindConstraint dom stage
-                    }
-  | UTypeFamilyInjectivity { _tfInjectivity :: Ann UInjectivityAnn dom stage
-                           }
+-- The declared (possibly parameterized) type (@ A x :+: B y @).
+data UDeclHead dom stage
+  = UDeclHead { _dhName :: Ann UName dom stage
+              } -- ^ UType or class name
+  | UDHParen  { _dhBody :: Ann UDeclHead dom stage
+              } -- ^ Parenthesized type
+  | UDHApp    { _dhAppFun :: Ann UDeclHead dom stage
+              , _dhAppOperand :: Ann UTyVar dom stage
+              } -- ^ UType application
+  | UDHInfix  { _dhLeft :: Ann UTyVar dom stage
+              , _dhOperator :: Ann UOperator dom stage
+              , _dhRight :: Ann UTyVar dom stage
+              } -- ^ Infix application of the type/class name to the left operand
 
--- | Injectivity annotation for type families (@ = r | r -> a @)
-data UInjectivityAnn dom stage
-  = UInjectivityAnn { _injAnnRes :: Ann UName dom stage
-                    , _injAnnDeps :: AnnList UName dom stage
-                    }
+-- * Type class definitions
 
 -- | The list of declarations that can appear in a typeclass
 data UClassBody dom stage
@@ -139,21 +134,31 @@ data UClassElement dom stage
    -- not supported yet (GHC 7.10.3)
   | UClsPatSig  { _cePatSig :: Ann UPatternTypeSignature dom stage
                 } -- ^ UPattern signature in a class declaration (by using @PatternSynonyms@)
-       
--- The declared (possibly parameterized) type (@ A x :+: B y @).
-data UDeclHead dom stage
-  = UDeclHead { _dhName :: Ann UName dom stage
-              } -- ^ UType or class name
-  | UDHParen  { _dhBody :: Ann UDeclHead dom stage
-              } -- ^ Parenthesized type
-  | UDHApp    { _dhAppFun :: Ann UDeclHead dom stage
-              , _dhAppOperand :: Ann UTyVar dom stage
-              } -- ^ UType application
-  | UDHInfix  { _dhLeft :: Ann UTyVar dom stage
-              , _dhOperator :: Ann UOperator dom stage
-              , _dhRight :: Ann UTyVar dom stage
-              } -- ^ Infix application of the type/class name to the left operand
-       
+
+-- * Type class instances
+  
+-- | The instance declaration rule, which is, roughly, the part of the instance declaration before the where keyword.
+data UInstanceRule dom stage
+  = UInstanceRule  { _irVars :: AnnMaybe (AnnList UTyVar) dom stage
+                   , _irCtx :: AnnMaybe UContext dom stage
+                   , _irHead :: Ann UInstanceHead dom stage
+                   }
+  | UInstanceParen { _irRule :: Ann UInstanceRule dom stage
+                   }
+
+-- | The specification of the class instance declaration
+data UInstanceHead dom stage
+  = UInstanceHeadCon   { _ihConName :: Ann UName dom stage
+                       } -- ^ UType or class name
+  | UInstanceHeadInfix { _ihLeftOp :: Ann UType dom stage
+                       , _ihOperator :: Ann UName dom stage
+                       } -- ^ Infix application of the type/class name to the left operand
+  | UInstanceHeadParen { _ihHead :: Ann UInstanceHead dom stage
+                       } -- ^ Parenthesized instance head
+  | UInstanceHeadApp   { _ihFun :: Ann UInstanceHead dom stage
+                       , _ihType :: Ann UType dom stage
+                       } -- ^ Application to one more type
+
 -- | Instance body is the implementation of the class functions (@ where a x = 1; b x = 2 @)
 data UInstBody dom stage
   = UInstBody { _instBodyDecls :: AnnList UInstBodyDecl dom stage
@@ -184,12 +189,58 @@ data UInstBodyDecl dom stage
   | UInstBodyPatSyn       { _instBodyPatSyn :: Ann UPatternSynonym dom stage
                           } -- ^ A pattern synonym in a class instance
 
+-- | Recognised overlaps for overlap pragmas. Can be applied to class declarations and class instance declarations.    
+data OverlapPragma dom stage
+  = EnableOverlap     -- ^ @OVERLAP@ pragma
+  | DisableOverlap    -- ^ @NO_OVERLAP@ pragma
+  | Overlappable      -- ^ @OVERLAPPABLE@ pragma
+  | Overlapping       -- ^ @OVERLAPPING@ pragma
+  | Overlaps          -- ^ @OVERLAPS@ pragma
+  | IncoherentOverlap -- ^ @INCOHERENT@ pragma
+
+-- * Type families
+
+-- | Open type and data families
+data UTypeFamily dom stage
+  = UTypeFamily { _tfHead :: Ann UDeclHead dom stage
+                , _tfSpec :: AnnMaybe UTypeFamilySpec dom stage
+                } -- ^ A type family declaration (@ type family A _a :: * -> * @)    
+  | UDataFamily { _tfHead :: Ann UDeclHead dom stage
+                , _tfKind :: AnnMaybe UKindConstraint dom stage
+                } -- ^ Data family declaration
+
+-- | UType family specification with kinds specification and injectivity.
+data UTypeFamilySpec dom stage
+  = UTypeFamilyKind { _tfSpecKind :: Ann UKindConstraint dom stage
+                    }
+  | UTypeFamilyInjectivity { _tfInjectivity :: Ann UInjectivityAnn dom stage
+                           }
+
+-- | Injectivity annotation for type families (@ = r | r -> a @)
+data UInjectivityAnn dom stage
+  = UInjectivityAnn { _injAnnRes :: Ann UName dom stage
+                    , _injAnnDeps :: AnnList UName dom stage
+                    }
+
+-- | UType equations as found in closed type families (@ T A = S @)
+data UTypeEqn dom stage
+  = UTypeEqn { _teLhs :: Ann UType dom stage
+             , _teRhs :: Ann UType dom stage
+             }
+
+-- * Type definitions
+
 -- | GADT constructor declaration (@ _D1 :: { _val :: Int } -> T String @)
 data UGadtConDecl dom stage
   = UGadtConDecl { _gadtConNames :: AnnList UName dom stage
                  , _gadtConType :: Ann UGadtConType dom stage
                  }
-             
+                   
+-- | The @data@ or the @newtype@ keyword to define ADTs.
+data UDataOrNewtypeKeyword dom stage
+  = UDataKeyword
+  | UNewtypeKeyword
+
 -- | UType of GADT constructors (can be record types: @{ _val :: Int }@)
 data UGadtConType dom stage
   = UGadtNormalType { _gadtConNormalType :: Ann UType dom stage
@@ -232,34 +283,8 @@ data UFieldDecl dom stage
 data UDeriving dom stage
   = UDerivingOne { _oneDerived :: Ann UInstanceHead dom stage }
   | UDerivings { _allDerived :: AnnList UInstanceHead dom stage }
-  
--- | The instance declaration rule, which is, roughly, the part of the instance declaration before the where keyword.
-data UInstanceRule dom stage
-  = UInstanceRule  { _irVars :: AnnMaybe (AnnList UTyVar) dom stage
-                   , _irCtx :: AnnMaybe UContext dom stage
-                   , _irHead :: Ann UInstanceHead dom stage
-                   }
-  | UInstanceParen { _irRule :: Ann UInstanceRule dom stage
-                   }
 
--- | The specification of the class instance declaration
-data UInstanceHead dom stage
-  = UInstanceHeadCon   { _ihConName :: Ann UName dom stage
-                       } -- ^ UType or class name
-  | UInstanceHeadInfix { _ihLeftOp :: Ann UType dom stage
-                       , _ihOperator :: Ann UName dom stage
-                       } -- ^ Infix application of the type/class name to the left operand
-  | UInstanceHeadParen { _ihHead :: Ann UInstanceHead dom stage
-                       } -- ^ Parenthesized instance head
-  | UInstanceHeadApp   { _ihFun :: Ann UInstanceHead dom stage
-                       , _ihType :: Ann UType dom stage
-                       } -- ^ Application to one more type
-        
--- | UType equations as found in closed type families (@ T A = S @)
-data UTypeEqn dom stage
-  = UTypeEqn { _teLhs :: Ann UType dom stage
-             , _teRhs :: Ann UType dom stage
-             }
+-- * Pattern synonyms
 
 -- | A pattern type signature (@ pattern p :: Int -> T @)
 data UPatternTypeSignature dom stage
@@ -298,3 +323,113 @@ data UPatSynRhs dom stage
 -- | Where clause of pattern synonym (explicit expression direction)
 data UPatSynWhere dom stage
   = UPatSynWhere { _patOpposite :: AnnList UMatch dom stage }
+
+-- * Foreign imports
+  
+-- | Call conventions of foreign functions
+data CallConv dom stage
+  = StdCall
+  | CCall
+  | CPlusPlus
+  | DotNet
+  | Jvm
+  | Js
+  | JavaScript
+  | CApi
+
+-- | Safety annotations for foreign calls
+data Safety dom stage
+  = Safe
+  | ThreadSafe
+  | Unsafe
+  | Interruptible
+
+-- * Role annotations
+
+-- | Role annotations for types
+data Role dom stage
+  = Nominal
+  | Representational
+  | Phantom
+
+-- * Rewrite rules
+
+-- | Controls the activation of a rewrite rule (@ [1] @)
+data PhaseControl dom stage
+  = PhaseControl { _phaseUntil :: AnnMaybe PhaseInvert dom stage
+                 , _phaseNumber :: Ann PhaseNumber dom stage
+                 } 
+
+-- | Phase number for rewrite rules
+data PhaseNumber dom stage
+  = PhaseNumber { _phaseNum :: Integer }
+
+-- | A tilde that marks the inversion of the phase number
+data PhaseInvert dom stage = PhaseInvert
+
+-- * Pragmas
+
+-- | Top level pragmas
+data TopLevelPragma dom stage
+  = URulePragma       { _pragmaRule :: AnnList Rule dom stage
+                      }
+  | UDeprPragma       { _pragmaObjects :: AnnList UName dom stage
+                      , _pragmaMessage :: Ann UStringNode dom stage
+                      }
+  | UWarningPragma    { _pragmaObjects :: AnnList UName dom stage
+                      , _pragmaMessage :: Ann UStringNode dom stage
+                      }
+  | UAnnPragma        { _annotationSubject :: Ann AnnotationSubject dom stage
+                      , _annotateExpr :: Ann UExpr dom stage
+                      }
+  | UInlinePragma     { _pragmaConlike :: AnnMaybe ConlikeAnnot dom stage
+                      , _pragmaPhase :: AnnMaybe PhaseControl dom stage
+                      , _inlineDef :: Ann UName dom stage
+                      }
+  | UNoInlinePragma   { _pragmaConlike :: AnnMaybe ConlikeAnnot dom stage
+                      , _pragmaPhase :: AnnMaybe PhaseControl dom stage
+                      , _noInlineDef :: Ann UName dom stage
+                      }
+  | UInlinablePragma  { _pragmaPhase :: AnnMaybe PhaseControl dom stage
+                      , _inlinableDef :: Ann UName dom stage
+                      }
+  | ULinePragma       { _pragmaLineNum :: Ann LineNumber dom stage
+                      , _pragmaFileName :: AnnMaybe UStringNode dom stage
+                      }
+  | USpecializePragma { _pragmaPhase :: AnnMaybe PhaseControl dom stage
+                      , _specializeDef :: Ann UName dom stage
+                      , _specializeType :: AnnList UType dom stage
+                      }
+
+-- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
+data Rule dom stage
+  = URule { _ruleName :: Ann UStringNode dom stage -- ^ User name of the rule
+          , _rulePhase :: AnnMaybe PhaseControl dom stage -- ^ The compilation phases in which the rule can be applied
+          , _ruleBounded :: AnnList UTyVar dom stage -- ^ Variables bound in the rule
+          , _ruleLhs :: Ann UExpr dom stage -- ^ The transformed expression
+          , _ruleRhs :: Ann UExpr dom stage -- ^ The resulting expression
+          }
+ 
+-- | Annotation allows you to connect an expression to any declaration. 
+data AnnotationSubject dom stage
+  = UNameAnnotation { _annotateName :: Ann UName dom stage
+                    } -- ^ The definition with the given name is annotated
+  | UTypeAnnotation { _annotateName :: Ann UName dom stage
+                    } -- ^ A type with the given name is annotated
+  | UModuleAnnotation -- ^ The whole module is annotated
+
+-- | Formulas of minimal annotations declaring which functions should be defined.
+data MinimalFormula dom stage
+  = UMinimalName  { _minimalName :: Ann UName dom stage
+                  }
+  | UMinimalParen { _minimalInner :: Ann MinimalFormula dom stage
+                  }
+  | UMinimalOr    { _minimalOrs :: AnnList MinimalFormula dom stage
+                  } -- ^ One of the minimal formulas are needed (@ min1 | min2 @)
+  | UMinimalAnd   { _minimalAnds :: AnnList MinimalFormula dom stage
+                  } -- ^ Both of the minimal formulas are needed (@ min1 , min2 @)
+
+data ConlikeAnnot dom stage = ConlikeAnnot
+
+data LineNumber dom stage
+  = LineNumber { _lineNumber :: Int } 

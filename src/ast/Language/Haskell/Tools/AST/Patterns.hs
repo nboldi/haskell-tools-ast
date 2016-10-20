@@ -2,7 +2,7 @@
 module Language.Haskell.Tools.AST.Patterns where
           
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Base  
+import Language.Haskell.Tools.AST.Names  
 import Language.Haskell.Tools.AST.Literals
 import Language.Haskell.Tools.AST.Types
 import {-# SOURCE #-} Language.Haskell.Tools.AST.Exprs (UExpr, UFieldWildcard)

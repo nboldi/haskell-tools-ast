@@ -2,7 +2,7 @@
 module Language.Haskell.Tools.AST.Exprs where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Base
+import Language.Haskell.Tools.AST.Names
 import Language.Haskell.Tools.AST.Literals
 import Language.Haskell.Tools.AST.Types
 import Language.Haskell.Tools.AST.Patterns
@@ -180,11 +180,13 @@ data SourceRange dom stage
                 , _srToLine :: Ann Number dom stage
                 , _srToCol :: Ann Number dom stage
                 }  
-                
+
 data Number dom stage
   = Number { _numberInteger :: Integer 
            }
         
+-- * Arrows
+
 data Cmd dom stage
   = ArrowAppCmd   { _cmdLhs :: Ann UExpr dom stage
                   , _cmdArrowOp :: Ann ArrowAppl dom stage
@@ -217,4 +219,9 @@ data Cmd dom stage
                   }
   | DoCmd         { _cmdStmts :: AnnList (UStmt' Cmd) dom stage
                   }
- 
+
+data ArrowAppl dom stage
+  = LeftAppl -- ^ Left arrow application: @-<@
+  | RightAppl -- ^ Right arrow application: @>-@
+  | LeftHighApp -- ^ Left arrow high application: @-<<@
+  | RightHighApp -- ^ Right arrow high application: @>>-@

@@ -2,7 +2,7 @@
 module Language.Haskell.Tools.AST.Stmts where
 
 import Language.Haskell.Tools.AST.Ann
-import Language.Haskell.Tools.AST.Base
+import Language.Haskell.Tools.AST.Names
 import Language.Haskell.Tools.AST.Patterns
 import {-# SOURCE #-} Language.Haskell.Tools.AST.Exprs (UExpr, Cmd)
 import {-# SOURCE #-} Language.Haskell.Tools.AST.Binds (ULocalBind)
@@ -36,3 +36,8 @@ data UCompStmt dom stage
                , _usingExpr :: AnnMaybe UExpr dom stage
                } -- ^ Grouping statements by @TransformListComp@ (@ then group by (x + y) using groupWith @) 
                  -- Note: either byExpr or usingExpr must have a value
+
+-- | Keywords @do@ or @mdo@ to start a do-block
+data UDoKind dom stage
+  = UDoKeyword
+  | UMDoKeyword                 

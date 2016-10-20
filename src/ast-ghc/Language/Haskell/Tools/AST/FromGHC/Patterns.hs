@@ -18,7 +18,7 @@ import Debug.Trace
 import Data.List
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils
 
-import Language.Haskell.Tools.AST.FromGHC.Base
+import Language.Haskell.Tools.AST.FromGHC.Names
 import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH
 import Language.Haskell.Tools.AST.FromGHC.Literals
 import Language.Haskell.Tools.AST.FromGHC.Types

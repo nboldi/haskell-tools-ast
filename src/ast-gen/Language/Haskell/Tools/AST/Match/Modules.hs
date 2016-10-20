@@ -44,3 +44,6 @@ pattern ImportSpecList ieSpecs <- Ann _ (UImportSpecList ieSpecs)
 
 pattern ImportHidingList :: AnnList UIESpec dom stage -> Ann UImportSpec dom stage
 pattern ImportHidingList hidings <- Ann _ (UImportSpecHiding hidings)
+
+pattern ModuleName :: String -> Ann UModuleName dom stage
+pattern ModuleName s <- Ann _ (UModuleName s)

@@ -18,3 +18,9 @@ pattern ListCompBody stmts <- Ann _ (UListCompBody stmts)
 
 pattern CompStmt :: Ann UStmt dom stage -> Ann UCompStmt dom stage
 pattern CompStmt stmt <- Ann _ (UCompStmt stmt)
+
+pattern DoKeyword :: Ann UDoKind dom stage
+pattern DoKeyword <- Ann _ UDoKeyword
+
+pattern MDoKeyword :: Ann UDoKind dom stage
+pattern MDoKeyword <- Ann _ UMDoKeyword

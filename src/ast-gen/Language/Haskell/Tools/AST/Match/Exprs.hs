@@ -3,7 +3,8 @@
 module Language.Haskell.Tools.AST.Match.Exprs where
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.AST.Match.Base
+import Language.Haskell.Tools.AST.Match.Stmts
+import Language.Haskell.Tools.AST.Match.Names
 
 -- * Expressions
 

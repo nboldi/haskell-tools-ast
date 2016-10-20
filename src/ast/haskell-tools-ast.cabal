@@ -24,7 +24,7 @@ library
                      , Language.Haskell.Tools.AST.Types
                      , Language.Haskell.Tools.AST.Kinds
                      , Language.Haskell.Tools.AST.Literals
-                     , Language.Haskell.Tools.AST.Base
+                     , Language.Haskell.Tools.AST.Names
                      , Language.Haskell.Tools.AST.Ann
                      , Language.Haskell.Tools.AST.SemaInfoTypes
                      , Language.Haskell.Tools.AST.SemaInfoClasses

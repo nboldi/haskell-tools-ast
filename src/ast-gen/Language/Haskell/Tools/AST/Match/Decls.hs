@@ -3,7 +3,7 @@
 module Language.Haskell.Tools.AST.Match.Decls where
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.AST.Match.Base
+import Language.Haskell.Tools.AST.Match.Names
 
 -- * Declarations
 
@@ -192,3 +192,9 @@ pattern AppInstanceHead fun arg <- Ann _ (UInstanceHeadApp fun arg)
 
 pattern TypeEqn :: Ann UType dom stage -> Ann UType dom stage -> Ann UTypeEqn dom stage
 pattern TypeEqn lhs rhs <- Ann _ (UTypeEqn lhs rhs)
+
+pattern DataKeyword :: Ann UDataOrNewtypeKeyword dom stage
+pattern DataKeyword <- Ann _ UDataKeyword
+
+pattern NewtypeKeyword :: Ann UDataOrNewtypeKeyword dom stage
+pattern NewtypeKeyword <- Ann _ UNewtypeKeyword

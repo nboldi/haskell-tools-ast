@@ -7,6 +7,7 @@ module Language.Haskell.Tools.AST.FromGHC.Decls where
 
 import qualified GHC
 import RdrName as GHC
+import Var as GHC
 import Class as GHC
 import HsSyn as GHC
 import SrcLoc as GHC
@@ -20,6 +21,8 @@ import Bag as GHC
 import ForeignCall as GHC
 import Outputable as GHC
 import Unique as GHC
+import TyCon as GHC
+import BooleanFormula as GHC
 
 import Control.Monad.Reader
 import Control.Reference
@@ -31,7 +34,7 @@ import Data.Data (toConstr)
 import Data.Generics.Uniplate.Data
 
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils
-import Language.Haskell.Tools.AST.FromGHC.Base
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Kinds
 import Language.Haskell.Tools.AST.FromGHC.Types
 import Language.Haskell.Tools.AST.FromGHC.Exprs
@@ -446,3 +449,69 @@ trfAnnotationSubject stxt subject payloadEnd
                        TypeAnnProvenance name@(L l _) -> annLocNoSema (pure $ mkSrcSpan payloadStart (srcSpanEnd l)) 
                                                                       (AST.UTypeAnnotation <$> trfName name)
                        ModuleAnnProvenance -> annLocNoSema (pure $ mkSrcSpan payloadStart payloadEnd) (pure AST.UModuleAnnotation)
+  
+trfDataKeyword ::  NewOrData -> Trf (Ann AST.UDataOrNewtypeKeyword (Dom r) RangeStage)
+trfDataKeyword NewType = annLocNoSema (tokenLoc AnnNewtype) (pure AST.UNewtypeKeyword)
+trfDataKeyword DataType = annLocNoSema (tokenLoc AnnData) (pure AST.UDataKeyword)
+     
+trfCallConv :: Located CCallConv -> Trf (Ann AST.CallConv (Dom r) RangeStage)
+trfCallConv = trfLocNoSema trfCallConv'
+   
+trfCallConv' :: CCallConv -> Trf (AST.CallConv (Dom r) RangeStage)
+trfCallConv' CCallConv = pure AST.CCall
+trfCallConv' CApiConv = pure AST.CApi
+trfCallConv' StdCallConv = pure AST.StdCall
+-- trfCallConv' PrimCallConv = 
+trfCallConv' JavaScriptCallConv = pure AST.JavaScript
+
+trfSafety :: SrcSpan -> Located Safety -> Trf (AnnMaybe AST.Safety (Dom r) RangeStage)
+trfSafety ccLoc lsaf@(L l _) | isGoodSrcSpan l 
+  = makeJust <$> trfLocNoSema (pure . \case
+      PlaySafe -> AST.Safe
+      PlayInterruptible -> AST.Interruptible
+      PlayRisky -> AST.Unsafe) lsaf
+  | otherwise = nothing " " "" (pure $ srcSpanEnd ccLoc)
+
+trfOverlap :: Located OverlapMode -> Trf (Ann AST.OverlapPragma (Dom r) RangeStage)
+trfOverlap = trfLocNoSema $ pure . \case
+  NoOverlap _ -> AST.DisableOverlap
+  Overlappable _ -> AST.Overlappable
+  Overlapping _ -> AST.Overlapping
+  Overlaps _ -> AST.Overlaps
+  Incoherent _ -> AST.IncoherentOverlap
+
+trfRole :: Located (Maybe Role) -> Trf (Ann AST.Role (Dom r) RangeStage)
+trfRole = trfLocNoSema $ \case Just Nominal -> pure AST.Nominal
+                               Just Representational -> pure AST.Representational
+                               Just GHC.Phantom -> pure AST.Phantom
+         
+trfPhase :: Trf SrcLoc -> Activation -> Trf (AnnMaybe AST.PhaseControl (Dom r) RangeStage)
+trfPhase l AlwaysActive = nothing "" " " l
+trfPhase _ (ActiveAfter _ pn) = makeJust <$> annLocNoSema (combineSrcSpans <$> tokenLoc AnnOpenS <*> tokenLoc AnnCloseS) 
+                                                          (AST.PhaseControl <$> nothing "" "" (before AnnCloseS) <*> trfPhaseNum pn)
+trfPhase _ (ActiveBefore _ pn) = makeJust <$> annLocNoSema (combineSrcSpans <$> tokenLoc AnnOpenS <*> tokenLoc AnnCloseS)
+                                                           (AST.PhaseControl <$> (makeJust <$> annLocNoSema (tokenLoc AnnTilde) (pure AST.PhaseInvert)) <*> trfPhaseNum pn)
+
+trfPhaseNum ::  PhaseNum -> Trf (Ann AST.PhaseNumber (Dom r) RangeStage)
+trfPhaseNum i = annLocNoSema (tokenLoc AnnVal) $ pure (AST.PhaseNumber $ fromIntegral i) 
+   
+trfRewriteRule :: TransformName n r => Located (RuleDecl n) -> Trf (Ann AST.Rule (Dom r) RangeStage)
+trfRewriteRule = trfLocNoSema $ \(HsRule (L nameLoc (_, ruleName)) act bndrs left _ right _) ->
+  AST.URule <$> trfFastString (L nameLoc ruleName) 
+            <*> trfPhase (before AnnForall) act
+            <*> makeNonemptyList " " (mapM trfRuleBndr bndrs)
+            <*> trfExpr left
+            <*> trfExpr right
+
+trfRuleBndr :: TransformName n r =>  Located (RuleBndr n) -> Trf (Ann AST.UTyVar (Dom r) RangeStage)
+trfRuleBndr = trfLocNoSema $ \case (RuleBndr n) -> AST.UTyVarDecl <$> trfName n <*> nothing " " "" atTheEnd
+                                   (RuleBndrSig n k) -> AST.UTyVarDecl <$> trfName n <*> (makeJust <$> (trfKindSig' (hswc_body $ hsib_body k)))
+
+trfMinimalFormula :: TransformName n r => Located (BooleanFormula (Located n)) -> Trf (Ann AST.MinimalFormula (Dom r) RangeStage)
+trfMinimalFormula = trfLocNoSema trfMinimalFormula'
+
+trfMinimalFormula' :: TransformName n r => BooleanFormula (Located n) -> Trf (AST.MinimalFormula (Dom r) RangeStage)
+trfMinimalFormula' (Var name) = AST.UMinimalName <$> trfName name
+trfMinimalFormula' (And formulas) = AST.UMinimalAnd <$> trfAnnList " & " trfMinimalFormula' formulas
+trfMinimalFormula' (Or formulas) = AST.UMinimalOr <$> trfAnnList " | " trfMinimalFormula' formulas
+trfMinimalFormula' (Parens formula) = AST.UMinimalParen <$> trfMinimalFormula formula

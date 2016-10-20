@@ -28,7 +28,7 @@ import Outputable as GHC
 import PrelNames as GHC
 import DataCon as GHC
 
-import Language.Haskell.Tools.AST.FromGHC.Base
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Types
 import Language.Haskell.Tools.AST.FromGHC.Literals
 import Language.Haskell.Tools.AST.FromGHC.Patterns
