@@ -53,11 +53,11 @@ import System.IO
 import System.FilePath
 import Data.Generics.Uniplate.Operations
 
-import Language.Haskell.Tools.Refactor.OrganizeImports
-import Language.Haskell.Tools.Refactor.GenerateTypeSignature
-import Language.Haskell.Tools.Refactor.GenerateExports
-import Language.Haskell.Tools.Refactor.RenameDefinition
-import Language.Haskell.Tools.Refactor.ExtractBinding
+import Language.Haskell.Tools.Refactor.Predefined.OrganizeImports
+import Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature
+import Language.Haskell.Tools.Refactor.Predefined.GenerateExports
+import Language.Haskell.Tools.Refactor.Predefined.RenameDefinition
+import Language.Haskell.Tools.Refactor.Predefined.ExtractBinding
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Refactor.GetModules
 

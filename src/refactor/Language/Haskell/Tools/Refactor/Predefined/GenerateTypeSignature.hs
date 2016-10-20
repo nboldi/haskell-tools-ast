@@ -6,7 +6,7 @@
            , TypeFamilies
            , ConstraintKinds
            #-}
-module Language.Haskell.Tools.Refactor.GenerateTypeSignature (generateTypeSignature, generateTypeSignature', GenerateSignatureDomain) where
+module Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature (generateTypeSignature, generateTypeSignature', GenerateSignatureDomain) where
 
 import GHC hiding (Module)
 import Type as GHC

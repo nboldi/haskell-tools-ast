@@ -29,16 +29,16 @@ import Language.Haskell.Tools.AnnTrf.PlaceComments
 import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.GetModules
-import Language.Haskell.Tools.Refactor.OrganizeImports
-import Language.Haskell.Tools.Refactor.GenerateTypeSignature
-import Language.Haskell.Tools.Refactor.GenerateExports
-import Language.Haskell.Tools.Refactor.RenameDefinition
-import Language.Haskell.Tools.Refactor.ExtractBinding
+import Language.Haskell.Tools.Refactor.Predefined.OrganizeImports
+import Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature
+import Language.Haskell.Tools.Refactor.Predefined.GenerateExports
+import Language.Haskell.Tools.Refactor.Predefined.RenameDefinition
+import Language.Haskell.Tools.Refactor.Predefined.ExtractBinding
 import Language.Haskell.Tools.Refactor.RefactorBase
 
-import Language.Haskell.Tools.Refactor.DataToNewtype
-import Language.Haskell.Tools.Refactor.IfToGuards
-import Language.Haskell.Tools.Refactor.DollarApp
+import Language.Haskell.Tools.Refactor.Predefined.DataToNewtype
+import Language.Haskell.Tools.Refactor.Predefined.IfToGuards
+import Language.Haskell.Tools.Refactor.Predefined.DollarApp
 
 main :: IO ()
 main = run nightlyTests

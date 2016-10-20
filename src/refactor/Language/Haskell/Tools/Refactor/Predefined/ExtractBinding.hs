@@ -7,7 +7,7 @@
            , ConstraintKinds
            , TypeFamilies
            #-}
-module Language.Haskell.Tools.Refactor.ExtractBinding where
+module Language.Haskell.Tools.Refactor.Predefined.ExtractBinding where
 
 import qualified GHC
 import qualified Var as GHC

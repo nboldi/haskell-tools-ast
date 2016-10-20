@@ -7,7 +7,7 @@
            , FlexibleContexts
            , ViewPatterns
            #-}
-module Language.Haskell.Tools.Refactor.RenameDefinition (renameDefinition, renameDefinition', DomainRenameDefinition) where
+module Language.Haskell.Tools.Refactor.Predefined.RenameDefinition (renameDefinition, renameDefinition', DomainRenameDefinition) where
 
 import Name hiding (Name)
 import GHC (Ghc, TyThing(..), lookupName)

@@ -1,4 +1,4 @@
-module Language.Haskell.Tools.Refactor.DataToNewtype (dataToNewtype) where
+module Language.Haskell.Tools.Refactor.Predefined.DataToNewtype (dataToNewtype) where
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Rewrite

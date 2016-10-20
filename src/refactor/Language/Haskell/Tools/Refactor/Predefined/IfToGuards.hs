@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes, FlexibleContexts, ViewPatterns #-}
-module Language.Haskell.Tools.Refactor.IfToGuards (ifToGuards) where
+module Language.Haskell.Tools.Refactor.Predefined.IfToGuards (ifToGuards) where
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Rewrite

@@ -1,5 +1,5 @@
 {-# LANGUAGE ViewPatterns, FlexibleContexts, ConstraintKinds #-}
-module Language.Haskell.Tools.Refactor.DollarApp (dollarApp) where
+module Language.Haskell.Tools.Refactor.Predefined.DollarApp (dollarApp) where
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Rewrite

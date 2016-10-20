@@ -4,7 +4,7 @@
            , TypeFamilies
            , ConstraintKinds
            #-}
-module Language.Haskell.Tools.Refactor.OrganizeImports (organizeImports, OrganizeImportsDomain) where
+module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports (organizeImports, OrganizeImportsDomain) where
 
 import SrcLoc
 import Name hiding (Name)
