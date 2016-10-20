@@ -28,6 +28,7 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.Refactor.ASTElements as AST
+import Language.Haskell.Tools.Refactor.BindingElem
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 type GenerateSignatureDomain dom = ( HasModuleInfo dom, HasIdInfo dom, HasImportInfo dom ) 
@@ -40,8 +41,7 @@ generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Module
                                 -- ^ Access for a top-level definition if it is the selected definition
                            -> Simple Traversal (Module dom) (LocalBindList dom) 
                                 -- ^ Access for a definition list if it contains the selected definition
-                           -> (forall d . (Show (Ann d dom SrcTemplateStage), Data (Ann d dom SrcTemplateStage), Typeable d, BindingElem d) 
-                                => AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom)) 
+                           -> (forall d . (BindingElem d) => AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom)) 
                                 -- ^ Selector for either local or top-level declaration in the definition list
                            -> LocalRefactoring dom
 generateTypeSignature topLevelRef localRef vbAccess
@@ -137,47 +137,3 @@ getBindingName vb = case nub $ map semanticsId $ vb ^? bindingName of
   [n] -> n
   [] -> error "Trying to generate a signature for a binding with no name"
   _ -> error "Trying to generate a signature for a binding with multiple names"
-
-
--- TODO: put these into a utility module
-
--- | A type class for transformations that work on both top-level and local definitions
-class BindingElem d where
-  sigBind :: Simple Partial (Ann d dom SrcTemplateStage) (TypeSignature dom)
-  valBind :: Simple Partial (Ann d dom SrcTemplateStage) (ValueBind dom)
-  createTypeSig :: TypeSignature dom -> Ann d dom SrcTemplateStage
-  createBinding :: ValueBind dom -> Ann d dom SrcTemplateStage
-  isTypeSig :: Ann d dom stage -> Bool
-  isBinding :: Ann d dom stage -> Bool
-  
-instance BindingElem UDecl where
-  sigBind = declTypeSig
-  valBind = declValBind
-  createTypeSig = mkTypeSigDecl
-  createBinding = mkValueBinding
-  isTypeSig TypeSigDecl {} = True
-  isTypeSig _ = False
-  isBinding ValueBinding {} = True
-  isBinding _ = False
-
-instance BindingElem ULocalBind where
-  sigBind = localSig
-  valBind = localVal
-  createTypeSig = mkLocalTypeSig
-  createBinding = mkLocalValBind
-  isTypeSig LocalTypeSig {} = True
-  isTypeSig _ = False
-  isBinding LocalValBind {} = True
-  isBinding _ = False
-
-bindName :: (BindingElem d, SemanticInfo dom UQualifiedName ~ k) => Simple Traversal (Ann d dom SrcTemplateStage) k
-bindName = valBind&bindingName &+& sigBind&tsName&annList&simpleName&semantics
-
-valBindsInList :: BindingElem d => Simple Traversal (AnnList d dom SrcTemplateStage) (ValueBind dom)
-valBindsInList = annList & valBind
-     
-getValBindInList :: (BindingElem d) => RealSrcSpan -> AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom)
-getValBindInList sp ls = case ls ^? valBindsInList & filtered (isInside sp) of
-  [] -> Nothing
-  [n] -> Just n
-  _ -> error "getValBindInList: Multiple nodes"
