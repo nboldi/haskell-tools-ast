@@ -51,11 +51,11 @@ instance BindingElem ULocalBind where
   isBinding LocalValBind {} = True
   isBinding _ = False
      
-getValBindInList :: (BindingElem d) => RealSrcSpan -> AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom)
+getValBindInList :: (BindingElem d) => RealSrcSpan -> AnnListG d dom SrcTemplateStage -> Maybe (ValueBind dom)
 getValBindInList sp ls = case ls ^? valBindsInList & filtered (isInside sp) of
   [] -> Nothing
   [n] -> Just n
   _ -> error "getValBindInList: Multiple nodes"
 
-valBindsInList :: BindingElem d => Simple Traversal (AnnList d dom SrcTemplateStage) (ValueBind dom)
+valBindsInList :: BindingElem d => Simple Traversal (AnnListG d dom SrcTemplateStage) (ValueBind dom)
 valBindsInList = annList & valBind

@@ -22,53 +22,53 @@ data UDecl dom stage
   | UTypeFamilyDecl       { _declTypeFamily :: Ann UTypeFamily dom stage
                           }
   | UClosedTypeFamilyDecl { _declHead :: Ann UDeclHead dom stage
-                          , _declKind :: AnnMaybe UKindConstraint dom stage
-                          , _declDecl :: AnnList UTypeEqn dom stage -- ^ cannot be empty
+                          , _declKind :: AnnMaybeG UKindConstraint dom stage
+                          , _declDecl :: AnnListG UTypeEqn dom stage -- ^ cannot be empty
                           } -- ^ A closed type family declaration
   | UDataDecl             { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
-                          , _declCtx  :: AnnMaybe UContext dom stage
+                          , _declCtx  :: AnnMaybeG UContext dom stage
                           , _declHead :: Ann UDeclHead dom stage
-                          , _declCons :: AnnList UConDecl dom stage
-                          , _declDeriving :: AnnMaybe UDeriving dom stage
+                          , _declCons :: AnnListG UConDecl dom stage
+                          , _declDeriving :: AnnMaybeG UDeriving dom stage
                           } -- ^ A data or newtype declaration. Empty data type declarations without 
                             -- where keyword are always belong to DataDecl.
   | UGDataDecl            { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
-                          , _declCtx  :: AnnMaybe UContext dom stage
+                          , _declCtx  :: AnnMaybeG UContext dom stage
                           , _declHead :: Ann UDeclHead dom stage
-                          , _declKind :: AnnMaybe UKindConstraint dom stage
-                          , _declGadt :: AnnList UGadtConDecl dom stage
-                          , _declDeriving :: AnnMaybe UDeriving dom stage
+                          , _declKind :: AnnMaybeG UKindConstraint dom stage
+                          , _declGadt :: AnnListG UGadtConDecl dom stage
+                          , _declDeriving :: AnnMaybeG UDeriving dom stage
                           } -- ^ A data or newtype declaration.
   | UTypeInstDecl         { _declInstance :: Ann UInstanceRule dom stage
                           , _declAssignedType :: Ann UType dom stage
                           } -- ^ UType instance declaration (@ type instance Fam T = AssignedT @)
   | UDataInstDecl         { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
                           , _declInstance :: Ann UInstanceRule dom stage
-                          , _declCons :: AnnList UConDecl dom stage
-                          , _declDeriving :: AnnMaybe UDeriving dom stage
+                          , _declCons :: AnnListG UConDecl dom stage
+                          , _declDeriving :: AnnMaybeG UDeriving dom stage
                           } -- ^ Data instance declaration (@ data instance Fam T = Con1 | Con2 @)
   | UGDataInstDecl        { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
                           , _declInstance :: Ann UInstanceRule dom stage
-                          , _declKind :: AnnMaybe UKindConstraint dom stage
-                          , _declGadt :: AnnList UGadtConDecl dom stage
+                          , _declKind :: AnnMaybeG UKindConstraint dom stage
+                          , _declGadt :: AnnListG UGadtConDecl dom stage
                           } -- ^ Gadt style data instance declaration (@ data instance Fam T where ... @)
-  | UClassDecl            { _declCtx :: AnnMaybe UContext dom stage
+  | UClassDecl            { _declCtx :: AnnMaybeG UContext dom stage
                           , _declHead :: Ann UDeclHead dom stage
-                          , _declFunDeps :: AnnMaybe UFunDeps dom stage
-                          , _declBody :: AnnMaybe UClassBody dom stage
+                          , _declFunDeps :: AnnMaybeG UFunDeps dom stage
+                          , _declBody :: AnnMaybeG UClassBody dom stage
                           } -- ^ UType class declaration (@ class X a [where f = ...] @)
-  | UInstDecl             { _declOverlap :: AnnMaybe OverlapPragma dom stage
+  | UInstDecl             { _declOverlap :: AnnMaybeG OverlapPragma dom stage
                           , _declInstRule :: Ann UInstanceRule dom stage
-                          , _declInstDecl :: AnnMaybe UInstBody dom stage
+                          , _declInstDecl :: AnnMaybeG UInstBody dom stage
                           } -- ^ Instance declaration (@ instance X T [where f = ...] @)
   | UPatternSynonymDecl   { _declPatSyn :: Ann UPatternSynonym dom stage
                           } -- ^ UPattern synonyms (@ pattern Arrow t1 t2 = App "->" [t1, t2] @)
-  | UDerivDecl            { _declOverlap :: AnnMaybe OverlapPragma dom stage
+  | UDerivDecl            { _declOverlap :: AnnMaybeG OverlapPragma dom stage
                           , _declInstRule :: Ann UInstanceRule dom stage
                           } -- ^ Standalone deriving declaration (@ deriving instance X T @)
   | UFixityDecl           { _declFixity :: Ann UFixitySignature dom stage
                           } -- ^ Fixity declaration (@ infixl 5 +, - @)
-  | UDefaultDecl          { _declTypes :: AnnList UType dom stage
+  | UDefaultDecl          { _declTypes :: AnnListG UType dom stage
                           } -- ^ Default types (@ default (T1, T2) @)
   | UTypeSigDecl          { _declTypeSig :: Ann UTypeSignature dom stage
                           } -- ^ UType signature declaration (@ _f :: Int -> Int @)
@@ -77,7 +77,7 @@ data UDecl dom stage
   | UValueBinding         { _declValBind :: Ann UValueBind dom stage
                           } -- ^ Function binding (@ f x = 12 @)
   | UForeignImport        { _declCallConv :: Ann CallConv dom stage
-                          , _declSafety :: AnnMaybe Safety dom stage
+                          , _declSafety :: AnnMaybeG Safety dom stage
                           , _declName :: Ann UName dom stage
                           , _declType :: Ann UType dom stage
                           } -- ^ Foreign import (@ foreign import _foo :: Int -> IO Int @)
@@ -88,7 +88,7 @@ data UDecl dom stage
   | UPragmaDecl           { _declPragma :: Ann TopLevelPragma dom stage
                           } -- ^ top level pragmas
   | URoleDecl             { _declRoleType :: Ann UQualifiedName dom stage
-                          , _declRoles :: AnnList Role dom stage
+                          , _declRoles :: AnnListG Role dom stage
                           } -- ^ role annotations (@ type role Ptr representational @)
   | USpliceDecl           { _declSplice :: Ann Splice dom stage
                           } -- ^ A Template Haskell splice declaration (@ $(generateDecls) @)
@@ -111,7 +111,7 @@ data UDeclHead dom stage
 
 -- | The list of declarations that can appear in a typeclass
 data UClassBody dom stage
-  = UClassBody { _cbElements :: AnnList UClassElement dom stage
+  = UClassBody { _cbElements :: AnnListG UClassElement dom stage
                }
                  
 -- | Members of a class declaration       
@@ -139,8 +139,8 @@ data UClassElement dom stage
   
 -- | The instance declaration rule, which is, roughly, the part of the instance declaration before the where keyword.
 data UInstanceRule dom stage
-  = UInstanceRule  { _irVars :: AnnMaybe (AnnList UTyVar) dom stage
-                   , _irCtx :: AnnMaybe UContext dom stage
+  = UInstanceRule  { _irVars :: AnnMaybeG (AnnListG UTyVar) dom stage
+                   , _irCtx :: AnnMaybeG UContext dom stage
                    , _irHead :: Ann UInstanceHead dom stage
                    }
   | UInstanceParen { _irRule :: Ann UInstanceRule dom stage
@@ -161,7 +161,7 @@ data UInstanceHead dom stage
 
 -- | Instance body is the implementation of the class functions (@ where a x = 1; b x = 2 @)
 data UInstBody dom stage
-  = UInstBody { _instBodyDecls :: AnnList UInstBodyDecl dom stage
+  = UInstBody { _instBodyDecls :: AnnListG UInstBodyDecl dom stage
               }
 
 -- | Declarations inside an instance declaration.
@@ -174,14 +174,14 @@ data UInstBodyDecl dom stage
                           } -- ^ An associated type definition (@ type A X = B @)
   | UInstBodyDataDecl     { _instBodyDataNew :: Ann UDataOrNewtypeKeyword dom stage
                           , _instBodyLhsType :: Ann UInstanceRule dom stage
-                          , _instBodyDataCons :: AnnList UConDecl dom stage
-                          , _instBodyDerivings :: AnnMaybe UDeriving dom stage
+                          , _instBodyDataCons :: AnnListG UConDecl dom stage
+                          , _instBodyDerivings :: AnnMaybeG UDeriving dom stage
                           } -- ^ An associated data type implementation (@ data A X = C1 | C2 @)
   | UInstBodyGadtDataDecl { _instBodyDataNew :: Ann UDataOrNewtypeKeyword dom stage
                           , _instBodyLhsType :: Ann UInstanceRule dom stage
-                          , _instBodyDataKind :: AnnMaybe UKindConstraint dom stage
-                          , _instBodyGadtCons :: AnnList UGadtConDecl dom stage
-                          , _instBodyDerivings :: AnnMaybe UDeriving dom stage
+                          , _instBodyDataKind :: AnnMaybeG UKindConstraint dom stage
+                          , _instBodyGadtCons :: AnnListG UGadtConDecl dom stage
+                          , _instBodyDerivings :: AnnMaybeG UDeriving dom stage
                           } -- ^ An associated data type implemented using GADT style
   | USpecializeInstance   { _specializeInstanceType :: Ann UType dom stage
                           } -- ^ Specialize instance pragma (no phase selection is allowed)
@@ -203,10 +203,10 @@ data OverlapPragma dom stage
 -- | Open type and data families
 data UTypeFamily dom stage
   = UTypeFamily { _tfHead :: Ann UDeclHead dom stage
-                , _tfSpec :: AnnMaybe UTypeFamilySpec dom stage
+                , _tfSpec :: AnnMaybeG UTypeFamilySpec dom stage
                 } -- ^ A type family declaration (@ type family A _a :: * -> * @)    
   | UDataFamily { _tfHead :: Ann UDeclHead dom stage
-                , _tfKind :: AnnMaybe UKindConstraint dom stage
+                , _tfKind :: AnnMaybeG UKindConstraint dom stage
                 } -- ^ Data family declaration
 
 -- | UType family specification with kinds specification and injectivity.
@@ -219,7 +219,7 @@ data UTypeFamilySpec dom stage
 -- | Injectivity annotation for type families (@ = r | r -> a @)
 data UInjectivityAnn dom stage
   = UInjectivityAnn { _injAnnRes :: Ann UName dom stage
-                    , _injAnnDeps :: AnnList UName dom stage
+                    , _injAnnDeps :: AnnListG UName dom stage
                     }
 
 -- | UType equations as found in closed type families (@ T A = S @)
@@ -232,7 +232,7 @@ data UTypeEqn dom stage
 
 -- | GADT constructor declaration (@ _D1 :: { _val :: Int } -> T String @)
 data UGadtConDecl dom stage
-  = UGadtConDecl { _gadtConNames :: AnnList UName dom stage
+  = UGadtConDecl { _gadtConNames :: AnnListG UName dom stage
                  , _gadtConType :: Ann UGadtConType dom stage
                  }
                    
@@ -245,28 +245,28 @@ data UDataOrNewtypeKeyword dom stage
 data UGadtConType dom stage
   = UGadtNormalType { _gadtConNormalType :: Ann UType dom stage
                     }
-  | UGadtRecordType { _gadtConRecordFields :: AnnList UFieldDecl dom stage
+  | UGadtRecordType { _gadtConRecordFields :: AnnListG UFieldDecl dom stage
                     , _gadtConResultType :: Ann UType dom stage
                     }
 
 -- | A list of functional dependencies: @ | a -> b, c -> d @ separated by commas  
 data UFunDeps dom stage
-  = UFunDeps { _funDeps :: AnnList UFunDep dom stage
+  = UFunDeps { _funDeps :: AnnListG UFunDep dom stage
              } 
          
 -- | A functional dependency, given on the form @l1 ... ln -> r1 ... rn@         
 data UFunDep dom stage
-  = UFunDep { _funDepLhs :: AnnList UName dom stage
-            , _funDepRhs :: AnnList UName dom stage
+  = UFunDep { _funDepLhs :: AnnListG UName dom stage
+            , _funDepRhs :: AnnListG UName dom stage
             }
   
 -- | A constructor declaration for a datatype
 data UConDecl dom stage
   = UConDecl      { _conDeclName :: Ann UName dom stage
-                  , _conDeclArgs :: AnnList UType dom stage
+                  , _conDeclArgs :: AnnListG UType dom stage
                   } -- ^ ordinary data constructor (@ C t1 t2 @)
   | URecordDecl   { _conDeclName :: Ann UName dom stage
-                  , _conDeclFields :: AnnList UFieldDecl dom stage
+                  , _conDeclFields :: AnnListG UFieldDecl dom stage
                   } -- ^ record data constructor (@ C { _n1 :: t1, _n2 :: t2 } @)
   | UInfixConDecl { _conDeclLhs :: Ann UType dom stage
                   , _conDeclOp :: Ann UOperator dom stage
@@ -275,14 +275,14 @@ data UConDecl dom stage
   
 -- | Field declaration (@ _fld :: Int @)
 data UFieldDecl dom stage
-  = UFieldDecl { _fieldNames :: AnnList UName dom stage
+  = UFieldDecl { _fieldNames :: AnnListG UName dom stage
                , _fieldType :: Ann UType dom stage
                }
   
 -- | A deriving clause following a data type declaration. (@ deriving Show @ or @ deriving (Show, Eq) @)
 data UDeriving dom stage
   = UDerivingOne { _oneDerived :: Ann UInstanceHead dom stage }
-  | UDerivings { _allDerived :: AnnList UInstanceHead dom stage }
+  | UDerivings { _allDerived :: AnnListG UInstanceHead dom stage }
 
 -- * Pattern synonyms
 
@@ -301,28 +301,28 @@ data UPatternSynonym dom stage
 -- | Left hand side of a pattern synonym
 data UPatSynLhs dom stage
   = UNormalPatSyn { _patName :: Ann UName dom stage
-                  , _patArgs :: AnnList UName dom stage
+                  , _patArgs :: AnnListG UName dom stage
                   }
   | UInfixPatSyn { _patSynLhs :: Ann UName dom stage
                  , _patSynOp :: Ann UOperator dom stage
                  , _patSynRhs :: Ann UName dom stage
                  }
   | URecordPatSyn { _patName :: Ann UName dom stage
-                  , _patArgs :: AnnList UName dom stage
+                  , _patArgs :: AnnListG UName dom stage
                   }
 
 -- | Right-hand side of pattern synonym
 data UPatSynRhs dom stage
   -- TODO: this feels bad, changing _patRhsOpposite may switch between <- and =
   = UBidirectionalPatSyn { _patRhsPat :: Ann UPattern dom stage
-                         , _patRhsOpposite :: AnnMaybe UPatSynWhere dom stage
+                         , _patRhsOpposite :: AnnMaybeG UPatSynWhere dom stage
                          } -- ^ @ pattern Int = App "Int" [] @ or @ pattern Int <- App "Int" [] where Int = App "Int" [] @
   | UOneDirectionalPatSyn { _patRhsPat :: Ann UPattern dom stage
                           } -- ^ @ pattern Int <- App "Int" [] @
 
 -- | Where clause of pattern synonym (explicit expression direction)
 data UPatSynWhere dom stage
-  = UPatSynWhere { _patOpposite :: AnnList UMatch dom stage }
+  = UPatSynWhere { _patOpposite :: AnnListG UMatch dom stage }
 
 -- * Foreign imports
   
@@ -356,7 +356,7 @@ data Role dom stage
 
 -- | Controls the activation of a rewrite rule (@ [1] @)
 data PhaseControl dom stage
-  = PhaseControl { _phaseUntil :: AnnMaybe PhaseInvert dom stage
+  = PhaseControl { _phaseUntil :: AnnMaybeG PhaseInvert dom stage
                  , _phaseNumber :: Ann PhaseNumber dom stage
                  } 
 
@@ -371,41 +371,41 @@ data PhaseInvert dom stage = PhaseInvert
 
 -- | Top level pragmas
 data TopLevelPragma dom stage
-  = URulePragma       { _pragmaRule :: AnnList Rule dom stage
+  = URulePragma       { _pragmaRule :: AnnListG Rule dom stage
                       }
-  | UDeprPragma       { _pragmaObjects :: AnnList UName dom stage
+  | UDeprPragma       { _pragmaObjects :: AnnListG UName dom stage
                       , _pragmaMessage :: Ann UStringNode dom stage
                       }
-  | UWarningPragma    { _pragmaObjects :: AnnList UName dom stage
+  | UWarningPragma    { _pragmaObjects :: AnnListG UName dom stage
                       , _pragmaMessage :: Ann UStringNode dom stage
                       }
   | UAnnPragma        { _annotationSubject :: Ann AnnotationSubject dom stage
                       , _annotateExpr :: Ann UExpr dom stage
                       }
-  | UInlinePragma     { _pragmaConlike :: AnnMaybe ConlikeAnnot dom stage
-                      , _pragmaPhase :: AnnMaybe PhaseControl dom stage
+  | UInlinePragma     { _pragmaConlike :: AnnMaybeG ConlikeAnnot dom stage
+                      , _pragmaPhase :: AnnMaybeG PhaseControl dom stage
                       , _inlineDef :: Ann UName dom stage
                       }
-  | UNoInlinePragma   { _pragmaConlike :: AnnMaybe ConlikeAnnot dom stage
-                      , _pragmaPhase :: AnnMaybe PhaseControl dom stage
+  | UNoInlinePragma   { _pragmaConlike :: AnnMaybeG ConlikeAnnot dom stage
+                      , _pragmaPhase :: AnnMaybeG PhaseControl dom stage
                       , _noInlineDef :: Ann UName dom stage
                       }
-  | UInlinablePragma  { _pragmaPhase :: AnnMaybe PhaseControl dom stage
+  | UInlinablePragma  { _pragmaPhase :: AnnMaybeG PhaseControl dom stage
                       , _inlinableDef :: Ann UName dom stage
                       }
   | ULinePragma       { _pragmaLineNum :: Ann LineNumber dom stage
-                      , _pragmaFileName :: AnnMaybe UStringNode dom stage
+                      , _pragmaFileName :: AnnMaybeG UStringNode dom stage
                       }
-  | USpecializePragma { _pragmaPhase :: AnnMaybe PhaseControl dom stage
+  | USpecializePragma { _pragmaPhase :: AnnMaybeG PhaseControl dom stage
                       , _specializeDef :: Ann UName dom stage
-                      , _specializeType :: AnnList UType dom stage
+                      , _specializeType :: AnnListG UType dom stage
                       }
 
 -- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
 data Rule dom stage
   = URule { _ruleName :: Ann UStringNode dom stage -- ^ User name of the rule
-          , _rulePhase :: AnnMaybe PhaseControl dom stage -- ^ The compilation phases in which the rule can be applied
-          , _ruleBounded :: AnnList UTyVar dom stage -- ^ Variables bound in the rule
+          , _rulePhase :: AnnMaybeG PhaseControl dom stage -- ^ The compilation phases in which the rule can be applied
+          , _ruleBounded :: AnnListG UTyVar dom stage -- ^ Variables bound in the rule
           , _ruleLhs :: Ann UExpr dom stage -- ^ The transformed expression
           , _ruleRhs :: Ann UExpr dom stage -- ^ The resulting expression
           }
@@ -424,9 +424,9 @@ data MinimalFormula dom stage
                   }
   | UMinimalParen { _minimalInner :: Ann MinimalFormula dom stage
                   }
-  | UMinimalOr    { _minimalOrs :: AnnList MinimalFormula dom stage
+  | UMinimalOr    { _minimalOrs :: AnnListG MinimalFormula dom stage
                   } -- ^ One of the minimal formulas are needed (@ min1 | min2 @)
-  | UMinimalAnd   { _minimalAnds :: AnnList MinimalFormula dom stage
+  | UMinimalAnd   { _minimalAnds :: AnnListG MinimalFormula dom stage
                   } -- ^ Both of the minimal formulas are needed (@ min1 , min2 @)
 
 data ConlikeAnnot dom stage = ConlikeAnnot

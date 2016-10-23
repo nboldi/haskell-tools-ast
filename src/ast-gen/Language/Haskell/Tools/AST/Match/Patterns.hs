@@ -13,22 +13,22 @@ pattern LitPat lit <- Ann _ (ULitPat lit)
 pattern InfixAppPat :: Ann UPattern dom stage -> Ann UOperator dom stage -> Ann UPattern dom stage -> Ann UPattern dom stage
 pattern InfixAppPat lhs op rhs <- Ann _ (UInfixAppPat lhs op rhs)
 
-pattern AppPat :: Ann UName dom stage -> AnnList UPattern dom stage -> Ann UPattern dom stage
+pattern AppPat :: Ann UName dom stage -> AnnListG UPattern dom stage -> Ann UPattern dom stage
 pattern AppPat n pat <- Ann _ (UAppPat n pat)
 
-pattern TuplePat :: AnnList UPattern dom stage -> Ann UPattern dom stage
+pattern TuplePat :: AnnListG UPattern dom stage -> Ann UPattern dom stage
 pattern TuplePat pats <- Ann _ (UTuplePat pats)
 
-pattern UnboxTuplePat :: AnnList UPattern dom stage -> Ann UPattern dom stage
+pattern UnboxTuplePat :: AnnListG UPattern dom stage -> Ann UPattern dom stage
 pattern UnboxTuplePat pats <- Ann _ (UUnboxTuplePat pats)
 
-pattern ListPat :: AnnList UPattern dom stage -> Ann UPattern dom stage
+pattern ListPat :: AnnListG UPattern dom stage -> Ann UPattern dom stage
 pattern ListPat pats <- Ann _ (UListPat pats)
 
 pattern ParenPat :: Ann UPattern dom stage -> Ann UPattern dom stage
 pattern ParenPat pat <- Ann _ (UParenPat pat)
 
-pattern RecPat :: Ann UName dom stage -> AnnList UPatternField dom stage -> Ann UPattern dom stage
+pattern RecPat :: Ann UName dom stage -> AnnListG UPatternField dom stage -> Ann UPattern dom stage
 pattern RecPat name flds <- Ann _ (URecPat name flds)
 
 pattern AsPat :: Ann UName dom stage -> Ann UPattern dom stage -> Ann UPattern dom stage

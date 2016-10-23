@@ -19,8 +19,8 @@ import Language.Haskell.Tools.AST.Ann
 
 -- Annotations
 deriving instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage)) => Data (Ann e dom stage)
-deriving instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage)) => Data (AnnMaybe e dom stage)
-deriving instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage)) => Data (AnnList e dom stage)
+deriving instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage)) => Data (AnnMaybeG e dom stage)
+deriving instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage)) => Data (AnnListG e dom stage)
 
 -- Modules
 deriving instance (Domain dom, SourceInfo stage) => Data (UModule dom stage)

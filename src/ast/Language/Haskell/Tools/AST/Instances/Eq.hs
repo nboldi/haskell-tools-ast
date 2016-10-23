@@ -19,11 +19,11 @@ import Language.Haskell.Tools.AST.Ann
 instance (Eq (e dom stage)) => Eq (Ann e dom stage) where
   Ann _ e1 == Ann _ e2 = e1 == e2
 
-instance (Eq (e dom stage)) => Eq (AnnMaybe e dom stage) where
-  AnnMaybe _ e1 == AnnMaybe _ e2 = e1 == e2
+instance (Eq (e dom stage)) => Eq (AnnMaybeG e dom stage) where
+  AnnMaybeG _ e1 == AnnMaybeG _ e2 = e1 == e2
 
-instance (Eq (e dom stage)) => Eq (AnnList e dom stage) where
-  AnnList e1 == AnnList e2 = e1 == e2
+instance (Eq (e dom stage)) => Eq (AnnListG e dom stage) where
+  AnnListG _ e1 == AnnListG _ e2 = e1 == e2
 
 -- Modules
 deriving instance Eq (UModule dom stage)

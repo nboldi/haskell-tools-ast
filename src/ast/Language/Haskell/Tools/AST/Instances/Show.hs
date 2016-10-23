@@ -19,11 +19,11 @@ import Language.Haskell.Tools.AST.Ann
 instance (Show (e dom stage)) => Show (Ann e dom stage) where
   show (Ann _ e) = show e
 
-instance (Show (e dom stage)) => Show (AnnMaybe e dom stage) where
-  show (AnnMaybe _ e) = show e
+instance (Show (e dom stage)) => Show (AnnMaybeG e dom stage) where
+  show (AnnMaybeG _ e) = show e
   
-instance (Show (e dom stage)) => Show (AnnList e dom stage) where
-  show (AnnList e) = show e
+instance (Show (e dom stage)) => Show (AnnListG e dom stage) where
+  show (AnnListG _ e) = show e
 
 -- Modules
 deriving instance Show (UModule dom stage)

@@ -23,40 +23,40 @@ pattern PrefixApp op rhs <- Ann _ (UPrefixApp op rhs)
 pattern App :: Ann UExpr dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
 pattern App f e <- Ann _ (UApp f e)
 
-pattern Lambda :: AnnList UPattern dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
+pattern Lambda :: AnnListG UPattern dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
 pattern Lambda pats rhs <- Ann _ (ULambda pats rhs)
 
-pattern Let :: AnnList ULocalBind dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
+pattern Let :: AnnListG ULocalBind dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
 pattern Let pats expr <- Ann _ (ULet pats expr)
 
 pattern If :: Ann UExpr dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
 pattern If cond then_ else_ <- Ann _ (UIf cond then_ else_)
 
-pattern MultiIf :: AnnList UGuardedCaseRhs dom stage -> Ann UExpr dom stage
+pattern MultiIf :: AnnListG UGuardedCaseRhs dom stage -> Ann UExpr dom stage
 pattern MultiIf cases <- Ann _ (UMultiIf cases)
 
-pattern Case :: Ann UExpr dom stage -> AnnList UAlt dom stage -> Ann UExpr dom stage
+pattern Case :: Ann UExpr dom stage -> AnnListG UAlt dom stage -> Ann UExpr dom stage
 pattern Case expr cases <- Ann _ (UCase expr cases)
 
-pattern Do :: AnnList UStmt dom stage -> Ann UExpr dom stage
+pattern Do :: AnnListG UStmt dom stage -> Ann UExpr dom stage
 pattern Do stmts <- Ann _ (UDo DoKeyword stmts)
 
-pattern ListComp :: Ann UExpr dom stage -> AnnList UListCompBody dom stage -> Ann UExpr dom stage
+pattern ListComp :: Ann UExpr dom stage -> AnnListG UListCompBody dom stage -> Ann UExpr dom stage
 pattern ListComp expr stmts <- Ann _ (UListComp expr stmts)
 
-pattern ParArrayComp :: Ann UExpr dom stage -> AnnList UListCompBody dom stage -> Ann UExpr dom stage
+pattern ParArrayComp :: Ann UExpr dom stage -> AnnListG UListCompBody dom stage -> Ann UExpr dom stage
 pattern ParArrayComp expr stmts <- Ann _ (UParArrayComp expr stmts)
 
-pattern Tuple :: AnnList UExpr dom stage -> Ann UExpr dom stage
+pattern Tuple :: AnnListG UExpr dom stage -> Ann UExpr dom stage
 pattern Tuple exprs <-  Ann _ (UTuple exprs)
 
-pattern UnboxedTuple :: AnnList UExpr dom stage -> Ann UExpr dom stage
+pattern UnboxedTuple :: AnnListG UExpr dom stage -> Ann UExpr dom stage
 pattern UnboxedTuple exprs <-  Ann _ (UUnboxedTuple exprs)
 
-pattern List :: AnnList UExpr dom stage -> Ann UExpr dom stage
+pattern List :: AnnListG UExpr dom stage -> Ann UExpr dom stage
 pattern List exprs <-  Ann _ (UList exprs)
 
-pattern ParArray :: AnnList UExpr dom stage -> Ann UExpr dom stage
+pattern ParArray :: AnnListG UExpr dom stage -> Ann UExpr dom stage
 pattern ParArray exprs <-  Ann _ (UParArray exprs)
 
 pattern Paren :: Ann UExpr dom stage -> Ann UExpr dom stage
@@ -68,16 +68,16 @@ pattern LeftSection lhs op <- Ann _ (ULeftSection lhs op)
 pattern RightSection :: Ann UOperator dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
 pattern RightSection op lhs <- Ann _ (URightSection op lhs)
 
-pattern RecCon :: Ann UName dom stage -> AnnList UFieldUpdate dom stage -> Ann UExpr dom stage
+pattern RecCon :: Ann UName dom stage -> AnnListG UFieldUpdate dom stage -> Ann UExpr dom stage
 pattern RecCon name flds <- Ann _ (URecCon name flds)
 
-pattern RecUpdate :: Ann UExpr dom stage -> AnnList UFieldUpdate dom stage -> Ann UExpr dom stage
+pattern RecUpdate :: Ann UExpr dom stage -> AnnListG UFieldUpdate dom stage -> Ann UExpr dom stage
 pattern RecUpdate expr flds <- Ann _ (URecUpdate expr flds)
 
-pattern Enum :: Ann UExpr dom stage -> AnnMaybe UExpr dom stage -> AnnMaybe UExpr dom stage -> Ann UExpr dom stage
+pattern Enum :: Ann UExpr dom stage -> AnnMaybeG UExpr dom stage -> AnnMaybeG UExpr dom stage -> Ann UExpr dom stage
 pattern Enum from step to <- Ann _ (UEnum from step to)
 
-pattern ParArrayEnum :: Ann UExpr dom stage -> AnnMaybe UExpr dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
+pattern ParArrayEnum :: Ann UExpr dom stage -> AnnMaybeG UExpr dom stage -> Ann UExpr dom stage -> Ann UExpr dom stage
 pattern ParArrayEnum from step to <- Ann _ (UParArrayEnum from step to)
 
 pattern TypeSig :: Ann UExpr dom stage -> Ann UType dom stage -> Ann UExpr dom stage
@@ -105,15 +105,15 @@ pattern FieldWildcard wc <- Ann _ (UFieldWildcard wc)
 
 -- * UPattern matching and guards
 
-pattern Alt :: Ann UPattern dom stage -> Ann UCaseRhs dom stage -> AnnMaybe ULocalBinds dom stage -> Ann UAlt dom stage
+pattern Alt :: Ann UPattern dom stage -> Ann UCaseRhs dom stage -> AnnMaybeG ULocalBinds dom stage -> Ann UAlt dom stage
 pattern Alt pat rhs locals <- Ann _ (UAlt pat rhs locals) 
 
 pattern CaseRhs :: Ann UExpr dom stage -> Ann UCaseRhs dom stage
 pattern CaseRhs e <- Ann _ (UUnguardedCaseRhs e)
 
-pattern GuardedCaseRhss :: AnnList UGuardedCaseRhs dom stage -> Ann UCaseRhs dom stage
+pattern GuardedCaseRhss :: AnnListG UGuardedCaseRhs dom stage -> Ann UCaseRhs dom stage
 pattern GuardedCaseRhss cases <- Ann _ (UGuardedCaseRhss cases)
 
-pattern GuardedCaseRhs :: AnnList URhsGuard dom stage -> Ann UExpr dom stage -> Ann UGuardedCaseRhs dom stage
+pattern GuardedCaseRhs :: AnnListG URhsGuard dom stage -> Ann UExpr dom stage -> Ann UGuardedCaseRhs dom stage
 pattern GuardedCaseRhs guards expr <- Ann _ (UGuardedCaseRhs guards expr)
 

@@ -42,7 +42,7 @@ mkInfixLhs :: Ann UPattern dom SrcTemplateStage -> Ann UOperator dom SrcTemplate
                 -> [Ann UPattern dom SrcTemplateStage] -> Ann UMatchLhs dom SrcTemplateStage
 mkInfixLhs lhs op rhs pats = mkAnn (child <> child <> child <> child) $ UInfixLhs lhs op rhs (mkAnnList (listSepBefore " " " ") pats)
 
-mkLocalBinds :: Int -> [Ann ULocalBind dom SrcTemplateStage] -> AnnMaybe ULocalBinds dom SrcTemplateStage
+mkLocalBinds :: Int -> [Ann ULocalBind dom SrcTemplateStage] -> AnnMaybeG ULocalBinds dom SrcTemplateStage
 mkLocalBinds col = mkAnnMaybe (optBefore ("\n" ++ replicate (col - 1) ' ' ++ "where ")) 
                      . Just . mkAnn child . ULocalBinds . mkAnnList indentedList
 

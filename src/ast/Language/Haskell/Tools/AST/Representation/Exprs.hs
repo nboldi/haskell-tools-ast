@@ -27,35 +27,35 @@ data UExpr dom stage
                     , _exprArg :: Ann UExpr dom stage
                     } -- ^ Function application (@ f 4 @)
                     -- unary minus omitted
-  | ULambda         { _exprBindings :: AnnList UPattern dom stage -- ^ at least one
+  | ULambda         { _exprBindings :: AnnListG UPattern dom stage -- ^ at least one
                     , _exprInner :: Ann UExpr dom stage
                     } -- ^ Lambda expression (@ \a b -> a + b @)
-  | ULet            { _exprFunBind :: AnnList ULocalBind dom stage -- ^ nonempty
+  | ULet            { _exprFunBind :: AnnListG ULocalBind dom stage -- ^ nonempty
                     , _exprInner :: Ann UExpr dom stage
                     } -- ^ Local binding (@ let x = 2; y = 3 in e x y @)
   | UIf             { _exprCond :: Ann UExpr dom stage
                     , _exprThen :: Ann UExpr dom stage
                     , _exprElse :: Ann UExpr dom stage
                     } -- ^ If expression (@ if a then b else c @)
-  | UMultiIf        { _exprIfAlts :: AnnList UGuardedCaseRhs dom stage
+  | UMultiIf        { _exprIfAlts :: AnnListG UGuardedCaseRhs dom stage
                     } -- ^ Multi way if expressions with @MultiWayIf@ extension (@ if | guard1 -> expr1; guard2 -> expr2 @)
   | UCase           { _exprCase :: Ann UExpr dom stage
-                    , _exprAlts :: AnnList UAlt dom stage
+                    , _exprAlts :: AnnListG UAlt dom stage
                     } -- ^ UPattern matching expression (@ case expr of pat1 -> expr1; pat2 -> expr2 @)
   | UDo             { _doKind :: Ann UDoKind dom stage
-                    , _exprStmts :: AnnList UStmt dom stage
+                    , _exprStmts :: AnnListG UStmt dom stage
                     } -- ^ Do-notation expressions (@ do x <- act1; act2 @)
-  | UTuple          { _tupleElems :: AnnList UExpr dom stage
+  | UTuple          { _tupleElems :: AnnListG UExpr dom stage
                     } -- ^ Tuple expression (@ (e1, e2, e3) @)
-  | UUnboxedTuple   { _tupleElems :: AnnList UExpr dom stage
+  | UUnboxedTuple   { _tupleElems :: AnnListG UExpr dom stage
                     } -- ^ Unboxed tuple expression (@ (# e1, e2, e3 #) @)
-  | UTupleSection   { _tupleSectionElems :: AnnList UTupSecElem dom stage
+  | UTupleSection   { _tupleSectionElems :: AnnListG UTupSecElem dom stage
                     } -- ^ Tuple section, enabled with @TupleSections@ (@ (a,,b) @). One of the elements must be missing.
-  | UUnboxedTupSec  { _tupleSectionElems :: AnnList UTupSecElem dom stage
+  | UUnboxedTupSec  { _tupleSectionElems :: AnnListG UTupSecElem dom stage
                     }
-  | UList           { _listElems :: AnnList UExpr dom stage
+  | UList           { _listElems :: AnnListG UExpr dom stage
                     } -- ^ List expression: @[1,2,3]@
-  | UParArray       { _listElems :: AnnList UExpr dom stage
+  | UParArray       { _listElems :: AnnListG UExpr dom stage
                     } -- ^ Parallel array expression: @[: 1,2,3 :]@
   | UParen          { _exprInner :: Ann UExpr dom stage
                     }
@@ -66,24 +66,24 @@ data UExpr dom stage
                     , _exprRhs :: Ann UExpr dom stage
                     } -- ^ Right operator section: @(+1)@
   | URecCon         { _exprRecName :: Ann UName dom stage
-                    , _exprRecFields :: AnnList UFieldUpdate dom stage
+                    , _exprRecFields :: AnnListG UFieldUpdate dom stage
                     } -- ^ Record value construction: @Point { x = 3, y = -2 }@
   | URecUpdate      { _exprInner :: Ann UExpr dom stage
-                    , _exprRecFields :: AnnList UFieldUpdate dom stage
+                    , _exprRecFields :: AnnListG UFieldUpdate dom stage
                     } -- ^ Record value  update: @p1 { x = 3, y = -2 }@
   | UEnum           { _enumFrom :: Ann UExpr dom stage
-                    , _enumThen :: AnnMaybe UExpr dom stage
-                    , _enumTo :: AnnMaybe UExpr dom stage
+                    , _enumThen :: AnnMaybeG UExpr dom stage
+                    , _enumTo :: AnnMaybeG UExpr dom stage
                     } -- ^ Enumeration expression (@ [1,3..10] @)
   | UParArrayEnum   { _enumFrom :: Ann UExpr dom stage
-                    , _enumThen :: AnnMaybe UExpr dom stage
+                    , _enumThen :: AnnMaybeG UExpr dom stage
                     , _enumToFix :: Ann UExpr dom stage
                     } -- ^ Parallel array enumeration (@ [: 1,3 .. 10 :] @)
   | UListComp       { _compExpr :: Ann UExpr dom stage
-                    , _compBody :: AnnList UListCompBody dom stage -- ^ Can only have 1 element without @ParallelListComp@
+                    , _compBody :: AnnListG UListCompBody dom stage -- ^ Can only have 1 element without @ParallelListComp@
                     } -- ^ List comprehension (@ [ (x, y) | x <- xs | y <- ys ] @)
   | UParArrayComp   { _compExpr :: Ann UExpr dom stage
-                    , _compBody :: AnnList UListCompBody dom stage
+                    , _compBody :: AnnListG UListCompBody dom stage
                     } -- ^ Parallel array comprehensions @ [: (x, y) | x <- xs , y <- ys :] @ enabled by @ParallelArrays@
   | UTypeSig        { _exprInner :: Ann UExpr dom stage
                     , _exprSig :: Ann UType dom stage
@@ -111,7 +111,7 @@ data UExpr dom stage
                     , _arrowAppl :: Ann ArrowAppl dom stage
                     , _exprRhs :: Ann UExpr dom stage
                     } -- ^ Arrow application: @f -< a+1@
-  | ULamCase        { _exprAlts :: AnnList UAlt dom stage
+  | ULamCase        { _exprAlts :: AnnListG UAlt dom stage
                     } -- ^ Lambda case ( @\case 0 -> 1; 1 -> 2@ )
   | UStaticPtr      { _exprInner :: Ann UExpr dom stage
                     } -- ^ Static pointer expression (@ static e @). The inner expression must be closed (cannot have variables bound outside)
@@ -140,7 +140,7 @@ data UTupSecElem dom stage
 data UAlt' expr dom stage
   = UAlt { _altPattern :: Ann UPattern dom stage
          , _altRhs :: Ann (UCaseRhs' expr) dom stage
-         , _altBinds :: AnnMaybe ULocalBinds dom stage
+         , _altBinds :: AnnMaybeG ULocalBinds dom stage
          }
 type UAlt = UAlt' UExpr
 type UCmdAlt = UAlt' Cmd
@@ -150,14 +150,14 @@ type UCmdAlt = UAlt' Cmd
 data UCaseRhs' expr dom stage
   = UUnguardedCaseRhs { _rhsCaseExpr :: Ann expr dom stage
                       }
-  | UGuardedCaseRhss  { _rhsCaseGuards :: AnnList (UGuardedCaseRhs' expr) dom stage
+  | UGuardedCaseRhss  { _rhsCaseGuards :: AnnListG (UGuardedCaseRhs' expr) dom stage
                       }
 type UCaseRhs = UCaseRhs' UExpr
 type UCmdCaseRhs = UCaseRhs' Cmd
                      
 -- | A guarded right-hand side of pattern matches binding (@ | x > 3 -> 2 @)      
 data UGuardedCaseRhs' expr dom stage
-  = UGuardedCaseRhs { _caseGuardStmts :: AnnList URhsGuard dom stage -- ^ Cannot be empty.
+  = UGuardedCaseRhs { _caseGuardStmts :: AnnListG URhsGuard dom stage -- ^ Cannot be empty.
                     , _caseGuardExpr :: Ann expr dom stage
                     } 
 type UGuardedCaseRhs = UGuardedCaseRhs' UExpr
@@ -193,7 +193,7 @@ data Cmd dom stage
                   , _cmdRhs :: Ann UExpr dom stage
                   }
   | ArrowFormCmd  { _cmdExpr :: Ann UExpr dom stage
-                  , _cmdInnerCmds :: AnnList Cmd dom stage
+                  , _cmdInnerCmds :: AnnListG Cmd dom stage
                   }
   | AppCmd        { _cmdInnerCmd :: Ann Cmd dom stage
                   , _cmdApplied :: Ann UExpr dom stage
@@ -202,22 +202,22 @@ data Cmd dom stage
                   , _cmdOperator :: Ann UName dom stage
                   , _cmdRightCmd :: Ann Cmd dom stage
                   }
-  | LambdaCmd     { _cmdBindings :: AnnList UPattern dom stage -- ^ at least one
+  | LambdaCmd     { _cmdBindings :: AnnListG UPattern dom stage -- ^ at least one
                   , _cmdInner :: Ann Cmd dom stage
                   }
   | ParenCmd      { _cmdInner :: Ann Cmd dom stage
                   }
   | CaseCmd       { _cmdExpr :: Ann UExpr dom stage
-                  , _cmdAlts :: AnnList UCmdAlt dom stage
+                  , _cmdAlts :: AnnListG UCmdAlt dom stage
                   }
   | IfCmd         { _cmdExpr :: Ann UExpr dom stage
                   , _cmdThen :: Ann Cmd dom stage
                   , _cmdElse :: Ann Cmd dom stage
                   }
-  | LetCmd        { _cmdBinds :: AnnList ULocalBind dom stage -- ^ nonempty
+  | LetCmd        { _cmdBinds :: AnnListG ULocalBind dom stage -- ^ nonempty
                   , _cmdInner :: Ann Cmd dom stage
                   }
-  | DoCmd         { _cmdStmts :: AnnList (UStmt' Cmd) dom stage
+  | DoCmd         { _cmdStmts :: AnnListG (UStmt' Cmd) dom stage
                   }
 
 data ArrowAppl dom stage

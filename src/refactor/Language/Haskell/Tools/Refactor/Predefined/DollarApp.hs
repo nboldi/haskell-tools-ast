@@ -1,12 +1,7 @@
 {-# LANGUAGE ViewPatterns, FlexibleContexts, ConstraintKinds #-}
 module Language.Haskell.Tools.Refactor.Predefined.DollarApp (dollarApp) where
 
-import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.AST.Rewrite
-import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor
-import Language.Haskell.Tools.Refactor.RefactorBase
-import Language.Haskell.Tools.Refactor.ASTElements
 
 import SrcLoc (RealSrcSpan, SrcSpan)
 import Unique (getUnique)

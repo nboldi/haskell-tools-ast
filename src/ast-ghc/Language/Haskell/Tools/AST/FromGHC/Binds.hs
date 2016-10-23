@@ -32,7 +32,7 @@ import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils
 
-import Language.Haskell.Tools.AST (Ann(..), AnnMaybe(..), AnnList(..), Dom, RangeStage)
+import Language.Haskell.Tools.AST (Ann(..), AnnMaybeG(..), AnnListG(..), Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST
 
 trfBind :: TransformName n r => Located (HsBind n) -> Trf (Ann AST.UValueBind (Dom r) RangeStage)
@@ -90,7 +90,7 @@ trfRhsGuard' (BindStmt pat body _ _ _) = AST.UGuardBind <$> trfPattern pat <*> t
 trfRhsGuard' (BodyStmt body _ _ _) = AST.UGuardCheck <$> trfExpr body
 trfRhsGuard' (LetStmt (unLoc -> binds)) = AST.UGuardLet <$> trfLocalBinds binds
   
-trfWhereLocalBinds :: TransformName n r => HsLocalBinds n -> Trf (AnnMaybe AST.ULocalBinds (Dom r) RangeStage)
+trfWhereLocalBinds :: TransformName n r => HsLocalBinds n -> Trf (AnnMaybeG AST.ULocalBinds (Dom r) RangeStage)
 trfWhereLocalBinds EmptyLocalBinds = nothing "" "" atTheEnd
 trfWhereLocalBinds binds
   = makeJust <$> annLocNoSema (combineSrcSpans (getBindLocs binds) <$> tokenLoc AnnWhere) (AST.ULocalBinds <$> addToScope binds (trfLocalBinds binds))
@@ -100,7 +100,7 @@ getBindLocs (HsValBinds (ValBindsIn binds sigs)) = foldLocs $ map getLoc (bagToL
 getBindLocs (HsValBinds (ValBindsOut binds sigs)) = foldLocs $ map getLoc (concatMap (bagToList . snd) binds) ++ map getLoc sigs
 getBindLocs (HsIPBinds (IPBinds binds _)) = foldLocs $ map getLoc binds
   
-trfLocalBinds :: TransformName n r => HsLocalBinds n -> Trf (AnnList AST.ULocalBind (Dom r) RangeStage)
+trfLocalBinds :: TransformName n r => HsLocalBinds n -> Trf (AnnListG AST.ULocalBind (Dom r) RangeStage)
 trfLocalBinds (HsValBinds (ValBindsIn binds sigs)) 
   = makeIndentedList (after AnnWhere)
       (orderDefs <$> ((++) <$> mapM (copyAnnot AST.ULocalValBind . trfBind) (bagToList binds) 

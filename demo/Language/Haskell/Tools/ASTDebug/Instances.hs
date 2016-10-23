@@ -35,14 +35,14 @@ instance ASTDebug e dom st => ASTDebug (Ann e) dom st where
   astDebug' (Ann a e) = traversal&nodeSubtree&nodeInfo .= DefaultInfoType (getRange (a ^. sourceInfo)) $ astDebug' e
 
 -- FIXME: WHY do I have to write it separately?
-instance {-# OVERLAPPING #-} (ASTDebug UImportDecl dom st) => ASTDebug (AnnList UImportDecl) dom st where
-  astDebug' (AnnListC a ls) = [TreeNode "" (TreeDebugNode "*" (DefaultInfoType (getRange (a ^. sourceInfo))) (concatMap astDebug' ls))]
+instance {-# OVERLAPPING #-} (ASTDebug UImportDecl dom st) => ASTDebug (AnnListG UImportDecl) dom st where
+  astDebug' (AnnListG a ls) = [TreeNode "" (TreeDebugNode "*" (DefaultInfoType (getRange (a ^. sourceInfo))) (concatMap astDebug' ls))]
 
-instance (ASTDebug e dom st) => ASTDebug (AnnList e) dom st where
-  astDebug' (AnnListC a ls) = [TreeNode "" (TreeDebugNode "*" (DefaultInfoType (getRange (a ^. sourceInfo))) (concatMap astDebug' ls))]
+instance (ASTDebug e dom st) => ASTDebug (AnnListG e) dom st where
+  astDebug' (AnnListG a ls) = [TreeNode "" (TreeDebugNode "*" (DefaultInfoType (getRange (a ^. sourceInfo))) (concatMap astDebug' ls))]
   
-instance (ASTDebug e dom st) => ASTDebug (AnnMaybe e) dom st where
-  astDebug' (AnnMaybe a e) = [TreeNode "" (TreeDebugNode "?" (DefaultInfoType (getRange (a ^. sourceInfo))) (maybe [] astDebug' e))]
+instance (ASTDebug e dom st) => ASTDebug (AnnMaybeG e) dom st where
+  astDebug' (AnnMaybeG a e) = [TreeNode "" (TreeDebugNode "?" (DefaultInfoType (getRange (a ^. sourceInfo))) (maybe [] astDebug' e))]
 
 -- Modules
 instance (Domain dom, SourceInfo st) => ASTDebug UModule dom st

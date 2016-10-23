@@ -21,13 +21,13 @@ data UName dom stage
 -- | Possible qualified names. Contains also implicit names.
 -- Linear implicit parameter: @%x@. Non-linear implicit parameter: @?x@.
 data UQualifiedName dom stage
-  = UQualifiedName { _qualifiers :: AnnList UNamePart dom stage
+  = UQualifiedName { _qualifiers :: AnnListG UNamePart dom stage
                   , _unqualifiedName :: Ann UNamePart dom stage
                   }
 
-nameFromList :: AnnList UNamePart dom stage -> UQualifiedName dom stage
-nameFromList (AnnListC a xs) | not (null xs) 
-  = UQualifiedName (AnnListC a (init xs)) (last xs) 
+nameFromList :: AnnListG UNamePart dom stage -> UQualifiedName dom stage
+nameFromList (AnnListG a xs) | not (null xs) 
+  = UQualifiedName (AnnListG a (init xs)) (last xs) 
 nameFromList _ = error "nameFromList: empty list"
          
 -- | Parts of a qualified name.         

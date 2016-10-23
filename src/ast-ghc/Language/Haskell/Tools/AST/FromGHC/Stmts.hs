@@ -23,7 +23,7 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Binds
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
-import Language.Haskell.Tools.AST (Ann(..), AnnList(..), AnnMaybe(..), Dom, RangeStage)
+import Language.Haskell.Tools.AST (Ann(..), AnnListG(..), AnnMaybeG(..), Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST
  
 trfDoStmt :: TransformName n r => Located (Stmt n (LHsExpr n)) -> Trf (Ann AST.UStmt (Dom r) RangeStage)
@@ -39,7 +39,7 @@ gTrfDoStmt' et (LetStmt (unLoc -> binds)) = AST.ULetStmt <$> addToScope binds (t
 gTrfDoStmt' et (LastStmt body _ _) = AST.UExprStmt <$> et body
 gTrfDoStmt' et (RecStmt { recS_stmts = stmts }) = AST.URecStmt <$> trfAnnList "," (gTrfDoStmt' et) stmts
 
-trfListCompStmts :: TransformName n r => [Located (Stmt n (LHsExpr n))] -> Trf (AnnList AST.UListCompBody (Dom r) RangeStage)
+trfListCompStmts :: TransformName n r => [Located (Stmt n (LHsExpr n))] -> Trf (AnnListG AST.UListCompBody (Dom r) RangeStage)
 trfListCompStmts [unLoc -> ParStmt blocks _ _ _, unLoc -> (LastStmt {})]
   = nonemptyAnnList
       <$> trfScopedSequence (\(ParStmtBlock stmts _ _) -> 

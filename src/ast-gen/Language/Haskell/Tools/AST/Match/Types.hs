@@ -7,7 +7,7 @@ import Language.Haskell.Tools.AST
 
 -- * Types
 
-pattern TyForall :: AnnList UTyVar dom stage -> Ann UType dom stage -> Ann UType dom stage
+pattern TyForall :: AnnListG UTyVar dom stage -> Ann UType dom stage -> Ann UType dom stage
 pattern TyForall vars t <- Ann _ (UTyForall vars t)
 
 pattern TyCtx :: Ann UContext dom stage -> Ann UType dom stage -> Ann UType dom stage
@@ -16,10 +16,10 @@ pattern TyCtx ctx t <- Ann _ (UTyCtx ctx t)
 pattern TyFun :: Ann UType dom stage -> Ann UType dom stage -> Ann UType dom stage
 pattern TyFun at rt <- Ann _ (UTyFun at rt)
 
-pattern TyTuple :: AnnList UType dom stage -> Ann UType dom stage
+pattern TyTuple :: AnnListG UType dom stage -> Ann UType dom stage
 pattern TyTuple args <- Ann _ (UTyTuple args)
 
-pattern TyUnbTuple :: AnnList UType dom stage -> Ann UType dom stage
+pattern TyUnbTuple :: AnnListG UType dom stage -> Ann UType dom stage
 pattern TyUnbTuple args <- Ann _ (UTyUnbTuple args)
 
 pattern TyList :: Ann UType dom stage -> Ann UType dom stage
@@ -68,12 +68,12 @@ pattern TyVarDecl n <- Ann _ (UTyVarDecl n _)
 pattern ContextOne :: Ann UAssertion dom stage -> Ann UContext dom stage
 pattern ContextOne n <- Ann _ (UContextOne n)
 
-pattern ContextMulti :: AnnList UAssertion dom stage -> Ann UContext dom stage
+pattern ContextMulti :: AnnListG UAssertion dom stage -> Ann UContext dom stage
 pattern ContextMulti n <- Ann _ (UContextMulti n)
 
 -- * Assertions
 
-pattern ClassAssert :: Ann UName dom stage -> AnnList UType dom stage -> Ann UAssertion dom stage
+pattern ClassAssert :: Ann UName dom stage -> AnnListG UType dom stage -> Ann UAssertion dom stage
 pattern ClassAssert n args <- Ann _ (UClassAssert n args)
 
 pattern InfixAssert :: Ann UType dom stage -> Ann UOperator dom stage -> Ann UType dom stage -> Ann UAssertion dom stage

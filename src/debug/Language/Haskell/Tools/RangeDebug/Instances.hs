@@ -21,11 +21,11 @@ instance TreeDebug e dom st => TreeDebug (Ann e) dom st where
 identLine :: Int -> String
 identLine i = "\n" ++ replicate (i*2) ' '
   
-instance TreeDebug e dom st => TreeDebug (AnnList e) dom st where
-  treeDebug' i (AnnListC a ls) = identLine i ++ show (a ^. sourceInfo) ++ " <*>" ++ concatMap (treeDebug' (i + 1)) ls 
+instance TreeDebug e dom st => TreeDebug (AnnListG e) dom st where
+  treeDebug' i (AnnListG a ls) = identLine i ++ show (a ^. sourceInfo) ++ " <*>" ++ concatMap (treeDebug' (i + 1)) ls 
   
-instance TreeDebug e dom st => TreeDebug (AnnMaybe e) dom st where
-  treeDebug' i (AnnMaybe a e) = identLine i ++ show (a ^. sourceInfo) ++ " <?>" ++ maybe "" (\e -> treeDebug' (i + 1) e) e
+instance TreeDebug e dom st => TreeDebug (AnnMaybeG e) dom st where
+  treeDebug' i (AnnMaybeG a e) = identLine i ++ show (a ^. sourceInfo) ++ " <?>" ++ maybe "" (\e -> treeDebug' (i + 1) e) e
   
 -- Modules
 instance (SourceInfo st, Domain dom) => TreeDebug UModule dom st

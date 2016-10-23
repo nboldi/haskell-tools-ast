@@ -104,41 +104,41 @@ noSemaInfo :: src -> NodeInfo NoSemanticInfo src
 noSemaInfo = NodeInfo mkNoSemanticInfo
 
 -- | Creates a place for a missing node with a default location
-nothing :: String -> String -> Trf SrcLoc -> Trf (AnnMaybe e (Dom n) RangeStage)
+nothing :: String -> String -> Trf SrcLoc -> Trf (AnnMaybeG e (Dom n) RangeStage)
 nothing bef aft pos = annNothing . noSemaInfo . OptionalPos bef aft <$> pos 
 
-emptyList :: String -> Trf SrcLoc -> Trf (AnnList e (Dom n) RangeStage)
-emptyList sep ann = AnnListC <$> (noSemaInfo . ListPos "" "" sep False <$> ann) <*> pure []
+emptyList :: String -> Trf SrcLoc -> Trf (AnnListG e (Dom n) RangeStage)
+emptyList sep ann = AnnListG <$> (noSemaInfo . ListPos "" "" sep False <$> ann) <*> pure []
 
 -- | Creates a place for a list of nodes with a default place if the list is empty.
-makeList :: String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnList e (Dom n) RangeStage)
-makeList sep ann ls = AnnListC <$> (noSemaInfo . ListPos "" "" sep False <$> ann) <*> ls
+makeList :: String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
+makeList sep ann ls = AnnListG <$> (noSemaInfo . ListPos "" "" sep False <$> ann) <*> ls
 
-makeListBefore :: String -> String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnList e (Dom n) RangeStage)
+makeListBefore :: String -> String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
 makeListBefore bef sep ann ls = do isEmpty <- null <$> ls 
-                                   AnnListC <$> (noSemaInfo . ListPos (if isEmpty then bef else "") "" sep False <$> ann) <*> ls
+                                   AnnListG <$> (noSemaInfo . ListPos (if isEmpty then bef else "") "" sep False <$> ann) <*> ls
 
-makeListAfter :: String -> String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnList e (Dom n) RangeStage)
+makeListAfter :: String -> String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
 makeListAfter aft sep ann ls = do isEmpty <- null <$> ls 
-                                  AnnListC <$> (noSemaInfo . ListPos "" (if isEmpty then aft else "") sep False <$> ann) <*> ls
+                                  AnnListG <$> (noSemaInfo . ListPos "" (if isEmpty then aft else "") sep False <$> ann) <*> ls
 
-makeNonemptyList :: String -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnList e (Dom n) RangeStage)
-makeNonemptyList sep ls = AnnListC (noSemaInfo $ ListPos "" "" sep False noSrcLoc) <$> ls
+makeNonemptyList :: String -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
+makeNonemptyList sep ls = AnnListG (noSemaInfo $ ListPos "" "" sep False noSrcLoc) <$> ls
 
 -- | Creates a place for an indented list of nodes with a default place if the list is empty.
-makeIndentedList :: Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnList e (Dom n) RangeStage)
-makeIndentedList ann ls = AnnListC <$> (noSemaInfo . ListPos  "" "" "\n" True <$> ann) <*> ls
+makeIndentedList :: Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
+makeIndentedList ann ls = AnnListG <$> (noSemaInfo . ListPos  "" "" "\n" True <$> ann) <*> ls
 
-makeIndentedListNewlineBefore :: Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnList e (Dom n) RangeStage)
+makeIndentedListNewlineBefore :: Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
 makeIndentedListNewlineBefore ann ls = do isEmpty <- null <$> ls 
-                                          AnnListC <$> (noSemaInfo . ListPos (if isEmpty then "\n" else "") "" "\n" True <$> ann) <*> ls
+                                          AnnListG <$> (noSemaInfo . ListPos (if isEmpty then "\n" else "") "" "\n" True <$> ann) <*> ls
 
-makeIndentedListBefore :: String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnList e (Dom n) RangeStage)
+makeIndentedListBefore :: String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
 makeIndentedListBefore bef sp ls = do isEmpty <- null <$> ls 
-                                      AnnListC <$> (noSemaInfo . ListPos (if isEmpty then bef else "") "" "\n" True <$> sp) <*> ls
+                                      AnnListG <$> (noSemaInfo . ListPos (if isEmpty then bef else "") "" "\n" True <$> sp) <*> ls
   
-makeNonemptyIndentedList :: Trf [Ann e (Dom n) RangeStage] -> Trf (AnnList e (Dom n) RangeStage)
-makeNonemptyIndentedList ls = AnnListC (noSemaInfo $ ListPos "" "" "\n" True noSrcLoc) <$> ls
+makeNonemptyIndentedList :: Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
+makeNonemptyIndentedList ls = AnnListG (noSemaInfo $ ListPos "" "" "\n" True noSrcLoc) <$> ls
   
 -- | Transform a located part of the AST by automatically transforming the location.
 -- Sets the source range for transforming children.
@@ -149,11 +149,11 @@ trfLocNoSema :: SemanticInfo (Dom n) b ~ NoSemanticInfo => (a -> Trf (b (Dom n) 
 trfLocNoSema f = trfLoc f (pure mkNoSemanticInfo)
 
 -- | Transforms a possibly-missing node with the default location of the end of the focus.
-trfMaybe :: String -> String -> (Located a -> Trf (Ann e (Dom n) RangeStage)) -> Maybe (Located a) -> Trf (AnnMaybe e (Dom n) RangeStage)
+trfMaybe :: String -> String -> (Located a -> Trf (Ann e (Dom n) RangeStage)) -> Maybe (Located a) -> Trf (AnnMaybeG e (Dom n) RangeStage)
 trfMaybe bef aft f = trfMaybeDefault bef aft f atTheEnd
 
 -- | Transforms a possibly-missing node with a default location
-trfMaybeDefault :: String -> String -> (Located a -> Trf (Ann e (Dom n) RangeStage)) -> Trf SrcLoc -> Maybe (Located a) -> Trf (AnnMaybe e (Dom n) RangeStage)
+trfMaybeDefault :: String -> String -> (Located a -> Trf (Ann e (Dom n) RangeStage)) -> Trf SrcLoc -> Maybe (Located a) -> Trf (AnnMaybeG e (Dom n) RangeStage)
 trfMaybeDefault _   _   f _   (Just e) = makeJust <$> f e
 trfMaybeDefault bef aft _ loc Nothing  = nothing bef aft loc
 
@@ -171,22 +171,22 @@ trfMaybeLocNoSema :: SemanticInfo (Dom n) b ~ NoSemanticInfo => (a -> Trf (Maybe
 trfMaybeLocNoSema f = trfMaybeLoc f mkNoSemanticInfo
 
 -- | Creates a place for a list of nodes with the default place at the end of the focus if the list is empty.
-trfAnnList :: SemanticInfo (Dom n) b ~ NoSemanticInfo => String -> (a -> Trf (b (Dom n) RangeStage)) -> [Located a] -> Trf (AnnList b (Dom n) RangeStage)
+trfAnnList :: SemanticInfo (Dom n) b ~ NoSemanticInfo => String -> (a -> Trf (b (Dom n) RangeStage)) -> [Located a] -> Trf (AnnListG b (Dom n) RangeStage)
 trfAnnList sep _ [] = makeList sep atTheEnd (pure [])
 trfAnnList sep f ls = makeList sep (pure $ noSrcLoc) (mapM (trfLoc f (pure mkNoSemanticInfo)) ls)
 
-trfAnnList' :: String -> (Located a -> Trf (Ann b (Dom n) RangeStage)) -> [Located a] -> Trf (AnnList b (Dom n) RangeStage)
+trfAnnList' :: String -> (Located a -> Trf (Ann b (Dom n) RangeStage)) -> [Located a] -> Trf (AnnListG b (Dom n) RangeStage)
 trfAnnList' sep _ [] = makeList sep atTheEnd (pure [])
 trfAnnList' sep f ls = makeList sep (pure $ noSrcLoc) (mapM f ls)
 
 
 -- | Creates a place for a list of nodes that cannot be empty.
-nonemptyAnnList :: [Ann e (Dom n) RangeStage] -> AnnList e (Dom n) RangeStage
-nonemptyAnnList = AnnListC (noSemaInfo $ ListPos "" "" "" False noSrcLoc)
+nonemptyAnnList :: [Ann e (Dom n) RangeStage] -> AnnListG e (Dom n) RangeStage
+nonemptyAnnList = AnnListG (noSemaInfo $ ListPos "" "" "" False noSrcLoc)
 
 -- | Creates an optional node from an existing element
-makeJust :: Ann e (Dom n) RangeStage -> AnnMaybe e (Dom n) RangeStage
-makeJust e = AnnMaybe (noSemaInfo $ OptionalPos "" "" noSrcLoc) (Just e)
+makeJust :: Ann e (Dom n) RangeStage -> AnnMaybeG e (Dom n) RangeStage
+makeJust e = AnnMaybeG (noSemaInfo $ OptionalPos "" "" noSrcLoc) (Just e)
 
 -- | Annotates a node with the given location and focuses on the given source span.
 annLoc :: Trf (SemanticInfo (Dom n) b) -> Trf SrcSpan -> Trf (b (Dom n) RangeStage) -> Trf (Ann b (Dom n) RangeStage)
@@ -345,8 +345,8 @@ orderDefs :: [Ann e (Dom n) RangeStage] -> [Ann e (Dom n) RangeStage]
 orderDefs = sortBy (compare `on` AST.ordSrcSpan . (^. AST.annotation & AST.sourceInfo & AST.nodeSpan))
 
 -- | Orders a list of elements to the order they are defined in the source file.
-orderAnnList :: AnnList e (Dom n) RangeStage -> AnnList e (Dom n) RangeStage
-orderAnnList (AnnListC a ls) = AnnListC a (orderDefs ls)
+orderAnnList :: AnnListG e (Dom n) RangeStage -> AnnListG e (Dom n) RangeStage
+orderAnnList (AnnListG a ls) = AnnListG a (orderDefs ls)
 
 
 -- | Transform a list of definitions where the defined names are in scope for subsequent definitions

@@ -37,10 +37,10 @@ pattern StringKind s <- Ann _ (UPromotedKind (Ann _ (UPromotedString s)))
 pattern ConKind :: Ann UName dom stage -> Ann UKind dom stage
 pattern ConKind s <- Ann _ (UPromotedKind (Ann _ (UPromotedCon s)))
 
-pattern ListKindPromoted :: AnnList UKind dom stage -> Ann UKind dom stage
+pattern ListKindPromoted :: AnnListG UKind dom stage -> Ann UKind dom stage
 pattern ListKindPromoted elems <- Ann _ (UPromotedKind (Ann _ (UPromotedList elems)))
 
-pattern TupleKind :: AnnList UKind dom stage -> Ann UKind dom stage
+pattern TupleKind :: AnnListG UKind dom stage -> Ann UKind dom stage
 pattern TupleKind elems <- Ann _ (UPromotedKind (Ann _ (UPromotedTuple elems)))
 
 pattern UnitKind :: Ann UKind dom stage

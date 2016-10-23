@@ -13,33 +13,33 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.TH
 data UValueBind dom stage
   = USimpleBind { _valBindPat :: Ann UPattern dom stage
                 , _valBindRhs :: Ann URhs dom stage
-                , _valBindLocals :: AnnMaybe ULocalBinds dom stage
+                , _valBindLocals :: AnnMaybeG ULocalBinds dom stage
                 } -- ^ Non-function binding (@ v = "12" @)  
   -- TODO: use one name for a function instead of names in each match
-  | UFunBind    { _funBindMatches :: AnnList UMatch dom stage
+  | UFunBind    { _funBindMatches :: AnnListG UMatch dom stage
                 } -- ^ Function binding (@ f 0 = 1; f x = x @). All matches must have the same name.
 
 -- | Clause of function (or value) binding   
 data UMatch dom stage
   = UMatch { _matchLhs :: Ann UMatchLhs dom stage
            , _matchRhs :: Ann URhs dom stage
-           , _matchBinds :: AnnMaybe ULocalBinds dom stage
+           , _matchBinds :: AnnMaybeG ULocalBinds dom stage
            } 
 
 -- | Something on the left side of the match
 data UMatchLhs dom stage
   = UNormalLhs { _matchLhsName :: Ann UName dom stage
-               , _matchLhsArgs :: AnnList UPattern dom stage
+               , _matchLhsArgs :: AnnListG UPattern dom stage
                }
   | UInfixLhs { _matchLhsLhs :: Ann UPattern dom stage
               , _matchLhsOperator :: Ann UOperator dom stage
               , _matchLhsRhs :: Ann UPattern dom stage
-              , _matchLhsArgs :: AnnList UPattern dom stage
+              , _matchLhsArgs :: AnnListG UPattern dom stage
               }
     
 -- | Local bindings attached to a declaration (@ where x = 42 @)             
 data ULocalBinds dom stage
-  = ULocalBinds { _localBinds :: AnnList ULocalBind dom stage
+  = ULocalBinds { _localBinds :: AnnListG ULocalBind dom stage
                 }
   
 -- | Bindings that are enabled in local blocks (where or let).
@@ -54,7 +54,7 @@ data ULocalBind dom stage
                    
 -- | A type signature (@ _f :: Int -> Int @)
 data UTypeSignature dom stage
-  = UTypeSignature { _tsName :: AnnList UName dom stage
+  = UTypeSignature { _tsName :: AnnListG UName dom stage
                    , _tsType :: Ann UType dom stage
                    }     
             
@@ -64,7 +64,7 @@ data UTypeSignature dom stage
 data UFixitySignature dom stage
   = UFixitySignature { _fixityAssoc :: Ann Assoc dom stage
                      , _fixityPrecedence :: Ann Precedence dom stage
-                     , _fixityOperators :: AnnList UOperator dom stage
+                     , _fixityOperators :: AnnListG UOperator dom stage
                      }
 
 -- | Associativity of an operator.
@@ -81,12 +81,12 @@ data Precedence dom stage
 data URhs dom stage
   = UUnguardedRhs { _rhsExpr :: Ann UExpr dom stage
                   }
-  | UGuardedRhss  { _rhsGuards :: AnnList UGuardedRhs dom stage
+  | UGuardedRhss  { _rhsGuards :: AnnListG UGuardedRhs dom stage
                   }
       
 -- | A guarded right-hand side of a value binding (@ | x > 3 = 2 @)      
 data UGuardedRhs dom stage
-  = UGuardedRhs { _guardStmts :: AnnList URhsGuard dom stage -- ^ Cannot be empty.
+  = UGuardedRhs { _guardStmts :: AnnListG URhsGuard dom stage -- ^ Cannot be empty.
                 , _guardExpr :: Ann UExpr dom stage
                 } 
 
@@ -95,7 +95,7 @@ data URhsGuard dom stage
   = UGuardBind  { _guardPat :: Ann UPattern dom stage
                 , _guardRhs :: Ann UExpr dom stage
                 }
-  | UGuardLet   { _guardBinds :: AnnList ULocalBind dom stage
+  | UGuardLet   { _guardBinds :: AnnListG ULocalBind dom stage
                 }
   | UGuardCheck { _guardCheck :: Ann UExpr dom stage
                 }

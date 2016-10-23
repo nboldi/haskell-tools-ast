@@ -33,6 +33,6 @@ data UPromoted t dom stage
   = UPromotedInt    { _promotedIntValue :: Integer }
   | UPromotedString { _promotedStringValue :: String }
   | UPromotedCon    { _promotedConName :: Ann UName dom stage }
-  | UPromotedList   { _promotedElements :: AnnList t dom stage }
-  | UPromotedTuple  { _promotedElements :: AnnList t dom stage }
+  | UPromotedList   { _promotedElements :: AnnListG t dom stage }
+  | UPromotedTuple  { _promotedElements :: AnnListG t dom stage }
   | UPromotedUnit

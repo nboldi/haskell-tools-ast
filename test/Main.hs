@@ -27,7 +27,8 @@ import Language.Haskell.Tools.AnnTrf.RangeToRangeTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.PlaceComments
 import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.Refactor
+import Language.Haskell.Tools.Refactor.Perform
+import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Predefined.OrganizeImports
 import Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature

@@ -24,17 +24,10 @@ import Data.Maybe
 import Data.Data
 import Data.List
 import Data.Generics.Uniplate.Data
-import Language.Haskell.Tools.AST as AST
-import Language.Haskell.Tools.AST.FromGHC
-import Language.Haskell.Tools.AnnTrf.SourceTemplate
-import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
-import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.AST.Rewrite
-import Language.Haskell.Tools.Refactor.ASTElements
-import Language.Haskell.Tools.Refactor.RefactorBase
-import Debug.Trace
 
-type OrganizeImportsDomain dom = ( Domain dom, HasNameInfo dom, HasImportInfo dom )
+import Language.Haskell.Tools.Refactor as AST
+
+type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom )
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod

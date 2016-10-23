@@ -73,7 +73,7 @@ trfType' = trfType'' . cleanHsType where
   trfType'' (HsWildCardTy _) = pure AST.UTyWildcard -- TODO: named wildcards
   trfType'' t = error ("Illegal type: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ")")
   
-trfBindings :: TransformName n r => [Located (HsTyVarBndr n)] -> Trf (AnnList AST.UTyVar (Dom r) RangeStage)
+trfBindings :: TransformName n r => [Located (HsTyVarBndr n)] -> Trf (AnnListG AST.UTyVar (Dom r) RangeStage)
 trfBindings vars = trfAnnList "\n" trfTyVar' vars
   
 trfTyVar :: TransformName n r => Located (HsTyVarBndr n) -> Trf (Ann AST.UTyVar (Dom r) RangeStage)
@@ -85,7 +85,7 @@ trfTyVar' (UserTyVar name) = AST.UTyVarDecl <$> typeVarTransform (trfName name)
 trfTyVar' (KindedTyVar name kind) = AST.UTyVarDecl <$> typeVarTransform (trfName name) 
                                                   <*> trfKindSig (Just kind)
   
-trfCtx :: TransformName n r => Trf SrcLoc -> Located (HsContext n) -> Trf (AnnMaybe AST.UContext (Dom r) RangeStage)
+trfCtx :: TransformName n r => Trf SrcLoc -> Located (HsContext n) -> Trf (AnnMaybeG AST.UContext (Dom r) RangeStage)
 trfCtx sp (L l []) = nothing " " "" sp
 trfCtx _ (L l [L _ (HsParTy t)]) 
   = makeJust <$> annLocNoSema (combineSrcSpans l <$> tokenLoc AnnDarrow) 

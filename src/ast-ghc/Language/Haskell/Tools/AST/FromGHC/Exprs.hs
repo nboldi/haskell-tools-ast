@@ -40,7 +40,7 @@ import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils
 import Language.Haskell.Tools.AST.SemaInfoTypes
 
-import Language.Haskell.Tools.AST (Ann(..), AnnList(..), Dom, RangeStage)
+import Language.Haskell.Tools.AST (Ann(..), AnnListG(..), Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST
 
 import Debug.Trace
@@ -156,7 +156,7 @@ trfExpr' (HsStatic expr) = AST.UStaticPtr <$> trfExpr expr
 trfExpr' (HsAppType expr typ) = AST.UExplTypeApp <$> trfExpr expr <*> trfType (hswc_body typ)
 trfExpr' t = error ("Illegal expression: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ")")
   
-trfFieldInits :: TransformName n r => HsRecFields n (LHsExpr n) -> Trf (AnnList AST.UFieldUpdate (Dom r) RangeStage)
+trfFieldInits :: TransformName n r => HsRecFields n (LHsExpr n) -> Trf (AnnListG AST.UFieldUpdate (Dom r) RangeStage)
 trfFieldInits (HsRecFields fields dotdot)
   = do cont <- asks contRange
        let (normalFlds, implicitFlds) = partition ((cont /=) . getLoc) fields

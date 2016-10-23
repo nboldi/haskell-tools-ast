@@ -36,7 +36,7 @@ import CoAxiom as GHC
 import Bag as GHC
 import Data.Data (Data)
 
-import Language.Haskell.Tools.AST (Ann(..), AnnList(..), AnnMaybe(..), SemanticInfo(..), RangeStage, Dom, annotation, semanticInfo)
+import Language.Haskell.Tools.AST (Ann(..), AnnListG(..), AnnMaybeG(..), SemanticInfo(..), RangeStage, Dom, annotation, semanticInfo)
 import qualified Language.Haskell.Tools.AST as AST
 
 import Language.Haskell.Tools.AST.FromGHC.Monad
@@ -116,7 +116,7 @@ trfQualifiedName' :: TransformName n r => n -> Trf (AST.UQualifiedName (Dom r) R
 trfQualifiedName' n = AST.nameFromList <$> (trfNameStr =<< correctNameString n)
 
 -- | Creates a qualified name from a name string
-trfNameStr :: String -> Trf (AnnList AST.UNamePart (Dom r) RangeStage)
+trfNameStr :: String -> Trf (AnnListG AST.UNamePart (Dom r) RangeStage)
 trfNameStr str = makeList "." atTheStart (trfNameStr' str <$> atTheStart)
 
 trfNameStr' :: String -> SrcLoc -> [Ann AST.UNamePart (Dom r) RangeStage]

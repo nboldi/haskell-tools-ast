@@ -20,14 +20,10 @@ import Data.Maybe
 import Data.Generics.Uniplate.Data
 import Control.Reference hiding (element)
 import Control.Monad.State
-import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.AnnTrf.SourceTemplate
-import Language.Haskell.Tools.AST.Rewrite
-import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
-import Language.Haskell.Tools.Refactor.RefactorBase
-import Language.Haskell.Tools.Refactor.ASTElements
 
-type ExtractBindingDomain dom = ( Domain dom, HasNameInfo dom, HasDefiningInfo dom, HasScopeInfo dom )
+import Language.Haskell.Tools.Refactor
+
+type ExtractBindingDomain dom = ( HasNameInfo dom, HasDefiningInfo dom, HasScopeInfo dom )
 
 extractBinding' :: ExtractBindingDomain dom => RealSrcSpan -> String -> LocalRefactoring dom
 extractBinding' sp name mod

@@ -3,7 +3,11 @@ module Language.Haskell.Tools.Refactor.ASTElements where
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 
--- Modules
+type AnnList node dom = AnnListG node dom SrcTemplateStage 
+type AnnMaybe node dom = AnnMaybeG node dom SrcTemplateStage 
+
+-- * Modules
+
 type Module dom = Ann UModule dom SrcTemplateStage
 type ModuleHead dom = Ann UModuleHead dom SrcTemplateStage
 type ExportSpecList dom = Ann UExportSpecList dom SrcTemplateStage
@@ -20,7 +24,8 @@ type ImportSafe dom = Ann UImportSafe dom SrcTemplateStage
 type TypeNamespace dom = Ann UTypeNamespace dom SrcTemplateStage
 type ImportRenaming dom = Ann UImportRenaming dom SrcTemplateStage
 
--- Declarations
+-- * Declarations
+
 type Decl dom = Ann UDecl dom SrcTemplateStage
 type ClassBody dom = Ann UClassBody dom SrcTemplateStage
 type ClassElement dom = Ann UClassElement dom SrcTemplateStage
@@ -88,11 +93,13 @@ type Alt dom = Ann UAlt dom SrcTemplateStage
 type CaseRhs dom = Ann UCaseRhs dom SrcTemplateStage
 type GuardedCaseRhs dom = Ann UGuardedCaseRhs dom SrcTemplateStage
 
--- ULiteral
+-- * Literals
+
 type Literal dom = Ann ULiteral dom SrcTemplateStage
 type PromotedKind dom = Ann (UPromoted UKind) dom SrcTemplateStage
 
--- Base
+-- * Names
+
 type Operator dom = Ann UOperator dom SrcTemplateStage
 type Name dom = Ann UName dom SrcTemplateStage
 type QualifiedName dom = Ann UQualifiedName dom SrcTemplateStage
@@ -115,7 +122,7 @@ type DoKind dom = Ann UDoKind dom SrcTemplateStage
 -- type haseInvert dom = Ann PhaseInvert dom SrcTemplateStage
 
 
-type MaybeLocalBinds dom = AnnMaybe ULocalBinds dom SrcTemplateStage
-type DeclList dom = AnnList UDecl dom SrcTemplateStage
-type LocalBindList dom = AnnList ULocalBind dom SrcTemplateStage
-type IESpecList dom = AnnList UIESpec dom SrcTemplateStage
+type MaybeLocalBinds dom = AnnMaybeG ULocalBinds dom SrcTemplateStage
+type DeclList dom = AnnListG UDecl dom SrcTemplateStage
+type LocalBindList dom = AnnListG ULocalBind dom SrcTemplateStage
+type IESpecList dom = AnnListG UIESpec dom SrcTemplateStage

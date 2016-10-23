@@ -20,20 +20,20 @@ data UPattern dom stage
                     , _patternRhs :: Ann UPattern dom stage
                     } -- ^ Infix constructor application pattern (@ a :+: b @)
   | UAppPat         { _patternName :: Ann UName dom stage
-                    , _patternArgs :: AnnList UPattern dom stage
+                    , _patternArgs :: AnnListG UPattern dom stage
                     } -- ^ Constructor application pattern (@ Point x y @)
-  | UTuplePat       { _patternElems :: AnnList UPattern dom stage
+  | UTuplePat       { _patternElems :: AnnListG UPattern dom stage
                     } -- ^ Tuple pattern (@ (x,y) @)
-  | UUnboxTuplePat  { _patternElems :: AnnList UPattern dom stage
+  | UUnboxTuplePat  { _patternElems :: AnnListG UPattern dom stage
                     } -- ^ Unboxed tuple pattern (@ (# x, y #) @)
-  | UListPat        { _patternElems :: AnnList UPattern dom stage
+  | UListPat        { _patternElems :: AnnListG UPattern dom stage
                     } -- ^ List pattern (@ [1,2,a,x] @)
-  | UParArrPat      { _patternElems :: AnnList UPattern dom stage
+  | UParArrPat      { _patternElems :: AnnListG UPattern dom stage
                     } -- ^ Parallel array pattern (@ [:1,2,a,x:] @)
   | UParenPat       { _patternInner :: Ann UPattern dom stage
                     } -- ^ Parenthesised patterns
   | URecPat         { _patternName :: Ann UName dom stage
-                    , _patternFields :: AnnList UPatternField dom stage
+                    , _patternFields :: AnnListG UPatternField dom stage
                     } -- ^ Record pattern (@ Point { x = 3, y } @)
   | UAsPat          { _patternName :: Ann UName dom stage
                     , _patternInner :: Ann UPattern dom stage

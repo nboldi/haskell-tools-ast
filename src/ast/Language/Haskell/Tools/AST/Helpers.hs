@@ -5,6 +5,7 @@
            , TypeFamilies
            , FlexibleInstances
            , UndecidableInstances
+           , PatternSynonyms
            #-}
 
 -- | Helper functions for using the AST.
@@ -121,3 +122,14 @@ instance NamedElement ULocalBind where
 
 inScope :: GHC.Name -> Scope -> Bool
 inScope n sc = any (n `elem`) sc
+
+-- * Pattern synonyms for annotated lists and maybes
+                        
+pattern AnnList :: [Ann elem dom stage] -> AnnListG elem dom stage
+pattern AnnList elems <- AnnListG _ elems
+
+pattern AnnNothing :: AnnMaybeG elem dom stage
+pattern AnnNothing <- AnnMaybeG _ Nothing
+
+pattern AnnJust :: Ann elem dom stage -> AnnMaybeG elem dom stage
+pattern AnnJust elem <- AnnMaybeG _ (Just elem)

@@ -23,13 +23,8 @@ import Data.Generics.Uniplate.Data
 import Control.Monad
 import Control.Monad.State
 import Control.Reference hiding (element)
-import Language.Haskell.Tools.AnnTrf.SourceTemplate
-import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
-import Language.Haskell.Tools.AST.Rewrite
-import Language.Haskell.Tools.AST as AST
-import Language.Haskell.Tools.Refactor.ASTElements as AST
-import Language.Haskell.Tools.Refactor.BindingElem
-import Language.Haskell.Tools.Refactor.RefactorBase
+
+import Language.Haskell.Tools.Refactor as AST
 
 type GenerateSignatureDomain dom = ( HasModuleInfo dom, HasIdInfo dom, HasImportInfo dom ) 
 
@@ -41,7 +36,7 @@ generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Module
                                 -- ^ Access for a top-level definition if it is the selected definition
                            -> Simple Traversal (Module dom) (LocalBindList dom) 
                                 -- ^ Access for a definition list if it contains the selected definition
-                           -> (forall d . (BindingElem d) => AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom)) 
+                           -> (forall d . (BindingElem d) => AnnList d dom -> Maybe (ValueBind dom)) 
                                 -- ^ Selector for either local or top-level declaration in the definition list
                            -> LocalRefactoring dom
 generateTypeSignature topLevelRef localRef vbAccess
@@ -49,8 +44,8 @@ generateTypeSignature topLevelRef localRef vbAccess
      (topLevelRef !~ genTypeSig vbAccess
         <=< localRef !~ genTypeSig vbAccess)
   
-genTypeSig :: (GenerateSignatureDomain dom, BindingElem d) => (AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom))  
-                -> AnnList d dom SrcTemplateStage -> StateT Bool (LocalRefactor dom) (AnnList d dom SrcTemplateStage)
+genTypeSig :: (GenerateSignatureDomain dom, BindingElem d) => (AnnList d dom -> Maybe (ValueBind dom))  
+                -> AnnList d dom -> StateT Bool (LocalRefactor dom) (AnnList d dom)
 genTypeSig vbAccess ls 
   | Just vb <- vbAccess ls 
   , not (typeSignatureAlreadyExist ls vb)
@@ -128,7 +123,7 @@ generateTypeFor prec t
         -- TODO: infix things
     
 -- | Check whether the definition already has a type signature
-typeSignatureAlreadyExist :: (GenerateSignatureDomain dom, BindingElem d) => AnnList d dom SrcTemplateStage -> ValueBind dom -> Bool
+typeSignatureAlreadyExist :: (GenerateSignatureDomain dom, BindingElem d) => AnnList d dom -> ValueBind dom -> Bool
 typeSignatureAlreadyExist ls vb = 
   getBindingName vb `elem` (map semanticsId $ concatMap (^? elementName) (filter isTypeSig $ ls ^? annList))
   

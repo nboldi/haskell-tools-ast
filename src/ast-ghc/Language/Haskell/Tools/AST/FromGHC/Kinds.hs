@@ -22,12 +22,12 @@ import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
-import Language.Haskell.Tools.AST (Ann(..), AnnMaybe(..), Dom, RangeStage, HasNoSemanticInfo)
+import Language.Haskell.Tools.AST (Ann(..), AnnMaybeG(..), Dom, RangeStage, HasNoSemanticInfo)
 import qualified Language.Haskell.Tools.AST as AST
 
 import Debug.Trace
 
-trfKindSig :: TransformName n r => Maybe (LHsKind n) -> Trf (AnnMaybe AST.UKindConstraint (Dom r) RangeStage)
+trfKindSig :: TransformName n r => Maybe (LHsKind n) -> Trf (AnnMaybeG AST.UKindConstraint (Dom r) RangeStage)
 trfKindSig = trfMaybe "" "" trfKindSig'
 
 trfKindSig' :: TransformName n r => Located (HsKind n) -> Trf (Ann AST.UKindConstraint (Dom r) RangeStage)

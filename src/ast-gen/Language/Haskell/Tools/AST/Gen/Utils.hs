@@ -12,17 +12,17 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 fromTemplate :: src -> NodeInfo sema src
 fromTemplate = NodeInfo (error "The newly generated AST fragments have no semantic info")
 
-emptyList :: AnnList e dom SrcTemplateStage
-emptyList = AnnListC (fromTemplate list) []
+emptyList :: AnnListG e dom SrcTemplateStage
+emptyList = AnnListG (fromTemplate list) []
               
-replaceWithJust :: Ann e dom SrcTemplateStage -> AnnMaybe e dom SrcTemplateStage -> AnnMaybe e dom SrcTemplateStage           
-replaceWithJust e (AnnMaybe temp _) = AnnMaybe temp (Just e)
+replaceWithJust :: Ann e dom SrcTemplateStage -> AnnMaybeG e dom SrcTemplateStage -> AnnMaybeG e dom SrcTemplateStage           
+replaceWithJust e (AnnMaybeG temp _) = AnnMaybeG temp (Just e)
 
-justVal :: Ann e dom SrcTemplateStage -> AnnMaybe e dom SrcTemplateStage
-justVal e = AnnMaybe (fromTemplate opt) (Just e)
+justVal :: Ann e dom SrcTemplateStage -> AnnMaybeG e dom SrcTemplateStage
+justVal e = AnnMaybeG (fromTemplate opt) (Just e)
 
-noth :: AnnMaybe e dom SrcTemplateStage
-noth = AnnMaybe (fromTemplate opt) Nothing
+noth :: AnnMaybeG e dom SrcTemplateStage
+noth = AnnMaybeG (fromTemplate opt) Nothing
 
 mkAnn :: SpanInfo SrcTemplateStage -> e dom SrcTemplateStage -> Ann e dom SrcTemplateStage
 mkAnn temp = Ann (fromTemplate temp)
@@ -31,10 +31,10 @@ mkAnn temp = Ann (fromTemplate temp)
 wrapperAnn :: e dom SrcTemplateStage -> Ann e dom SrcTemplateStage
 wrapperAnn = mkAnn child
 
--- | Transforms the list of elements to an AnnList with the given source template.
-mkAnnList :: ListInfo SrcTemplateStage -> [Ann e dom SrcTemplateStage] -> AnnList e dom SrcTemplateStage
-mkAnnList temp = AnnListC (fromTemplate temp)
+-- | Transforms the list of elements to an AnnListG with the given source template.
+mkAnnList :: ListInfo SrcTemplateStage -> [Ann e dom SrcTemplateStage] -> AnnListG e dom SrcTemplateStage
+mkAnnList temp = AnnListG (fromTemplate temp)
 
--- | Transforms the Maybe element to an AnnMaybe with the given source template.
-mkAnnMaybe :: OptionalInfo SrcTemplateStage -> Maybe (Ann e dom SrcTemplateStage) -> AnnMaybe e dom SrcTemplateStage
-mkAnnMaybe temp = AnnMaybe (fromTemplate temp)
+-- | Transforms the Maybe element to an AnnMaybeG with the given source template.
+mkAnnMaybe :: OptionalInfo SrcTemplateStage -> Maybe (Ann e dom SrcTemplateStage) -> AnnMaybeG e dom SrcTemplateStage
+mkAnnMaybe temp = AnnMaybeG (fromTemplate temp)

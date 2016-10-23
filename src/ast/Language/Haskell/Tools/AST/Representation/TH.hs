@@ -36,6 +36,6 @@ data Bracket dom stage
                    } -- ^ UPattern bracket (@ [| Point x y |] @)
   | TypeBracket    { _bracketType :: Ann UType dom stage
                    } -- ^ UPattern bracket (@ [| (Int,Int) |] @)
-  | DeclsBracket   { _bracketDecl :: AnnList UDecl dom stage
+  | DeclsBracket   { _bracketDecl :: AnnListG UDecl dom stage
                    } -- ^ Declaration bracket (@ [| _f :: Int -> Int; f x = x*x |] @)
             

@@ -10,12 +10,12 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.TH
 -- | UType variable declaration
 data UTyVar dom stage
   = UTyVarDecl { _tyVarName :: Ann UName dom stage
-               , _tyVarKind :: AnnMaybe UKindConstraint dom stage
+               , _tyVarKind :: AnnMaybeG UKindConstraint dom stage
                }
 
 -- | Haskell types
 data UType dom stage
-  = UTyForall     { _typeBounded :: AnnList UTyVar dom stage
+  = UTyForall     { _typeBounded :: AnnListG UTyVar dom stage
                   , _typeType :: Ann UType dom stage
                   } -- ^ Forall types (@ forall x y . type @)
   | UTyCtx        { _typeCtx :: Ann UContext dom stage
@@ -24,9 +24,9 @@ data UType dom stage
   | UTyFun        { _typeParam :: Ann UType dom stage
                   , _typeResult :: Ann UType dom stage
                   } -- ^ Function types (@ a -> b @)
-  | UTyTuple      { _typeElements :: AnnList UType dom stage
+  | UTyTuple      { _typeElements :: AnnListG UType dom stage
                   } -- ^ Tuple types (@ (a,b) @)
-  | UTyUnbTuple   { _typeElements :: AnnList UType dom stage
+  | UTyUnbTuple   { _typeElements :: AnnListG UType dom stage
                   } -- ^ Unboxed tuple types (@ (#a,b#) @)
   | UTyList       { _typeElement :: Ann UType dom stage
                   } -- ^ List type with special syntax (@ [a] @)
@@ -68,13 +68,13 @@ data UType dom stage
 data UContext dom stage
   = UContextOne   { _contextAssertion :: Ann UAssertion dom stage
                   } -- ^ One assertion (@ C a => ... @)
-  | UContextMulti { _contextAssertions :: AnnList UAssertion dom stage
+  | UContextMulti { _contextAssertions :: AnnListG UAssertion dom stage
                   } -- ^ A set of assertions (@ (C1 a, C2 b) => ... @, but can be one: @ (C a) => ... @)
 
 -- | A single assertion in the context
 data UAssertion dom stage
   = UClassAssert { _assertClsName :: Ann UName dom stage
-                 , _assertTypes :: AnnList UType dom stage
+                 , _assertTypes :: AnnListG UType dom stage
                  } -- ^ Class assertion (@Cls x@)
   | UInfixAssert { _assertLhs :: Ann UType dom stage
                  , _assertOp :: Ann UOperator dom stage
