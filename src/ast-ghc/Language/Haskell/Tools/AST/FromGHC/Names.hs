@@ -37,7 +37,6 @@ import Bag as GHC
 import Data.Data (Data)
 
 import Language.Haskell.Tools.AST (Ann(..), AnnList(..), AnnMaybe(..), SemanticInfo(..), RangeStage, Dom, annotation, semanticInfo)
-import Language.Haskell.Tools.AST (NoSemanticInfo(..))
 import qualified Language.Haskell.Tools.AST as AST
 
 import Language.Haskell.Tools.AST.FromGHC.Monad

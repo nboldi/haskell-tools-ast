@@ -10,6 +10,7 @@ import Control.Reference hiding (element)
 import qualified GHC
 
 import Data.Maybe
+import Control.Applicative ((<|>))
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
@@ -27,7 +28,9 @@ generateExports mod = return (modHead & annJust & mhExports & annMaybe
 -- | Get all the top-level definitions with flags that mark if they can contain other top-level definitions 
 -- (classes and data declarations).
 getTopLevels :: DomGenerateExports dom => Module dom -> [(GHC.Name, Bool)]
-getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d) (listToMaybe $ elementName d)) (mod ^? modDecl & annList)
+getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d) 
+                                               (foldl (<|>) Nothing $ map semanticsName $ d ^? elementName))
+                                   (mod ^? modDecl & annList)
   where exportContainOthers :: Decl dom -> Bool
         exportContainOthers (DataDecl {}) = True
         exportContainOthers (ClassDecl {}) = True

@@ -65,9 +65,10 @@ import UniqFM as GHC
 import HeaderInfo as GHC
 import Language.Haskell.TH.LanguageExtensions
 
-import Language.Haskell.Tools.AST (Ann(..), AnnMaybe(..), AnnList(..), Dom, IdDom, RangeStage, NoSemanticInfo(..), NameInfo(..), CNameInfo(..), ScopeInfo(..), ImportInfo(..), ModuleInfo(..), ImplicitFieldInfo(..)
-                                  , semanticInfo, sourceInfo, semantics, annotation, nameInfo, nodeSpan, semaTraverse)
+import Language.Haskell.Tools.AST (Ann(..), AnnMaybe(..), AnnList(..), Dom, IdDom, RangeStage
+                                  , semanticInfo, sourceInfo, semantics, annotation, nodeSpan, semaTraverse)
 import qualified Language.Haskell.Tools.AST as AST
+import Language.Haskell.Tools.AST.SemaInfoTypes as AST
 
 import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Decls
@@ -82,25 +83,22 @@ addTypeInfos bnds mod = do
   ut <- liftIO mkUnknownType
   let getType = getType' ut
   fixities <- getFixities
-  let createCName sc def id = CNameInfo sc def id fixity
+  let createCName sc def id = mkCNameInfo sc def id fixity
         where fixity = if any (any ((getOccName id ==) . getOccName)) (init sc) 
                           then Nothing 
                           else fmap (snd . snd) $ List.find (\(mod,(occ,_)) -> mod == (nameModule $ varName id) && occ == getOccName id) fixities
   evalStateT (semaTraverse 
     (AST.SemaTrf
-      (\case (NameInfo sc def ni) -> lift $ createCName sc def <$> getType ni 
-             (AmbiguousNameInfo sc d rdr l) | Just id <- Map.lookup l locMapping -> return $ createCName sc d id
-             (AmbiguousNameInfo sc d rdr l) | otherwise -> error $ "Ambiguous name missing: " ++ showSDocUnsafe (ppr rdr) ++ ", at: " ++ show l
-             (ImplicitNameInfo sc d str l) | Just id <- Map.lookup l locMapping -> return $ createCName sc d id
-             (ImplicitNameInfo sc d str (RealSrcSpan l)) | otherwise
-                -> do (none,rest) <- gets (break ((\(RealSrcSpan sp) -> sp `containsSpan` l) . fst))
-                      case rest of [] -> error $ "Implicit name missing: " ++ str ++ ", at: " ++ show l
-                                   ((_,id):more) -> do put (none ++ more)
-                                                       return $ createCName sc d id)
-      pure
-      (\(ImportInfo mod access used) -> lift $ ImportInfo mod <$> mapM getType access <*> mapM getType used)
-      (\(ModuleInfo mod isboot imps) -> lift $ ModuleInfo mod isboot <$> mapM getType imps)
-      (\(ImplicitFieldInfo wcbinds) -> return $ ImplicitFieldInfo wcbinds)
+      (\ni -> case (AST.semanticsSourceInfo ni, AST.semanticsName ni) of 
+                (_, Just name) -> lift $ createCName (AST.semanticsScope ni) (AST.semanticsDefining ni) <$> getType name
+                (Just l@(RealSrcSpan loc), _) 
+                  -> case Map.lookup l locMapping of 
+                            Just id -> return $ createCName (AST.semanticsScope ni) (AST.semanticsDefining ni) id
+                            _ -> do (none,rest) <- gets (break ((\(RealSrcSpan sp) -> sp `containsSpan` loc) . fst))
+                                    case rest of [] -> error $ "Ambiguous or implicit name missing, at: " ++ show loc
+                                                 ((_,id):more) -> do put (none ++ more)
+                                                                     return $ createCName (AST.semanticsScope ni) (AST.semanticsDefining ni) id)
+      pure (traverse (lift . getType)) (traverse (lift . getType)) pure
         pure) mod) (extractSigIds bnds ++ extractSigBindIds bnds)
   where locMapping = Map.fromList $ map (\(L l id) -> (l, id)) $ extractExprIds bnds
         getType' ut name = fromMaybe (mkVanillaGlobal name ut) <$> ((<|> Map.lookup name ids) <$> getTopLevelId name)
@@ -145,7 +143,7 @@ extractSigBindIds = catMaybes . map (\case L l bs@(IPBind (Right id) _) -> Just 
 createModuleInfo :: ModSummary -> Trf (AST.ModuleInfo GHC.Name)
 createModuleInfo mod = do let prelude = xopt ImplicitPrelude $ ms_hspp_opts mod
                           (_,preludeImports) <- if prelude then getImportedNames "Prelude" Nothing else return (ms_mod mod, [])
-                          return $ AST.ModuleInfo (ms_mod mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True) preludeImports
+                          return $ mkModuleInfo (ms_mod mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True) preludeImports
 
 trfModule :: ModSummary -> Located (HsModule RdrName) -> Trf (Ann AST.UModule (Dom RdrName) RangeStage)
 trfModule mod = trfLocCorrect (createModuleInfo mod) (\sr -> combineSrcSpans sr <$> (uniqueTokenAnywhere AnnEofPos)) $ 
@@ -161,7 +159,7 @@ trfModuleRename :: ModSummary -> Ann AST.UModule (Dom RdrName) RangeStage
                               -> Trf (Ann AST.UModule (Dom GHC.Name) RangeStage)
 trfModuleRename mod rangeMod (gr,imports,exps,_) hsMod 
     = do info <- createModuleInfo mod
-         trfLocCorrect (pure info) (\sr -> combineSrcSpans sr <$> (uniqueTokenAnywhere AnnEofPos)) (trfModuleRename' (info ^. AST.implicitNames)) hsMod      
+         trfLocCorrect (pure info) (\sr -> combineSrcSpans sr <$> (uniqueTokenAnywhere AnnEofPos)) (trfModuleRename' (info ^. implicitNames)) hsMod      
   where roleAnnots = rangeMod ^? AST.modDecl&AST.annList&filtered ((\case Ann _ (AST.URoleDecl {}) -> True; _ -> False))
         originalNames = Map.fromList $ catMaybes $ map getSourceAndInfo (rangeMod ^? biplateRef) 
         getSourceAndInfo :: Ann AST.UQualifiedName (Dom RdrName) RangeStage -> Maybe (SrcSpan, RdrName)
@@ -170,7 +168,7 @@ trfModuleRename mod rangeMod (gr,imports,exps,_) hsMod
         trfModuleRename' preludeImports hsMod@(HsModule name exports _ decls deprec _) = do
           transformedImports <- orderAnnList <$> (trfImports imports)
            
-          addToScope (concat @[] (transformedImports ^? AST.annList&semantics&AST.importedNames) ++ preludeImports)
+          addToScope (concat @[] (transformedImports ^? AST.annList&semantics&importedNames) ++ preludeImports)
             $ loadSplices mod hsMod gr $ setOriginalNames originalNames . setDeclsToInsert roleAnnots
               $ AST.UModule <$> trfFilePragmas
                             <*> trfModuleHead name (case (exports, exps) of (Just (L l _), Just ie) -> Just (L l ie)

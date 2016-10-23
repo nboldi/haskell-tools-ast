@@ -33,9 +33,8 @@ dollarApp sp = flip evalStateT [] . ((nodesContained sp !~ (\e -> get >>= replac
 replaceExpr :: DollarDomain dom => Expr dom -> [SrcSpan] -> DollarMonad dom (Expr dom)
 replaceExpr expr@(App fun (Paren (InfixApp _ op arg))) replacedRanges
   | not (getRange arg `elem` replacedRanges)
-  , sema <- op ^. operatorName&semantics
-  , semanticsName sema /= Just dollarName 
-  , case semanticsFixity sema of Just (Fixity _ p _) | p > 0 -> False; _ -> True
+  , semanticsName (op ^. operatorName) /= Just dollarName 
+  , case semanticsFixity (op ^. operatorName) of Just (Fixity _ p _) | p > 0 -> False; _ -> True
   = return expr
 replaceExpr (App fun (Paren arg)) _ = do modify $ (getRange arg :)
                                          mkInfixApp fun <$> lift (referenceOperator dollarName) <*> pure arg

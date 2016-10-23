@@ -22,7 +22,7 @@ import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
-import Language.Haskell.Tools.AST (Ann(..), AnnMaybe(..), Dom, RangeStage, SemanticInfo, NoSemanticInfo)
+import Language.Haskell.Tools.AST (Ann(..), AnnMaybe(..), Dom, RangeStage, HasNoSemanticInfo)
 import qualified Language.Haskell.Tools.AST as AST
 
 import Debug.Trace
@@ -56,7 +56,7 @@ trfKind' = trfKind'' . cleanHsType where
   trfKind'' pt@(HsTyLit {}) = AST.UPromotedKind <$> annContNoSema (trfPromoted' trfKind' pt) 
   trfKind'' k = error ("Illegal kind: " ++ showSDocUnsafe (ppr k) ++ " (ctor: " ++ show (toConstr k) ++ ")")
 
-trfPromoted' :: (TransformName n r, SemanticInfo (Dom r) a ~ NoSemanticInfo) 
+trfPromoted' :: (TransformName n r, HasNoSemanticInfo (Dom r) a) 
                   => (HsType n -> Trf (a (Dom r) RangeStage)) -> HsType n -> Trf (AST.UPromoted a (Dom r) RangeStage)
 trfPromoted' f (HsTyLit (HsNumTy _ int)) = pure $ AST.UPromotedInt int
 trfPromoted' f (HsTyLit (HsStrTy _ str)) = pure $ AST.UPromotedString (unpackFS str)

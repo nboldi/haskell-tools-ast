@@ -42,9 +42,9 @@ extractBinding :: forall dom . ExtractBindingDomain dom
                    -> String -> LocalRefactoring dom
 extractBinding selectDecl selectExpr name mod
   = let conflicting = any (isConflicting name) (mod ^? selectDecl & biplateRef :: [QualifiedName dom])
-        exprRange = getRange $ head (mod ^? selectDecl & selectExpr & annotation & sourceInfo)
+        exprRange = getRange $ head (mod ^? selectDecl & selectExpr)
         decl = last (mod ^? selectDecl)
-        declRange = getRange $ last (mod ^? selectDecl & annotation & sourceInfo)
+        declRange = getRange $ last (mod ^? selectDecl)
      in if conflicting
            then refactError "The given name causes name conflict."
            else do (res, st) <- runStateT (selectDecl&selectExpr !~ extractThatBind name (head $ decl ^? actualContainingExpr exprRange) $ mod) Nothing
@@ -54,8 +54,8 @@ extractBinding selectDecl selectExpr name mod
 -- | Decides if a new name defined to be the given string will conflict with the given AST element
 isConflicting :: ExtractBindingDomain dom => String -> QualifiedName dom -> Bool
 isConflicting name used
-  = semanticsDefining (used ^. semantics)
-      && (GHC.occNameString . GHC.getOccName <$> semanticsName (used ^. semantics)) == Just name
+  = semanticsDefining used
+      && (GHC.occNameString . GHC.getOccName <$> semanticsName used) == Just name
 
 -- Replaces the selected expression with a call and generates the called binding.
 extractThatBind :: ExtractBindingDomain dom 
@@ -85,6 +85,7 @@ addLocalBinding declRange exprRange local bind
       = funBindMatches & annList & filtered (isInside rng) & matchBinds 
           .- insertLocalBind declRng local $ fb
 
+-- | Puts a value definition into a list of local binds
 insertLocalBind :: SrcSpan -> ValueBind dom -> MaybeLocalBinds dom -> MaybeLocalBinds dom
 insertLocalBind declRng toInsert locals 
   | isAnnNothing locals
@@ -130,7 +131,7 @@ getExternalBinds cont expr = map exprToName $ keepFirsts $ filter isApplicableNa
         isApplicableName _ = False
 
         getExprNameInfo :: ExtractBindingDomain dom => Expr dom -> Maybe GHC.Name
-        getExprNameInfo expr = semanticsName =<< (listToMaybe $ expr ^? (exprName&simpleName &+& exprOperator&operatorName) & semantics)
+        getExprNameInfo expr = semanticsName =<< (listToMaybe $ expr ^? (exprName&simpleName &+& exprOperator&operatorName))
 
         -- | Creates the parameter value to pass the name (operators are passed in parentheses)
         exprToName :: Expr dom -> Name dom
@@ -138,10 +139,10 @@ getExternalBinds cont expr = map exprToName $ keepFirsts $ filter isApplicableNa
                      | Just op <- e ^? exprOperator & operatorName = mkParenName op
         
         notInScopeForExtracted :: GHC.Name -> Bool
-        notInScopeForExtracted n = notElem @[] n (semanticsScope (cont ^. semantics) ^? traversal & traversal)
+        notInScopeForExtracted n = not $ n `inScope` semanticsScope cont
 
         inScopeForOriginal :: GHC.Name -> Bool
-        inScopeForOriginal n = elem @[] n (semanticsScope (expr ^. semantics) ^? traversal & traversal)
+        inScopeForOriginal n = n `inScope` semanticsScope expr
 
         keepFirsts (e:rest) = e : keepFirsts (filter (/= e) rest)
         keepFirsts [] = []

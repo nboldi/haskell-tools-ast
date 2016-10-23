@@ -38,11 +38,11 @@ type DomainRenameDefinition dom = ( HasNameInfo dom, HasScopeInfo dom, HasDefini
 
 renameDefinition' :: forall dom . DomainRenameDefinition dom => RealSrcSpan -> String -> Refactoring dom
 renameDefinition' sp str mod mods
-  = case (getNodeContaining sp (snd mod) :: Maybe (QualifiedName dom)) >>= (fmap getName . (semanticsName =<<) . (^? semantics)) of 
+  = case (getNodeContaining sp (snd mod) :: Maybe (QualifiedName dom)) >>= (fmap getName . semanticsName) of 
       Just name -> do let sameNames = bindsWithSameName name (snd mod ^? biplateRef) 
                       renameDefinition name sameNames str mod mods
         where bindsWithSameName :: GHC.Name -> [FieldWildcard dom] -> [GHC.Name]
-              bindsWithSameName name wcs = catMaybes $ map ((lookup name) . semanticsImplicitFlds . (^. semantics)) wcs
+              bindsWithSameName name wcs = catMaybes $ map ((lookup name) . semanticsImplicitFlds) wcs
       Nothing -> case getNodeContaining sp (snd mod) of
                    Just modName -> renameModule (modName ^. moduleNameString) str mod mods
                    Nothing -> refactError "No name is selected"
@@ -92,23 +92,23 @@ renameDefinition toChangeOrig toChangeWith newName mod mods
                                                          -> StateT Bool (StateT Bool (LocalRefactor dom)) (QualifiedName dom)
     changeName toChangeOrig toChangeWith str name
       | maybe False (`elem` toChange) actualName
-          && semanticsDefining (name ^. semantics) == False
-          && any @[] ((str ==) . occNameString . getOccName) (semanticsScope (name ^. semantics) ^? Ref.element 0 & traversal & filtered (sameNamespace toChangeOrig))
+          && semanticsDefining name == False
+          && any @[] ((str ==) . occNameString . getOccName) (semanticsScope name ^? Ref.element 0 & traversal & filtered (sameNamespace toChangeOrig))
       = refactError $ "The definition clashes with an existing one at: " ++ shortShowSpan (getRange name) -- name clash with an external definition
       | maybe False (`elem` toChange) actualName
       = do put True -- state that something is changed in the local state
            when (actualName == Just toChangeOrig) 
-             $ lift $ modify (|| semanticsDefining (name ^. semantics)) -- state that the definition is renamed in the global state
+             $ lift $ modify (|| semanticsDefining name) -- state that the definition is renamed in the global state
            return $ unqualifiedName .= mkNamePart str $ name -- found the changed name (or a name that have to be changed too)
-      | let namesInScope = semanticsScope (name ^. semantics)
-         in case semanticsName (name ^. semantics) of 
+      | let namesInScope = semanticsScope name
+         in case semanticsName name of 
               Just (getName -> exprName) -> str == occNameString (getOccName exprName) && sameNamespace toChangeOrig exprName
                                               && conflicts toChangeOrig exprName namesInScope
               Nothing -> False -- ambiguous names
       = refactError $ "The definition clashes with an existing one: " ++ shortShowSpan (getRange name) -- local name clash
       | otherwise = return name -- not the changed name, leave as before
       where toChange = toChangeOrig : toChangeWith
-            actualName = fmap getName (semanticsName (name ^. semantics))
+            actualName = fmap getName (semanticsName name)
 
 conflicts :: GHC.Name -> GHC.Name -> [[GHC.Name]] -> Bool
 conflicts overwrites overwritten (scopeBlock : scope) 

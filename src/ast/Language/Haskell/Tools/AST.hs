@@ -23,5 +23,5 @@ import Language.Haskell.Tools.AST.Representation.Literals as Exported
 import Language.Haskell.Tools.AST.Representation.Names as Exported
 import Language.Haskell.Tools.AST.Ann as Exported
 import Language.Haskell.Tools.AST.Utils.OrdSrcSpan as Exported
-import Language.Haskell.Tools.AST.SemaInfoTypes as Exported
 import Language.Haskell.Tools.AST.SemaInfoClasses as Exported
+-- import Language.Haskell.Tools.AST.SemaInfoTypes (NoSemanticInfo, ScopeInfo, NameInfo, ) as Exported

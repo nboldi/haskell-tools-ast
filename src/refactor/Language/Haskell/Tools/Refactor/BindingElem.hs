@@ -11,12 +11,24 @@ import Language.Haskell.Tools.AST
 import SrcLoc
 
 -- | A type class for handling definitions that can appear as both top-level and local definitions
-class BindingElem d where
+class NamedElement d => BindingElem d where
+
+  -- | Accesses a type signature definition in a local or top-level definition
   sigBind :: Simple Partial (Ann d dom SrcTemplateStage) (TypeSignature dom)
+
+  -- | Accesses a value or function definition in a local or top-level definition
   valBind :: Simple Partial (Ann d dom SrcTemplateStage) (ValueBind dom)
+
+  -- | Creates a new definition from a type signature
   createTypeSig :: TypeSignature dom -> Ann d dom SrcTemplateStage
+
+  -- | Creates a new definition from a value or function definition
   createBinding :: ValueBind dom -> Ann d dom SrcTemplateStage
+
+  -- | Checks if a given definition is a type signature
   isTypeSig :: Ann d dom stage -> Bool
+  
+  -- | Checks if a given definition is a function or value binding
   isBinding :: Ann d dom stage -> Bool
   
 instance BindingElem UDecl where
@@ -38,9 +50,6 @@ instance BindingElem ULocalBind where
   isTypeSig _ = False
   isBinding LocalValBind {} = True
   isBinding _ = False
-
-bindName :: (BindingElem d, SemanticInfo dom UQualifiedName ~ k) => Simple Traversal (Ann d dom SrcTemplateStage) k
-bindName = valBind&bindingName &+& sigBind&tsName&annList&simpleName&semantics
      
 getValBindInList :: (BindingElem d) => RealSrcSpan -> AnnList d dom SrcTemplateStage -> Maybe (ValueBind dom)
 getValBindInList sp ls = case ls ^? valBindsInList & filtered (isInside sp) of

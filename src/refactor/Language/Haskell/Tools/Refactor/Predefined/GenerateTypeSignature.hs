@@ -56,7 +56,7 @@ genTypeSig vbAccess ls
   , not (typeSignatureAlreadyExist ls vb)
     = do let id = getBindingName vb
              isTheBind (Just decl) 
-               = isBinding decl && map semanticsId (decl ^? bindName) == map semanticsId (vb ^? bindingName)
+               = isBinding decl && map semanticsId (decl ^? elementName) == map semanticsId (vb ^? bindingName)
              isTheBind _ = False
              
          alreadyGenerated <- get
@@ -130,7 +130,7 @@ generateTypeFor prec t
 -- | Check whether the definition already has a type signature
 typeSignatureAlreadyExist :: (GenerateSignatureDomain dom, BindingElem d) => AnnList d dom SrcTemplateStage -> ValueBind dom -> Bool
 typeSignatureAlreadyExist ls vb = 
-  getBindingName vb `elem` (map semanticsId $ concatMap (^? bindName) (filter isTypeSig $ ls ^? annList))
+  getBindingName vb `elem` (map semanticsId $ concatMap (^? elementName) (filter isTypeSig $ ls ^? annList))
   
 getBindingName :: GenerateSignatureDomain dom => ValueBind dom -> GHC.Id
 getBindingName vb = case nub $ map semanticsId $ vb ^? bindingName of 

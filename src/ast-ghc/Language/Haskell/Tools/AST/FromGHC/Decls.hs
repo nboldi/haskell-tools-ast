@@ -46,6 +46,7 @@ import Language.Haskell.Tools.AST.FromGHC.Utils
 
 import Language.Haskell.Tools.AST (Ann(..), AnnMaybe(..), AnnList(..), getRange, Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST
+import Language.Haskell.Tools.AST.SemaInfoTypes as AST
 
 import Data.Dynamic
 import Debug.Trace
@@ -88,9 +89,7 @@ trfDeclsGroup (HsGroup vals splices tycls insts derivs fixities defaults foreign
                           liftGhc $ mapM (loadIdsForDecls locals) decls
        where loadIdsForDecls :: [GHC.Name] -> Ann AST.UDecl (Dom RdrName) RangeStage -> GHC.Ghc (Ann AST.UDecl (Dom r) RangeStage)
              loadIdsForDecls locals = AST.semaTraverse $
-                AST.SemaTrf (AST.nameInfo !~ findName) pure 
-                            (\(AST.ImportInfo mod avail actual) -> AST.ImportInfo mod <$> mapM findName avail <*> mapM findName actual)
-                            pure pure pure
+                AST.SemaTrf (AST.nameInfo !~ findName) pure (traverse findName) pure pure pure
                where findName rdr = pure $ fromGHCName $ fromMaybe (error $ "Data definition name not found: " ++ showSDocUnsafe (ppr rdr) 
                                                                               ++ ", locals: " ++ (concat $ intersperse ", " $ map (showSDocUnsafe . ppr) locals)) 
                                                        $ find ((occNameString (rdrNameOcc rdr) ==) . occNameString . nameOccName) locals

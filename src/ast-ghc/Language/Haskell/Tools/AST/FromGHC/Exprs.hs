@@ -38,6 +38,7 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils
+import Language.Haskell.Tools.AST.SemaInfoTypes
 
 import Language.Haskell.Tools.AST (Ann(..), AnnList(..), Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST
@@ -60,9 +61,9 @@ trfExpr e = do exprSpls <- asks exprSplices
                                                         _               -> exprSpliceInserted sp (annCont createScopeInfo (AST.USplice <$> annLocNoSema (pure $ getSpliceLoc sp) (trfSplice' sp)))
                                   Nothing -> trfLoc trfExpr' createScopeInfo e
 
-createScopeInfo :: Trf AST.ScopeInfo
+createScopeInfo :: Trf ScopeInfo
 createScopeInfo = do scope <- asks localsInScope
-                     return (AST.ScopeInfo scope)
+                     return (mkScopeInfo scope)
 
 trfExpr' :: TransformName n r => HsExpr n -> Trf (AST.UExpr (Dom r) RangeStage)
 trfExpr' (HsVar name) = AST.UVar <$> trfName name

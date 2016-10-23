@@ -257,6 +257,15 @@ instance RangeInfo RangeStage where
 
 -- * Annotations
 
+-- | Semantic and source code related information for an AST node.
+data NodeInfo sema src 
+  = NodeInfo { _semanticInfo :: sema
+             , _sourceInfo :: src
+             }
+  deriving (Eq, Show, Data)
+             
+makeReferences ''NodeInfo
+
 -- | An element of the AST keeping extra information.
 data Ann elem dom stage
 -- The type parameters are organized this way because we want the annotation type to
