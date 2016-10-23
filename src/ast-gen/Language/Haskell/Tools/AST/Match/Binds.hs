@@ -3,66 +3,61 @@
 module Language.Haskell.Tools.AST.Match.Binds where
 
 import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.AST.ElementTypes
 
-pattern SimpleBind :: Ann UPattern dom stage -> Ann URhs dom stage 
-                        -> AnnMaybeG ULocalBinds dom stage -> Ann UValueBind dom stage
+pattern SimpleBind :: Pattern dom -> Rhs dom -> MaybeLocalBinds dom -> ValueBind dom
 pattern SimpleBind p r l <- Ann _ (USimpleBind p r l)
 
-pattern FunctionBind :: AnnListG UMatch dom stage -> Ann UValueBind dom stage
+pattern FunctionBind :: MatchList dom -> ValueBind dom
 pattern FunctionBind matches <- Ann _ (UFunBind matches)
 
-pattern Match :: Ann UMatchLhs dom stage -> Ann URhs dom stage 
-                   -> AnnMaybeG ULocalBinds dom stage -> Ann UMatch dom stage
+pattern Match :: MatchLhs dom -> Rhs dom -> MaybeLocalBinds dom -> Match dom
 pattern Match lhs rhs locs <- Ann _ (UMatch lhs rhs locs)
 
-pattern MatchLhs :: Ann UName dom stage -> AnnListG UPattern dom stage 
-                       -> Ann UMatchLhs dom stage
+pattern MatchLhs :: Name dom -> AnnListG UPattern dom stage -> MatchLhs dom
 pattern MatchLhs n pats <- Ann _ (UNormalLhs n pats)
 
-pattern InfixLhs :: Ann UPattern dom stage -> Ann UOperator dom stage 
-                      -> Ann UPattern dom stage -> AnnListG UPattern dom stage
-                      -> Ann UMatchLhs dom stage
+pattern InfixLhs :: Pattern dom -> Operator dom -> Pattern dom -> PatternList dom -> MatchLhs dom
 pattern InfixLhs lhs op rhs pats <- Ann _ (UInfixLhs lhs op rhs pats)
 
-pattern LocalBinds :: AnnListG ULocalBind dom stage -> Ann ULocalBinds dom stage
+pattern LocalBinds :: LocalBindList dom -> LocalBinds dom
 pattern LocalBinds binds <- Ann _ (ULocalBinds binds)
 
-pattern LocalValBind :: Ann UValueBind dom stage -> Ann ULocalBind dom stage
+pattern LocalValBind :: ValueBind dom -> LocalBind dom
 pattern LocalValBind bind <- Ann _ (ULocalValBind bind)
 
-pattern LocalTypeSig :: Ann UTypeSignature dom stage -> Ann ULocalBind dom stage
+pattern LocalTypeSig :: TypeSignature dom -> LocalBind dom
 pattern LocalTypeSig typeSig <- Ann _ (ULocalSignature typeSig)
 
-pattern LocalFixity :: Ann UFixitySignature dom stage -> Ann ULocalBind dom stage
+pattern LocalFixity :: FixitySignature dom -> LocalBind dom
 pattern LocalFixity fixity <- Ann _ (ULocalFixity fixity)
 
-pattern TypeSignature :: AnnListG UName dom stage -> Ann UType dom stage 
-                          -> Ann UTypeSignature dom stage
+pattern TypeSignature :: NameList dom -> Type dom -> TypeSignature dom
 pattern TypeSignature n t <- Ann _ (UTypeSignature n t)
 
-pattern InfixL :: Ann Precedence dom stage -> AnnListG UOperator dom stage -> Ann UFixitySignature dom stage
+pattern InfixL :: Ann Precedence dom stage -> OperatorList dom -> FixitySignature dom
 pattern InfixL prec op <- Ann _ (UFixitySignature (Ann _ AssocLeft) prec op)
 
-pattern InfixR :: Ann Precedence dom stage -> AnnListG UOperator dom stage -> Ann UFixitySignature dom stage
+pattern InfixR :: Ann Precedence dom stage -> OperatorList dom -> FixitySignature dom
 pattern InfixR prec op <- Ann _ (UFixitySignature (Ann _ AssocRight) prec op)
 
-pattern Infix :: Ann Precedence dom stage -> AnnListG UOperator dom stage -> Ann UFixitySignature dom stage
+pattern Infix :: Ann Precedence dom stage -> OperatorList dom -> FixitySignature dom
 pattern Infix prec op <- Ann _ (UFixitySignature (Ann _ AssocNone) prec op)
 
-pattern UnguardedRhs :: Ann UExpr dom stage -> Ann URhs dom stage
+pattern UnguardedRhs :: Expr dom -> Rhs dom
 pattern UnguardedRhs expr <- Ann _ (UUnguardedRhs expr)
 
-pattern GuardedRhss :: AnnListG UGuardedRhs dom stage -> Ann URhs dom stage
+pattern GuardedRhss :: GuardedRhsList dom -> Rhs dom
 pattern GuardedRhss rhss <- Ann _ (UGuardedRhss rhss)
 
-pattern GuardedRhs :: AnnListG URhsGuard dom stage -> Ann UExpr dom stage -> Ann UGuardedRhs dom stage
+pattern GuardedRhs :: RhsGuardList dom -> Expr dom -> GuardedRhs dom
 pattern GuardedRhs guards expr <- Ann _ (UGuardedRhs guards expr)
 
-pattern GuardBind :: Ann UPattern dom stage -> Ann UExpr dom stage -> Ann URhsGuard dom stage
+pattern GuardBind :: Pattern dom -> Expr dom -> RhsGuard dom
 pattern GuardBind pat expr <- Ann _ (UGuardBind pat expr)
 
-pattern GuardLet :: AnnListG ULocalBind dom stage -> Ann URhsGuard dom stage
+pattern GuardLet :: LocalBindList dom -> RhsGuard dom
 pattern GuardLet binds <- Ann _ (UGuardLet binds)
 
-pattern GuardCheck :: Ann UExpr dom stage -> Ann URhsGuard dom stage
+pattern GuardCheck :: Expr dom -> RhsGuard dom
 pattern GuardCheck expr <- Ann _ (UGuardCheck expr)

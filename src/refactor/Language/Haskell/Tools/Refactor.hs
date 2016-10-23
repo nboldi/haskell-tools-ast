@@ -8,7 +8,7 @@ import Language.Haskell.Tools.AST.Helpers as Exported
 import Language.Haskell.Tools.AST.Ann as Exported 
   (HasRange(..), annListElems, annList, annJust, isAnnNothing, Domain)
 import Language.Haskell.Tools.Refactor.RefactorBase as Exported
-import Language.Haskell.Tools.Refactor.ASTElements as Exported
+import Language.Haskell.Tools.AST.ElementTypes as Exported
 import Language.Haskell.Tools.Refactor.Prepare as Exported
 import Language.Haskell.Tools.Refactor.ListOperations as Exported
 import Language.Haskell.Tools.Refactor.BindingElem as Exported

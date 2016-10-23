@@ -19,13 +19,13 @@ data UModule dom stage
 -- | UModule declaration with name and (optional) exports
 data UModuleHead dom stage
   = UModuleHead { _mhName :: Ann UModuleName dom stage
-                , _mhExports :: AnnMaybeG UExportSpecList dom stage
+                , _mhExports :: AnnMaybeG UExportSpecs dom stage
                 , _mhPragma :: AnnMaybeG UModulePragma dom stage
                 }
 
 -- | A list of export specifications surrounded by parentheses
-data UExportSpecList dom stage
-  = UExportSpecList { _espExports :: AnnListG UExportSpec dom stage }
+data UExportSpecs dom stage
+  = UExportSpecs { _espExports :: AnnListG UExportSpec dom stage }
   
 -- | Export specifier
 data UExportSpec dom stage

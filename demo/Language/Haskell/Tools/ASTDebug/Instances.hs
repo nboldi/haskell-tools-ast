@@ -47,7 +47,7 @@ instance (ASTDebug e dom st) => ASTDebug (AnnMaybeG e) dom st where
 -- Modules
 instance (Domain dom, SourceInfo st) => ASTDebug UModule dom st
 instance (Domain dom, SourceInfo st) => ASTDebug UModuleHead dom st
-instance (Domain dom, SourceInfo st) => ASTDebug UExportSpecList dom st
+instance (Domain dom, SourceInfo st) => ASTDebug UExportSpecs dom st
 instance (Domain dom, SourceInfo st) => ASTDebug UExportSpec dom st
 instance (Domain dom, SourceInfo st) => ASTDebug UIESpec dom st
 instance (Domain dom, SourceInfo st) => ASTDebug USubSpec dom st

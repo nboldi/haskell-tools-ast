@@ -28,7 +28,7 @@ instance (Eq (e dom stage)) => Eq (AnnListG e dom stage) where
 -- Modules
 deriving instance Eq (UModule dom stage)
 deriving instance Eq (UModuleHead dom stage)
-deriving instance Eq (UExportSpecList dom stage)
+deriving instance Eq (UExportSpecs dom stage)
 deriving instance Eq (UExportSpec dom stage)
 deriving instance Eq (UIESpec dom stage)
 deriving instance Eq (USubSpec dom stage)

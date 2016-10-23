@@ -23,7 +23,7 @@ import Language.Haskell.Tools.AST.Ann
 -- Modules
 deriveSemanticTraversal ''UModule
 deriveSemanticTraversal ''UModuleHead
-deriveSemanticTraversal ''UExportSpecList
+deriveSemanticTraversal ''UExportSpecs
 deriveSemanticTraversal ''UExportSpec
 deriveSemanticTraversal ''UIESpec
 deriveSemanticTraversal ''USubSpec

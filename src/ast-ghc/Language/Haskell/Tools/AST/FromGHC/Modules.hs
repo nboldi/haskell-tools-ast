@@ -242,11 +242,11 @@ trfText' = pure . AST.UStringNode . unpackFS . sl_fs
 
 
 
-trfExportList :: TransformName n r => SrcLoc -> Maybe (Located [LIE n]) -> Trf (AnnMaybeG AST.UExportSpecList (Dom r) RangeStage)
+trfExportList :: TransformName n r => SrcLoc -> Maybe (Located [LIE n]) -> Trf (AnnMaybeG AST.UExportSpecs (Dom r) RangeStage)
 trfExportList loc = trfMaybeDefault " " "" (trfLocNoSema trfExportList') (pure loc)
 
-trfExportList' :: TransformName n r => [LIE n] -> Trf (AST.UExportSpecList (Dom r) RangeStage)
-trfExportList' exps = AST.UExportSpecList <$> (makeList ", " (after AnnOpenP) (orderDefs . catMaybes <$> (mapM trfExport exps)))
+trfExportList' :: TransformName n r => [LIE n] -> Trf (AST.UExportSpecs (Dom r) RangeStage)
+trfExportList' exps = AST.UExportSpecs <$> (makeList ", " (after AnnOpenP) (orderDefs . catMaybes <$> (mapM trfExport exps)))
   
 trfExport :: TransformName n r => LIE n -> Trf (Maybe (Ann AST.UExportSpec (Dom r) RangeStage))
 trfExport = trfMaybeLocNoSema $ \case 

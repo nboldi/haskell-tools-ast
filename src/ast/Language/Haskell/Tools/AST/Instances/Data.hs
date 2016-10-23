@@ -25,7 +25,7 @@ deriving instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom s
 -- Modules
 deriving instance (Domain dom, SourceInfo stage) => Data (UModule dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UModuleHead dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Data (UExportSpecList dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Data (UExportSpecs dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UExportSpec dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UIESpec dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (USubSpec dom stage)

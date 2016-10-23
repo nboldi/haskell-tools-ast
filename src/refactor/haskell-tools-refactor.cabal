@@ -13,7 +13,6 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Language.Haskell.Tools.Refactor
-                     , Language.Haskell.Tools.Refactor.ASTElements
                      , Language.Haskell.Tools.Refactor.BindingElem
                      , Language.Haskell.Tools.Refactor.GetModules
                      , Language.Haskell.Tools.Refactor.RefactorBase

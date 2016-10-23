@@ -6,22 +6,23 @@ module Language.Haskell.Tools.AST.Gen.Utils where
 
 import Control.Reference
 import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
 fromTemplate :: src -> NodeInfo sema src
 fromTemplate = NodeInfo (error "The newly generated AST fragments have no semantic info")
 
-emptyList :: AnnListG e dom SrcTemplateStage
+emptyList :: AnnList e dom
 emptyList = AnnListG (fromTemplate list) []
               
-replaceWithJust :: Ann e dom SrcTemplateStage -> AnnMaybeG e dom SrcTemplateStage -> AnnMaybeG e dom SrcTemplateStage           
+replaceWithJust :: Ann e dom SrcTemplateStage -> AnnMaybe e dom -> AnnMaybe e dom           
 replaceWithJust e (AnnMaybeG temp _) = AnnMaybeG temp (Just e)
 
 justVal :: Ann e dom SrcTemplateStage -> AnnMaybeG e dom SrcTemplateStage
 justVal e = AnnMaybeG (fromTemplate opt) (Just e)
 
-noth :: AnnMaybeG e dom SrcTemplateStage
+noth :: AnnMaybe e dom
 noth = AnnMaybeG (fromTemplate opt) Nothing
 
 mkAnn :: SpanInfo SrcTemplateStage -> e dom SrcTemplateStage -> Ann e dom SrcTemplateStage
@@ -32,9 +33,9 @@ wrapperAnn :: e dom SrcTemplateStage -> Ann e dom SrcTemplateStage
 wrapperAnn = mkAnn child
 
 -- | Transforms the list of elements to an AnnListG with the given source template.
-mkAnnList :: ListInfo SrcTemplateStage -> [Ann e dom SrcTemplateStage] -> AnnListG e dom SrcTemplateStage
+mkAnnList :: ListInfo SrcTemplateStage -> [Ann e dom SrcTemplateStage] -> AnnList e dom
 mkAnnList temp = AnnListG (fromTemplate temp)
 
 -- | Transforms the Maybe element to an AnnMaybeG with the given source template.
-mkAnnMaybe :: OptionalInfo SrcTemplateStage -> Maybe (Ann e dom SrcTemplateStage) -> AnnMaybeG e dom SrcTemplateStage
+mkAnnMaybe :: OptionalInfo SrcTemplateStage -> Maybe (Ann e dom SrcTemplateStage) -> AnnMaybe e dom
 mkAnnMaybe temp = AnnMaybeG (fromTemplate temp)

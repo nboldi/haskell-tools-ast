@@ -6,7 +6,7 @@ module Language.Haskell.Tools.Refactor.BindingElem where
 
 import Control.Reference
 import Language.Haskell.Tools.AST.Rewrite
-import Language.Haskell.Tools.Refactor.ASTElements
+import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST
 import SrcLoc
 
@@ -26,10 +26,10 @@ class NamedElement d => BindingElem d where
   createBinding :: ValueBind dom -> Ann d dom SrcTemplateStage
 
   -- | Checks if a given definition is a type signature
-  isTypeSig :: Ann d dom stage -> Bool
+  isTypeSig :: Ann d dom SrcTemplateStage -> Bool
   
   -- | Checks if a given definition is a function or value binding
-  isBinding :: Ann d dom stage -> Bool
+  isBinding :: Ann d dom SrcTemplateStage -> Bool
   
 instance BindingElem UDecl where
   sigBind = declTypeSig

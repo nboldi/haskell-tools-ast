@@ -3,51 +3,52 @@
 module Language.Haskell.Tools.AST.Match.Patterns where
 
 import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.AST.ElementTypes
 
-pattern VarPat :: Ann UName dom stage -> Ann UPattern dom stage
+pattern VarPat :: Name dom -> Pattern dom
 pattern VarPat var <- Ann _ (UVarPat var)
 
-pattern LitPat :: Ann ULiteral dom stage -> Ann UPattern dom stage
+pattern LitPat :: Literal dom -> Pattern dom
 pattern LitPat lit <- Ann _ (ULitPat lit)
 
-pattern InfixAppPat :: Ann UPattern dom stage -> Ann UOperator dom stage -> Ann UPattern dom stage -> Ann UPattern dom stage
+pattern InfixAppPat :: Pattern dom -> Operator dom -> Pattern dom -> Pattern dom
 pattern InfixAppPat lhs op rhs <- Ann _ (UInfixAppPat lhs op rhs)
 
-pattern AppPat :: Ann UName dom stage -> AnnListG UPattern dom stage -> Ann UPattern dom stage
+pattern AppPat :: Name dom -> PatternList dom -> Pattern dom
 pattern AppPat n pat <- Ann _ (UAppPat n pat)
 
-pattern TuplePat :: AnnListG UPattern dom stage -> Ann UPattern dom stage
+pattern TuplePat :: PatternList dom -> Pattern dom
 pattern TuplePat pats <- Ann _ (UTuplePat pats)
 
-pattern UnboxTuplePat :: AnnListG UPattern dom stage -> Ann UPattern dom stage
+pattern UnboxTuplePat :: PatternList dom -> Pattern dom
 pattern UnboxTuplePat pats <- Ann _ (UUnboxTuplePat pats)
 
-pattern ListPat :: AnnListG UPattern dom stage -> Ann UPattern dom stage
+pattern ListPat :: PatternList dom -> Pattern dom
 pattern ListPat pats <- Ann _ (UListPat pats)
 
-pattern ParenPat :: Ann UPattern dom stage -> Ann UPattern dom stage
+pattern ParenPat :: Pattern dom -> Pattern dom
 pattern ParenPat pat <- Ann _ (UParenPat pat)
 
-pattern RecPat :: Ann UName dom stage -> AnnListG UPatternField dom stage -> Ann UPattern dom stage
+pattern RecPat :: Name dom -> PatternFieldList dom -> Pattern dom
 pattern RecPat name flds <- Ann _ (URecPat name flds)
 
-pattern AsPat :: Ann UName dom stage -> Ann UPattern dom stage -> Ann UPattern dom stage
+pattern AsPat :: Name dom -> Pattern dom -> Pattern dom
 pattern AsPat name pat <- Ann _ (UAsPat name pat)
 
-pattern WildPat :: Ann UPattern dom stage
+pattern WildPat :: Pattern dom
 pattern WildPat <- Ann _ UWildPat
 
-pattern IrrefutablePat :: Ann UPattern dom stage -> Ann UPattern dom stage
+pattern IrrefutablePat :: Pattern dom -> Pattern dom
 pattern IrrefutablePat pat <- Ann _ (UIrrefutablePat pat)
 
-pattern BangPat :: Ann UPattern dom stage -> Ann UPattern dom stage
+pattern BangPat :: Pattern dom -> Pattern dom
 pattern BangPat pat <- Ann _ (UBangPat pat)
 
-pattern TypeSigPat :: Ann UPattern dom stage -> Ann UType dom stage -> Ann UPattern dom stage
+pattern TypeSigPat :: Pattern dom -> Type dom -> Pattern dom
 pattern TypeSigPat pat typ <- Ann _ (UTypeSigPat pat typ)
 
-pattern ViewPat :: Ann UExpr dom stage -> Ann UPattern dom stage -> Ann UPattern dom stage
+pattern ViewPat :: Expr dom -> Pattern dom -> Pattern dom
 pattern ViewPat name pat <- Ann _ (UViewPat name pat)
 
-pattern UPatternField :: Ann UName dom stage -> Ann UPattern dom stage -> Ann UPatternField dom stage
+pattern UPatternField :: Name dom -> Pattern dom -> PatternField dom
 pattern UPatternField name pat <- Ann _ (UNormalFieldPattern name pat)

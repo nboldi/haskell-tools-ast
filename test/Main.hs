@@ -552,7 +552,7 @@ testDecls
 
 testModules
   = [ ("", G.mkModule [] Nothing [] [])
-    , ("module Test(x, A(a), B(..)) where", G.mkModule [] (Just $ mkModuleHead (G.mkModuleName "Test") (Just $ mkExportSpecList [
+    , ("module Test(x, A(a), B(..)) where", G.mkModule [] (Just $ mkModuleHead (G.mkModuleName "Test") (Just $ mkExportSpecs [
                                                 mkExportSpec $ mkIeSpec (mkName "x") Nothing
                                               , mkExportSpec $ mkIeSpec (mkName "A") (Just $ mkSubList [mkName "a"])
                                               , mkExportSpec $ mkIeSpec (mkName "B") (Just mkSubAll)

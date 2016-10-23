@@ -28,7 +28,7 @@ import Data.Generics.Uniplate.Data
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AST.Rewrite
-import Language.Haskell.Tools.Refactor.ASTElements
+import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 import Debug.Trace

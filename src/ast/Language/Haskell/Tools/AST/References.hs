@@ -21,7 +21,7 @@ import Language.Haskell.Tools.AST.Ann
 -- Modules
 $(toASTReferences (makeReferences ''UModule))
 $(toASTReferences (makeReferences ''UModuleHead))
-$(toASTReferences (makeReferences ''UExportSpecList))
+$(toASTReferences (makeReferences ''UExportSpecs))
 $(toASTReferences (makeReferences ''UExportSpec))
 $(toASTReferences (makeReferences ''UIESpec))
 $(toASTReferences (makeReferences ''USubSpec))

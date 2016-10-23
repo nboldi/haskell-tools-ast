@@ -30,7 +30,7 @@ instance TreeDebug e dom st => TreeDebug (AnnMaybeG e) dom st where
 -- Modules
 instance (SourceInfo st, Domain dom) => TreeDebug UModule dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UModuleHead dom st
-instance (SourceInfo st, Domain dom) => TreeDebug UExportSpecList dom st
+instance (SourceInfo st, Domain dom) => TreeDebug UExportSpecs dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UExportSpec dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UIESpec dom st
 instance (SourceInfo st, Domain dom) => TreeDebug USubSpec dom st

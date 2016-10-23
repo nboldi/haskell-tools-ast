@@ -15,7 +15,7 @@ import Control.Applicative ((<|>))
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AST.Rewrite
-import Language.Haskell.Tools.Refactor.ASTElements
+import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 type DomGenerateExports dom = (Domain dom, HasNameInfo dom)
@@ -37,8 +37,8 @@ getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d)
         exportContainOthers _ = False
 
 -- | Create the export for a give name.
-createExports :: DomGenerateExports dom => [(GHC.Name, Bool)] -> ExportSpecList dom
-createExports elems = mkExportSpecList $ map (mkExportSpec . createExport) elems
+createExports :: DomGenerateExports dom => [(GHC.Name, Bool)] -> ExportSpecs dom
+createExports elems = mkExportSpecs $ map (mkExportSpec . createExport) elems
   where createExport (n, False) = mkIeSpec (mkUnqualName' (GHC.getName n)) Nothing
         createExport (n, True)  = mkIeSpec (mkUnqualName' (GHC.getName n)) (Just mkSubAll)
 

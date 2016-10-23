@@ -28,7 +28,7 @@ instance (Show (e dom stage)) => Show (AnnListG e dom stage) where
 -- Modules
 deriving instance Show (UModule dom stage)
 deriving instance Show (UModuleHead dom stage)
-deriving instance Show (UExportSpecList dom stage)
+deriving instance Show (UExportSpecs dom stage)
 deriving instance Show (UExportSpec dom stage)
 deriving instance Show (UIESpec dom stage)
 deriving instance Show (USubSpec dom stage)

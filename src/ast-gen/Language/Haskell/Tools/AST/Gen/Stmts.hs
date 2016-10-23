@@ -11,22 +11,23 @@ import Data.String
 import Data.Function (on)
 import Control.Reference
 import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.AST.Gen.Names
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
-mkBindStmt :: Ann UPattern dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UStmt dom SrcTemplateStage
+mkBindStmt :: Pattern dom -> Expr dom -> Stmt dom
 mkBindStmt bound expr = mkAnn (child <> " <- " <> child) $ UBindStmt bound expr
 
-mkExprStmt :: Ann UExpr dom SrcTemplateStage -> Ann UStmt dom SrcTemplateStage
+mkExprStmt :: Expr dom -> Stmt dom
 mkExprStmt = mkAnn child . UExprStmt
 
-mkLetStmt :: [Ann ULocalBind dom SrcTemplateStage] -> Ann UStmt dom SrcTemplateStage
+mkLetStmt :: [LocalBind dom] -> Stmt dom
 mkLetStmt = mkAnn ("let " <> child) . ULetStmt . mkAnnList indentedList
 
-mkListCompBody :: [Ann UCompStmt dom SrcTemplateStage] -> Ann UListCompBody dom SrcTemplateStage
+mkListCompBody :: [CompStmt dom] -> ListCompBody dom
 mkListCompBody = mkAnn child . UListCompBody . mkAnnList (listSep " ")
 
-mkCompStmt :: Ann UStmt dom SrcTemplateStage -> Ann UCompStmt dom SrcTemplateStage
+mkCompStmt :: Stmt dom -> CompStmt dom
 mkCompStmt = mkAnn child . UCompStmt

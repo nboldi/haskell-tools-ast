@@ -3,24 +3,25 @@
 module Language.Haskell.Tools.AST.Match.Stmts where
 
 import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.AST.ElementTypes
 
-pattern BindStmt :: Ann UPattern dom stage -> Ann UExpr dom stage -> Ann UStmt dom stage
+pattern BindStmt :: Pattern dom -> Expr dom -> Stmt dom
 pattern BindStmt bound expr <- Ann _ (UBindStmt bound expr)
 
-pattern ExprStmt :: Ann UExpr dom stage -> Ann UStmt dom stage
+pattern ExprStmt :: Expr dom -> Stmt dom
 pattern ExprStmt expr <- Ann _ (UExprStmt expr)
 
-pattern LetStmt :: AnnListG ULocalBind dom stage -> Ann UStmt dom stage
+pattern LetStmt :: LocalBindList dom -> Stmt dom
 pattern LetStmt binds <- Ann _ (ULetStmt binds)
 
-pattern ListCompBody :: AnnListG UCompStmt dom stage -> Ann UListCompBody dom stage
+pattern ListCompBody :: CompStmtList dom -> ListCompBody dom
 pattern ListCompBody stmts <- Ann _ (UListCompBody stmts)
 
-pattern CompStmt :: Ann UStmt dom stage -> Ann UCompStmt dom stage
+pattern CompStmt :: Stmt dom -> CompStmt dom
 pattern CompStmt stmt <- Ann _ (UCompStmt stmt)
 
-pattern DoKeyword :: Ann UDoKind dom stage
+pattern DoKeyword :: DoKind dom
 pattern DoKeyword <- Ann _ UDoKeyword
 
-pattern MDoKeyword :: Ann UDoKind dom stage
+pattern MDoKeyword :: DoKind dom
 pattern MDoKeyword <- Ann _ UMDoKeyword

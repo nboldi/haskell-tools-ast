@@ -23,7 +23,7 @@ import Language.Haskell.Tools.AST.Ann
 -- Modules
 deriveSourceInfoTraversal ''UModule
 deriveSourceInfoTraversal ''UModuleHead
-deriveSourceInfoTraversal ''UExportSpecList
+deriveSourceInfoTraversal ''UExportSpecs
 deriveSourceInfoTraversal ''UExportSpec
 deriveSourceInfoTraversal ''UIESpec
 deriveSourceInfoTraversal ''USubSpec

@@ -12,83 +12,83 @@ import Data.String
 import Data.Function (on)
 import Control.Reference
 import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST.Gen.Patterns
 import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.AST.Gen.Names
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
-mkSimpleBind' :: Ann UName dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UValueBind dom SrcTemplateStage
+mkSimpleBind' :: Name dom -> Expr dom -> ValueBind dom
 mkSimpleBind' n e = mkSimpleBind (mkVarPat n) (mkUnguardedRhs e) Nothing
 
-mkSimpleBind :: Ann UPattern dom SrcTemplateStage -> Ann URhs dom SrcTemplateStage -> Maybe (Ann ULocalBinds dom SrcTemplateStage) -> Ann UValueBind dom SrcTemplateStage
+mkSimpleBind :: Pattern dom -> Rhs dom -> Maybe (LocalBinds dom) -> ValueBind dom
 mkSimpleBind p r l = mkAnn (child <> child <> child) (USimpleBind p r (mkAnnMaybe opt l))
 
-mkFunctionBind :: [Ann UMatch dom SrcTemplateStage] -> Ann UValueBind dom SrcTemplateStage
+mkFunctionBind :: [Match dom] -> ValueBind dom
 mkFunctionBind = mkAnn child . UFunBind . mkAnnList indentedList
 
-mkFunctionBind' :: Ann UName dom SrcTemplateStage -> [([Ann UPattern dom SrcTemplateStage], Ann UExpr dom SrcTemplateStage)] -> Ann UValueBind dom SrcTemplateStage
+mkFunctionBind' :: Name dom -> [([Pattern dom], Expr dom)] -> ValueBind dom
 mkFunctionBind' name matches = mkFunctionBind $ map (\(args, rhs) -> mkMatch (mkMatchLhs name args) (mkUnguardedRhs rhs) Nothing) matches
 
-mkMatch :: Ann UMatchLhs dom SrcTemplateStage -> Ann URhs dom SrcTemplateStage -> Maybe (Ann ULocalBinds dom SrcTemplateStage) -> Ann UMatch dom SrcTemplateStage
+mkMatch :: MatchLhs dom -> Rhs dom -> Maybe (LocalBinds dom) -> Match dom
 mkMatch lhs rhs locs 
   = mkAnn (child <> child <> child) 
       $ UMatch lhs rhs (mkAnnMaybe (optBefore " ") locs)
 
-mkMatchLhs :: Ann UName dom SrcTemplateStage -> [Ann UPattern dom SrcTemplateStage] -> Ann UMatchLhs dom SrcTemplateStage
+mkMatchLhs :: Name dom -> [Pattern dom] -> MatchLhs dom
 mkMatchLhs n pats = mkAnn (child <> child) $ UNormalLhs n (mkAnnList (listSepBefore " " " ") pats)
 
-mkInfixLhs :: Ann UPattern dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann UPattern dom SrcTemplateStage 
-                -> [Ann UPattern dom SrcTemplateStage] -> Ann UMatchLhs dom SrcTemplateStage
+mkInfixLhs :: Pattern dom -> Operator dom -> Pattern dom -> [Pattern dom] -> MatchLhs dom
 mkInfixLhs lhs op rhs pats = mkAnn (child <> child <> child <> child) $ UInfixLhs lhs op rhs (mkAnnList (listSepBefore " " " ") pats)
 
-mkLocalBinds :: Int -> [Ann ULocalBind dom SrcTemplateStage] -> AnnMaybeG ULocalBinds dom SrcTemplateStage
+mkLocalBinds :: Int -> [LocalBind dom] -> MaybeLocalBinds dom
 mkLocalBinds col = mkAnnMaybe (optBefore ("\n" ++ replicate (col - 1) ' ' ++ "where ")) 
                      . Just . mkAnn child . ULocalBinds . mkAnnList indentedList
 
-mkLocalBinds' :: [Ann ULocalBind dom SrcTemplateStage] -> Ann ULocalBinds dom SrcTemplateStage
+mkLocalBinds' :: [LocalBind dom] -> LocalBinds dom
 mkLocalBinds' = mkAnn (" where " <> child) . ULocalBinds . mkAnnList indentedList
 
-mkLocalValBind :: Ann UValueBind dom SrcTemplateStage -> Ann ULocalBind dom SrcTemplateStage
+mkLocalValBind :: ValueBind dom -> LocalBind dom
 mkLocalValBind = mkAnn child . ULocalValBind
 
-mkLocalTypeSig :: Ann UTypeSignature dom SrcTemplateStage -> Ann ULocalBind dom SrcTemplateStage
+mkLocalTypeSig :: TypeSignature dom -> LocalBind dom
 mkLocalTypeSig = mkAnn child . ULocalSignature
 
-mkLocalFixity :: Ann UFixitySignature dom SrcTemplateStage -> Ann ULocalBind dom SrcTemplateStage
+mkLocalFixity :: FixitySignature dom -> LocalBind dom
 mkLocalFixity = mkAnn child . ULocalFixity
 
-mkTypeSignature :: Ann UName dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UTypeSignature dom SrcTemplateStage
+mkTypeSignature :: Name dom -> Type dom -> TypeSignature dom
 mkTypeSignature n t = mkAnn (child <> " :: " <> child) (UTypeSignature (mkAnnList (listSep ", ") [n]) t)
 
-mkInfixL :: Int -> Ann UOperator dom SrcTemplateStage -> Ann UFixitySignature dom SrcTemplateStage
+mkInfixL :: Int -> Operator dom -> FixitySignature dom
 mkInfixL prec op = mkAnn (child <> " " <> child <> " " <> child) 
                      $ UFixitySignature (mkAnn "infixl" AssocLeft) (mkAnn (fromString (show prec)) (Precedence prec)) (mkAnnList (listSep ", ") [op])
 
-mkInfixR :: Int -> Ann UOperator dom SrcTemplateStage -> Ann UFixitySignature dom SrcTemplateStage
+mkInfixR :: Int -> Operator dom -> FixitySignature dom
 mkInfixR prec op = mkAnn (child <> " " <> child <> " " <> child) 
                      $ UFixitySignature (mkAnn "infixr" AssocRight) (mkAnn (fromString (show prec)) (Precedence prec)) (mkAnnList (listSep ", ") [op])
 
-mkInfix :: Int -> Ann UOperator dom SrcTemplateStage -> Ann UFixitySignature dom SrcTemplateStage
+mkInfix :: Int -> Operator dom -> FixitySignature dom
 mkInfix prec op = mkAnn (child <> " " <> child <> " " <> child) 
                     $ UFixitySignature (mkAnn "infix" AssocNone) (mkAnn (fromString (show prec)) (Precedence prec)) (mkAnnList (listSep ", ") [op])
 
-mkUnguardedRhs :: Ann UExpr dom SrcTemplateStage -> Ann URhs dom SrcTemplateStage
+mkUnguardedRhs :: Expr dom -> Rhs dom
 mkUnguardedRhs = mkAnn (" = " <> child) . UUnguardedRhs
 
-mkGuardedRhss :: [Ann UGuardedRhs dom SrcTemplateStage] -> Ann URhs dom SrcTemplateStage
+mkGuardedRhss :: [GuardedRhs dom] -> Rhs dom
 mkGuardedRhss = mkAnn child . UGuardedRhss . mkAnnList indentedList
 
-mkGuardedRhs :: [Ann URhsGuard dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UGuardedRhs dom SrcTemplateStage
+mkGuardedRhs :: [RhsGuard dom] -> Expr dom -> GuardedRhs dom
 mkGuardedRhs guards expr = mkAnn ("| " <> child <> " = " <> child) $ UGuardedRhs (mkAnnList (listSep ", ") guards) expr
 
-mkGuardBind :: Ann UPattern dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann URhsGuard dom SrcTemplateStage
+mkGuardBind :: Pattern dom -> Expr dom -> RhsGuard dom
 mkGuardBind pat expr = mkAnn (child <> " <- " <> child) $ UGuardBind pat expr
 
-mkGuardLet :: [Ann ULocalBind dom SrcTemplateStage] -> Ann URhsGuard dom SrcTemplateStage
+mkGuardLet :: [LocalBind dom] -> RhsGuard dom
 mkGuardLet = mkAnn ("let " <> child) . UGuardLet . mkAnnList indentedList
 
-mkGuardCheck :: Ann UExpr dom SrcTemplateStage -> Ann URhsGuard dom SrcTemplateStage
+mkGuardCheck :: Expr dom -> RhsGuard dom
 mkGuardCheck = mkAnn child . UGuardCheck
 
 -- pragmas are omitted

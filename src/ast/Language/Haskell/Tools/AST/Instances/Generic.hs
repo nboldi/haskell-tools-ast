@@ -25,7 +25,7 @@ deriving instance (Domain dom, SourceInfo stage, Generic (e dom stage)) => Gener
 -- Modules
 deriving instance (Domain dom, SourceInfo stage) => Generic (UModule dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (UModuleHead dom stage)
-deriving instance (Domain dom, SourceInfo stage) => Generic (UExportSpecList dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Generic (UExportSpecs dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (UExportSpec dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (UIESpec dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Generic (USubSpec dom stage)

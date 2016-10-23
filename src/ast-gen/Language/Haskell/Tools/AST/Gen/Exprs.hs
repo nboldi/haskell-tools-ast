@@ -12,6 +12,7 @@ import Data.String
 import Data.Function (on)
 import Control.Reference
 import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.AST.Gen.Names
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
@@ -19,93 +20,93 @@ import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
 -- * Expressions
 
-mkVar :: Ann UName dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkVar :: Name dom -> Expr dom
 mkVar = mkAnn child . UVar
 
-mkLit :: Ann ULiteral dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkLit :: Literal dom -> Expr dom
 mkLit = mkAnn child . ULit
 
-mkInfixApp :: Ann UExpr dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkInfixApp :: Expr dom -> Operator dom -> Expr dom -> Expr dom
 mkInfixApp lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ UInfixApp lhs op rhs
 
-mkPrefixApp :: Ann UOperator dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkPrefixApp :: Operator dom -> Expr dom -> Expr dom
 mkPrefixApp op rhs = mkAnn (child <> child) $ UPrefixApp op rhs
 
-mkApp :: Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkApp :: Expr dom -> Expr dom -> Expr dom
 mkApp f e = mkAnn (child <> " " <> child) (UApp f e)
 
-mkLambda :: [Ann UPattern dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkLambda :: [Pattern dom] -> Expr dom -> Expr dom
 mkLambda pats rhs = mkAnn ("\\" <> child <> " -> " <> child) $ ULambda (mkAnnList (listSep " ") pats) rhs
 
-mkLet :: [Ann ULocalBind dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkLet :: [LocalBind dom] -> Expr dom -> Expr dom
 mkLet pats expr = mkAnn ("let " <> child <> " in " <> child) $ ULet (mkAnnList indentedList pats) expr
 
-mkIf :: Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkIf :: Expr dom -> Expr dom -> Expr dom -> Expr dom
 mkIf cond then_ else_ = mkAnn ("if " <> child <> " then " <> child <> " else " <> child) $ UIf cond then_ else_
 
-mkMultiIf :: [Ann UGuardedCaseRhs dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
+mkMultiIf :: [GuardedCaseRhs dom] -> Expr dom
 mkMultiIf cases = mkAnn ("if" <> child) $ UMultiIf (mkAnnList indentedList cases)
 
-mkCase :: Ann UExpr dom SrcTemplateStage -> [Ann UAlt dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
+mkCase :: Expr dom -> [Alt dom] -> Expr dom
 mkCase expr cases = mkAnn ("case " <> child <> " of " <> child) $ UCase expr (mkAnnList indentedList cases)
 
-mkDoBlock :: [Ann UStmt dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
+mkDoBlock :: [Stmt dom] -> Expr dom
 mkDoBlock stmts = mkAnn (child <> " " <> child) $ UDo (mkAnn "do" UDoKeyword) (mkAnnList indentedList stmts)
 
-mkTuple :: [Ann UExpr dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
+mkTuple :: [Expr dom] -> Expr dom
 mkTuple exprs = mkAnn ("(" <> child <> ")") $ UTuple (mkAnnList (listSep ", ") exprs)
 
-mkUnboxedTuple :: [Ann UExpr dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
+mkUnboxedTuple :: [Expr dom] -> Expr dom
 mkUnboxedTuple exprs = mkAnn ("(# " <> child <> " #)") $ UTuple (mkAnnList (listSep ", ") exprs)
 
-mkList :: [Ann UExpr dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
+mkList :: [Expr dom] -> Expr dom
 mkList exprs = mkAnn ("[" <> child <> "]") $ UList (mkAnnList (listSep ", ") exprs)
 
-mkParen :: Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkParen :: Expr dom -> Expr dom
 mkParen = mkAnn ("(" <> child <> ")") . UParen
 
-mkLeftSection :: Ann UExpr dom SrcTemplateStage -> Ann UOperator dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkLeftSection :: Expr dom -> Operator dom -> Expr dom
 mkLeftSection lhs op = mkAnn ("(" <> child <> child <> ")") $ ULeftSection lhs op
 
-mkRightSection :: Ann UOperator dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkRightSection :: Operator dom -> Expr dom -> Expr dom
 mkRightSection op rhs = mkAnn ("(" <> child <> child <> ")") $ URightSection op rhs
 
-mkRecCon :: Ann UName dom SrcTemplateStage -> [Ann UFieldUpdate dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
+mkRecCon :: Name dom -> [FieldUpdate dom] -> Expr dom
 mkRecCon name flds = mkAnn (child <> " { " <> child <> " }") $ URecCon name (mkAnnList (listSep ", ") flds)
 
-mkRecUpdate :: Ann UExpr dom SrcTemplateStage -> [Ann UFieldUpdate dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage
+mkRecUpdate :: Expr dom -> [FieldUpdate dom] -> Expr dom
 mkRecUpdate expr flds = mkAnn (child <> " { " <> child <> " }") $ URecUpdate expr (mkAnnList (listSep ", ") flds)
 
-mkEnum :: Ann UExpr dom SrcTemplateStage -> Maybe (Ann UExpr dom SrcTemplateStage) -> Maybe (Ann UExpr dom SrcTemplateStage) -> Ann UExpr dom SrcTemplateStage
+mkEnum :: Expr dom -> Maybe (Expr dom) -> Maybe (Expr dom) -> Expr dom
 mkEnum from step to = mkAnn ("[" <> child <> child <> ".." <> child <> "]") $ UEnum from (mkAnnMaybe (optBefore ",") step) (mkAnnMaybe (optBefore ",") to)
 
-mkExprTypeSig :: Ann UExpr dom SrcTemplateStage -> Ann UType dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage
+mkExprTypeSig :: Expr dom -> Type dom -> Expr dom
 mkExprTypeSig lhs typ = mkAnn (child <> " :: " <> child) $ UExplTypeApp lhs typ
 
 -- * Field updates
 
-mkFieldUpdate :: Ann UName dom SrcTemplateStage -> Ann UExpr dom SrcTemplateStage -> Ann UFieldUpdate dom SrcTemplateStage
+mkFieldUpdate :: Name dom -> Expr dom -> FieldUpdate dom
 mkFieldUpdate name val = mkAnn (child <> " = " <> child) $ UNormalFieldUpdate name val
 
-mkFieldPun :: Ann UName dom SrcTemplateStage -> Ann UFieldUpdate dom SrcTemplateStage
+mkFieldPun :: Name dom -> FieldUpdate dom
 mkFieldPun name = mkAnn child $ UFieldPun name
 
-mkFieldWildcard :: Ann UFieldWildcard dom SrcTemplateStage -> Ann UFieldUpdate dom SrcTemplateStage
+mkFieldWildcard :: FieldWildcard dom -> FieldUpdate dom
 mkFieldWildcard name = mkAnn child $ UFieldWildcard name
 
 
 -- * UPattern matching and guards
 
-mkAlt :: Ann UPattern dom SrcTemplateStage -> Ann UCaseRhs dom SrcTemplateStage -> Maybe (Ann ULocalBinds dom SrcTemplateStage) -> Ann UAlt dom SrcTemplateStage
+mkAlt :: Pattern dom -> CaseRhs dom -> Maybe (LocalBinds dom) -> Alt dom
 mkAlt pat rhs locals = mkAnn (child <> child <> child) $ UAlt pat rhs (mkAnnMaybe (optBefore " where ") locals)
 
-mkCaseRhs :: Ann UExpr dom SrcTemplateStage -> Ann UCaseRhs dom SrcTemplateStage
+mkCaseRhs :: Expr dom -> CaseRhs dom
 mkCaseRhs = mkAnn (" -> " <> child) . UUnguardedCaseRhs
 
-mkGuardedCaseRhss :: [Ann UGuardedCaseRhs dom SrcTemplateStage] -> Ann UCaseRhs dom SrcTemplateStage
+mkGuardedCaseRhss :: [GuardedCaseRhs dom] -> CaseRhs dom
 mkGuardedCaseRhss = mkAnn child . UGuardedCaseRhss . mkAnnList indentedList
 
-mkGuardedCaseRhs :: [Ann URhsGuard dom SrcTemplateStage] -> Ann UExpr dom SrcTemplateStage -> Ann UGuardedCaseRhs dom SrcTemplateStage
+mkGuardedCaseRhs :: [RhsGuard dom] -> Expr dom -> GuardedCaseRhs dom
 mkGuardedCaseRhs guards expr = mkAnn (" | " <> child <> " -> " <> child) $ UGuardedCaseRhs (mkAnnList (listSep ", ") guards) expr
 
 

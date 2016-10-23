@@ -9,7 +9,7 @@ import Control.Reference hiding (element)
 import SrcLoc
 import Data.Generics.Uniplate.Data
 
-import Language.Haskell.Tools.Refactor.ASTElements
+import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.Refactor
 
 tryItOut moduleName sp = tryRefactor (localRefactoring $ ifToGuards (readSrcSpan (toFileName "." moduleName) sp)) moduleName
