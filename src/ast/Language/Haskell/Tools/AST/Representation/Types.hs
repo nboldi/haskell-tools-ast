@@ -48,7 +48,7 @@ data UType dom stage
                   } -- ^ UType with explicit kind signature (@ _a :: * @)
   | UTyPromoted   { _tpPromoted :: Ann (UPromoted UType) dom stage
                   } -- A promoted data type with @-XDataKinds@ (@ 3 @, @ Left @, @ 'Left @).
-  | UTySplice     { _tsSplice :: Splice dom stage
+  | UTySplice     { _tsSplice :: USplice dom stage
                   } -- ^ a Template Haskell splice type (@ $(genType) @).
   | UTyQuasiQuote { _typeQQ :: QuasiQuote dom stage
                   } -- ^ a Template Haskell quasi-quote type (@ [quoter| ... ] @).

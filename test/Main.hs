@@ -532,10 +532,10 @@ testBinds
 testDecls
   = [ ("id :: a -> a", mkTypeSigDecl $ mkTypeSignature (mkName "id") (mkTyFun (mkTyVar (mkName "a")) (mkTyVar (mkName "a"))))
     , ("id x = x", mkValueBinding $ mkFunctionBind' (mkName "id") [([mkVarPat $ mkName "x"], mkVar $ mkName "x")])
-    , ("data A a = A a deriving Show", mkDataDecl Nothing (mkDeclHeadApp (mkNameDeclHead (mkName "A")) (mkTypeVar (mkName "a"))) 
-                                                  [mkConDecl (mkName "A") [mkTyVar (mkName "a")]] (Just $ mkDeriving [mkInstanceHead (mkName "Show")]))
-    , ("data A = A { x :: Int }", mkDataDecl Nothing (mkNameDeclHead (mkName "A")) 
-                                                     [mkRecordConDecl (mkName "A") [mkFieldDecl [mkName "x"] (mkTyVar (mkName "Int"))]] Nothing)
+    , ("data A a = A a deriving Show", mkDataDecl mkDataKeyword Nothing (mkDeclHeadApp (mkNameDeclHead (mkName "A")) (mkTypeVar (mkName "a"))) 
+                                         [mkConDecl (mkName "A") [mkTyVar (mkName "a")]] (Just $ mkDeriving [mkInstanceHead (mkName "Show")]))
+    , ("data A = A { x :: Int }", mkDataDecl mkDataKeyword Nothing (mkNameDeclHead (mkName "A")) 
+                                    [mkRecordConDecl (mkName "A") [mkFieldDecl [mkName "x"] (mkTyVar (mkName "Int"))]] Nothing)
     , (    "class A t => C t where f :: t\n"
         ++ "                       type T t :: *"
       , mkClassDecl (Just $ mkContextOne (mkClassAssert (mkName "A") [mkTyVar (mkName "t")])) 

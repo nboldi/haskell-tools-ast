@@ -22,36 +22,20 @@ pattern DataFamily dh kind <- Ann _ (UTypeFamilyDecl (Ann _ (UDataFamily dh kind
 pattern ClosedTypeFamily :: DeclHead dom -> MaybeKindConstraint dom -> TypeEqnList dom -> Decl dom
 pattern ClosedTypeFamily dh kind typeqs <- Ann _ (UClosedTypeFamilyDecl dh kind typeqs)
 
-pattern DataDecl :: MaybeContext dom -> DeclHead dom -> ConDeclList dom -> MaybeDeriving dom -> Decl dom
-pattern DataDecl ctx dh cons derivs <- Ann _ (UDataDecl (Ann _ UDataKeyword) ctx dh cons derivs)
+pattern DataDecl :: DataOrNewtypeKeyword dom -> MaybeContext dom -> DeclHead dom -> ConDeclList dom -> MaybeDeriving dom -> Decl dom
+pattern DataDecl keyw ctx dh cons derivs <- Ann _ (UDataDecl keyw ctx dh cons derivs)
 
-pattern NewtypeDecl :: MaybeContext dom -> DeclHead dom -> ConDeclList dom -> MaybeDeriving dom -> Decl dom
-pattern NewtypeDecl ctx dh cons derivs <- Ann _ (UDataDecl (Ann _ UNewtypeKeyword) ctx dh cons derivs)
-
-pattern GADTDataDecl :: MaybeContext dom -> DeclHead dom -> MaybeKindConstraint dome -> AnnListG UGadtConDecl dom stage -> MaybeDeriving dom -> Decl dom
-pattern GADTDataDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl (Ann _ UDataKeyword) ctx dh kind cons derivs )
-
-pattern GADTNewtypeDecl :: MaybeContext dom -> DeclHead dom -> MaybeKindConstraint dome -> AnnListG UGadtConDecl dom stage -> MaybeDeriving dom -> Decl dom
-pattern GADTNewtypeDecl ctx dh kind cons derivs  <- Ann _ (UGDataDecl (Ann _ UNewtypeKeyword) ctx dh kind cons derivs )
+pattern GADTDataDecl :: DataOrNewtypeKeyword dom -> MaybeContext dom -> DeclHead dom -> MaybeKindConstraint dome -> AnnListG UGadtConDecl dom stage -> MaybeDeriving dom -> Decl dom
+pattern GADTDataDecl keyw ctx dh kind cons derivs  <- Ann _ (UGDataDecl keyw ctx dh kind cons derivs )
 
 pattern TypeInstance :: InstanceRule dom -> Type dom -> Decl dom
 pattern TypeInstance instRule typ <- Ann _ (UTypeInstDecl instRule typ)
 
-pattern DataInstance :: InstanceRule dom -> ConDeclList dom -> MaybeDeriving dom
-                    -> Decl dom
-pattern DataInstance instRule cons derivs  <- Ann _ (UDataInstDecl (Ann _ UDataKeyword) instRule cons derivs )
+pattern DataInstance :: DataOrNewtypeKeyword dom -> InstanceRule dom -> ConDeclList dom -> MaybeDeriving dom -> Decl dom
+pattern DataInstance keyw instRule cons derivs  <- Ann _ (UDataInstDecl keyw instRule cons derivs )
 
-pattern NewtypeInstance :: InstanceRule dom -> ConDeclList dom -> MaybeDeriving dom -> Decl dom
-pattern NewtypeInstance instRule cons derivs  <- Ann _ (UDataInstDecl (Ann _ UNewtypeKeyword) instRule cons derivs )
-
-pattern GadtDataInstance :: InstanceRule dom -> MaybeKindConstraint dome -> GadtConDeclList dom -> Decl dom
-pattern GadtDataInstance instRule kind cons  <- Ann _ (UGDataInstDecl (Ann _ UDataKeyword) instRule kind cons )
-
-pattern ClassDecl :: MaybeContext dom -> DeclHead dom -> MaybeClassBody dom -> Decl dom
-pattern ClassDecl ctx dh body <- Ann _ (UClassDecl ctx dh _ body)
-
-pattern InstanceDecl :: InstanceRule dom -> MaybeInstBody dom -> Decl dom
-pattern InstanceDecl instRule body <- Ann _ (UInstDecl _ instRule body)
+pattern GadtDataInstance :: DataOrNewtypeKeyword dom -> InstanceRule dom -> MaybeKindConstraint dome -> GadtConDeclList dom -> Decl dom
+pattern GadtDataInstance keyw instRule kind cons  <- Ann _ (UGDataInstDecl keyw instRule kind cons )
 
 pattern StandaloneDeriving :: InstanceRule dom -> Decl dom
 pattern StandaloneDeriving instRule <- Ann _ (UDerivDecl _ instRule)
@@ -59,19 +43,44 @@ pattern StandaloneDeriving instRule <- Ann _ (UDerivDecl _ instRule)
 pattern FixityDecl :: FixitySignature dom -> Decl dom
 pattern FixityDecl fixity <- Ann _ (UFixityDecl fixity)
 
+pattern DefaultDecl :: TypeList dom -> Decl dom
+pattern DefaultDecl types <- Ann _ (UDefaultDecl types)
+
 pattern TypeSigDecl :: TypeSignature dom -> Decl dom
 pattern TypeSigDecl typeSig <- Ann _ (UTypeSigDecl typeSig)
 
 pattern ValueBinding :: ValueBind dom -> Decl dom
 pattern ValueBinding bind <- Ann _ (UValueBinding bind)
 
-pattern ForeignImport :: Ann CallConv dom stage -> Name dom -> Type dom -> Decl dom
-pattern ForeignImport cc name typ <- Ann _ (UForeignImport cc _ name typ)
+pattern SpliceDecl :: Splice dom -> Decl dom
+pattern SpliceDecl sp <- Ann _ (USpliceDecl sp)
+
+-- * Type roles
+
+pattern RoleDecl :: QualifiedName dom -> RoleList dom -> Decl dom
+pattern RoleDecl name roles <- Ann _ (URoleDecl name roles)
+
+pattern Nominal :: Role dom
+pattern Nominal <- Ann _ UNominal
+
+pattern Representational :: Role dom
+pattern Representational <- Ann _ URepresentational
+
+pattern Phantom :: Role dom
+pattern Phantom <- Ann _ UPhantom
+
+-- * Foreign imports and exports
+
+pattern ForeignImport :: CallConv dom -> MaybeSafety dom -> Name dom -> Type dom -> Decl dom
+pattern ForeignImport cc safety name typ <- Ann _ (UForeignImport cc safety name typ)
+
+pattern ForeignExport :: CallConv dom -> Name dom -> Type dom -> Decl dom
+pattern ForeignExport cc name typ <- Ann _ (UForeignExport cc name typ)
+
+-- * Pattern synonyms
 
 pattern PatternSynonym :: PatSynLhs dom -> PatSynRhs dom -> Decl dom
 pattern PatternSynonym lhs rhs <- Ann _ (UPatternSynonymDecl (Ann _ (UPatternSynonym lhs rhs)))
-
--- * UPattern synonyms
 
 pattern ConPatSyn :: Name dom -> NameList dom -> PatSynLhs dom
 pattern ConPatSyn con args <- Ann _ (UNormalPatSyn con args)
@@ -91,7 +100,14 @@ pattern OneWayPatSyn pat <- Ann _ (UOneDirectionalPatSyn pat)
 pattern TwoWayPatSyn :: Pattern dom -> MatchList dom -> PatSynRhs dom
 pattern TwoWayPatSyn pat match <- Ann _ (UBidirectionalPatSyn pat (AnnJust (Ann _ (UPatSynWhere match))))
 
--- * UType families
+pattern PatternSignatureDecl :: PatternSignature dom -> Decl dom
+pattern PatternSignatureDecl patsig <- Ann _ (UPatTypeSigDecl patsig)
+
+pattern PatternSignature :: Name dom -> Type dom -> PatternSignature dom
+pattern PatternSignature name typ <- Ann _ (UPatternTypeSignature name typ)
+
+
+-- * Type families
 
 pattern TypeFamilyKindSpec :: KindConstraint dom -> TypeFamilySpec dom
 pattern TypeFamilyKindSpec kind <- Ann _ (UTypeFamilyKind kind)
@@ -99,7 +115,10 @@ pattern TypeFamilyKindSpec kind <- Ann _ (UTypeFamilyKind kind)
 pattern TypeFamilyInjectivitySpec :: Name dom -> NameList dom -> TypeFamilySpec dom
 pattern TypeFamilyInjectivitySpec res dependent <- Ann _ (UTypeFamilyInjectivity (Ann _ (UInjectivityAnn res dependent)))
 
--- * Elements of type classes
+-- * Type class declarations
+
+pattern ClassDecl :: MaybeContext dom -> DeclHead dom -> MaybeClassBody dom -> Decl dom
+pattern ClassDecl ctx dh body <- Ann _ (UClassDecl ctx dh _ body)
 
 pattern ClassBody :: ClassElementList dom -> ClassBody dom
 pattern ClassBody body <- Ann _ (UClassBody body)
@@ -130,7 +149,10 @@ pattern DeclHeadApp dh tv <- Ann _ (UDHApp dh tv)
 pattern InfixDeclHead :: TyVar dom -> Operator dom -> TyVar dom -> DeclHead dom
 pattern InfixDeclHead lhs op rhs <- Ann _ (UDHInfix lhs op rhs)
 
--- * Elements of class instances
+-- * Type class instance declarations
+
+pattern InstanceDecl :: InstanceRule dom -> MaybeInstBody dom -> Decl dom
+pattern InstanceDecl instRule body <- Ann _ (UInstDecl _ instRule body)
 
 pattern InstanceBody :: InstBodyDeclList dom -> InstBody dom
 pattern InstanceBody defs <- Ann _ (UInstBody defs)
@@ -141,17 +163,12 @@ pattern InstanceElemDef bind <- Ann _ (UInstBodyNormalDecl bind)
 pattern InstanceElemTypeDef :: TypeEqn dom -> InstBodyDecl dom
 pattern InstanceElemTypeDef typeEq <- Ann _ (UInstBodyTypeDecl typeEq)
 
-pattern InstanceElemDataDef :: InstanceRule dom -> ConDeclList dom -> MaybeDeriving dom 
-                           -> InstBodyDecl dom
-pattern InstanceElemDataDef instRule cons derivs  <- Ann _ (UInstBodyDataDecl (Ann _ UDataKeyword) instRule cons derivs )
+pattern InstanceElemDataDef :: DataOrNewtypeKeyword dom -> InstanceRule dom -> ConDeclList dom -> MaybeDeriving dom -> InstBodyDecl dom
+pattern InstanceElemDataDef keyw instRule cons derivs  <- Ann _ (UInstBodyDataDecl keyw instRule cons derivs )
 
-pattern InstanceElemNewtypeDef :: InstanceRule dom -> ConDeclList dom -> MaybeDeriving dom 
-                           -> InstBodyDecl dom
-pattern InstanceElemNewtypeDef instRule cons derivs  <- Ann _ (UInstBodyDataDecl (Ann _ UNewtypeKeyword) instRule cons derivs )
-
-pattern InstanceElemGadtDataDef :: InstanceRule dom -> MaybeKindConstraint dome -> AnnListG UGadtConDecl dom stage 
-                               -> MaybeDeriving dom -> InstBodyDecl dom
-pattern InstanceElemGadtDataDef instRule kind cons derivs  <- Ann _ (UInstBodyGadtDataDecl _ instRule kind cons derivs )
+pattern InstanceElemGadtDataDef :: DataOrNewtypeKeyword dom -> InstanceRule dom -> MaybeKindConstraint dome -> AnnListG UGadtConDecl dom stage 
+                                     -> MaybeDeriving dom -> InstBodyDecl dom
+pattern InstanceElemGadtDataDef keyw instRule kind cons derivs  <- Ann _ (UInstBodyGadtDataDecl keyw instRule kind cons derivs )
 
 -- * Data type definitions
 
@@ -199,3 +216,36 @@ pattern DataKeyword <- Ann _ UDataKeyword
 
 pattern NewtypeKeyword :: DataOrNewtypeKeyword dom
 pattern NewtypeKeyword <- Ann _ UNewtypeKeyword
+
+-- * Top level pragmas
+
+pattern PragmaDecl :: TopLevelPragma dom -> Decl dom
+pattern PragmaDecl pragma <- Ann _ (UPragmaDecl pragma)
+
+pattern RulePragma :: RuleList dom -> TopLevelPragma dom
+pattern RulePragma rules <- Ann _ (URulePragma rules)
+
+pattern DeprPragma :: NameList dom -> String -> TopLevelPragma dom
+pattern DeprPragma defs msg <- Ann _ (UDeprPragma defs (Ann _ (UStringNode msg)))
+
+pattern WarningPragma :: NameList dom -> String -> TopLevelPragma dom
+pattern WarningPragma defs msg <- Ann _ (UWarningPragma defs (Ann _ (UStringNode msg)))
+
+pattern AnnPragma :: AnnotationSubject dom -> Expr dom -> TopLevelPragma dom
+pattern AnnPragma subj ann <- Ann _ (UAnnPragma subj ann)
+
+pattern InlinePragma :: MaybeConlikeAnnot dom -> MaybePhaseControl dom -> Name dom -> TopLevelPragma dom
+pattern InlinePragma conlike phase name <- Ann _ (UInlinePragma conlike phase name)
+
+pattern NoInlinePragma :: MaybeConlikeAnnot dom -> MaybePhaseControl dom -> Name dom -> TopLevelPragma dom
+pattern NoInlinePragma conlike phase name <- Ann _ (UNoInlinePragma conlike phase name)
+
+pattern InlinablePragma :: MaybePhaseControl dom -> Name dom -> TopLevelPragma dom
+pattern InlinablePragma phase name <- Ann _ (UInlinablePragma phase name)
+
+pattern LinePragma :: Int -> MaybeStringNode dom -> TopLevelPragma dom
+pattern LinePragma line filename <- Ann _ (ULinePragma (Ann _ (LineNumber line)) filename)
+
+pattern SpecializePragma :: MaybePhaseControl dom -> Name dom -> TypeList dom -> TopLevelPragma dom
+pattern SpecializePragma phase def specTypes <- Ann _ (USpecializePragma phase def specTypes)
+

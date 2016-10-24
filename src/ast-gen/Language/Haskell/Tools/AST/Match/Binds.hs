@@ -14,7 +14,7 @@ pattern FunctionBind matches <- Ann _ (UFunBind matches)
 pattern Match :: MatchLhs dom -> Rhs dom -> MaybeLocalBinds dom -> Match dom
 pattern Match lhs rhs locs <- Ann _ (UMatch lhs rhs locs)
 
-pattern MatchLhs :: Name dom -> AnnListG UPattern dom stage -> MatchLhs dom
+pattern MatchLhs :: Name dom -> PatternList dom -> MatchLhs dom
 pattern MatchLhs n pats <- Ann _ (UNormalLhs n pats)
 
 pattern InfixLhs :: Pattern dom -> Operator dom -> Pattern dom -> PatternList dom -> MatchLhs dom
@@ -35,14 +35,14 @@ pattern LocalFixity fixity <- Ann _ (ULocalFixity fixity)
 pattern TypeSignature :: NameList dom -> Type dom -> TypeSignature dom
 pattern TypeSignature n t <- Ann _ (UTypeSignature n t)
 
-pattern InfixL :: Ann Precedence dom stage -> OperatorList dom -> FixitySignature dom
-pattern InfixL prec op <- Ann _ (UFixitySignature (Ann _ AssocLeft) prec op)
+pattern InfixL :: Int -> OperatorList dom -> FixitySignature dom
+pattern InfixL prec op <- Ann _ (UFixitySignature (Ann _ AssocLeft) (Ann _ (Precedence prec)) op)
 
-pattern InfixR :: Ann Precedence dom stage -> OperatorList dom -> FixitySignature dom
-pattern InfixR prec op <- Ann _ (UFixitySignature (Ann _ AssocRight) prec op)
+pattern InfixR :: Int -> OperatorList dom -> FixitySignature dom
+pattern InfixR prec op <- Ann _ (UFixitySignature (Ann _ AssocRight) (Ann _ (Precedence prec)) op)
 
-pattern Infix :: Ann Precedence dom stage -> OperatorList dom -> FixitySignature dom
-pattern Infix prec op <- Ann _ (UFixitySignature (Ann _ AssocNone) prec op)
+pattern Infix :: Int -> OperatorList dom -> FixitySignature dom
+pattern Infix prec op <- Ann _ (UFixitySignature (Ann _ AssocNone) (Ann _ (Precedence prec)) op)
 
 pattern UnguardedRhs :: Expr dom -> Rhs dom
 pattern UnguardedRhs expr <- Ann _ (UUnguardedRhs expr)

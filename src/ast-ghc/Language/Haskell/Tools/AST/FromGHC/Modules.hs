@@ -192,7 +192,7 @@ loadSplices mod hsMod group trf = do
       $ updGblEnv (\gbl -> gbl { tcg_rdr_env = readEnv }) 
       $ (,,) <$> mapM tcHsSplice declSpls <*> mapM tcHsSplice' typeSpls <*> mapM tcHsSplice' exprSpls
     let (declSplices, typeSplices, exprSplices) 
-          = fromMaybe (error $ "Splice expression could not be typechecked: " 
+          = fromMaybe (error $ "USplice expression could not be typechecked: " 
                                  ++ showSDocUnsafe (vcat (pprErrMsgBagWithLoc (fst (fst tcdSplices))) 
                                                       <+> vcat (pprErrMsgBagWithLoc (snd (fst tcdSplices))))) 
                       (snd tcdSplices)

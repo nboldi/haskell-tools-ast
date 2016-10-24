@@ -1,8 +1,8 @@
 {-# LANGUAGE RoleAnnotations #-}
 module Language.Haskell.Tools.AST.Representation.TH where
 
-type role Splice nominal nominal
-data Splice dom stage
+type role USplice nominal nominal
+data USplice dom stage
 
 type role QuasiQuote nominal nominal
 data QuasiQuote dom stage

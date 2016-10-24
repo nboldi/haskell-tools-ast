@@ -76,21 +76,21 @@ data UDecl dom stage
                           } -- ^ UType signature declaration (@ _f :: Int -> Int @)
   | UValueBinding         { _declValBind :: Ann UValueBind dom stage
                           } -- ^ Function binding (@ f x = 12 @)
-  | UForeignImport        { _declCallConv :: Ann CallConv dom stage
-                          , _declSafety :: AnnMaybeG Safety dom stage
+  | UForeignImport        { _declCallConv :: Ann UCallConv dom stage
+                          , _declSafety :: AnnMaybeG USafety dom stage
                           , _declName :: Ann UName dom stage
                           , _declType :: Ann UType dom stage
                           } -- ^ Foreign import (@ foreign import _foo :: Int -> IO Int @)
-  | UForeignExport        { _declCallConv :: Ann CallConv dom stage
+  | UForeignExport        { _declCallConv :: Ann UCallConv dom stage
                           , _declName :: Ann UName dom stage
                           , _declType :: Ann UType dom stage
                           } -- ^ foreign export (@ foreign export ccall _foo :: Int -> IO Int @)
-  | UPragmaDecl           { _declPragma :: Ann TopLevelPragma dom stage
+  | UPragmaDecl           { _declPragma :: Ann UTopLevelPragma dom stage
                           } -- ^ top level pragmas
   | URoleDecl             { _declRoleType :: Ann UQualifiedName dom stage
-                          , _declRoles :: AnnListG Role dom stage
+                          , _declRoles :: AnnListG URole dom stage
                           } -- ^ role annotations (@ type role Ptr representational @)
-  | USpliceDecl           { _declSplice :: Ann Splice dom stage
+  | USpliceDecl           { _declSplice :: Ann USplice dom stage
                           } -- ^ A Template Haskell splice declaration (@ $(generateDecls) @)
 
 -- The declared (possibly parameterized) type (@ A x :+: B y @).
@@ -327,36 +327,36 @@ data UPatSynWhere dom stage
 -- * Foreign imports
   
 -- | Call conventions of foreign functions
-data CallConv dom stage
-  = StdCall
-  | CCall
-  | CPlusPlus
-  | DotNet
-  | Jvm
-  | Js
-  | JavaScript
-  | CApi
+data UCallConv dom stage
+  = UStdCall
+  | UCCall
+  | UCPlusPlus
+  | UDotNet
+  | UJvm
+  | UJs
+  | UJavaScript
+  | UCApi
 
 -- | Safety annotations for foreign calls
-data Safety dom stage
-  = Safe
-  | ThreadSafe
-  | Unsafe
-  | Interruptible
+data USafety dom stage
+  = USafe
+  | UThreadSafe
+  | UUnsafe
+  | UInterruptible
 
--- * Role annotations
+-- * URole annotations
 
--- | Role annotations for types
-data Role dom stage
-  = Nominal
-  | Representational
-  | Phantom
+-- | URole annotations for types
+data URole dom stage
+  = UNominal
+  | URepresentational
+  | UPhantom
 
 -- * Rewrite rules
 
 -- | Controls the activation of a rewrite rule (@ [1] @)
-data PhaseControl dom stage
-  = PhaseControl { _phaseUntil :: AnnMaybeG PhaseInvert dom stage
+data UPhaseControl dom stage
+  = UPhaseControl { _phaseUntil :: AnnMaybeG PhaseInvert dom stage
                  , _phaseNumber :: Ann PhaseNumber dom stage
                  } 
 
@@ -370,8 +370,8 @@ data PhaseInvert dom stage = PhaseInvert
 -- * Pragmas
 
 -- | Top level pragmas
-data TopLevelPragma dom stage
-  = URulePragma       { _pragmaRule :: AnnListG Rule dom stage
+data UTopLevelPragma dom stage
+  = URulePragma       { _pragmaRule :: AnnListG URule dom stage
                       }
   | UDeprPragma       { _pragmaObjects :: AnnListG UName dom stage
                       , _pragmaMessage :: Ann UStringNode dom stage
@@ -379,39 +379,39 @@ data TopLevelPragma dom stage
   | UWarningPragma    { _pragmaObjects :: AnnListG UName dom stage
                       , _pragmaMessage :: Ann UStringNode dom stage
                       }
-  | UAnnPragma        { _annotationSubject :: Ann AnnotationSubject dom stage
+  | UAnnPragma        { _annotationSubject :: Ann UAnnotationSubject dom stage
                       , _annotateExpr :: Ann UExpr dom stage
                       }
-  | UInlinePragma     { _pragmaConlike :: AnnMaybeG ConlikeAnnot dom stage
-                      , _pragmaPhase :: AnnMaybeG PhaseControl dom stage
+  | UInlinePragma     { _pragmaConlike :: AnnMaybeG UConlikeAnnot dom stage
+                      , _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
                       , _inlineDef :: Ann UName dom stage
                       }
-  | UNoInlinePragma   { _pragmaConlike :: AnnMaybeG ConlikeAnnot dom stage
-                      , _pragmaPhase :: AnnMaybeG PhaseControl dom stage
+  | UNoInlinePragma   { _pragmaConlike :: AnnMaybeG UConlikeAnnot dom stage
+                      , _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
                       , _noInlineDef :: Ann UName dom stage
                       }
-  | UInlinablePragma  { _pragmaPhase :: AnnMaybeG PhaseControl dom stage
+  | UInlinablePragma  { _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
                       , _inlinableDef :: Ann UName dom stage
                       }
   | ULinePragma       { _pragmaLineNum :: Ann LineNumber dom stage
                       , _pragmaFileName :: AnnMaybeG UStringNode dom stage
                       }
-  | USpecializePragma { _pragmaPhase :: AnnMaybeG PhaseControl dom stage
+  | USpecializePragma { _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
                       , _specializeDef :: Ann UName dom stage
                       , _specializeType :: AnnListG UType dom stage
                       }
 
 -- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
-data Rule dom stage
+data URule dom stage
   = URule { _ruleName :: Ann UStringNode dom stage -- ^ User name of the rule
-          , _rulePhase :: AnnMaybeG PhaseControl dom stage -- ^ The compilation phases in which the rule can be applied
+          , _rulePhase :: AnnMaybeG UPhaseControl dom stage -- ^ The compilation phases in which the rule can be applied
           , _ruleBounded :: AnnListG UTyVar dom stage -- ^ Variables bound in the rule
           , _ruleLhs :: Ann UExpr dom stage -- ^ The transformed expression
           , _ruleRhs :: Ann UExpr dom stage -- ^ The resulting expression
           }
  
 -- | Annotation allows you to connect an expression to any declaration. 
-data AnnotationSubject dom stage
+data UAnnotationSubject dom stage
   = UNameAnnotation { _annotateName :: Ann UName dom stage
                     } -- ^ The definition with the given name is annotated
   | UTypeAnnotation { _annotateName :: Ann UName dom stage
@@ -429,7 +429,7 @@ data MinimalFormula dom stage
   | UMinimalAnd   { _minimalAnds :: AnnListG MinimalFormula dom stage
                   } -- ^ Both of the minimal formulas are needed (@ min1 , min2 @)
 
-data ConlikeAnnot dom stage = ConlikeAnnot
+data UConlikeAnnot dom stage = UConlikeAnnot
 
 data LineNumber dom stage
   = LineNumber { _lineNumber :: Int } 

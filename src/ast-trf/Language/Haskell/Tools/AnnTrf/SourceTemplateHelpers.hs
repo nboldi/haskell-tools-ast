@@ -53,6 +53,9 @@ listSepBefore s bef = SourceTemplateList noSrcSpan bef "" s False []
 listSepAfter :: String -> String -> ListInfo SrcTemplateStage
 listSepAfter s aft = SourceTemplateList noSrcSpan "" aft s False []
 
+listSepBeforeAfter :: String -> String -> String -> ListInfo SrcTemplateStage
+listSepBeforeAfter s bef aft = SourceTemplateList noSrcSpan bef aft s False []
+
 -- | Concatenates two source templates to produce a new template with all child elements.
 (<>) :: SpanInfo SrcTemplateStage -> SpanInfo SrcTemplateStage -> SpanInfo SrcTemplateStage
 SourceTemplateNode sp1 el1 <> SourceTemplateNode sp2 el2 = SourceTemplateNode (combineSrcSpans sp1 sp2) (el1 ++ el2)

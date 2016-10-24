@@ -104,7 +104,7 @@ isParenLikeExpr (ParArrayEnum {}) = True
 isParenLikeExpr (ListComp {}) = True
 isParenLikeExpr (ParArrayComp {}) = True
 isParenLikeExpr (BracketExpr {}) = True
-isParenLikeExpr (Splice {}) = True
+isParenLikeExpr (SpliceExpr {}) = True
 isParenLikeExpr (QuasiQuoteExpr {}) = True
 isParenLikeExpr _ = False
 

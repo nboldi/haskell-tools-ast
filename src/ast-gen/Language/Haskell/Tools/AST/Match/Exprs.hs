@@ -87,8 +87,8 @@ pattern TypeSig lhs typ <- Ann _ (UTypeSig lhs typ)
 pattern BracketExpr :: Ann Bracket dom stage -> Expr dom
 pattern BracketExpr brack <- Ann _ (UBracketExpr brack)
 
-pattern Splice :: Ann Splice dom stage -> Expr dom
-pattern Splice splice <- Ann _ (USplice splice)
+pattern SpliceExpr :: Ann USplice dom stage -> Expr dom
+pattern SpliceExpr splice <- Ann _ (USplice splice)
 
 pattern QuasiQuoteExpr :: Ann QuasiQuote dom stage -> Expr dom
 pattern QuasiQuoteExpr qq <- Ann _ (UQuasiQuoteExpr qq)

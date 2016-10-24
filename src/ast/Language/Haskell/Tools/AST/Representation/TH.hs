@@ -10,7 +10,7 @@ import Language.Haskell.Tools.AST.Representation.Names
 import Language.Haskell.Tools.AST.Ann
               
 -- | A template haskell splice          
-data Splice dom stage
+data USplice dom stage
   = IdSplice    { _spliceId :: Ann UName dom stage
                 } -- ^ A simple name splice: @$generateX@
   | ParenSplice { _spliceExpr :: Ann UExpr dom stage

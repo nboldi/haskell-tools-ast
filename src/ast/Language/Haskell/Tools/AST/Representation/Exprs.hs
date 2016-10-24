@@ -97,7 +97,7 @@ data UExpr dom stage
                     } -- ^ @''T@ for template haskell reifying of types
   | UBracketExpr    { _bracket :: Ann Bracket dom stage
                     } -- ^ Template haskell bracket expression
-  | USplice         { _innerExpr :: Ann Splice dom stage
+  | USplice         { _innerExpr :: Ann USplice dom stage
                     } -- ^ Template haskell splice expression, for example: @$(gen a)@ or @$x@
   | UQuasiQuoteExpr { _exprQQ :: Ann QuasiQuote dom stage
                     } -- ^ Template haskell quasi-quotation: @[$quoter|str]@

@@ -33,10 +33,10 @@ trfQuasiQuotation' (HsQuasiQuote id _ l str)
                               (updateCol (subtract 1) (srcSpanStart l))
         strLoc = mkSrcSpan (srcSpanStart l) (updateCol (subtract 2) (srcSpanEnd l))
 
-trfSplice :: TransformName n r => Located (HsSplice n) -> Trf (Ann AST.Splice (Dom r) RangeStage)
+trfSplice :: TransformName n r => Located (HsSplice n) -> Trf (Ann AST.USplice (Dom r) RangeStage)
 trfSplice = trfLocNoSema trfSplice'
 
-trfSplice' :: TransformName n r => HsSplice n -> Trf (AST.Splice (Dom r) RangeStage)
+trfSplice' :: TransformName n r => HsSplice n -> Trf (AST.USplice (Dom r) RangeStage)
 trfSplice' (HsTypedSplice _ expr) = AST.ParenSplice <$> trfCorrectDollar expr
 trfSplice' (HsUntypedSplice _ expr) = AST.ParenSplice <$> trfCorrectDollar expr
 

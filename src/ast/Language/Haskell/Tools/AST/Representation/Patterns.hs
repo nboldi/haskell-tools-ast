@@ -51,7 +51,7 @@ data UPattern dom stage
                     } -- ^ View pattern (@ f -> Just 1 @)
   -- regular list pattern omitted
   -- xml patterns omitted
-  | USplicePat     { _patternSplice :: Ann Splice dom stage
+  | USplicePat     { _patternSplice :: Ann USplice dom stage
                    } -- ^ Splice patterns: @$(generateX inp)@
   | UQuasiQuotePat { _patQQ :: Ann QuasiQuote dom stage
                    } -- ^ Quasi-quoted patterns: @[| 1 + 2 |]@

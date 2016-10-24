@@ -10,6 +10,6 @@ dataToNewtype :: Domain dom => LocalRefactoring dom
 dataToNewtype = return . (modDecl & annList .- changeDeclaration)
 
 changeDeclaration :: Decl dom -> Decl dom
-changeDeclaration dd@(DataDecl ctx declHead (AnnList [ConDecl name (AnnList [arg])]) derivs)
+changeDeclaration dd@(DataDecl DataKeyword ctx declHead (AnnList [ConDecl name (AnnList [arg])]) derivs)
   = declNewtype .= mkNewtypeKeyword $ dd
 changeDeclaration decl = decl

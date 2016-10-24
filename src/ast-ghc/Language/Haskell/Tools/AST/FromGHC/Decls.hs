@@ -187,8 +187,8 @@ trfSig (SpecSig name (map hsib_body -> types) (inl_act -> phase))
                                        <*> (orderAnnList <$> trfAnnList ", " trfType' types))
 trfSig s = error ("Illegal signature: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
 
-trfConlike :: [SrcSpan] -> RuleMatchInfo -> Trf (AnnMaybeG AST.ConlikeAnnot (Dom r) RangeStage)
-trfConlike parts ConLike = makeJust <$> annLocNoSema (pure $ parts !! 2) (pure AST.ConlikeAnnot)
+trfConlike :: [SrcSpan] -> RuleMatchInfo -> Trf (AnnMaybeG AST.UConlikeAnnot (Dom r) RangeStage)
+trfConlike parts ConLike = makeJust <$> annLocNoSema (pure $ parts !! 2) (pure AST.UConlikeAnnot)
 trfConlike parts FunLike = nothing " " "" (pure $ srcSpanEnd $ parts !! 1)
 
 trfConDecl :: TransformName n r => Located (ConDecl n) -> Trf (Ann AST.UConDecl (Dom r) RangeStage)
@@ -441,7 +441,7 @@ trfFamilyResultSig (L l fr) Nothing = case fr of
 trfFamilyResultSig _ (Just (L l (InjectivityAnn n deps))) 
   = makeJust <$> (annLocNoSema (pure l) $ AST.UTypeFamilyInjectivity <$> (annContNoSema $ AST.UInjectivityAnn <$> trfName n <*> trfAnnList ", " trfName' deps))
 
-trfAnnotationSubject :: TransformName n r => SourceText -> AnnProvenance n -> SrcLoc -> Trf (Ann AST.AnnotationSubject (Dom r) RangeStage)
+trfAnnotationSubject :: TransformName n r => SourceText -> AnnProvenance n -> SrcLoc -> Trf (Ann AST.UAnnotationSubject (Dom r) RangeStage)
 trfAnnotationSubject stxt subject payloadEnd
   = do payloadStart <- advanceStr stxt <$> atTheStart
        case subject of ValueAnnProvenance name@(L l _) -> annLocNoSema (pure l) (AST.UNameAnnotation <$> trfName name)
@@ -453,22 +453,22 @@ trfDataKeyword ::  NewOrData -> Trf (Ann AST.UDataOrNewtypeKeyword (Dom r) Range
 trfDataKeyword NewType = annLocNoSema (tokenLoc AnnNewtype) (pure AST.UNewtypeKeyword)
 trfDataKeyword DataType = annLocNoSema (tokenLoc AnnData) (pure AST.UDataKeyword)
      
-trfCallConv :: Located CCallConv -> Trf (Ann AST.CallConv (Dom r) RangeStage)
+trfCallConv :: Located CCallConv -> Trf (Ann AST.UCallConv (Dom r) RangeStage)
 trfCallConv = trfLocNoSema trfCallConv'
    
-trfCallConv' :: CCallConv -> Trf (AST.CallConv (Dom r) RangeStage)
-trfCallConv' CCallConv = pure AST.CCall
-trfCallConv' CApiConv = pure AST.CApi
-trfCallConv' StdCallConv = pure AST.StdCall
+trfCallConv' :: CCallConv -> Trf (AST.UCallConv (Dom r) RangeStage)
+trfCallConv' CCallConv = pure AST.UCCall
+trfCallConv' CApiConv = pure AST.UCApi
+trfCallConv' StdCallConv = pure AST.UStdCall
 -- trfCallConv' PrimCallConv = 
-trfCallConv' JavaScriptCallConv = pure AST.JavaScript
+trfCallConv' JavaScriptCallConv = pure AST.UJavaScript
 
-trfSafety :: SrcSpan -> Located Safety -> Trf (AnnMaybeG AST.Safety (Dom r) RangeStage)
+trfSafety :: SrcSpan -> Located Safety -> Trf (AnnMaybeG AST.USafety (Dom r) RangeStage)
 trfSafety ccLoc lsaf@(L l _) | isGoodSrcSpan l 
   = makeJust <$> trfLocNoSema (pure . \case
-      PlaySafe -> AST.Safe
-      PlayInterruptible -> AST.Interruptible
-      PlayRisky -> AST.Unsafe) lsaf
+      PlaySafe -> AST.USafe
+      PlayInterruptible -> AST.UInterruptible
+      PlayRisky -> AST.UUnsafe) lsaf
   | otherwise = nothing " " "" (pure $ srcSpanEnd ccLoc)
 
 trfOverlap :: Located OverlapMode -> Trf (Ann AST.OverlapPragma (Dom r) RangeStage)
@@ -479,22 +479,22 @@ trfOverlap = trfLocNoSema $ pure . \case
   Overlaps _ -> AST.Overlaps
   Incoherent _ -> AST.IncoherentOverlap
 
-trfRole :: Located (Maybe Role) -> Trf (Ann AST.Role (Dom r) RangeStage)
-trfRole = trfLocNoSema $ \case Just Nominal -> pure AST.Nominal
-                               Just Representational -> pure AST.Representational
-                               Just GHC.Phantom -> pure AST.Phantom
+trfRole :: Located (Maybe Role) -> Trf (Ann AST.URole (Dom r) RangeStage)
+trfRole = trfLocNoSema $ \case Just Nominal -> pure AST.UNominal
+                               Just Representational -> pure AST.URepresentational
+                               Just GHC.Phantom -> pure AST.UPhantom
          
-trfPhase :: Trf SrcLoc -> Activation -> Trf (AnnMaybeG AST.PhaseControl (Dom r) RangeStage)
+trfPhase :: Trf SrcLoc -> Activation -> Trf (AnnMaybeG AST.UPhaseControl (Dom r) RangeStage)
 trfPhase l AlwaysActive = nothing "" " " l
 trfPhase _ (ActiveAfter _ pn) = makeJust <$> annLocNoSema (combineSrcSpans <$> tokenLoc AnnOpenS <*> tokenLoc AnnCloseS) 
-                                                          (AST.PhaseControl <$> nothing "" "" (before AnnCloseS) <*> trfPhaseNum pn)
+                                                          (AST.UPhaseControl <$> nothing "" "" (before AnnCloseS) <*> trfPhaseNum pn)
 trfPhase _ (ActiveBefore _ pn) = makeJust <$> annLocNoSema (combineSrcSpans <$> tokenLoc AnnOpenS <*> tokenLoc AnnCloseS)
-                                                           (AST.PhaseControl <$> (makeJust <$> annLocNoSema (tokenLoc AnnTilde) (pure AST.PhaseInvert)) <*> trfPhaseNum pn)
+                                                           (AST.UPhaseControl <$> (makeJust <$> annLocNoSema (tokenLoc AnnTilde) (pure AST.PhaseInvert)) <*> trfPhaseNum pn)
 
 trfPhaseNum ::  PhaseNum -> Trf (Ann AST.PhaseNumber (Dom r) RangeStage)
 trfPhaseNum i = annLocNoSema (tokenLoc AnnVal) $ pure (AST.PhaseNumber $ fromIntegral i) 
    
-trfRewriteRule :: TransformName n r => Located (RuleDecl n) -> Trf (Ann AST.Rule (Dom r) RangeStage)
+trfRewriteRule :: TransformName n r => Located (RuleDecl n) -> Trf (Ann AST.URule (Dom r) RangeStage)
 trfRewriteRule = trfLocNoSema $ \(HsRule (L nameLoc (_, ruleName)) act bndrs left _ right _) ->
   AST.URule <$> trfFastString (L nameLoc ruleName) 
             <*> trfPhase (before AnnForall) act
