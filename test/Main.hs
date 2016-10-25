@@ -539,14 +539,14 @@ testDecls
     , (    "class A t => C t where f :: t\n"
         ++ "                       type T t :: *"
       , mkClassDecl (Just $ mkContextOne (mkClassAssert (mkName "A") [mkTyVar (mkName "t")])) 
-                    (mkDeclHeadApp (mkNameDeclHead (mkName "C")) (mkTypeVar (mkName "t")))
+                    (mkDeclHeadApp (mkNameDeclHead (mkName "C")) (mkTypeVar (mkName "t"))) []
                     (Just $ mkClassBody [ mkClassElemSig $ mkTypeSignature (mkName "f") (mkTyVar (mkName "t"))
                                         , mkClassElemTypeFam (mkDeclHeadApp (mkNameDeclHead (mkName "T")) (mkTypeVar (mkName "t"))) 
                                                              (Just $ mkTypeFamilyKindSpec $ mkKindConstraint $ mkKindStar)
                                         ])
       )
-    , ("instance C Int where f = 0", mkInstanceDecl (mkInstanceRule Nothing $ mkAppInstanceHead (mkInstanceHead $ mkName "C") (mkTyVar (mkName "Int"))) 
-                                                    (Just $ mkInstanceBody [mkInstanceElemDef $ mkSimpleBind' (mkName "f") (mkLit $ mkIntLit 0)]))
+    , ("instance C Int where f = 0", mkInstanceDecl Nothing (mkInstanceRule Nothing $ mkAppInstanceHead (mkInstanceHead $ mkName "C") (mkTyVar (mkName "Int"))) 
+                                                    (Just $ mkInstanceBody [mkInstanceBind $ mkSimpleBind' (mkName "f") (mkLit $ mkIntLit 0)]))
     , ("infixl 6 +", mkFixityDecl $ mkInfixL 6 (mkUnqualOp "+"))
     ]
 
