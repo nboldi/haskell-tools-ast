@@ -76,7 +76,7 @@ deriveSourceInfoTraversal ''Bracket
 deriveSourceInfoTraversal ''UTopLevelPragma
 deriveSourceInfoTraversal ''URule
 deriveSourceInfoTraversal ''UAnnotationSubject
-deriveSourceInfoTraversal ''MinimalFormula
+deriveSourceInfoTraversal ''UMinimalFormula
 deriveSourceInfoTraversal ''ExprPragma
 deriveSourceInfoTraversal ''SourceRange
 deriveSourceInfoTraversal ''Number
@@ -119,7 +119,7 @@ deriveSourceInfoTraversal ''UStringNode
 deriveSourceInfoTraversal ''UDataOrNewtypeKeyword
 deriveSourceInfoTraversal ''UDoKind
 deriveSourceInfoTraversal ''TypeKeyword
-deriveSourceInfoTraversal ''OverlapPragma
+deriveSourceInfoTraversal ''UOverlapPragma
 deriveSourceInfoTraversal ''UCallConv
 deriveSourceInfoTraversal ''ArrowAppl
 deriveSourceInfoTraversal ''USafety

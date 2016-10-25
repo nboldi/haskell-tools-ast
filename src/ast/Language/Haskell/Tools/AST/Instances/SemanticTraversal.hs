@@ -76,7 +76,7 @@ deriveSemanticTraversal ''Bracket
 deriveSemanticTraversal ''UTopLevelPragma
 deriveSemanticTraversal ''URule
 deriveSemanticTraversal ''UAnnotationSubject
-deriveSemanticTraversal ''MinimalFormula
+deriveSemanticTraversal ''UMinimalFormula
 deriveSemanticTraversal ''ExprPragma
 deriveSemanticTraversal ''SourceRange
 deriveSemanticTraversal ''Number
@@ -119,7 +119,7 @@ deriveSemanticTraversal ''UStringNode
 deriveSemanticTraversal ''UDataOrNewtypeKeyword
 deriveSemanticTraversal ''UDoKind
 deriveSemanticTraversal ''TypeKeyword
-deriveSemanticTraversal ''OverlapPragma
+deriveSemanticTraversal ''UOverlapPragma
 deriveSemanticTraversal ''UCallConv
 deriveSemanticTraversal ''ArrowAppl
 deriveSemanticTraversal ''USafety

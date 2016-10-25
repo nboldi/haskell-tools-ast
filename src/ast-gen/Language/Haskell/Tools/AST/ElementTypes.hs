@@ -26,12 +26,25 @@ type ImportRenaming dom = Ann UImportRenaming dom SrcTemplateStage
 
 -- * Declarations
 
+-- | Haskell declaration
 type Decl dom = Ann UDecl dom SrcTemplateStage
+
+-- | The list of declarations that can appear in a typeclass
 type ClassBody dom = Ann UClassBody dom SrcTemplateStage
+
+-- | Members of a class declaration 
 type ClassElement dom = Ann UClassElement dom SrcTemplateStage
+
+-- The declared (possibly parameterized) type (@ A x :+: B y @).
 type DeclHead dom = Ann UDeclHead dom SrcTemplateStage
+
+-- | Instance body is the implementation of the class functions (@ where a x = 1; b x = 2 @)
 type InstBody dom = Ann UInstBody dom SrcTemplateStage
+
+-- | Declarations inside an instance declaration.
 type InstBodyDecl dom = Ann UInstBodyDecl dom SrcTemplateStage
+
+
 type GadtConDecl dom = Ann UGadtConDecl dom SrcTemplateStage
 type GadtConType dom = Ann UGadtConType dom SrcTemplateStage
 type FieldWildcard dom = Ann UFieldWildcard dom SrcTemplateStage
@@ -40,8 +53,15 @@ type FunDep dom = Ann UFunDep dom SrcTemplateStage
 type ConDecl dom = Ann UConDecl dom SrcTemplateStage
 type FieldDecl dom = Ann UFieldDecl dom SrcTemplateStage
 type Deriving dom = Ann UDeriving dom SrcTemplateStage
+
+-- | The instance declaration rule, which is, roughly, the part of the instance declaration before the where keyword.
 type InstanceRule dom = Ann UInstanceRule dom SrcTemplateStage
+
+-- | The specification of the class instance declaration
 type InstanceHead dom = Ann UInstanceHead dom SrcTemplateStage
+
+type OverlapPragma dom = Ann UOverlapPragma dom SrcTemplateStage
+
 type TypeEqn dom = Ann UTypeEqn dom SrcTemplateStage
 type KindConstraint dom = Ann UKindConstraint dom SrcTemplateStage
 type TyVar dom = Ann UTyVar dom SrcTemplateStage
@@ -64,7 +84,7 @@ type FieldUpdate dom = Ann UFieldUpdate dom SrcTemplateStage
 type TopLevelPragma dom = Ann UTopLevelPragma dom SrcTemplateStage
 type Rule dom = Ann URule dom SrcTemplateStage
 type AnnotationSubject dom = Ann UAnnotationSubject dom SrcTemplateStage
--- type inimalFormula dom = Ann MinimalFormula dom SrcTemplateStage
+type MinimalFormula dom = Ann UMinimalFormula dom SrcTemplateStage
 -- type xprPragma dom = Ann ExprPragma dom SrcTemplateStage
 -- type ourceRange dom = Ann SourceRange dom SrcTemplateStage
 -- type umber dom = Ann Number dom SrcTemplateStage
@@ -109,17 +129,11 @@ type StringNode dom = Ann UStringNode dom SrcTemplateStage
 type DataOrNewtypeKeyword dom = Ann UDataOrNewtypeKeyword dom SrcTemplateStage
 type DoKind dom = Ann UDoKind dom SrcTemplateStage
 -- type ypeKeyword dom = Ann TypeKeyword dom SrcTemplateStage
--- type verlapPragma dom = Ann OverlapPragma dom SrcTemplateStage
 type CallConv dom = Ann UCallConv dom SrcTemplateStage
 -- type rrowAppl dom = Ann ArrowAppl dom SrcTemplateStage
 type Safety dom = Ann USafety dom SrcTemplateStage
 type ConlikeAnnot dom = Ann UConlikeAnnot dom SrcTemplateStage
--- type ssoc dom = Ann Assoc dom SrcTemplateStage
--- type recedence dom = Ann Precedence dom SrcTemplateStage
--- type ineNumber dom = Ann LineNumber dom SrcTemplateStage
 type PhaseControl dom = Ann UPhaseControl dom SrcTemplateStage
--- type haseNumber dom = Ann PhaseNumber dom SrcTemplateStage
--- type haseInvert dom = Ann PhaseInvert dom SrcTemplateStage
 
 -- * Optional AST elements
 
@@ -144,6 +158,7 @@ type MaybeImportRenaming dom = AnnMaybe UImportRenaming dom
 type MaybeSafety dom = AnnMaybe USafety dom
 type MaybePhaseControl dom = AnnMaybe UPhaseControl dom
 type MaybeConlikeAnnot dom = AnnMaybe UConlikeAnnot dom
+type MaybeFunDeps dom = AnnMaybe UFunDeps dom
 
 
 -- * AST elements with multiplicity
@@ -181,3 +196,5 @@ type AssertionList dom = AnnList UAssertion dom
 type CompStmtList dom = AnnList UCompStmt dom
 type RuleList dom = AnnList URule dom
 type RoleList dom = AnnList URole dom
+type MinimalFormulaList dom = AnnList UMinimalFormula dom
+type FunDepList dom = AnnList UFunDep dom

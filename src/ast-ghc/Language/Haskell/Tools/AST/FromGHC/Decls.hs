@@ -236,7 +236,7 @@ trfInstanceRule' (HsForAllTy bndrs (unLoc -> HsQualTy ctx typ))
 trfInstanceRule' (HsQualTy ctx typ) = AST.UInstanceRule <$> nothing "" " . " atTheStart 
                                                         <*> trfCtx atTheStart ctx
                                                         <*> trfInstanceHead typ
-trfInstanceRule' (HsParTy typ) = AST.UInstanceParen <$> trfInstanceRule typ
+trfInstanceRule' (HsParTy typ) = instanceHead $ annContNoSema (AST.UInstanceHeadParen <$> trfInstanceHead typ)
 trfInstanceRule' (HsTyVar tv) = instanceHead $ annContNoSema (AST.UInstanceHeadCon <$> trfName tv)
 trfInstanceRule' (HsAppTy t1 t2) = instanceHead $ annContNoSema (AST.UInstanceHeadApp <$> trfInstanceHead t1 <*> trfType t2)
 trfInstanceRule' t = error (showSDocUnsafe $ ppr t)
@@ -471,13 +471,13 @@ trfSafety ccLoc lsaf@(L l _) | isGoodSrcSpan l
       PlayRisky -> AST.UUnsafe) lsaf
   | otherwise = nothing " " "" (pure $ srcSpanEnd ccLoc)
 
-trfOverlap :: Located OverlapMode -> Trf (Ann AST.OverlapPragma (Dom r) RangeStage)
+trfOverlap :: Located OverlapMode -> Trf (Ann AST.UOverlapPragma (Dom r) RangeStage)
 trfOverlap = trfLocNoSema $ pure . \case
-  NoOverlap _ -> AST.DisableOverlap
-  Overlappable _ -> AST.Overlappable
-  Overlapping _ -> AST.Overlapping
-  Overlaps _ -> AST.Overlaps
-  Incoherent _ -> AST.IncoherentOverlap
+  NoOverlap _ -> AST.UDisableOverlap
+  Overlappable _ -> AST.UOverlappable
+  Overlapping _ -> AST.UOverlapping
+  Overlaps _ -> AST.UOverlaps
+  Incoherent _ -> AST.UIncoherentOverlap
 
 trfRole :: Located (Maybe Role) -> Trf (Ann AST.URole (Dom r) RangeStage)
 trfRole = trfLocNoSema $ \case Just Nominal -> pure AST.UNominal
@@ -506,10 +506,10 @@ trfRuleBndr :: TransformName n r =>  Located (RuleBndr n) -> Trf (Ann AST.UTyVar
 trfRuleBndr = trfLocNoSema $ \case (RuleBndr n) -> AST.UTyVarDecl <$> trfName n <*> nothing " " "" atTheEnd
                                    (RuleBndrSig n k) -> AST.UTyVarDecl <$> trfName n <*> (makeJust <$> (trfKindSig' (hswc_body $ hsib_body k)))
 
-trfMinimalFormula :: TransformName n r => Located (BooleanFormula (Located n)) -> Trf (Ann AST.MinimalFormula (Dom r) RangeStage)
+trfMinimalFormula :: TransformName n r => Located (BooleanFormula (Located n)) -> Trf (Ann AST.UMinimalFormula (Dom r) RangeStage)
 trfMinimalFormula = trfLocNoSema trfMinimalFormula'
 
-trfMinimalFormula' :: TransformName n r => BooleanFormula (Located n) -> Trf (AST.MinimalFormula (Dom r) RangeStage)
+trfMinimalFormula' :: TransformName n r => BooleanFormula (Located n) -> Trf (AST.UMinimalFormula (Dom r) RangeStage)
 trfMinimalFormula' (Var name) = AST.UMinimalName <$> trfName name
 trfMinimalFormula' (And formulas) = AST.UMinimalAnd <$> trfAnnList " & " trfMinimalFormula' formulas
 trfMinimalFormula' (Or formulas) = AST.UMinimalOr <$> trfAnnList " | " trfMinimalFormula' formulas
