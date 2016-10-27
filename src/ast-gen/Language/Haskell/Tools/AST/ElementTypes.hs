@@ -116,6 +116,9 @@ type KindConstraint dom = Ann UKindConstraint dom SrcTemplateStage
 -- | Haskell types
 type Type dom = Ann UType dom SrcTemplateStage
 
+-- | Type variable declarations (with possible kind annotation)
+type TyVar dom = Ann UTyVar dom SrcTemplateStage
+
 -- | Haskell kinds
 type Kind dom = Ann UKind dom SrcTemplateStage
 
@@ -357,6 +360,7 @@ type InstanceHeadList dom = AnnList UInstanceHead dom
 type AltList dom = AnnList UAlt dom
 type StmtList dom = AnnList UStmt dom
 type KindList dom = AnnList UKind dom
+type TyVarList dom = AnnList UTyVar dom
 type ListCompBodyList dom = AnnList UListCompBody dom
 type ExportSpecList dom = AnnList UExportSpec dom
 type FilePragmaList dom = AnnList UFilePragma dom
