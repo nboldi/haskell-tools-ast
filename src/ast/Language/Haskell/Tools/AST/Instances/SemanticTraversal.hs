@@ -72,15 +72,15 @@ deriveSemanticTraversal ''UMatch
 deriveSemanticTraversal ''URhs
 deriveSemanticTraversal ''UGuardedRhs
 deriveSemanticTraversal ''UFieldUpdate
-deriveSemanticTraversal ''Bracket
+deriveSemanticTraversal ''UBracket
 deriveSemanticTraversal ''UTopLevelPragma
 deriveSemanticTraversal ''URule
 deriveSemanticTraversal ''UAnnotationSubject
 deriveSemanticTraversal ''UMinimalFormula
-deriveSemanticTraversal ''ExprPragma
-deriveSemanticTraversal ''SourceRange
+deriveSemanticTraversal ''UExprPragma
+deriveSemanticTraversal ''USourceRange
 deriveSemanticTraversal ''Number
-deriveSemanticTraversal ''QuasiQuote
+deriveSemanticTraversal ''UQuasiQuote
 deriveSemanticTraversal ''URhsGuard
 deriveSemanticTraversal ''ULocalBind
 deriveSemanticTraversal ''ULocalBinds
@@ -97,7 +97,7 @@ deriveSemanticTraversal ''UPatSynLhs
 deriveSemanticTraversal ''UPatSynWhere
 deriveSemanticTraversal ''UPatternTypeSignature
 deriveSemanticTraversal ''URole
-deriveSemanticTraversal ''Cmd
+deriveSemanticTraversal ''UCmd
 deriveSemanticTraversal ''ULanguageExtension
 deriveSemanticTraversal ''UMatchLhs
 deriveSemanticTraversal ''UStmt'
@@ -121,7 +121,7 @@ deriveSemanticTraversal ''UDoKind
 deriveSemanticTraversal ''TypeKeyword
 deriveSemanticTraversal ''UOverlapPragma
 deriveSemanticTraversal ''UCallConv
-deriveSemanticTraversal ''ArrowAppl
+deriveSemanticTraversal ''UArrowAppl
 deriveSemanticTraversal ''USafety
 deriveSemanticTraversal ''UConlikeAnnot
 deriveSemanticTraversal ''Assoc

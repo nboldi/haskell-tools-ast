@@ -53,8 +53,13 @@ mkUnqualName' n | GHC.isSymOcc (GHC.getOccName n) = mkAnn ("(" <> child <> ")") 
 mkNormalName :: QualifiedName dom -> Name dom
 mkNormalName = mkAnn child . UNormalName
 
+-- | Creates a parenthesized name: @ foldl (+) 0 @
 mkParenName :: QualifiedName dom -> Name dom
 mkParenName = mkAnn ("(" <> child <> ")") . UParenName
+
+-- | Creates an implicit name: @ ?var @
+mkImplicitName :: QualifiedName dom -> Name dom
+mkImplicitName = mkAnn ("?" <> child) . UImplicitName
 
 -- | Creates an annotated qualified simple name
 mkQualifiedName' :: [String] -> GHC.Name -> QualifiedName dom
@@ -66,15 +71,19 @@ mkQualifiedName quals name
   = mkAnn (child <> "." <> child)
           (UQualifiedName (mkAnnList (listSep ".") $ map mkNamePart quals) (mkNamePart name))
 
+-- | Creates a part of a qualified name.         
 mkNamePart :: String -> NamePart dom
 mkNamePart s = mkAnn (fromString s) (UNamePart s)
 
+-- | Creates a simple (unqualified) name
 mkSimpleName' :: GHC.Name -> QualifiedName dom
 mkSimpleName' = mkSimpleName . GHC.occNameString . GHC.getOccName
 
+-- | Creates a simple (unqualified) name
 mkSimpleName :: String -> QualifiedName dom
 mkSimpleName n = mkAnn (child <> child) 
                        (UQualifiedName emptyList (mkNamePart n))
 
+-- | Creates a quoted text
 mkStringNode :: String -> StringNode dom
 mkStringNode s = mkAnn (fromString s) (UStringNode s)

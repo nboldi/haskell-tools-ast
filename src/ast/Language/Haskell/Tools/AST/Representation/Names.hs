@@ -10,13 +10,18 @@ module Language.Haskell.Tools.AST.Representation.Names where
 import Language.Haskell.Tools.AST.Ann
 
 data UOperator dom stage
-  = UBacktickOp { _operatorName :: Ann UQualifiedName dom stage } -- ^ Backtick operator name: @ a `mod` b @
-  | UNormalOp { _operatorName :: Ann UQualifiedName dom stage }
+  = UBacktickOp { _operatorName :: Ann UQualifiedName dom stage 
+                } -- ^ A normal name used as an operator with backticks: @ a `mod` b @
+  | UNormalOp { _operatorName :: Ann UQualifiedName dom stage 
+              } -- ^ A normal operator used as an operator.
 
 data UName dom stage
-  = UParenName { _simpleName :: Ann UQualifiedName dom stage } -- ^ Parenthesized name: @ foldl (+) 0 @
-  | UNormalName { _simpleName :: Ann UQualifiedName dom stage }
-  | UImplicitName { _simpleName :: Ann UQualifiedName dom stage } -- ^ Implicit name: @ ?var @
+  = UParenName { _simpleName :: Ann UQualifiedName dom stage 
+               } -- ^ Parenthesized name: @ foldl (+) 0 @
+  | UNormalName { _simpleName :: Ann UQualifiedName dom stage 
+                } -- ^ A normal, non-operator name.
+  | UImplicitName { _simpleName :: Ann UQualifiedName dom stage 
+                  } -- ^ Implicit name: @ ?var @
 
 -- | Possible qualified names. Contains also implicit names.
 -- Linear implicit parameter: @%x@. Non-linear implicit parameter: @?x@.

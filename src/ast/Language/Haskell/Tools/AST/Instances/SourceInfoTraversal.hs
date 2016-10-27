@@ -72,15 +72,15 @@ deriveSourceInfoTraversal ''UMatch
 deriveSourceInfoTraversal ''URhs
 deriveSourceInfoTraversal ''UGuardedRhs
 deriveSourceInfoTraversal ''UFieldUpdate
-deriveSourceInfoTraversal ''Bracket
+deriveSourceInfoTraversal ''UBracket
 deriveSourceInfoTraversal ''UTopLevelPragma
 deriveSourceInfoTraversal ''URule
 deriveSourceInfoTraversal ''UAnnotationSubject
 deriveSourceInfoTraversal ''UMinimalFormula
-deriveSourceInfoTraversal ''ExprPragma
-deriveSourceInfoTraversal ''SourceRange
+deriveSourceInfoTraversal ''UExprPragma
+deriveSourceInfoTraversal ''USourceRange
 deriveSourceInfoTraversal ''Number
-deriveSourceInfoTraversal ''QuasiQuote
+deriveSourceInfoTraversal ''UQuasiQuote
 deriveSourceInfoTraversal ''URhsGuard
 deriveSourceInfoTraversal ''ULocalBind
 deriveSourceInfoTraversal ''ULocalBinds
@@ -97,7 +97,7 @@ deriveSourceInfoTraversal ''UPatSynLhs
 deriveSourceInfoTraversal ''UPatSynWhere
 deriveSourceInfoTraversal ''UPatternTypeSignature
 deriveSourceInfoTraversal ''URole
-deriveSourceInfoTraversal ''Cmd
+deriveSourceInfoTraversal ''UCmd
 deriveSourceInfoTraversal ''ULanguageExtension
 deriveSourceInfoTraversal ''UMatchLhs
 deriveSourceInfoTraversal ''UStmt'
@@ -121,7 +121,7 @@ deriveSourceInfoTraversal ''UDoKind
 deriveSourceInfoTraversal ''TypeKeyword
 deriveSourceInfoTraversal ''UOverlapPragma
 deriveSourceInfoTraversal ''UCallConv
-deriveSourceInfoTraversal ''ArrowAppl
+deriveSourceInfoTraversal ''UArrowAppl
 deriveSourceInfoTraversal ''USafety
 deriveSourceInfoTraversal ''UConlikeAnnot
 deriveSourceInfoTraversal ''Assoc

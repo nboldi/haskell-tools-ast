@@ -16,7 +16,7 @@ data UModule dom stage
             , _modDecl :: AnnListG UDecl dom stage
             }
 
--- | UModule declaration with name and (optional) exports
+-- | Module declaration with name and (optional) exports
 data UModuleHead dom stage
   = UModuleHead { _mhName :: Ann UModuleName dom stage
                 , _mhExports :: AnnMaybeG UExportSpecs dom stage
@@ -42,27 +42,28 @@ data UIESpec dom stage
   
 -- | Marks how related names will be imported or exported with a given name
 data USubSpec dom stage
-  = USubSpecAll -- @(..)@: a class exported with all of its methods, or a datatype exported with all of its constructors.
-  | USubSpecList { _essList :: AnnListG UName dom stage } -- @(a,b,c)@: a class exported with some of its methods, or a datatype exported with some of its constructors.
+  = USubSpecAll -- ^ @(..)@: a class exported with all of its methods, or a datatype exported with all of its constructors.
+  | USubSpecList { _essList :: AnnListG UName dom stage 
+                 } -- ^ @(a,b,c)@: a class exported with some of its methods, or a datatype exported with some of its constructors.
            
 -- | Pragmas that must be used before defining the module         
 data UFilePragma dom stage
   = ULanguagePragma { _lpPragmas :: AnnListG ULanguageExtension dom stage
-                    }  -- ^ LANGUAGE pragmdom stage
+                    } -- ^ @LANGUAGE@ pragma, listing the enabled language extensions in that file
   | UOptionsPragma {  _opStr :: Ann UStringNode dom stage
-                   } -- ^ OPTIONS pragma, possibly qualified with a tool, e.g. OPTIONS_GHC
+                   } -- ^ @OPTIONS@ pragma, possibly qualified with a tool, e.g. OPTIONS_GHC
                         
 -- | Pragmas that must be used after the module head  
 data UModulePragma dom stage
   = UModuleWarningPragma { _modWarningStr :: AnnListG UStringNode dom stage
-                         }  -- ^ a warning pragma attached to the module
+                         }  -- ^ A warning pragma attached to the module
   | UModuleDeprecatedPragma {  _modDeprecatedPragma :: AnnListG UStringNode dom stage
-                            } -- ^ a deprecated pragma attached to the module
+                            } -- ^ A deprecated pragma attached to the module
 
 -- | The name of the enabled language extension, for example (@ LambdaCase @)
 data ULanguageExtension dom stage = ULanguageExtension { _langExt :: String }
 
--- | An import declaration: @import Module.UName@         
+-- | An import declaration: @import Module.Name@         
 data UImportDecl dom stage
   = UImportDecl { _importSource :: AnnMaybeG UImportSource dom stage
                 , _importQualified :: AnnMaybeG UImportQualified dom stage

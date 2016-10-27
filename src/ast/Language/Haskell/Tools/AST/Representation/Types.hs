@@ -7,7 +7,7 @@ import Language.Haskell.Tools.AST.Representation.Names
 import Language.Haskell.Tools.AST.Representation.Kinds
 import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.TH
 
--- | UType variable declaration
+-- | Type variable declaration
 data UTyVar dom stage
   = UTyVarDecl { _tyVarName :: Ann UName dom stage
                , _tyVarKind :: AnnMaybeG UKindConstraint dom stage
@@ -20,7 +20,7 @@ data UType dom stage
                   } -- ^ Forall types (@ forall x y . type @)
   | UTyCtx        { _typeCtx :: Ann UContext dom stage
                   , _typeType :: Ann UType dom stage
-                  } -- ^ UType with a context (@ forall x y . type @)
+                  } -- ^ Type with a context (@ forall x y . type @)
   | UTyFun        { _typeParam :: Ann UType dom stage
                   , _typeResult :: Ann UType dom stage
                   } -- ^ Function types (@ a -> b @)
@@ -34,24 +34,24 @@ data UType dom stage
                   } -- ^ Parallel array type (@ [:a:] @)
   | UTyApp        { _typeCon :: Ann UType dom stage
                   , _typeArg :: Ann UType dom stage
-                  } -- ^ UType application (@ F a @)
+                  } -- ^ Type application (@ F a @)
   | UTyVar        { _typeName :: Ann UName dom stage
-                  } -- ^ type variable or constructor (@ a @)
+                  } -- ^ Type variable or constructor (@ a @)
   | UTyParen      { _typeInner :: Ann UType dom stage
-                  } -- ^ type surrounded by parentheses (@ (T a) @)
+                  } -- ^ Type surrounded by parentheses (@ (T a) @)
   | UTyInfix      { _typeLeft :: Ann UType dom stage
                   , _typeOperator :: Ann UOperator dom stage
                   , _typeRight :: Ann UType dom stage
                   } -- ^ Infix type constructor (@ (a <: b) @)
   | UTyKinded     { _typeInner :: Ann UType dom stage
                   , _typeKind :: Ann UKind dom stage
-                  } -- ^ UType with explicit kind signature (@ _a :: * @)
+                  } -- ^ Type with explicit kind signature (@ a :: * @)
   | UTyPromoted   { _tpPromoted :: Ann (UPromoted UType) dom stage
                   } -- A promoted data type with @-XDataKinds@ (@ 3 @, @ Left @, @ 'Left @).
-  | UTySplice     { _tsSplice :: USplice dom stage
-                  } -- ^ a Template Haskell splice type (@ $(genType) @).
-  | UTyQuasiQuote { _typeQQ :: QuasiQuote dom stage
-                  } -- ^ a Template Haskell quasi-quote type (@ [quoter| ... ] @).
+  | UTySplice     { _tsSplice :: Ann USplice dom stage
+                  } -- ^ A Template Haskell splice type (@ $(genType) @).
+  | UTyQuasiQuote { _typeQQ :: Ann UQuasiQuote dom stage
+                  } -- ^ A Template Haskell quasi-quote type (@ [quoter| ... ] @).
   | UTyBang       { _typeInner :: Ann UType dom stage
                   } -- ^ Strict type marked with @!@.
   | UTyLazy       { _typeInner :: Ann UType dom stage
@@ -82,6 +82,6 @@ data UAssertion dom stage
                  } -- ^ Infix class assertion, also contains type equations (@ a ~ X y @)
   | UImplicitAssert { _assertImplVar :: Ann UName dom stage
                     , _assertImplType :: Ann UType dom stage
-                    } -- ^ UAssertion for implicit parameter binding (@ ?cmp :: a -> a -> Bool @)
+                    } -- ^ Assertion for implicit parameter binding (@ ?cmp :: a -> a -> Bool @)
                  
                  

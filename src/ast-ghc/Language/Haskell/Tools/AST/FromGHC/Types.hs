@@ -39,7 +39,8 @@ trfType :: TransformName n r => Located (HsType n) -> Trf (Ann AST.UType (Dom r)
 trfType typ = do othSplices <- asks typeSplices
                  let RealSrcSpan loce = getLoc typ
                      contSplice = find (\sp -> case getSpliceLoc sp of (RealSrcSpan spLoc) -> spLoc `containsSpan` loce; _ -> False) othSplices
-                 case contSplice of Just sp -> typeSpliceInserted sp (annLocNoSema (pure $ getSpliceLoc sp) (AST.UTySplice <$> trfSplice' sp))
+                 case contSplice of Just sp -> let loc = pure $ getSpliceLoc sp
+                                                in typeSpliceInserted sp (annLocNoSema loc (AST.UTySplice <$> annLocNoSema loc (trfSplice' sp)))
                                     Nothing -> trfLocNoSema trfType' typ
 
 trfType' :: TransformName n r => HsType n -> Trf (AST.UType (Dom r) RangeStage)
@@ -62,7 +63,7 @@ trfType' = trfType'' . cleanHsType where
   trfType'' (HsOpTy t1 op t2) = AST.UTyInfix <$> trfType t1 <*> trfOperator op <*> trfType t2
   trfType'' (HsParTy typ) = AST.UTyParen <$> trfType typ
   trfType'' (HsKindSig typ kind) = AST.UTyKinded <$> trfType typ <*> trfKind kind
-  trfType'' (HsSpliceTy splice _) = AST.UTySplice <$> trfSplice' splice
+  trfType'' (HsSpliceTy splice _) = AST.UTySplice <$> annContNoSema (trfSplice' splice)
   trfType'' (HsBangTy (HsSrcBang _ SrcUnpack _) typ) = AST.UTyUnpack <$> trfType typ
   trfType'' (HsBangTy (HsSrcBang _ SrcNoUnpack _) typ) = AST.UTyNoUnpack <$> trfType typ
   trfType'' (HsBangTy (HsSrcBang _ _ SrcStrict) typ) = AST.UTyBang <$> trfType typ

@@ -15,18 +15,17 @@ data UExpr dom stage
   = UVar            { _exprName :: Ann UName dom stage 
                     } -- ^ A variable or a data constructor (@ a @)
   | ULit            { _exprLit :: Ann ULiteral dom stage
-                    } -- ^ Primitive literal
+                    } -- ^ Literal expression (@ 42 @)
   | UInfixApp       { _exprLhs :: Ann UExpr dom stage
                     , _exprOperator :: Ann UOperator dom stage
                     , _exprRhs :: Ann UExpr dom stage
-                    } -- ^ Infix operator application (@ a + b @)
+                    } -- ^ An infix operator application (@ a + b @)
   | UPrefixApp      { _exprOperator :: Ann UOperator dom stage
                     , _exprRhs :: Ann UExpr dom stage
                     } -- ^ Prefix operator application (@ -x @)
   | UApp            { _exprFun :: Ann UExpr dom stage
                     , _exprArg :: Ann UExpr dom stage
                     } -- ^ Function application (@ f 4 @)
-                    -- unary minus omitted
   | ULambda         { _exprBindings :: AnnListG UPattern dom stage -- ^ at least one
                     , _exprInner :: Ann UExpr dom stage
                     } -- ^ Lambda expression (@ \a b -> a + b @)
@@ -41,7 +40,7 @@ data UExpr dom stage
                     } -- ^ Multi way if expressions with @MultiWayIf@ extension (@ if | guard1 -> expr1; guard2 -> expr2 @)
   | UCase           { _exprCase :: Ann UExpr dom stage
                     , _exprAlts :: AnnListG UAlt dom stage
-                    } -- ^ UPattern matching expression (@ case expr of pat1 -> expr1; pat2 -> expr2 @)
+                    } -- ^ Pattern matching expression (@ case expr of pat1 -> expr1; pat2 -> expr2 @)
   | UDo             { _doKind :: Ann UDoKind dom stage
                     , _exprStmts :: AnnListG UStmt dom stage
                     } -- ^ Do-notation expressions (@ do x <- act1; act2 @)
@@ -52,13 +51,13 @@ data UExpr dom stage
   | UTupleSection   { _tupleSectionElems :: AnnListG UTupSecElem dom stage
                     } -- ^ Tuple section, enabled with @TupleSections@ (@ (a,,b) @). One of the elements must be missing.
   | UUnboxedTupSec  { _tupleSectionElems :: AnnListG UTupSecElem dom stage
-                    }
+                    } -- ^ Unboxed tuple section enabled with @TupleSections@ (@ (# a,,b #) @). One of the elements must be missing.
   | UList           { _listElems :: AnnListG UExpr dom stage
                     } -- ^ List expression: @[1,2,3]@
   | UParArray       { _listElems :: AnnListG UExpr dom stage
                     } -- ^ Parallel array expression: @[: 1,2,3 :]@
   | UParen          { _exprInner :: Ann UExpr dom stage
-                    }
+                    } -- ^ Parenthesized expression: @( a + b )@
   | ULeftSection    { _exprLhs :: Ann UExpr dom stage
                     , _exprOperator :: Ann UOperator dom stage
                     } -- ^ Left operator section: @(1+)@
@@ -70,7 +69,7 @@ data UExpr dom stage
                     } -- ^ Record value construction: @Point { x = 3, y = -2 }@
   | URecUpdate      { _exprInner :: Ann UExpr dom stage
                     , _exprRecFields :: AnnListG UFieldUpdate dom stage
-                    } -- ^ Record value  update: @p1 { x = 3, y = -2 }@
+                    } -- ^ Record value update: @p1 { x = 3, y = -2 }@
   | UEnum           { _enumFrom :: Ann UExpr dom stage
                     , _enumThen :: AnnMaybeG UExpr dom stage
                     , _enumTo :: AnnMaybeG UExpr dom stage
@@ -87,7 +86,7 @@ data UExpr dom stage
                     } -- ^ Parallel array comprehensions @ [: (x, y) | x <- xs , y <- ys :] @ enabled by @ParallelArrays@
   | UTypeSig        { _exprInner :: Ann UExpr dom stage
                     , _exprSig :: Ann UType dom stage
-                    } -- ^ Explicit type signature (@ _x :: Int @)
+                    } -- ^ Explicit type signature (@ x :: Int @)
   | UExplTypeApp    { _exprInner :: Ann UExpr dom stage
                     , _exprType :: Ann UType dom stage
                     } -- ^ Explicit type application (@ show \@Integer (read "5") @)
@@ -95,20 +94,21 @@ data UExpr dom stage
                     } -- ^ @'x@ for template haskell reifying of expressions
   | UTypeQuote      { _quotedName :: Ann UName dom stage
                     } -- ^ @''T@ for template haskell reifying of types
-  | UBracketExpr    { _bracket :: Ann Bracket dom stage
+  | UBracketExpr    { _exprBracket :: Ann UBracket dom stage
                     } -- ^ Template haskell bracket expression
-  | USplice         { _innerExpr :: Ann USplice dom stage
+  | USplice         { _exprSplice :: Ann USplice dom stage
                     } -- ^ Template haskell splice expression, for example: @$(gen a)@ or @$x@
-  | UQuasiQuoteExpr { _exprQQ :: Ann QuasiQuote dom stage
+  | UQuasiQuoteExpr { _exprQQ :: Ann UQuasiQuote dom stage
                     } -- ^ Template haskell quasi-quotation: @[$quoter|str]@
-  | UExprPragma     { _exprPragma :: Ann ExprPragma dom stage
+  | UExprPragma     { _exprPragma :: Ann UExprPragma dom stage
+                    , _innerExpr :: Ann UExpr dom stage
                     }
   -- Arrows
   | UProc           { _procPattern :: Ann UPattern dom stage
-                    , _procExpr :: Ann Cmd dom stage
+                    , _procExpr :: Ann UCmd dom stage
                     } -- ^ Arrow definition: @proc a -> f -< a+1@
   | UArrowApp       { _exprLhs :: Ann UExpr dom stage
-                    , _arrowAppl :: Ann ArrowAppl dom stage
+                    , _arrowAppl :: Ann UArrowAppl dom stage
                     , _exprRhs :: Ann UExpr dom stage
                     } -- ^ Arrow application: @f -< a+1@
   | ULamCase        { _exprAlts :: AnnListG UAlt dom stage
@@ -136,24 +136,24 @@ data UTupSecElem dom stage
             } -- ^ An existing element in a tuple section
   | Missing -- ^ A missing element in a tuple section
   
--- | Clause of case expression          
+-- | Clause of case expression (@ Just x -> x + 1 @)
 data UAlt' expr dom stage
   = UAlt { _altPattern :: Ann UPattern dom stage
          , _altRhs :: Ann (UCaseRhs' expr) dom stage
          , _altBinds :: AnnMaybeG ULocalBinds dom stage
          }
 type UAlt = UAlt' UExpr
-type UCmdAlt = UAlt' Cmd
+type UCmdAlt = UAlt' UCmd
 
   
--- | Right hand side of a match (possible with guards): (@ = 3 @ or @ | x == 1 = 3; | otherwise = 4 @)
+-- | Right hand side of a match (possible with guards): (@ -> 3 @ or @ | x == 1 -> 3; | otherwise -> 4 @)
 data UCaseRhs' expr dom stage
   = UUnguardedCaseRhs { _rhsCaseExpr :: Ann expr dom stage
-                      }
+                      } -- ^ Unguarded right-hand side a pattern match (@ -> 3 @)
   | UGuardedCaseRhss  { _rhsCaseGuards :: AnnListG (UGuardedCaseRhs' expr) dom stage
-                      }
+                      } -- ^ Guarded right-hand sides of a pattern match (@ | x == 1 -> 3; | otherwise -> 4 @)
 type UCaseRhs = UCaseRhs' UExpr
-type UCmdCaseRhs = UCaseRhs' Cmd
+type UCmdCaseRhs = UCaseRhs' UCmd
                      
 -- | A guarded right-hand side of pattern matches binding (@ | x > 3 -> 2 @)      
 data UGuardedCaseRhs' expr dom stage
@@ -161,25 +161,25 @@ data UGuardedCaseRhs' expr dom stage
                     , _caseGuardExpr :: Ann expr dom stage
                     } 
 type UGuardedCaseRhs = UGuardedCaseRhs' UExpr
-type UCmdGuardedCaseRhs = UGuardedCaseRhs' Cmd
+type UCmdGuardedCaseRhs = UGuardedCaseRhs' UCmd
                
 -- | Pragmas that can be applied to expressions
-data ExprPragma dom stage
-  = CorePragma      { _pragmaStr :: Ann UStringNode dom stage
-                    }
-  | SccPragma       { _pragmaStr :: Ann UStringNode dom stage
-                    }
-  | GeneratedPragma { _pragmaSrcRange :: Ann SourceRange dom stage
-                    }
+data UExprPragma dom stage
+  = UCorePragma      { _pragmaStr :: Ann UStringNode dom stage
+                     } -- ^ A @CORE@ pragma for adding notes to expressions.
+  | USccPragma       { _pragmaStr :: Ann UStringNode dom stage
+                     } -- ^ An @SCC@ pragma for defining cost centers for profiling
+  | UGeneratedPragma { _pragmaSrcRange :: Ann USourceRange dom stage
+                     } -- ^ A pragma that describes if an expression was generated from a code fragment by an external tool (@ {-# GENERATED "Happy.y" 1:15-1:25 #-} @)
 
 -- | In-AST source ranges (for generated pragmas)
-data SourceRange dom stage
-  = SourceRange { _srFileName :: Ann UStringNode dom stage
-                , _srFromLine :: Ann Number dom stage
-                , _srFromCol :: Ann Number dom stage
-                , _srToLine :: Ann Number dom stage
-                , _srToCol :: Ann Number dom stage
-                }  
+data USourceRange dom stage
+  = USourceRange { _srFileName :: Ann UStringNode dom stage
+                 , _srFromLine :: Ann Number dom stage
+                 , _srFromCol :: Ann Number dom stage
+                 , _srToLine :: Ann Number dom stage
+                 , _srToCol :: Ann Number dom stage
+                 }  
 
 data Number dom stage
   = Number { _numberInteger :: Integer 
@@ -187,41 +187,41 @@ data Number dom stage
         
 -- * Arrows
 
-data Cmd dom stage
-  = ArrowAppCmd   { _cmdLhs :: Ann UExpr dom stage
-                  , _cmdArrowOp :: Ann ArrowAppl dom stage
-                  , _cmdRhs :: Ann UExpr dom stage
-                  }
-  | ArrowFormCmd  { _cmdExpr :: Ann UExpr dom stage
-                  , _cmdInnerCmds :: AnnListG Cmd dom stage
-                  }
-  | AppCmd        { _cmdInnerCmd :: Ann Cmd dom stage
-                  , _cmdApplied :: Ann UExpr dom stage
-                  }
-  | InfixCmd      { _cmdLeftCmd :: Ann Cmd dom stage
-                  , _cmdOperator :: Ann UName dom stage
-                  , _cmdRightCmd :: Ann Cmd dom stage
-                  }
-  | LambdaCmd     { _cmdBindings :: AnnListG UPattern dom stage -- ^ at least one
-                  , _cmdInner :: Ann Cmd dom stage
-                  }
-  | ParenCmd      { _cmdInner :: Ann Cmd dom stage
-                  }
-  | CaseCmd       { _cmdExpr :: Ann UExpr dom stage
-                  , _cmdAlts :: AnnListG UCmdAlt dom stage
-                  }
-  | IfCmd         { _cmdExpr :: Ann UExpr dom stage
-                  , _cmdThen :: Ann Cmd dom stage
-                  , _cmdElse :: Ann Cmd dom stage
-                  }
-  | LetCmd        { _cmdBinds :: AnnListG ULocalBind dom stage -- ^ nonempty
-                  , _cmdInner :: Ann Cmd dom stage
-                  }
-  | DoCmd         { _cmdStmts :: AnnListG (UStmt' Cmd) dom stage
-                  }
+data UCmd dom stage
+  = UArrowAppCmd   { _cmdLhs :: Ann UExpr dom stage
+                   , _cmdArrowOp :: Ann UArrowAppl dom stage
+                   , _cmdRhs :: Ann UExpr dom stage
+                   } -- ^ An arrow application command (@ f -< x + 1 @)
+  | UArrowFormCmd  { _cmdExpr :: Ann UExpr dom stage
+                   , _cmdInnerCmds :: AnnListG UCmd dom stage
+                   } -- ^ A form command (@ (|untilA (increment -< x+y) (within 0.5 -< x)|) @)
+  | UAppCmd        { _cmdInnerCmd :: Ann UCmd dom stage
+                   , _cmdApplied :: Ann UExpr dom stage
+                   } -- ^ A function application command
+  | UInfixCmd      { _cmdLeftCmd :: Ann UCmd dom stage
+                   , _cmdOperator :: Ann UName dom stage
+                   , _cmdRightCmd :: Ann UCmd dom stage
+                   } -- ^ An infix command application
+  | ULambdaCmd     { _cmdBindings :: AnnListG UPattern dom stage -- ^ at least one
+                   , _cmdInner :: Ann UCmd dom stage
+                   } -- ^ A lambda command 
+  | UParenCmd      { _cmdInner :: Ann UCmd dom stage
+                   } -- ^ A parenthesized command
+  | UCaseCmd       { _cmdExpr :: Ann UExpr dom stage
+                   , _cmdAlts :: AnnListG UCmdAlt dom stage
+                   } -- ^ A pattern match command
+  | UIfCmd         { _cmdExpr :: Ann UExpr dom stage
+                   , _cmdThen :: Ann UCmd dom stage
+                   , _cmdElse :: Ann UCmd dom stage
+                   } -- ^ An if command (@ if f x y then g -< x+1 else h -< y+2 @)
+  | ULetCmd        { _cmdBinds :: AnnListG ULocalBind dom stage -- ^ nonempty
+                   , _cmdInner :: Ann UCmd dom stage
+                   } -- ^ A local binding command (@ let z = x+y @)
+  | UDoCmd         { _cmdStmts :: AnnListG UCmdStmt dom stage
+                   } -- ^ A do-notation in a command
 
-data ArrowAppl dom stage
-  = LeftAppl -- ^ Left arrow application: @-<@
-  | RightAppl -- ^ Right arrow application: @>-@
-  | LeftHighApp -- ^ Left arrow high application: @-<<@
-  | RightHighApp -- ^ Right arrow high application: @>>-@
+data UArrowAppl dom stage
+  = ULeftAppl -- ^ Left arrow application: @-<@
+  | URightAppl -- ^ Right arrow application: @>-@
+  | ULeftHighApp -- ^ Left arrow high application: @-<<@
+  | URightHighApp -- ^ Right arrow high application: @>>-@

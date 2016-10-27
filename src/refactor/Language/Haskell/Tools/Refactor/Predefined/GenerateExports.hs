@@ -39,6 +39,6 @@ getTopLevels mod = catMaybes $ map (\d -> fmap (,exportContainOthers d)
 -- | Create the export for a give name.
 createExports :: DomGenerateExports dom => [(GHC.Name, Bool)] -> ExportSpecs dom
 createExports elems = mkExportSpecs $ map (mkExportSpec . createExport) elems
-  where createExport (n, False) = mkIeSpec (mkUnqualName' (GHC.getName n)) Nothing
-        createExport (n, True)  = mkIeSpec (mkUnqualName' (GHC.getName n)) (Just mkSubAll)
+  where createExport (n, False) = mkIESpec (mkUnqualName' (GHC.getName n)) Nothing
+        createExport (n, True)  = mkIESpec (mkUnqualName' (GHC.getName n)) (Just mkSubAll)
 

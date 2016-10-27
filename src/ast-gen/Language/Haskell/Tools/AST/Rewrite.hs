@@ -14,6 +14,7 @@ import Language.Haskell.Tools.AST.Gen.Literals as X
 import Language.Haskell.Tools.AST.Gen.Patterns as X
 import Language.Haskell.Tools.AST.Gen.Names as X
 import Language.Haskell.Tools.AST.Gen.Utils as X
+import Language.Haskell.Tools.AST.Gen.TH as X
 
 import Language.Haskell.Tools.AST.Match.Modules as X
 import Language.Haskell.Tools.AST.Match.Decls as X
@@ -25,3 +26,4 @@ import Language.Haskell.Tools.AST.Match.Stmts as X
 import Language.Haskell.Tools.AST.Match.Literals as X
 import Language.Haskell.Tools.AST.Match.Patterns as X
 import Language.Haskell.Tools.AST.Match.Names as X
+import Language.Haskell.Tools.AST.Match.TH as X

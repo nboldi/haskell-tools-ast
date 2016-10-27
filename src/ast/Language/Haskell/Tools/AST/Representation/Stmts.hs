@@ -4,7 +4,7 @@ module Language.Haskell.Tools.AST.Representation.Stmts where
 import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Representation.Names
 import Language.Haskell.Tools.AST.Representation.Patterns
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Exprs (UExpr, Cmd)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Exprs (UExpr, UCmd)
 import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Binds (ULocalBind)
 
 -- | Normal monadic statements
@@ -19,6 +19,7 @@ data UStmt' expr dom stage
   | URecStmt  { _cmdStmtBinds :: AnnListG (UStmt' expr) dom stage
               } -- ^ A recursive binding statement with (@ rec b <- f a c; c <- f b a @)
 type UStmt = UStmt' UExpr
+type UCmdStmt = UStmt' UCmd
 
 -- | Body of a list comprehension: (@ | x <- [1..10] @)
 data UListCompBody dom stage

@@ -25,5 +25,5 @@ data ULiteral dom stage
   | UPrimCharLit { _charLitValue :: Char 
                  } -- ^ Primitive character literal (of type @Char#@): @'c'#@
   | UPrimStringLit { _stringLitValue :: String 
-                   } -- ^ Prmitive string literal (of type @Addr#@): @"xxx"#@
+                   } -- ^ Primitive string literal (of type @Addr#@): @"xxx"#@
                

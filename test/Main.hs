@@ -510,11 +510,11 @@ testPatterns
     ]
 
 testType
-  = [ ("forall x . Eq x => x -> ()", mkTyForall [mkTypeVar (mkName "x")] 
-                                       $ mkTyCtx (mkContextOne (mkClassAssert (mkName "Eq") [mkTyVar (mkName "x")])) 
-                                       $ mkTyFun (mkTyVar (mkName "x")) (mkTyVar (mkName "()")))
-    , ("(A :+: B) (x, x)", mkTyApp (mkTyParen $ mkTyInfix (mkTyVar (mkName "A")) (mkUnqualOp ":+:") (mkTyVar (mkName "B")))
-                                  (mkTyTuple [ mkTyVar (mkName "x"), mkTyVar (mkName "x") ]))
+  = [ ("forall x . Eq x => x -> ()", mkForallType [mkTypeVar (mkName "x")] 
+                                       $ mkCtxType (mkContextOne (mkClassAssert (mkName "Eq") [mkVarType (mkName "x")])) 
+                                       $ mkFunctionType (mkVarType (mkName "x")) (mkVarType (mkName "()")))
+    , ("(A :+: B) (x, x)", mkTypeApp (mkParenType $ mkInfixTypeApp (mkVarType (mkName "A")) (mkUnqualOp ":+:") (mkVarType (mkName "B")))
+                                  (mkTupleType [ mkVarType (mkName "x"), mkVarType (mkName "x") ]))
     ]
 
 testBinds
@@ -530,22 +530,22 @@ testBinds
     ]
 
 testDecls
-  = [ ("id :: a -> a", mkTypeSigDecl $ mkTypeSignature (mkName "id") (mkTyFun (mkTyVar (mkName "a")) (mkTyVar (mkName "a"))))
+  = [ ("id :: a -> a", mkTypeSigDecl $ mkTypeSignature (mkName "id") (mkFunctionType (mkVarType (mkName "a")) (mkVarType (mkName "a"))))
     , ("id x = x", mkValueBinding $ mkFunctionBind' (mkName "id") [([mkVarPat $ mkName "x"], mkVar $ mkName "x")])
     , ("data A a = A a deriving Show", mkDataDecl mkDataKeyword Nothing (mkDeclHeadApp (mkNameDeclHead (mkName "A")) (mkTypeVar (mkName "a"))) 
-                                         [mkConDecl (mkName "A") [mkTyVar (mkName "a")]] (Just $ mkDeriving [mkInstanceHead (mkName "Show")]))
+                                         [mkConDecl (mkName "A") [mkVarType (mkName "a")]] (Just $ mkDeriving [mkInstanceHead (mkName "Show")]))
     , ("data A = A { x :: Int }", mkDataDecl mkDataKeyword Nothing (mkNameDeclHead (mkName "A")) 
-                                    [mkRecordConDecl (mkName "A") [mkFieldDecl [mkName "x"] (mkTyVar (mkName "Int"))]] Nothing)
+                                    [mkRecordConDecl (mkName "A") [mkFieldDecl [mkName "x"] (mkVarType (mkName "Int"))]] Nothing)
     , (    "class A t => C t where f :: t\n"
         ++ "                       type T t :: *"
-      , mkClassDecl (Just $ mkContextOne (mkClassAssert (mkName "A") [mkTyVar (mkName "t")])) 
+      , mkClassDecl (Just $ mkContextOne (mkClassAssert (mkName "A") [mkVarType (mkName "t")])) 
                     (mkDeclHeadApp (mkNameDeclHead (mkName "C")) (mkTypeVar (mkName "t"))) []
-                    (Just $ mkClassBody [ mkClassElemSig $ mkTypeSignature (mkName "f") (mkTyVar (mkName "t"))
+                    (Just $ mkClassBody [ mkClassElemSig $ mkTypeSignature (mkName "f") (mkVarType (mkName "t"))
                                         , mkClassElemTypeFam (mkDeclHeadApp (mkNameDeclHead (mkName "T")) (mkTypeVar (mkName "t"))) 
                                                              (Just $ mkTypeFamilyKindSpec $ mkKindConstraint $ mkKindStar)
                                         ])
       )
-    , ("instance C Int where f = 0", mkInstanceDecl Nothing (mkInstanceRule Nothing $ mkAppInstanceHead (mkInstanceHead $ mkName "C") (mkTyVar (mkName "Int"))) 
+    , ("instance C Int where f = 0", mkInstanceDecl Nothing (mkInstanceRule Nothing $ mkAppInstanceHead (mkInstanceHead $ mkName "C") (mkVarType (mkName "Int"))) 
                                                     (Just $ mkInstanceBody [mkInstanceBind $ mkSimpleBind' (mkName "f") (mkLit $ mkIntLit 0)]))
     , ("infixl 6 +", mkFixityDecl $ mkInfixL 6 (mkUnqualOp "+"))
     ]
@@ -553,14 +553,14 @@ testDecls
 testModules
   = [ ("", G.mkModule [] Nothing [] [])
     , ("module Test(x, A(a), B(..)) where", G.mkModule [] (Just $ mkModuleHead (G.mkModuleName "Test") (Just $ mkExportSpecs [
-                                                mkExportSpec $ mkIeSpec (mkName "x") Nothing
-                                              , mkExportSpec $ mkIeSpec (mkName "A") (Just $ mkSubList [mkName "a"])
-                                              , mkExportSpec $ mkIeSpec (mkName "B") (Just mkSubAll)
+                                                mkExportSpec $ mkIESpec (mkName "x") Nothing
+                                              , mkExportSpec $ mkIESpec (mkName "A") (Just $ mkSubList [mkName "a"])
+                                              , mkExportSpec $ mkIESpec (mkName "B") (Just mkSubAll)
                                             ]) Nothing) [] [])
     , ("\nimport qualified A\n"
       ++ "import B as BB(x)\n"
       ++ "import B hiding (x)", G.mkModule [] Nothing [ mkImportDecl False True False Nothing (G.mkModuleName "A") Nothing Nothing
-                                                      , mkImportDecl False False False Nothing (G.mkModuleName "B") (Just "BB") (Just $ mkImportSpecList [mkIeSpec (mkName "x") Nothing])
-                                                      , mkImportDecl False False False Nothing (G.mkModuleName "B") Nothing (Just $ mkImportHidingList [mkIeSpec (mkName "x") Nothing])
+                                                      , mkImportDecl False False False Nothing (G.mkModuleName "B") (Just $ G.mkModuleName "BB") (Just $ mkImportSpecList [mkIESpec (mkName "x") Nothing])
+                                                      , mkImportDecl False False False Nothing (G.mkModuleName "B") Nothing (Just $ mkImportHidingList [mkIESpec (mkName "x") Nothing])
                                                       ] [])
     ]

@@ -11,16 +11,16 @@ import Language.Haskell.Tools.AST.Ann
               
 -- | A template haskell splice          
 data USplice dom stage
-  = IdSplice    { _spliceId :: Ann UName dom stage
-                } -- ^ A simple name splice: @$generateX@
-  | ParenSplice { _spliceExpr :: Ann UExpr dom stage
-                } -- ^ A splice with parentheses: @$(generate input)@
+  = UIdSplice    { _spliceId :: Ann UName dom stage
+                 } -- ^ A simple name splice: @$generateX@
+  | UParenSplice { _spliceExpr :: Ann UExpr dom stage
+                 } -- ^ A splice with parentheses: @$(generate input)@
   
 -- | Template haskell quasi-quotation: @[quoter|str]@  
-data QuasiQuote dom stage
-  = QuasiQuote { _qqExprName :: Ann UName dom stage
-               , _qqExprBody :: Ann QQString dom stage
-               } 
+data UQuasiQuote dom stage
+  = UQuasiQuote { _qqExprName :: Ann UName dom stage
+                , _qqExprBody :: Ann QQString dom stage
+                } 
         
 -- | Template Haskell Quasi-quotation content
 data QQString dom stage
@@ -29,13 +29,13 @@ data QQString dom stage
 
           
 -- | Template Haskell bracket expressions
-data Bracket dom stage
-  = ExprBracket    { _bracketExpr :: Ann UExpr dom stage
-                   } -- ^ Expression bracket (@ [| x + y |] @)
-  | PatternBracket { _bracketPattern :: Ann UPattern dom stage
-                   } -- ^ UPattern bracket (@ [| Point x y |] @)
-  | TypeBracket    { _bracketType :: Ann UType dom stage
-                   } -- ^ UPattern bracket (@ [| (Int,Int) |] @)
-  | DeclsBracket   { _bracketDecl :: AnnListG UDecl dom stage
-                   } -- ^ Declaration bracket (@ [| _f :: Int -> Int; f x = x*x |] @)
+data UBracket dom stage
+  = UExprBracket    { _bracketExpr :: Ann UExpr dom stage
+                    } -- ^ Expression bracket (@ [| x + y |] @)
+  | UPatternBracket { _bracketPattern :: Ann UPattern dom stage
+                    } -- ^ Pattern bracket (@ [p| Point x y |] @)
+  | UTypeBracket    { _bracketType :: Ann UType dom stage
+                    } -- ^ Type bracket (@ [t| (Int,Int) |] @)
+  | UDeclsBracket   { _bracketDecl :: AnnListG UDecl dom stage
+                    } -- ^ Declaration bracket (@ [d| f :: Int -> Int; f x = x*x |] @)
             

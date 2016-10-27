@@ -5,7 +5,7 @@ import Language.Haskell.Tools.AST.Representation.Literals
 import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Representation.Names
 
--- | UKind constraint (@ :: * -> * @)
+-- | Kind constraint (@ :: * -> * @)
 data UKindConstraint dom stage
   = UKindConstraint { _kindConstr :: Ann UKind dom stage 
                     }
@@ -20,19 +20,24 @@ data UKind dom stage
   | UParenKind    { _kindParen :: Ann UKind dom stage
                   } -- ^ A parenthesised kind
   | UVarKind      { _kindVar :: Ann UName dom stage
-                  } -- ^ kind variable (using @PolyKinds@ extension)
+                  } -- ^ Kind variable (using @PolyKinds@ extension)
   | UAppKind      { _kindAppFun :: Ann UKind dom stage
                   , _kindAppArg :: Ann UKind dom stage 
-                  } -- ^ UKind application (@ k1 k2 @)
+                  } -- ^ Kind application (@ k1 k2 @)
   | UListKind     { _kindElem :: Ann UKind dom stage
                   } -- ^ A list kind (@ [k] @)
   | UPromotedKind { _kindPromoted :: Ann (UPromoted UKind) dom stage
                   } -- ^ A promoted kind (@ '(k1,k2,k3) @)
 
 data UPromoted t dom stage
-  = UPromotedInt    { _promotedIntValue :: Integer }
-  | UPromotedString { _promotedStringValue :: String }
-  | UPromotedCon    { _promotedConName :: Ann UName dom stage }
-  | UPromotedList   { _promotedElements :: AnnListG t dom stage }
-  | UPromotedTuple  { _promotedElements :: AnnListG t dom stage }
-  | UPromotedUnit
+  = UPromotedInt    { _promotedIntValue :: Integer 
+                    } -- ^ Numeric value promoted to the kind level.
+  | UPromotedString { _promotedStringValue :: String 
+                    } -- ^ String value promoted to the kind level.
+  | UPromotedCon    { _promotedConName :: Ann UName dom stage 
+                    } -- ^ A data constructor value promoted to the kind level.
+  | UPromotedList   { _promotedElements :: AnnListG t dom stage 
+                    } -- ^ A list of elements as a kind.
+  | UPromotedTuple  { _promotedElements :: AnnListG t dom stage 
+                    } -- ^ A tuple of elements as a kind.
+  | UPromotedUnit -- ^ Kind of the unit value @()@. 

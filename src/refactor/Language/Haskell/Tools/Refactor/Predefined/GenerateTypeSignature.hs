@@ -74,44 +74,44 @@ generateTypeFor prec t
   , not (null preds)
   = do ctx <- case preds of [pred] -> mkContextOne <$> generateAssertionFor pred
                             _ -> mkContextMulti <$> mapM generateAssertionFor preds
-       wrapParen 0 <$> (mkTyCtx ctx <$> generateTypeFor 0 (mkFunTys other rt))
+       wrapParen 0 <$> (mkCtxType ctx <$> generateTypeFor 0 (mkFunTys other rt))
   -- function
   | Just (at, rt) <- splitFunTy_maybe t
-  = wrapParen 0 <$> (mkTyFun <$> generateTypeFor 10 at <*> generateTypeFor 0 rt)
+  = wrapParen 0 <$> (mkFunctionType <$> generateTypeFor 10 at <*> generateTypeFor 0 rt)
   -- type operator (we don't know the precedences, so always use parentheses)
   | (op, [at,rt]) <- splitAppTys t
   , Just tc <- tyConAppTyCon_maybe op
   , isSymOcc (getOccName (getName tc))
-  = wrapParen 0 <$> (mkTyInfix <$> generateTypeFor 10 at <*> referenceOperator (idName $ getTCId tc) <*> generateTypeFor 10 rt)
+  = wrapParen 0 <$> (mkInfixTypeApp <$> generateTypeFor 10 at <*> referenceOperator (idName $ getTCId tc) <*> generateTypeFor 10 rt)
   -- tuple types
   | Just (tc, tas) <- splitTyConApp_maybe t
   , isTupleTyCon tc
-  = mkTyTuple <$> mapM (generateTypeFor (-1)) tas
+  = mkTupleType <$> mapM (generateTypeFor (-1)) tas
   -- string type
   | Just (ls, [et]) <- splitTyConApp_maybe t
   , Just ch <- tyConAppTyCon_maybe et
   , listTyCon == ls
   , charTyCon == ch
-  = return $ mkTyVar (mkNormalName $ mkSimpleName "String")
+  = return $ mkVarType (mkNormalName $ mkSimpleName "String")
   -- list types
   | Just (tc, [et]) <- splitTyConApp_maybe t
   , listTyCon == tc
-  = mkTyList <$> generateTypeFor (-1) et
+  = mkListType <$> generateTypeFor (-1) et
   -- type application
   | Just (tf, ta) <- splitAppTy_maybe t
-  = wrapParen 10 <$> (mkTyApp <$> generateTypeFor 10 tf <*> generateTypeFor 11 ta)
+  = wrapParen 10 <$> (mkTypeApp <$> generateTypeFor 10 tf <*> generateTypeFor 11 ta)
   -- type constructor
   | Just tc <- tyConAppTyCon_maybe t
-  = mkTyVar <$> referenceName (idName $ getTCId tc)
+  = mkVarType <$> referenceName (idName $ getTCId tc)
   -- type variable
   | Just tv <- getTyVar_maybe t
-  = mkTyVar <$> referenceName (idName tv)
+  = mkVarType <$> referenceName (idName tv)
   -- forall type
   | (tvs@(_:_), t') <- splitForAllTys t
-  = wrapParen (-1) <$> (mkTyForall (map (mkTypeVar' . getName) tvs) <$> generateTypeFor 0 t')
+  = wrapParen (-1) <$> (mkForallType (map (mkTypeVar' . getName) tvs) <$> generateTypeFor 0 t')
   | otherwise = error ("Cannot represent type: " ++ showSDocUnsafe (ppr t))
   where wrapParen :: Int -> AST.Type dom -> AST.Type dom
-        wrapParen prec' node = if prec' < prec then mkTyParen node else node
+        wrapParen prec' node = if prec' < prec then mkParenType node else node
 
         getTCId :: GHC.TyCon -> GHC.Id
         getTCId tc = GHC.mkVanillaGlobal (GHC.tyConName tc) (tyConKind tc)

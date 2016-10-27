@@ -77,7 +77,7 @@ addGeneratedImports names m = modImports&annListElems .- (++ addImports names) $
         -- TODO: group names like constructors into correct IESpecs
         createImport :: [GHC.Name] -> Ann UImportDecl dom SrcTemplateStage
         createImport names = mkImportDecl False False False Nothing (mkModuleName $ GHC.moduleNameString $ GHC.moduleName $ GHC.nameModule $ head names)
-                                          Nothing (Just $ mkImportSpecList (map (\n -> mkIeSpec (mkUnqualName' n) Nothing) names))
+                                          Nothing (Just $ mkImportSpecList (map (\n -> mkIESpec (mkUnqualName' n) Nothing) names))
 
 instance (GhcMonad m, Monoid s) => GhcMonad (WriterT s m) where
   getSession = lift getSession
