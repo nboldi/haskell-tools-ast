@@ -10,6 +10,7 @@ packages:
 - demo
 - src/cli
 - src/debug
+- src/daemon
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 extra-deps: 

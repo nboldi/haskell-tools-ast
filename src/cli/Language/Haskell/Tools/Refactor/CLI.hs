@@ -140,9 +140,9 @@ performSessionCommand (RefactorCommand cmd)
           return ""
         performChanges True resMods = concat <$> forM resMods (liftIO . \case 
           ContentChanged (n,m) -> do
-            return $ "### UModule changed: " ++ n ++ "\n### new content:\n" ++ prettyPrint m
+            return $ "### Module changed: " ++ n ++ "\n### new content:\n" ++ prettyPrint m
           ModuleRemoved mod ->
-            return $ "### UModule removed: " ++ mod)
+            return $ "### Module removed: " ++ mod)
 
         getModSummary name boot
           = do allMods <- lift getModuleGraph
