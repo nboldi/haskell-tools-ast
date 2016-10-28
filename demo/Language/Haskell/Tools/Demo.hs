@@ -148,7 +148,7 @@ updateClient _ (PerformRefactoring "TestErrorLogging" _ _ _) = error "This is a 
 updateClient dir (PerformRefactoring refact modName selection args) = do
     mod <- gets (find ((modName ==) . (\(_,m,_) -> m) . fst) . Map.assocs . (^. refSessMods))
     allModules <- gets (map moduleNameAndContent . Map.assocs . (^. refSessMods))
-    let command = analyzeCommand (toFileName dir modName) refact (selection:args)
+    let command = analyzeCommand refact (selection:args)
     liftIO $ putStrLn $ (toFileName dir modName)
     liftIO $ putStrLn $ maybe "" (show . getRange . snd) mod
     case mod of Just m -> do res <- lift $ performCommand command (moduleNameAndContent m) allModules 

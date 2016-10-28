@@ -6,26 +6,17 @@
            #-}
 module Language.Haskell.Tools.Refactor.Daemon where
 
-import Network.WebSockets (ServerApp, Connection, DataMessage(..), ConnectionException, defaultConnectionOptions, acceptRequest, receiveDataMessage, sendTextData)
-import Network.Wai.Handler.WebSockets
-import Network.Wai.Handler.Warp
-import Network.Wai (Application, responseLBS)
-import Network.HTTP.Types(status400)
 import Data.Aeson hiding ((.=))
 import Data.ByteString.Lazy (ByteString)
+import Data.ByteString.Lazy.Char8 (unpack)
 import GHC.Generics
 
-import Network.WebSockets
-import Network.Wai.Handler.WebSockets
-import Network.Wai.Handler.Warp
-import Network.Wai
-import Network.HTTP.Types
+import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
+import Network.Socket.ByteString.Lazy
 import Control.Exception
 import Data.Aeson hiding ((.=))
 import Data.Map (Map, (!), member, insert)
 import qualified Data.Map as Map
-import Data.ByteString.Lazy (ByteString)
-import qualified Data.ByteString.Lazy as BS
 import GHC.Generics
 
 import System.IO
@@ -59,14 +50,17 @@ import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.RefactorBase
-import Language.Haskell.Tools.ASTDebug
-import Language.Haskell.Tools.ASTDebug.Instances
 import Language.Haskell.Tools.PrettyPrint
 
-type ClientId = Int
+-- TODO: find out which modules have changed
+-- TODO: exit
+-- TODO: handle boot files
+-- TODO: handle multiple modules in different packages with the same module name
+
+
 
 data RefactorSessionState
-  = RefactorSessionState { _refSessMods :: Map.Map (String, String, IsBoot) (UnnamedModule IdDom)
+  = RefactorSessionState { _refSessMods :: Map.Map (String, IsBoot) (UnnamedModule IdDom)
                          }
 
 makeReferences ''RefactorSessionState
@@ -74,33 +68,30 @@ makeReferences ''RefactorSessionState
 initSession :: RefactorSessionState
 initSession = RefactorSessionState Map.empty
 
-runFromCLI :: IO ()
-runFromCLI = getArgs >>= runDemo
+runDaemonCLI :: IO ()
+runDaemonCLI = getArgs >>= runDaemon
 
-runDemo :: [String] -> IO ()
-runDemo args = do
-  let settings = setPort 8206 $ setTimeout 20 $ defaultSettings 
-  runSettings settings app
+runDaemon :: [String] -> IO ()
+runDaemon _ = withSocketsDo $
+  do addrinfos <- getAddrInfo
+                  (Just (defaultHints {addrFlags = [AI_PASSIVE]}))
+                  Nothing (Just "4123")
+     let serveraddr = head addrinfos
+     sock <- socket (addrFamily serveraddr) Stream defaultProtocol
+     setSocketOption sock ReuseAddr 1
+     bind sock (addrAddress serveraddr)
+     listen sock 1
+     (conn,_) <- accept sock
+     ghcSess <- initGhcSession
+     state <- newMVar initSession
+     serverLoop ghcSess state conn
 
--- | The application that is evoked for each incoming request
-app :: Application
-app = websocketsOr defaultConnectionOptions wsApp backupApp
-  where
-    wsApp :: ServerApp
-    wsApp conn = do
-        conn <- acceptRequest conn
-        ghcSess <- initGhcSession
-        state <- newMVar initSession
-        serverLoop ghcSess state conn
-
-    serverLoop :: Session -> MVar RefactorSessionState -> Connection -> IO ()
-    serverLoop ghcSess state conn =
-        do Text msg <- receiveDataMessage conn
-           respondTo ghcSess state (sendTextData conn) msg
-           serverLoop ghcSess state conn
-
-    backupApp :: Application
-    backupApp req respond = respond $ responseLBS status400 [] "Not a WebSocket request"
+serverLoop :: Session -> MVar RefactorSessionState -> Socket -> IO ()
+serverLoop ghcSess state conn =
+    do msg <- recv conn 1024
+       putStrLn $ "message received: " ++ unpack msg
+       respondTo ghcSess state (sendAll conn) msg
+       serverLoop ghcSess state conn
 
 respondTo :: Session -> MVar RefactorSessionState -> (ByteString -> IO ()) -> ByteString -> IO ()
 respondTo ghcSess state next mess = case decode mess of
@@ -111,53 +102,57 @@ respondTo ghcSess state next mess = case decode mess of
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a client
 updateClient :: ClientMessage -> StateT RefactorSessionState Ghc (Maybe ResponseMsg)
-updateClient KeepAlive = return Nothing
+updateClient KeepAlive = return $ Just KeepAliveResponse
 updateClient (AddPackage packagePathes) = do 
     modules <- liftIO $ (concat . map snd . concat) <$> mapM getModules packagePathes
+    liftIO $ putStrLn (show modules)
     lift $ useDirs packagePathes
     lift $ mapM_ addTarget (map ((\modName -> Target (TargetModule (GHC.mkModuleName modName)) True Nothing)) modules)
     lift $ load LoadAllTargets
     forM modules $ \modName -> do
       mod <- lift $ getModSummary (GHC.mkModuleName modName) >>= parseTyped
-      modify $ refSessMods .- Map.insert (dir, modName, NormalHs) mod
-    return Nothing
+      modify $ refSessMods .- Map.insert (modName, NormalHs) mod
+    return (Just $ LoadedModules modules)
 updateClient ReLoad = do
-    -- TODO: find out which modules have changed
     lift $ load LoadAllTargets
     -- mod <- lift $ getModSummary (GHC.mkModuleName name) >>= parseTyped
-    -- modify $ refSessMods .- Map.insert (dir, name, NormalHs) mod
+    -- modify $ refSessMods .- Map.insert (name, NormalHs) mod
     return Nothing
--- updateClient _ Stop = return () -- TODO: exit
-
--- TODO: handle boot files
+-- updateClient _ Stop = return () 
 
 updateClient (PerformRefactoring refact modName selection args) = do
-    mod <- gets (find ((modName ==) . (\(_,m,_) -> m) . fst) . Map.assocs . (^. refSessMods))
+    mod <- gets ((Map.lookup (modName, NormalHs)) . (^. refSessMods))
     allModules <- gets (map moduleNameAndContent . Map.assocs . (^. refSessMods))
-    let command = analyzeCommand (toFileName dir modName) refact (selection:args)
-    case mod of Just m -> do res <- lift $ performCommand command (moduleNameAndContent m) allModules 
+    let command = analyzeCommand refact (selection:args)
+    case mod of Just m -> do res <- lift $ performCommand command (modName,m) allModules 
                              case res of
                                Left err -> return $ Just $ ErrorMessage err
                                Right diff -> do applyChanges diff
                                                 return $ Just $ RefactorChanges (map trfDiff diff)
                 Nothing -> return $ Just $ ErrorMessage "The module is not found"
-  where trfDiff (ContentChanged (name,cont)) = (name, Just (prettyPrint cont))
-        trfDiff (ModuleRemoved name) = (name, Nothing)
+  where trfDiff (ContentChanged (name,_)) = name
+        trfDiff (ModuleRemoved name) = name
 
         applyChanges 
           = mapM_ $ \case 
               ContentChanged (n,m) -> do
-                liftIO $ withBinaryFile (toFileName dir n)
-                                        WriteMode (`hPutStr` prettyPrint m)
-                w <- gets (find ((n ==) . (\(_,m,_) -> m)) . Map.keys . (^. refSessMods))
-                newm <- lift $ (parseTyped =<< loadModule dir n)
-                modify $ refSessMods .- Map.insert (dir, n, NormalHs) newm
+                filePath <- getFilePath n
+                liftIO $ withBinaryFile filePath WriteMode (`hPutStr` prettyPrint m)
+                newm <- lift $ (parseTyped =<< getModSummary (mkModuleName n))
+                modify $ refSessMods .- Map.insert (n, NormalHs) newm
               ModuleRemoved mod -> do
-                modify $ refSessMods .- Map.delete (dir, mod, NormalHs)
-                liftIO $ removeFile (toFileName dir mod)
+                modify $ refSessMods .- Map.delete (mod, IsHsBoot) . Map.delete (mod, NormalHs)
+                liftIO . removeFile =<< getFilePath mod
 
--- TODO: remove
-dir = "unknown-dir"
+getFilePath :: String -> StateT RefactorSessionState Ghc FilePath
+getFilePath modName = 
+  lift . getModuleFilePath =<< gets ((!(modName, NormalHs)) . (^. refSessMods))
+
+getModuleFilePath :: UnnamedModule IdDom -> Ghc FilePath
+getModuleFilePath mod = do
+  let modName = GHC.moduleName $ semanticsModule mod 
+  ms <- getModSummary modName
+  return $ fromMaybe (error "Module location not found: " ++ GHC.moduleNameString modName) $ ml_hs_file $ ms_location ms
 
 createFileForModule :: FilePath -> String -> String -> IO ()
 createFileForModule dir name newContent = do
@@ -168,8 +163,8 @@ createFileForModule dir name newContent = do
 removeDirectoryIfPresent :: FilePath -> IO ()
 removeDirectoryIfPresent dir = removeDirectoryRecursive dir `catch` \e -> if isDoesNotExistError e then return () else throwIO e
 
-moduleNameAndContent :: ((String,String,IsBoot), mod) -> (String, mod)
-moduleNameAndContent ((_,name,_), mod) = (name, mod)
+moduleNameAndContent :: ((String,IsBoot), mod) -> (String, mod)
+moduleNameAndContent ((name,_), mod) = (name, mod)
 
 initGhcSession :: IO Session
 initGhcSession = Session <$> (newIORef =<< runGhc (Just libdir) (do 
@@ -202,10 +197,11 @@ instance ToJSON ClientMessage
 instance FromJSON ClientMessage 
 
 data ResponseMsg
-  = RefactorChanges { moduleChanges :: [(String, Maybe String)] }
-  | ASTViewContent { astContent :: String }
+  = KeepAliveResponse
+  | RefactorChanges { moduleChanges :: [String] }
   | ErrorMessage { errorMsg :: String }
   | CompilationProblem { errorMsg :: String }
+  | LoadedModules { loadedModules :: [String] }
   deriving (Eq, Show, Generic)
 
 instance ToJSON ResponseMsg

@@ -98,7 +98,7 @@ readSessionCommand cmd = case splitOn " " cmd of
     ["SelectModule", mod] -> return $ LoadModule mod
     ["Exit"] -> return Exit
     _ -> do actualMod <- gets (^. actualMod)
-            case actualMod of Just (wd,m,_) -> return $ RefactorCommand $ readCommand (toFileName wd m) cmd
+            case actualMod of Just (wd,m,_) -> return $ RefactorCommand $ readCommand cmd
                               Nothing -> error "Set the actual module first"
 
 performSessionCommand :: RefactorSessionCommand -> RefactorSession Ghc String

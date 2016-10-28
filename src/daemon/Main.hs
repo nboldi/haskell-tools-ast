@@ -5,4 +5,4 @@ import System.Environment
 import Language.Haskell.Tools.Refactor.Daemon
 
 main :: IO ()
-main = putStrLn =<< refactorSession =<< getArgs
+main = runDaemonCLI

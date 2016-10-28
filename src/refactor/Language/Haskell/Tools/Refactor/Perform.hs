@@ -84,16 +84,16 @@ data RefactorCommand = NoRefactor
                      | ExtractBinding RealSrcSpan String
     deriving Show
 
-readCommand :: String -> String -> RefactorCommand
-readCommand fileName (splitOn " " -> refact:args) = analyzeCommand fileName refact args
+readCommand :: String -> RefactorCommand
+readCommand (splitOn " " -> refact:args) = analyzeCommand refact args
 
-analyzeCommand :: String -> String -> [String] -> RefactorCommand
-analyzeCommand _ "" _ = NoRefactor
-analyzeCommand _ "CheckSource" _ = NoRefactor
-analyzeCommand _ "OrganizeImports" _ = OrganizeImports
-analyzeCommand _ "GenerateExports" _ = GenerateExports
-analyzeCommand fileName "GenerateSignature" [sp] = GenerateSignature (readSrcSpan fileName sp)
-analyzeCommand fileName "RenameDefinition" [sp, newName] = RenameDefinition (readSrcSpan fileName sp) newName
-analyzeCommand fileName "ExtractBinding" [sp, newName] = ExtractBinding (readSrcSpan fileName sp) newName
-analyzeCommand _ ref _ = error $ "Unknown command: " ++ ref
+analyzeCommand :: String -> [String] -> RefactorCommand
+analyzeCommand "" _ = NoRefactor
+analyzeCommand "CheckSource" _ = NoRefactor
+analyzeCommand "OrganizeImports" _ = OrganizeImports
+analyzeCommand "GenerateExports" _ = GenerateExports
+analyzeCommand "GenerateSignature" [sp] = GenerateSignature (readSrcSpan sp)
+analyzeCommand "RenameDefinition" [sp, newName] = RenameDefinition (readSrcSpan sp) newName
+analyzeCommand "ExtractBinding" [sp, newName] = ExtractBinding (readSrcSpan sp) newName
+analyzeCommand ref _ = error $ "Unknown command: " ++ ref
 

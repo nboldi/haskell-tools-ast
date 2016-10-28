@@ -122,10 +122,10 @@ parseTyped modSum = do
 
 data IsBoot = NormalHs | IsHsBoot deriving (Eq, Ord, Show)
 
-readSrcSpan :: String -> String -> RealSrcSpan
-readSrcSpan fileName s = case splitOn "-" s of
-  [from,to] -> mkRealSrcSpan (readSrcLoc fileName from) (readSrcLoc fileName to)
+readSrcSpan :: String -> RealSrcSpan
+readSrcSpan s = case splitOn "-" s of
+  [from,to] -> mkRealSrcSpan (readSrcLoc from) (readSrcLoc to)
   
-readSrcLoc :: String -> String -> RealSrcLoc
-readSrcLoc fileName s = case splitOn ":" s of
-  [line,col] -> mkRealSrcLoc (mkFastString fileName) (read line) (read col)
+readSrcLoc :: String -> RealSrcLoc
+readSrcLoc s = case splitOn ":" s of
+  [line,col] -> mkRealSrcLoc (mkFastString "file-name-should-be-fixed") (read line) (read col)

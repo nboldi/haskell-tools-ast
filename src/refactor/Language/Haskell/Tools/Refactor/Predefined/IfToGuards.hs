@@ -12,7 +12,7 @@ import Data.Generics.Uniplate.Data
 import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.Refactor
 
-tryItOut moduleName sp = tryRefactor (localRefactoring $ ifToGuards (readSrcSpan (toFileName "." moduleName) sp)) moduleName
+tryItOut moduleName sp = tryRefactor (localRefactoring $ ifToGuards (readSrcSpan sp)) moduleName
 
 ifToGuards :: Domain dom => RealSrcSpan -> LocalRefactoring dom
 ifToGuards sp = return . (nodesContaining sp .- ifToGuards')

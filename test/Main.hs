@@ -292,12 +292,12 @@ multiModuleTests =
 
 miscRefactorTests =
   [ ("Refactor.DataToNewtype.Cases", \_ _ -> dataToNewtype)
-  , ("Refactor.IfToGuards.Simple", \wd mod -> ifToGuards (readSrcSpan (toFileName wd mod) "3:11-3:33"))
-  , ("Refactor.DollarApp.FirstSingle", \wd mod -> dollarApp (readSrcSpan (toFileName wd mod) "5:5-5:12"))
-  , ("Refactor.DollarApp.FirstMulti", \wd mod -> dollarApp (readSrcSpan (toFileName wd mod) "5:5-5:16"))
-  , ("Refactor.DollarApp.InfixOperator", \wd mod -> dollarApp (readSrcSpan (toFileName wd mod) "5:5-5:16"))
-  , ("Refactor.DollarApp.AnotherOperator", \wd mod -> dollarApp (readSrcSpan (toFileName wd mod) "5:5-5:15"))
-  , ("Refactor.DollarApp.ImportDollar", \wd mod -> dollarApp (readSrcSpan (toFileName wd mod) "6:5-6:12"))
+  , ("Refactor.IfToGuards.Simple", \wd mod -> ifToGuards (readSrcSpan "3:11-3:33"))
+  , ("Refactor.DollarApp.FirstSingle", \wd mod -> dollarApp (readSrcSpan "5:5-5:12"))
+  , ("Refactor.DollarApp.FirstMulti", \wd mod -> dollarApp (readSrcSpan "5:5-5:16"))
+  , ("Refactor.DollarApp.InfixOperator", \wd mod -> dollarApp (readSrcSpan "5:5-5:16"))
+  , ("Refactor.DollarApp.AnotherOperator", \wd mod -> dollarApp (readSrcSpan "5:5-5:15"))
+  , ("Refactor.DollarApp.ImportDollar", \wd mod -> dollarApp (readSrcSpan "6:5-6:12"))
   ]
 
 makeMultiModuleTest :: (String, String, String, [String]) -> Test
@@ -421,8 +421,8 @@ performRefactors command workingDir flags target = do
     let otherModules = filter (not . (\ms -> ms_mod ms == ms_mod selectedMod && ms_hsc_src ms == ms_hsc_src selectedMod)) allMods 
     targetMod <- parseTyped selectedMod
     otherMods <- mapM parseTyped otherModules
-    res <- performCommand (readCommand (toFileName workingDir target) command) 
-                          (target, targetMod) (zip (map (GHC.moduleNameString . moduleName . ms_mod) otherModules) otherMods)
+    res <- performCommand (readCommand command) (target, targetMod) 
+             (zip (map (GHC.moduleNameString . moduleName . ms_mod) otherModules) otherMods)
     return $ (\case Right r -> Right $ (map (\case ContentChanged (n,m) -> (n, Just $ prettyPrint m)
                                                    ModuleRemoved m -> (m, Nothing)
                                             )) r
@@ -461,7 +461,7 @@ performRefactor command workingDir flags target =
     useFlags flags
     useDirs [workingDir]
     ((\case Right r -> Right (newContent r); Left l -> Left l) <$> (refact =<< parseTyped =<< loadModule workingDir target))
-  where refact m = performCommand (readCommand (toFileName workingDir target) command) (target,m) []
+  where refact m = performCommand (readCommand command) (target,m) []
         newContent (ContentChanged (_, newContent) : ress) = prettyPrint newContent
         newContent (_ : ress) = newContent ress
 
