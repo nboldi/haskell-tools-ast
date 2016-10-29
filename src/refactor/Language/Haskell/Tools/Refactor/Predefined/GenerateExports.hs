@@ -3,7 +3,7 @@
            , TypeFamilies
            , FlexibleContexts
            #-}
-module Language.Haskell.Tools.Refactor.Predefined.GenerateExports where
+module Language.Haskell.Tools.Refactor.Predefined.GenerateExports (generateExports, DomGenerateExports) where
 
 import Control.Reference hiding (element)
 

@@ -54,6 +54,12 @@ type TypeNamespace dom = Ann UTypeNamespace dom SrcTemplateStage
 -- | Renaming imports (@ as A @)
 type ImportRenaming dom = Ann UImportRenaming dom SrcTemplateStage
 
+-- | The name of a module
+type ModuleName dom = Ann UModuleName dom SrcTemplateStage
+
+-- | The name of the enabled language extension, for example (@ LambdaCase @)
+type LanguageExtension dom = Ann ULanguageExtension dom SrcTemplateStage
+
 -- * Declarations
 
 -- | Haskell declaration
@@ -92,6 +98,9 @@ type FunDep dom = Ann UFunDep dom SrcTemplateStage
 -- | A constructor declaration for a datatype
 type ConDecl dom = Ann UConDecl dom SrcTemplateStage
 
+-- | The @data@ or the @newtype@ keyword to define ADTs.
+type DataOrNewtypeKeyword dom = Ann UDataOrNewtypeKeyword dom SrcTemplateStage
+
 -- | Field declaration (@ fld :: Int @)
 type FieldDecl dom = Ann UFieldDecl dom SrcTemplateStage
 
@@ -110,59 +119,6 @@ type OverlapPragma dom = Ann UOverlapPragma dom SrcTemplateStage
 -- | Type equations as found in closed type families (@ T A = S @)
 type TypeEqn dom = Ann UTypeEqn dom SrcTemplateStage
 
--- | Kind constraint (@ :: * -> * @)
-type KindConstraint dom = Ann UKindConstraint dom SrcTemplateStage
-
--- | Haskell types
-type Type dom = Ann UType dom SrcTemplateStage
-
--- | Type variable declarations (with possible kind annotation)
-type TyVar dom = Ann UTyVar dom SrcTemplateStage
-
--- | Haskell kinds
-type Kind dom = Ann UKind dom SrcTemplateStage
-
--- One or more assertions
-type Context dom = Ann UContext dom SrcTemplateStage
-
--- | A single assertion in the context
-type Assertion dom = Ann UAssertion dom SrcTemplateStage
-
--- | Haskell expressions
-type Expr dom = Ann UExpr dom SrcTemplateStage
-
--- | List comprehension statement
-type CompStmt dom = Ann UCompStmt dom SrcTemplateStage
-
--- | Value binding for top-level and local bindings
-type ValueBind dom = Ann UValueBind dom SrcTemplateStage
-
--- | Representation of patterns for pattern bindings
-type Pattern dom = Ann UPattern dom SrcTemplateStage
-
--- Field specification of a record pattern
-type PatternField dom = Ann UPatternField dom SrcTemplateStage
-
--- | A template haskell splice          
-type Splice dom = Ann USplice dom SrcTemplateStage
-
--- type QString dom = Ann QQString dom SrcTemplateStage
-
--- | Clause of function binding   
-type Match dom = Ann UMatch dom SrcTemplateStage
-
--- | Right hand side of a value binding (possible with guards): (@ = 3 @ or @ | x == 1 = 3; | otherwise = 4 @)
-type Rhs dom = Ann URhs dom SrcTemplateStage
-
--- | A guarded right-hand side of a value binding (@ | x > 3 = 2 @)      
-type GuardedRhs dom = Ann UGuardedRhs dom SrcTemplateStage
-
--- | Field update expressions
-type FieldUpdate dom = Ann UFieldUpdate dom SrcTemplateStage
-
--- | Template Haskell bracket expressions
-type Bracket dom = Ann UBracket dom SrcTemplateStage
-
 -- | Top level pragmas
 type TopLevelPragma dom = Ann UTopLevelPragma dom SrcTemplateStage
 
@@ -175,35 +131,8 @@ type AnnotationSubject dom = Ann UAnnotationSubject dom SrcTemplateStage
 -- | Formulas of minimal annotations declaring which functions should be defined.
 type MinimalFormula dom = Ann UMinimalFormula dom SrcTemplateStage
 
--- | Pragmas that can be applied to expressions
-type ExprPragma dom = Ann UExprPragma dom SrcTemplateStage
-
 -- | In-AST source ranges (for generated pragmas)
 type SourceRange dom = Ann USourceRange dom SrcTemplateStage
-
--- | Template haskell quasi-quotation: @[quoter|str]@  
-type QuasiQuote dom = Ann UQuasiQuote dom SrcTemplateStage
-
--- | Guards for value bindings and pattern matches (@ Just v <- x, v > 1 @)
-type RhsGuard dom = Ann URhsGuard dom SrcTemplateStage
-
--- | Bindings that are enabled in local blocks (where or let).
-type LocalBind dom = Ann ULocalBind dom SrcTemplateStage
-
--- | Local bindings attached to a declaration (@ where x = 42 @)             
-type LocalBinds dom = Ann ULocalBinds dom SrcTemplateStage
-
--- | A fixity signature (@ infixl 5 +, - @).
-type FixitySignature dom = Ann UFixitySignature dom SrcTemplateStage
-
--- | A type signature (@ f :: Int -> Int @)
-type TypeSignature dom = Ann UTypeSignature dom SrcTemplateStage
-
--- | Body of a list comprehension: (@ | x <- [1..10] @)
-type ListCompBody dom = Ann UListCompBody dom SrcTemplateStage
-
--- | An element of a tuple section that can be an expression or missing (indicating a value from a parameter)
-type TupSecElem dom = Ann UTupSecElem dom SrcTemplateStage
 
 -- | Open type and data families
 type TypeFamily dom = Ann UTypeFamily dom SrcTemplateStage
@@ -232,23 +161,80 @@ type PatternSignature dom = Ann UPatternTypeSignature dom SrcTemplateStage
 -- | Role annotations for types
 type Role dom = Ann URole dom SrcTemplateStage
 
--- | Special expressions for arrows
-type Cmd dom = Ann UCmd dom SrcTemplateStage
+-- | Call conventions of foreign functions
+type CallConv dom = Ann UCallConv dom SrcTemplateStage
 
--- | Clause of case expression for commands
-type CmdAlt dom = Ann UCmdAlt dom SrcTemplateStage
+-- | Safety annotations for foreign calls
+type Safety dom = Ann USafety dom SrcTemplateStage
 
--- | A do-notation for arrows
-type CmdStmt dom = Ann UCmdStmt dom SrcTemplateStage
+-- | A @CONLIKE@ modifier for an @INLINE@ pragma.
+type ConlikeAnnot dom = Ann UConlikeAnnot dom SrcTemplateStage
 
--- | The name of the enabled language extension, for example (@ LambdaCase @)
-type LanguageExtension dom = Ann ULanguageExtension dom SrcTemplateStage
+-- | Controls the activation of a rewrite rule (@ [1] @)
+type PhaseControl dom = Ann UPhaseControl dom SrcTemplateStage
+
+-- * Binds
+
+-- | Value binding for top-level and local bindings
+type ValueBind dom = Ann UValueBind dom SrcTemplateStage
+
+-- | Clause of function binding   
+type Match dom = Ann UMatch dom SrcTemplateStage
 
 -- | Something on the left side of the match
 type MatchLhs dom = Ann UMatchLhs dom SrcTemplateStage
 
--- | A statement in a do-notation
-type Stmt dom = Ann UStmt dom SrcTemplateStage
+-- | Right hand side of a value binding (possible with guards): (@ = 3 @ or @ | x == 1 = 3; | otherwise = 4 @)
+type Rhs dom = Ann URhs dom SrcTemplateStage
+
+-- | A guarded right-hand side of a value binding (@ | x > 3 = 2 @)      
+type GuardedRhs dom = Ann UGuardedRhs dom SrcTemplateStage
+
+-- | Guards for value bindings and pattern matches (@ Just v <- x, v > 1 @)
+type RhsGuard dom = Ann URhsGuard dom SrcTemplateStage
+
+-- | Bindings that are enabled in local blocks (where or let).
+type LocalBind dom = Ann ULocalBind dom SrcTemplateStage
+
+-- | Local bindings attached to a declaration (@ where x = 42 @)             
+type LocalBinds dom = Ann ULocalBinds dom SrcTemplateStage
+
+-- | A fixity signature (@ infixl 5 +, - @).
+type FixitySignature dom = Ann UFixitySignature dom SrcTemplateStage
+
+-- | A type signature (@ f :: Int -> Int @)
+type TypeSignature dom = Ann UTypeSignature dom SrcTemplateStage
+
+
+-- * Types
+
+-- | Haskell types
+type Type dom = Ann UType dom SrcTemplateStage
+
+-- | Type variable declarations (with possible kind annotation)
+type TyVar dom = Ann UTyVar dom SrcTemplateStage
+
+-- One or more assertions
+type Context dom = Ann UContext dom SrcTemplateStage
+
+-- | A single assertion in the context
+type Assertion dom = Ann UAssertion dom SrcTemplateStage
+
+-- * Kinds
+
+-- | Kind constraint (@ :: * -> * @)
+type KindConstraint dom = Ann UKindConstraint dom SrcTemplateStage
+
+-- | Haskell kinds
+type Kind dom = Ann UKind dom SrcTemplateStage
+
+-- | Values promoted to the kind level
+type PromotedKind dom = Ann (UPromoted UKind) dom SrcTemplateStage
+
+-- * Expressions
+
+-- | Haskell expressions
+type Expr dom = Ann UExpr dom SrcTemplateStage
 
 -- | Clause of case expression (@ Just x -> x + 1 @)
 type Alt dom = Ann UAlt dom SrcTemplateStage
@@ -259,13 +245,64 @@ type CaseRhs dom = Ann UCaseRhs dom SrcTemplateStage
 -- | A guarded right-hand side of pattern matches binding (@ | x > 3 -> 2 @)      
 type GuardedCaseRhs dom = Ann UGuardedCaseRhs dom SrcTemplateStage
 
+-- | Field update expressions
+type FieldUpdate dom = Ann UFieldUpdate dom SrcTemplateStage
+
+-- | An element of a tuple section that can be an expression or missing (indicating a value from a parameter)
+type TupSecElem dom = Ann UTupSecElem dom SrcTemplateStage
+
+-- | Pragmas that can be applied to expressions
+type ExprPragma dom = Ann UExprPragma dom SrcTemplateStage
+
+-- | Special expressions for arrows
+type Cmd dom = Ann UCmd dom SrcTemplateStage
+
+-- | Clause of case expression for commands
+type CmdAlt dom = Ann UCmdAlt dom SrcTemplateStage
+
+-- | Arrow directions
+type ArrowApp dom = Ann UArrowAppl dom SrcTemplateStage
+
+-- * Statements
+
+-- | A statement in a do-notation
+type Stmt dom = Ann UStmt dom SrcTemplateStage
+
+-- | Keywords @do@ or @mdo@ to start a do-block
+type DoKind dom = Ann UDoKind dom SrcTemplateStage
+
+-- | List comprehension statement
+type CompStmt dom = Ann UCompStmt dom SrcTemplateStage
+
+-- | Body of a list comprehension: (@ | x <- [1..10] @)
+type ListCompBody dom = Ann UListCompBody dom SrcTemplateStage
+
+-- | A do-notation for arrows
+type CmdStmt dom = Ann UCmdStmt dom SrcTemplateStage
+
+-- * Patterns
+
+-- | Representation of patterns for pattern bindings
+type Pattern dom = Ann UPattern dom SrcTemplateStage
+
+-- Field specification of a record pattern
+type PatternField dom = Ann UPatternField dom SrcTemplateStage
+
+-- * Template Haskell
+
+-- | A template haskell splice          
+type Splice dom = Ann USplice dom SrcTemplateStage
+
+-- | Template Haskell bracket expressions
+type Bracket dom = Ann UBracket dom SrcTemplateStage
+
+-- | Template haskell quasi-quotation: @[quoter|str]@  
+type QuasiQuote dom = Ann UQuasiQuote dom SrcTemplateStage
+
 -- * Literals
 
 -- | Haskell literals
 type Literal dom = Ann ULiteral dom SrcTemplateStage
-
--- | Values promoted to the kind level
-type PromotedKind dom = Ann (UPromoted UKind) dom SrcTemplateStage
 
 -- * Names
 
@@ -279,35 +316,11 @@ type Name dom = Ann UName dom SrcTemplateStage
 -- Linear implicit parameter: @%x@. Non-linear implicit parameter: @?x@.
 type QualifiedName dom = Ann UQualifiedName dom SrcTemplateStage
 
--- | The name of a module
-type ModuleName dom = Ann UModuleName dom SrcTemplateStage
-
 -- | Parts of a qualified name.         
 type NamePart dom = Ann UNamePart dom SrcTemplateStage
 
 -- | Program elements formatted as string literals (import packages, pragma texts)
 type StringNode dom = Ann UStringNode dom SrcTemplateStage
-
--- | The @data@ or the @newtype@ keyword to define ADTs.
-type DataOrNewtypeKeyword dom = Ann UDataOrNewtypeKeyword dom SrcTemplateStage
-
--- | Keywords @do@ or @mdo@ to start a do-block
-type DoKind dom = Ann UDoKind dom SrcTemplateStage
-
--- | Call conventions of foreign functions
-type CallConv dom = Ann UCallConv dom SrcTemplateStage
-
--- | Arrow directions
-type ArrowApp dom = Ann UArrowAppl dom SrcTemplateStage
-
--- | Safety annotations for foreign calls
-type Safety dom = Ann USafety dom SrcTemplateStage
-
--- | A @CONLIKE@ modifier for an @INLINE@ pragma.
-type ConlikeAnnot dom = Ann UConlikeAnnot dom SrcTemplateStage
-
--- | Controls the activation of a rewrite rule (@ [1] @)
-type PhaseControl dom = Ann UPhaseControl dom SrcTemplateStage
 
 -- * Optional AST elements
 
