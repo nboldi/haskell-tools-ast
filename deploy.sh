@@ -4,7 +4,7 @@ set -e # Exit with nonzero exit code if anything fails
 SOURCE_BRANCH="master"
 
 # Pull requests and commits to other branches shouldn't try to deploy
-if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" != "master" ]; then
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
     echo "Skipping deploy"
     exit 0
 fi
@@ -23,9 +23,13 @@ ssh-add deploykey
 git clone git@github.com:haskell-tools/haskell-tools.github.io out
 
 # Clean out existing contents
-rm -rf out/**/* || exit 0
+rm -rf out/$TRAVIS_BRANCH/api/**/* || exit 0
 
 # Copy generated haddock documentation
+"$TRAVIS_BRANCH" != "master"
+
+cp -r .stack-work/install/x86_64-linux/nightly-2016-09-10/8.0.1/doc/* out/$TRAVIS_BRANCH/api
+
 cp -r .stack-work/install/x86_64-linux/nightly-2016-09-10/8.0.1/doc/* out/api
 cd out
 
