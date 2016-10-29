@@ -25,12 +25,14 @@ library
                      , Language.Haskell.Tools.AST.FromGHC.Kinds
                      , Language.Haskell.Tools.AST.FromGHC.Literals
                      , Language.Haskell.Tools.AST.FromGHC.Names
-                     , Language.Haskell.Tools.AST.FromGHC.Monad
+  other-modules:       Language.Haskell.Tools.AST.FromGHC.Monad
                      , Language.Haskell.Tools.AST.FromGHC.Utils
                      , Language.Haskell.Tools.AST.FromGHC.SourceMap
+                     , Language.Haskell.Tools.AST.FromGHC.AddTypeInfo
 
   build-depends:       base              >=4.9   && <5.0
                      , ghc               >=8.0   && <8.1
+                     , transformers      >=0.5   && <1.0
                      , haskell-tools-ast >=0.2   && <0.3
                      , references        >=0.3.2 && <1.0
                      , bytestring        >=0.10  && <1.0
