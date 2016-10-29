@@ -25,6 +25,7 @@ rm -rf out/$TRAVIS_BRANCH/api/**/* || exit 0
 
 # Copy generated haddock documentation
 
+mkdir -p out/$TRAVIS_BRANCH/api
 cp -r .stack-work/install/x86_64-linux/nightly-2016-09-10/8.0.1/doc/* out/$TRAVIS_BRANCH/api
 cd out
 
