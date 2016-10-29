@@ -1,5 +1,8 @@
 -- | Defines the API for refactorings
-module Language.Haskell.Tools.Refactor ( module Exported ) where
+module Language.Haskell.Tools.Refactor 
+  ( module Language.Haskell.Tools.Refactor -- for haddock documentation
+  , module Exported 
+  ) where
 
 import Language.Haskell.Tools.AST.SemaInfoClasses as Exported
 import Language.Haskell.Tools.AST.Rewrite as Exported
