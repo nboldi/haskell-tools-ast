@@ -15,9 +15,6 @@ fromTemplate = NodeInfo (error "The newly generated AST fragments have no semant
 
 emptyList :: AnnList e dom
 emptyList = AnnListG (fromTemplate list) []
-              
-replaceWithJust :: Ann e dom SrcTemplateStage -> AnnMaybe e dom -> AnnMaybe e dom           
-replaceWithJust e (AnnMaybeG temp _) = AnnMaybeG temp (Just e)
 
 justVal :: Ann e dom SrcTemplateStage -> AnnMaybeG e dom SrcTemplateStage
 justVal e = AnnMaybeG (fromTemplate opt) (Just e)

@@ -6,6 +6,7 @@ import Data.List
 import Control.Reference
 import Data.Function (on)
 import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.AnnTrf.SourceTemplate
 import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
 
@@ -52,3 +53,6 @@ insertIndex before after list@(first:_)
         insertIndex' before after (curr:[]) 
           | before (Just curr) && after Nothing = Just 0
           | otherwise = Nothing
+
+replaceWithJust :: Ann e dom SrcTemplateStage -> AnnMaybe e dom -> AnnMaybe e dom           
+replaceWithJust e (AnnMaybeG temp _) = AnnMaybeG temp (Just e)
