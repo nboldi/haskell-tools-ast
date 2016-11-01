@@ -42,7 +42,7 @@ type ImportSpec dom = Ann UImportSpec dom SrcTemplateStage
 -- | Marks the import as qualified: @qualified@
 type ImportQualified dom = Ann UImportQualified dom SrcTemplateStage
 
--- | Marks the import as source: @{-# SOURCE #-}@
+-- | Marks the import as source: @{-\# SOURCE \#-}@
 type ImportSource dom = Ann UImportSource dom SrcTemplateStage
 
 -- | Marks the import as safe: @safe@
