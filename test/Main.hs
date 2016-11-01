@@ -12,7 +12,7 @@ import Module as GHC
 import Control.Monad.IO.Class
 import Control.Monad
 import Data.Maybe
-import Data.Listđ
+import Data.List
 import Data.Either.Combinators
 import Test.HUnit hiding (test)
 import System.IO
