@@ -16,7 +16,6 @@ module Language.Haskell.Tools.Refactor.Perform where
 import Language.Haskell.Tools.AST.FromGHC
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.Transform
-import Language.Haskell.Tools.PrettyPrint.RoseTree
 import Language.Haskell.Tools.PrettyPrint
  
 import Data.List
