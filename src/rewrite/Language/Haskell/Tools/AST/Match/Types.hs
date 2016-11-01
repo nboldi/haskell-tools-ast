@@ -24,7 +24,7 @@ pattern FunctionType at rt <- Ann _ (UTyFun at rt)
 pattern TupleType :: TypeList dom -> Type dom
 pattern TupleType args <- Ann _ (UTyTuple args)
 
--- | Unboxed tuple types (@ (#a,b#) @)
+-- | Unboxed tuple types (@ (\#a,b\#) @)
 pattern UnboxedTupleType :: TypeList dom -> Type dom
 pattern UnboxedTupleType args <- Ann _ (UTyUnbTuple args)
 
@@ -117,6 +117,10 @@ pattern PromotedUnitType <- Ann _ (UTyPromoted (Ann _ UPromotedUnit))
 -- | Type variable declaration
 pattern TyVarDecl :: Name dom -> TyVar dom
 pattern TyVarDecl n <- Ann _ (UTyVarDecl n _)
+
+-- | Kinded type variable declaration (@ v :: * @)
+pattern KindedTyVarDecl :: Name dom -> Kind dom -> TyVar dom
+pattern KindedTyVarDecl n k <- Ann _ (UTyVarDecl n (AnnJust (Ann _ (UKindConstraint k))))
 
 -- * Contexts
 

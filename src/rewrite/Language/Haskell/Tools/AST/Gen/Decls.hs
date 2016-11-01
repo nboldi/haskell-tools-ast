@@ -34,7 +34,7 @@ mkFixityDecl = mkAnn child . UFixityDecl
 mkDefaultDecl :: [Type dom] -> Decl dom
 mkDefaultDecl = mkAnn ("default (" <> child <> ")") . UDefaultDecl . mkAnnList (listSep ", ")
 
--- | Creates type signature declaration (@ _f :: Int -> Int @)
+-- | Creates type signature declaration (@ f :: Int -> Int @)
 mkTypeSigDecl :: TypeSignature dom -> Decl dom
 mkTypeSigDecl = mkAnn child . UTypeSigDecl
 
@@ -77,7 +77,7 @@ mkGadtRecordConDecl names flds typ
 mkConDecl :: Name dom -> [Type dom] -> ConDecl dom
 mkConDecl name args = mkAnn (child <> child) $ UConDecl name (mkAnnList (listSepBefore " " " ") args)
 
--- | Creates a record data constructor (@ C { _n1 :: t1, _n2 :: t2 } @)
+-- | Creates a record data constructor (@ Point { x :: Double, y :: Double } @)
 mkRecordConDecl :: Name dom -> [FieldDecl dom] -> ConDecl dom
 mkRecordConDecl name fields = mkAnn (child <> " { " <> child <> " }") $ URecordDecl name (mkAnnList (listSep ", ") fields)
 
@@ -136,7 +136,7 @@ mkClassElemDataFam dh kind = mkAnn ("data " <> child) $ UClsTypeFam (mkAnn (chil
 mkClsDefaultType :: DeclHead dom -> Type dom -> ClassElement dom
 mkClsDefaultType dh typ = mkAnn ("type " <> child <> " = " <> child) $ UClsTypeDef dh typ
 
--- | Creates a default signature (by using @DefaultSignatures@) in class: @ default _enum :: (Generic a, GEnum (Rep a)) => [a] @
+-- | Creates a default signature (by using @DefaultSignatures@) in class: @ default enum :: (Generic a, GEnum (Rep a)) => [a] @
 mkClsDefaultSig :: Name dom -> Type dom -> ClassElement dom
 mkClsDefaultSig dh typ = mkAnn ("default " <> child <> " :: " <> child) $ UClsDefSig dh typ
 
@@ -145,6 +145,7 @@ mkFunDep :: [Name dom] -> [Name dom] -> FunDep dom
 mkFunDep lhss rhss = mkAnn (child <> " -> " <> child) 
                        $ UFunDep (mkAnnList (listSep ", ") lhss) (mkAnnList (listSep ", ") rhss)
 
+-- | Minimal pragma: @ {-\# MINIMAL (==) | (/=) \#-} @ in a class
 mkClsMinimal :: MinimalFormula dom -> ClassElement dom
 mkClsMinimal = mkAnn ("{-# MINIMAL " <> child <> " #-}") . UClsMinimal
 
@@ -286,12 +287,12 @@ mkPhantomRole = mkAnn "phantom" UPhantom
 
 -- * Foreign imports and exports
 
--- | Creates a foreign import (@ foreign import _foo :: Int -> IO Int @)
+-- | Creates a foreign import (@ foreign import foo :: Int -> IO Int @)
 mkForeignImport :: CallConv dom -> Maybe (Safety dom) -> Name dom -> Type dom -> Decl dom
 mkForeignImport cc safety name typ = mkAnn (child <> child <> " " <> child <> " :: " <> child) 
                                        $ UForeignImport cc (mkAnnMaybe (optBefore " ") safety) name typ
 
--- | Creates a foreign export (@ foreign export ccall _foo :: Int -> IO Int @)
+-- | Creates a foreign export (@ foreign export ccall foo :: Int -> IO Int @)
 mkForeignExport :: CallConv dom -> Name dom -> Type dom -> Decl dom
 mkForeignExport cc name typ = mkAnn (child <> " " <> child <> " :: " <> child) $ UForeignExport cc name typ
 
@@ -357,7 +358,7 @@ mkGadtDataInstance keyw instRule kind cons
 
 -- * Pattern synonyms
 
--- | Creates a pattern synonym (@ pattern Arrow t1 t2 = App "->" [t1, t2] @)
+-- | Creates a pattern synonym (@ pattern Arrow t1 t2 = App \"->\" [t1, t2] @)
 mkPatternSynonym :: PatSynLhs dom -> PatSynRhs dom -> Decl dom
 mkPatternSynonym lhs rhs = mkAnn child $ UPatternSynonymDecl $ mkAnn ("pattern " <> child <> " " <> child) $ UPatternSynonym lhs rhs
 
@@ -373,15 +374,15 @@ mkInfixPatSyn lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ UInfi
 mkRecordPatSyn :: Name dom -> [Name dom] -> PatSynLhs dom
 mkRecordPatSyn con args = mkAnn (child <> child) $ URecordPatSyn con $ mkAnnList (listSepBeforeAfter ", " "{ " " }") args
 
--- | Creates an automatically two-way pattern synonym (@ = App "Int" [] @)
+-- | Creates an automatically two-way pattern synonym (@ = App \"Int\" [] @)
 mkSymmetricPatSyn :: Pattern dom -> PatSynRhs dom
 mkSymmetricPatSyn = mkAnn ("= " <> child) . flip UBidirectionalPatSyn (mkAnnMaybe opt Nothing)
 
--- | Creates a pattern synonym that can be only used for pattenr matching but not for combining (@ <- App "Int" [] @)
+-- | Creates a pattern synonym that can be only used for pattenr matching but not for combining (@ <- App \"Int\" [] @)
 mkOneWayPatSyn :: Pattern dom -> PatSynRhs dom
 mkOneWayPatSyn = mkAnn ("<- " <> child) . UOneDirectionalPatSyn
 
--- | Creates a pattern synonym with the other direction explicitely specified (@ <- App "Int" [] where Int = App "Int" [] @)
+-- | Creates a pattern synonym with the other direction explicitely specified (@ <- App \"Int\" [] where Int = App \"Int\" [] @)
 mkTwoWayPatSyn :: Pattern dom -> [Match dom] -> PatSynRhs dom
 mkTwoWayPatSyn pat match = mkAnn ("<- " <> child <> child) $ UBidirectionalPatSyn pat $ mkAnnMaybe (optBefore " where ") 
                              $ Just $ mkAnn child $ UPatSynWhere $ mkAnnList indentedList match
@@ -399,49 +400,49 @@ mkPatternSignature name typ = mkAnn (child <> " :: " <> child) $ UPatternTypeSig
 mkPragmaDecl :: TopLevelPragma dom -> Decl dom
 mkPragmaDecl = mkAnn child . UPragmaDecl
 
--- | A pragma that introduces source rewrite rules (@ {-# RULES "map/map" [2]  forall f g xs. map f (map g xs) = map (f.g) xs #-} @)
+-- | A pragma that introduces source rewrite rules (@ {-\# RULES "map/map" [2]  forall f g xs. map f (map g xs) = map (f.g) xs \#-} @)
 mkRulePragma :: [Rule dom] -> TopLevelPragma dom
 mkRulePragma = mkAnn ("{-# RULES " <> child <> " #-}") . URulePragma . mkAnnList (listSep ", ")
 
--- | A pragma that marks definitions as deprecated (@ {-# DEPRECATED f "f will be replaced by g" @)
+-- | A pragma that marks definitions as deprecated (@ {-\# DEPRECATED f "f will be replaced by g" \#-} @)
 mkDeprPragma :: [Name dom] -> String -> TopLevelPragma dom
 mkDeprPragma defs msg = mkAnn ("{-# DEPRECATED " <> child <> " " <> child <> " #-}") 
                           $ UDeprPragma (mkAnnList (listSep ", ") defs) $ mkAnn ("\"" <> child <> "\"") $ UStringNode msg
 
--- | A pragma that marks definitions as deprecated (@ {-# WARNING unsafePerformIO "you should know what you are doing" @)
+-- | A pragma that marks definitions as deprecated (@ {-\# WARNING unsafePerformIO "you should know what you are doing" \#-} @)
 mkWarningPragma :: [Name dom] -> String -> TopLevelPragma dom
 mkWarningPragma defs msg = mkAnn ("{-# WARNING " <> child <> " " <> child <> " #-}") 
                              $ UWarningPragma (mkAnnList (listSep ", ") defs) $ mkAnn ("\"" <> child <> "\"") $ UStringNode msg
 
--- | A pragma that annotates a definition with an arbitrary value (@ {-# ANN f 42 @)
+-- | A pragma that annotates a definition with an arbitrary value (@ {-\# ANN f 42 \#-} @)
 mkAnnPragma :: AnnotationSubject dom -> Expr dom -> TopLevelPragma dom
 mkAnnPragma subj ann = mkAnn ("{-# ANN " <> child <> " " <> child <> " #-}") $ UAnnPragma subj ann
 
--- | A pragma that marks a function for inlining to the compiler (@ {-# INLINE thenUs #-} @)
+-- | A pragma that marks a function for inlining to the compiler (@ {-\# INLINE thenUs \#-} @)
 mkInlinePragma :: Maybe (ConlikeAnnot dom) -> Maybe (PhaseControl dom) -> Name dom -> TopLevelPragma dom
 mkInlinePragma conlike phase name 
   = mkAnn ("{-# INLINE " <> child <> child <> child <> " #-}") 
       $ UInlinePragma (mkAnnMaybe (optAfter " ") conlike) (mkAnnMaybe (optAfter " ") phase) name
 
--- | A pragma that forbids a function from being inlined by the compiler (@ {-# NOINLINE f #-} @)
+-- | A pragma that forbids a function from being inlined by the compiler (@ {-\# NOINLINE f \#-} @)
 mkNoInlinePragma :: Maybe (ConlikeAnnot dom) -> Maybe (PhaseControl dom) -> Name dom -> TopLevelPragma dom
 mkNoInlinePragma conlike phase name 
   = mkAnn ("{-# NOINLINE " <> child <> child <> child <> " #-}") 
      $ UNoInlinePragma (mkAnnMaybe (optAfter " ") conlike) (mkAnnMaybe (optAfter " ") phase) name
 
--- | A pragma that marks a function that it may be inlined by the compiler (@ {-# INLINABLE thenUs #-} @)
+-- | A pragma that marks a function that it may be inlined by the compiler (@ {-\# INLINABLE thenUs \#-} @)
 mkInlinablePragma :: Maybe (PhaseControl dom) -> Name dom -> TopLevelPragma dom
 mkInlinablePragma phase name
   = mkAnn ("{-# INLINEABLE " <> child <> child <> " #-}") 
      $ UInlinablePragma (mkAnnMaybe (optAfter " ") phase) name
 
--- | A pragma for maintaining line numbers in generated sources (@ {-# LINE 123 "somefile" #-} @)
+-- | A pragma for maintaining line numbers in generated sources (@ {-\# LINE 123 "somefile" \#-} @)
 mkLinePragma :: Int -> Maybe (StringNode dom) -> TopLevelPragma dom
 mkLinePragma line filename 
   = mkAnn ("{-# LINE " <> child <> child <> " #-}") 
      $ ULinePragma (mkAnn child $ LineNumber line) (mkAnnMaybe (optBefore " ") filename)
 
--- | A pragma that tells the compiler that a polymorph function should be optimized for a given type (@ {-# SPECIALISE f :: Int -> b -> b #-} @)
+-- | A pragma that tells the compiler that a polymorph function should be optimized for a given type (@ {-\# SPECIALISE f :: Int -> b -> b \#-} @)
 mkSpecializePragma :: Maybe (PhaseControl dom) -> Name dom -> [Type dom] -> TopLevelPragma dom
 mkSpecializePragma phase def specTypes 
   = mkAnn ("{-# SPECIALIZE " <> child <> child <> " " <> child <> " #-}") 

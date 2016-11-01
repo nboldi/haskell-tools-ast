@@ -61,7 +61,7 @@ pattern GadtRecordConDecl names fields typ <- Ann _ (UGadtConDecl names (Ann _ (
 pattern ConDecl :: Name dom -> TypeList dom -> ConDecl dom
 pattern ConDecl name args <- Ann _ (UConDecl name args)
 
--- | Record data constructor (@ C { _n1 :: t1, _n2 :: t2 } @)
+-- | Creates a record data constructor (@ Point { x :: Double, y :: Double } @)
 pattern RecordConDecl :: Name dom -> FieldDeclList dom -> ConDecl dom
 pattern RecordConDecl name fields <- Ann _ (URecordDecl name fields)
 
@@ -125,11 +125,11 @@ pattern ClassElemDataFam dh kind <- Ann _ (UClsTypeFam (Ann _ (UDataFamily dh ki
 pattern ClsDefaultType :: DeclHead dom -> Type dom -> ClassElement dom
 pattern ClsDefaultType dh typ <- Ann _ (UClsTypeDef dh typ)
 
--- | Default signature (by using @DefaultSignatures@): @ default _enum :: (Generic a, GEnum (Rep a)) => [a] @
+-- | Default signature (by using @DefaultSignatures@): @ default enum :: (Generic a, GEnum (Rep a)) => [a] @
 pattern ClsDefaultSig :: Name dom -> Type dom -> ClassElement dom
 pattern ClsDefaultSig name typ <- Ann _ (UClsDefSig name typ)
 
--- | Minimal pragma: @ {-# MINIMAL (==) | (/=) #-} @ in a class
+-- | Minimal pragma: @ {-\# MINIMAL (==) | (/=) \#-} @ in a class
 pattern ClsMinimal :: MinimalFormula dom -> ClassElement dom
 pattern ClsMinimal min <- Ann _ (UClsMinimal min)
 
@@ -261,11 +261,11 @@ pattern PhantomRole <- Ann _ UPhantom
 
 -- * Foreign imports and exports
 
--- | Foreign import (@ foreign import _foo :: Int -> IO Int @)
+-- | Foreign import (@ foreign import foo :: Int -> IO Int @)
 pattern ForeignImport :: CallConv dom -> MaybeSafety dom -> Name dom -> Type dom -> Decl dom
 pattern ForeignImport cc safety name typ <- Ann _ (UForeignImport cc safety name typ)
 
--- | Foreign export (@ foreign export ccall _foo :: Int -> IO Int @)
+-- | Foreign export (@ foreign export ccall foo :: Int -> IO Int @)
 pattern ForeignExport :: CallConv dom -> Name dom -> Type dom -> Decl dom
 pattern ForeignExport cc name typ <- Ann _ (UForeignExport cc name typ)
 
@@ -287,7 +287,7 @@ pattern Unsafe <- Ann _ UUnsafe
 
 -- * Pattern synonyms
 
--- | Pattern synonyms (@ pattern Arrow t1 t2 = App "->" [t1, t2] @)
+-- | Pattern synonyms (@ pattern Arrow t1 t2 = App \"->\" [t1, t2] @)
 pattern PatternSynonym :: PatSynLhs dom -> PatSynRhs dom -> Decl dom
 pattern PatternSynonym lhs rhs <- Ann _ (UPatternSynonymDecl (Ann _ (UPatternSynonym lhs rhs)))
 
@@ -303,15 +303,15 @@ pattern InfixPatSyn lhs op rhs <- Ann _ (UInfixPatSyn lhs op rhs)
 pattern RecordPatSyn :: Name dom -> NameList dom -> PatSynLhs dom
 pattern RecordPatSyn con args <- Ann _ (URecordPatSyn con args)
 
--- | An automatically two-way pattern synonym (@ = App "Int" [] @)
+-- | An automatically two-way pattern synonym (@ = App \"Int\" [] @)
 pattern SymmetricPatSyn :: Pattern dom -> PatSynRhs dom
 pattern SymmetricPatSyn pat <- Ann _ (UBidirectionalPatSyn pat AnnNothing)
 
--- | A pattern synonym that can be only used for pattenr matching but not for combining (@ <- App "Int" [] @)
+-- | A pattern synonym that can be only used for pattenr matching but not for combining (@ <- App \"Int\" [] @)
 pattern OneWayPatSyn :: Pattern dom -> PatSynRhs dom
 pattern OneWayPatSyn pat <- Ann _ (UOneDirectionalPatSyn pat)
 
--- | A pattern synonym with the other direction explicitely specified (@ <- App "Int" [] where Int = App "Int" [] @)
+-- | A pattern synonym with the other direction explicitely specified (@ <- App \"Int\" [] where Int = App \"Int\" [] @)
 pattern TwoWayPatSyn :: Pattern dom -> MatchList dom -> PatSynRhs dom
 pattern TwoWayPatSyn pat match <- Ann _ (UBidirectionalPatSyn pat (AnnJust (Ann _ (UPatSynWhere match))))
 
@@ -366,39 +366,39 @@ pattern TypeEqn lhs rhs <- Ann _ (UTypeEqn lhs rhs)
 pattern PragmaDecl :: TopLevelPragma dom -> Decl dom
 pattern PragmaDecl pragma <- Ann _ (UPragmaDecl pragma)
 
--- | A pragma that introduces source rewrite rules (@ {-# RULES "map/map" [2]  forall f g xs. map f (map g xs) = map (f.g) xs #-} @)
+-- | A pragma that introduces source rewrite rules (@ {-\# RULES "map/map" [2]  forall f g xs. map f (map g xs) = map (f.g) xs \#-} @)
 pattern RulePragma :: RuleList dom -> TopLevelPragma dom
 pattern RulePragma rules <- Ann _ (URulePragma rules)
 
--- | A pragma that marks definitions as deprecated (@ {-# DEPRECATED f "f will be replaced by g" @)
+-- | A pragma that marks definitions as deprecated (@ {-\# DEPRECATED f "f will be replaced by g" \#-} @)
 pattern DeprPragma :: NameList dom -> String -> TopLevelPragma dom
 pattern DeprPragma defs msg <- Ann _ (UDeprPragma defs (Ann _ (UStringNode msg)))
 
--- | A pragma that marks definitions as deprecated (@ {-# WARNING unsafePerformIO "you should know what you are doing" @)
+-- | A pragma that marks definitions as deprecated (@ {-\# WARNING unsafePerformIO "you should know what you are doing" \#-} @)
 pattern WarningPragma :: NameList dom -> String -> TopLevelPragma dom
 pattern WarningPragma defs msg <- Ann _ (UWarningPragma defs (Ann _ (UStringNode msg)))
 
--- | A pragma that annotates a definition with an arbitrary value (@ {-# ANN f 42 @)
+-- | A pragma that annotates a definition with an arbitrary value (@ {-\# ANN f 42 \#-} @)
 pattern AnnPragma :: AnnotationSubject dom -> Expr dom -> TopLevelPragma dom
 pattern AnnPragma subj ann <- Ann _ (UAnnPragma subj ann)
 
--- | A pragma that marks a function for inlining to the compiler (@ {-# INLINE thenUs #-} @)
+-- | A pragma that marks a function for inlining to the compiler (@ {-\# INLINE thenUs \#-} @)
 pattern InlinePragma :: MaybeConlikeAnnot dom -> MaybePhaseControl dom -> Name dom -> TopLevelPragma dom
 pattern InlinePragma conlike phase name <- Ann _ (UInlinePragma conlike phase name)
 
--- | A pragma that forbids a function from being inlined by the compiler (@ {-# NOINLINE f #-} @)
+-- | A pragma that forbids a function from being inlined by the compiler (@ {-\# NOINLINE f \#-} @)
 pattern NoInlinePragma :: MaybeConlikeAnnot dom -> MaybePhaseControl dom -> Name dom -> TopLevelPragma dom
 pattern NoInlinePragma conlike phase name <- Ann _ (UNoInlinePragma conlike phase name)
 
--- | A pragma that marks a function that it may be inlined by the compiler (@ {-# INLINABLE thenUs #-} @)
+-- | A pragma that marks a function that it may be inlined by the compiler (@ {-\# INLINABLE thenUs \#-} @)
 pattern InlinablePragma :: MaybePhaseControl dom -> Name dom -> TopLevelPragma dom
 pattern InlinablePragma phase name <- Ann _ (UInlinablePragma phase name)
 
--- | A pragma for maintaining line numbers in generated sources (@ {-# LINE 123 "somefile" #-} @)
+-- | A pragma for maintaining line numbers in generated sources (@ {-\# LINE 123 \"somefile\" \#-} @)
 pattern LinePragma :: Int -> MaybeStringNode dom -> TopLevelPragma dom
 pattern LinePragma line filename <- Ann _ (ULinePragma (Ann _ (LineNumber line)) filename)
 
--- | A pragma that tells the compiler that a polymorph function should be optimized for a given type (@ {-# SPECIALISE f :: Int -> b -> b #-} @)
+-- | A pragma that tells the compiler that a polymorph function should be optimized for a given type (@ {-\# SPECIALISE f :: Int -> b -> b \#-} @)
 pattern SpecializePragma :: MaybePhaseControl dom -> Name dom -> TypeList dom -> TopLevelPragma dom
 pattern SpecializePragma phase def specTypes <- Ann _ (USpecializePragma phase def specTypes)
 

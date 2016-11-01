@@ -30,7 +30,7 @@ pattern PatternBracket p <- Ann _ (UPatternBracket p)
 pattern TypeBracket :: Type dom -> Bracket dom
 pattern TypeBracket t <- Ann _ (UTypeBracket t)
 
--- | Declaration bracket (@ [d| _f :: Int -> Int; f x = x*x |] @)
+-- | Declaration bracket (@ [d| f :: Int -> Int; f x = x*x |] @)
 pattern DeclsBracket :: DeclList dom -> Bracket dom
 pattern DeclsBracket d <- Ann _ (UDeclsBracket d)
 

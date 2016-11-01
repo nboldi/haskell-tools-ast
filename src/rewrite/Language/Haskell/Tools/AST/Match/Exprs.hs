@@ -29,7 +29,7 @@ pattern PrefixApp op rhs <- Ann _ (UPrefixApp op rhs)
 pattern App :: Expr dom -> Expr dom -> Expr dom
 pattern App f e <- Ann _ (UApp f e)
 
--- | Lambda expression (@ \a b -> a + b @)
+-- | Lambda expression (@ \\a b -> a + b @)
 pattern Lambda :: PatternList dom -> Expr dom -> Expr dom
 pattern Lambda pats rhs <- Ann _ (ULambda pats rhs)
 
@@ -60,7 +60,7 @@ pattern ParArrayComp expr stmts <- Ann _ (UParArrayComp expr stmts)
 pattern Tuple :: ExprList dom -> Expr dom
 pattern Tuple exprs <- Ann _ (UTuple exprs)
 
--- | Unboxed tuple expression (@ (# e1, e2, e3 #) @)
+-- | Unboxed tuple expression (@ (\# e1, e2, e3 \#) @)
 pattern UnboxedTuple :: ExprList dom -> Expr dom
 pattern UnboxedTuple exprs <- Ann _ (UUnboxedTuple exprs)
 

@@ -39,7 +39,7 @@ mkPrefixApp op rhs = mkAnn (child <> child) $ UPrefixApp op rhs
 mkApp :: Expr dom -> Expr dom -> Expr dom
 mkApp f e = mkAnn (child <> " " <> child) (UApp f e)
 
--- | Create a lambda expression (@ \a b -> a + b @)
+-- | Create a lambda expression (@ \\a b -> a + b @)
 mkLambda :: [Pattern dom] -> Expr dom -> Expr dom
 mkLambda pats rhs = mkAnn ("\\" <> child <> " -> " <> child) $ ULambda (mkAnnList (listSep " ") pats) rhs
 
@@ -67,7 +67,7 @@ mkDoBlock stmts = mkAnn (child <> " " <> child) $ UDo (mkAnn "do" UDoKeyword) (m
 mkTuple :: [Expr dom] -> Expr dom
 mkTuple exprs = mkAnn ("(" <> child <> ")") $ UTuple (mkAnnList (listSep ", ") exprs)
 
--- | Create a unboxed tuple expression (@ (# e1, e2, e3 #) @)
+-- | Create a unboxed tuple expression (@ (\# e1, e2, e3 \#) @)
 mkUnboxedTuple :: [Expr dom] -> Expr dom
 mkUnboxedTuple exprs = mkAnn ("(# " <> child <> " #)") $ UTuple (mkAnnList (listSep ", ") exprs)
 
@@ -77,7 +77,7 @@ mkTupleSection elems
   = let tupSecs = map (maybe (mkAnn "" Missing) (mkAnn child . Present)) elems
      in mkAnn ("(" <> child <> ")") $ UTupleSection (mkAnnList (listSep ", ") tupSecs)
 
--- | Create a unboxed tuple section, enabled with @TupleSections@ (@ (#a,,b#) @). One of the elements must be missing.
+-- | Create a unboxed tuple section, enabled with @TupleSections@ (@ (\#a,,b\#) @). One of the elements must be missing.
 mkTupleUnboxedSection :: [Maybe (Expr dom)] -> Expr dom
 mkTupleUnboxedSection elems 
   = let tupSecs = map (maybe (mkAnn "" Missing) (mkAnn child . Present)) elems
@@ -157,7 +157,7 @@ mkBracketExpr = mkAnn child . UBracketExpr
 mkSpliceExpr :: Splice dom -> Expr dom
 mkSpliceExpr = mkAnn child . USplice
 
--- | Create a template haskell splice expression, for example: @$(gen a)@ or @$x@
+-- | Create a template haskell quasi quote expression, for example: @[quoter| a + b ]@
 mkQuasiQuoteExpr :: QuasiQuote dom -> Expr dom
 mkQuasiQuoteExpr = mkAnn child . UQuasiQuoteExpr
 
@@ -228,7 +228,7 @@ mkSccPragma :: String -> ExprPragma dom
 mkSccPragma = mkAnn ("{-# SCC " <> child <> " #-}") . USccPragma 
                 . mkAnn ("\"" <> child <> "\"") . UStringNode
 
--- | Creates a pragma that describes if an expression was generated from a code fragment by an external tool (@ {-# GENERATED "Happy.y" 1:15-1:25 #-} @)
+-- | Creates a pragma that describes if an expression was generated from a code fragment by an external tool (@ {-\# GENERATED "Happy.y" 1:15-1:25 \#-} @)
 mkGeneratedPragma :: SourceRange dom -> ExprPragma dom
 mkGeneratedPragma = mkAnn ("{-# GENERATED " <> child <> " #-}") . UGeneratedPragma 
 

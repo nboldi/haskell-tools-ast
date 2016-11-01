@@ -14,6 +14,7 @@ import Control.Reference
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST.Gen.Names
+import Language.Haskell.Tools.AST.Gen.Kinds
 import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.Transform
 
@@ -39,7 +40,7 @@ mkFunctionType at rt = mkAnn (child <> " -> " <> child) (UTyFun at rt)
 mkTupleType :: [Type dom] -> Type dom
 mkTupleType args = mkAnn ("(" <> child <> ")") (UTyTuple (mkAnnList (listSep ", ") args))
 
--- | Unboxed tuple types (@ (#a,b#) @)
+-- | Unboxed tuple types (@ (\#a,b\#) @)
 mkUnboxedTupleType :: [Type dom] -> Type dom
 mkUnboxedTupleType args = mkAnn ("(#" <> child <> "#)") (UTyUnbTuple (mkAnnList (listSep ", ") args))
 
@@ -62,9 +63,14 @@ mkInfixTypeApp left op right = mkAnn (child <> " " <> child <> " " <> child) (UT
 -- | Type surrounded by parentheses (@ (T a) @)
 mkParenType :: Type dom -> Type dom
 mkParenType = mkAnn ("(" <> child <> ")") . UTyParen
-           
+
+-- | Creates a simple type variable
 mkTypeVar :: Name dom -> TyVar dom
 mkTypeVar n = mkAnn (child <> child) (UTyVarDecl n noth)
+
+-- | Creates a type variable with kind specification (@ t :: * @)
+mkKindedTypeVar :: Name dom -> Kind dom -> TyVar dom
+mkKindedTypeVar n k = mkAnn (child <> child) (UTyVarDecl n (justVal (mkKindConstraint k)))
 
 -- | Type variable or constructor (@ a @)
 mkVarType :: Name dom -> Type dom

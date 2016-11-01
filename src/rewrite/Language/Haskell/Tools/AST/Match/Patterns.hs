@@ -25,7 +25,7 @@ pattern AppPat n pat <- Ann _ (UAppPat n pat)
 pattern TuplePat :: PatternList dom -> Pattern dom
 pattern TuplePat pats <- Ann _ (UTuplePat pats)
 
--- | Unboxed tuple pattern (@ (# x, y #) @)
+-- | Unboxed tuple pattern (@ (\# x, y \#) @)
 pattern UnboxTuplePat :: PatternList dom -> Pattern dom
 pattern UnboxTuplePat pats <- Ann _ (UUnboxTuplePat pats)
 

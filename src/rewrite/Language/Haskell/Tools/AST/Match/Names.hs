@@ -9,7 +9,7 @@ import Language.Haskell.Tools.AST.ElementTypes
 pattern NormalOp :: QualifiedName dom -> Operator dom
 pattern NormalOp n <- Ann _ (UNormalOp n)
 
--- | A normal name used as an operator with backticks: @ a `mod` b @
+-- | A normal name used as an operator with backticks: @ a \`mod\` b @
 pattern BacktickOp :: QualifiedName dom -> Operator dom
 pattern BacktickOp n <- Ann _ (UBacktickOp n)
 
@@ -21,7 +21,7 @@ pattern NormalName n <- Ann _ (UNormalName n)
 pattern ParenName :: QualifiedName dom -> Name dom
 pattern ParenName n <- Ann _ (UParenName n)
 
--- | Parenthesized name: @ foldl (+) 0 @
+-- | Creates an implicit name: @ ?var @
 pattern ImplicitName :: QualifiedName dom -> Name dom
 pattern ImplicitName n <- Ann _ (UImplicitName n)
 

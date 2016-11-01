@@ -26,12 +26,12 @@ mkQualOp quals = mkAnn child . UNormalOp . mkQualifiedName quals
 mkBacktickOp :: [String] -> String -> Operator dom
 mkBacktickOp quals = mkAnn ("`" <> child <> "`") . UBacktickOp . mkQualifiedName quals
 
--- | Creates an annotated qualified operator: @A.B.+@ or @`A.B.mod`@.
+-- | Creates an annotated qualified operator: @A.B.+@ or @\`A.B.mod\`@.
 mkQualOp' :: [String] -> GHC.Name -> Operator dom
 mkQualOp' quals n | GHC.isSymOcc (GHC.getOccName n) = mkAnn child $ UNormalOp $ mkQualifiedName' quals n
                   | otherwise                       = mkAnn ("`" <> child <> "`") $ UBacktickOp $ mkQualifiedName' quals n
 
--- | Creates an annotated unqualified operator: @+@ or @`mod`@.
+-- | Creates an annotated unqualified operator: @+@ or @\`mod\`@.
 mkUnqualOp' :: GHC.Name -> Operator dom
 mkUnqualOp' n | GHC.isSymOcc (GHC.getOccName n) = mkAnn child $ UNormalOp $ mkSimpleName' n
               | otherwise                       = mkAnn ("`" <> child <> "`") $ UBacktickOp $ mkSimpleName' n

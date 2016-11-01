@@ -14,6 +14,8 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Language.Haskell.Tools.AST.Rewrite
                      , Language.Haskell.Tools.AST.ElementTypes
+                     , Language.Haskell.Tools.AST.Gen
+                     , Language.Haskell.Tools.AST.Match
                      , Language.Haskell.Tools.AST.Gen.Modules
                      , Language.Haskell.Tools.AST.Gen.Decls
                      , Language.Haskell.Tools.AST.Gen.Binds
