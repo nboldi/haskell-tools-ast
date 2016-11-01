@@ -36,11 +36,11 @@ import Data.List.Split
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC
 import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.AnnTrf.RangeToRangeTemplate
-import Language.Haskell.Tools.AnnTrf.RangeTemplateToSourceTemplate
-import Language.Haskell.Tools.AnnTrf.SourceTemplate
-import Language.Haskell.Tools.AnnTrf.RangeTemplate
-import Language.Haskell.Tools.AnnTrf.PlaceComments
+import Language.Haskell.Tools.Transform.RangeToRangeTemplate
+import Language.Haskell.Tools.Transform.RangeTemplateToSourceTemplate
+import Language.Haskell.Tools.Transform.SourceTemplate
+import Language.Haskell.Tools.Transform.RangeTemplate
+import Language.Haskell.Tools.Transform.PlaceComments
 import Language.Haskell.Tools.Refactor.RefactorBase
 
 tryRefactor :: Refactoring IdDom -> String -> IO ()

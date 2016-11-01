@@ -13,7 +13,7 @@ import Data.Maybe
 import Control.Applicative ((<|>))
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.AnnTrf.SourceTemplate
+import Language.Haskell.Tools.Transform.SourceTemplate
 import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.Refactor.RefactorBase

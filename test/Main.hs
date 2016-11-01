@@ -12,7 +12,7 @@ import Module as GHC
 import Control.Monad.IO.Class
 import Control.Monad
 import Data.Maybe
-import Data.List
+import Data.Listđ
 import Data.Either.Combinators
 import Test.HUnit hiding (test)
 import System.IO
@@ -22,10 +22,10 @@ import System.FilePath
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.Rewrite as G
 import Language.Haskell.Tools.AST.FromGHC
-import Language.Haskell.Tools.AnnTrf.RangeTemplateToSourceTemplate
-import Language.Haskell.Tools.AnnTrf.RangeToRangeTemplate
-import Language.Haskell.Tools.AnnTrf.SourceTemplate
-import Language.Haskell.Tools.AnnTrf.PlaceComments
+import Language.Haskell.Tools.Transform.RangeTemplateToSourceTemplate
+import Language.Haskell.Tools.Transform.RangeToRangeTemplate
+import Language.Haskell.Tools.Transform.SourceTemplate
+import Language.Haskell.Tools.Transform.PlaceComments
 import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.Prepare
