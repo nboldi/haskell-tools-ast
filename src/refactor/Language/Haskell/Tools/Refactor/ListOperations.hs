@@ -7,8 +7,7 @@ import Control.Reference
 import Data.Function (on)
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Rewrite
-import Language.Haskell.Tools.Transform.SourceTemplate
-import Language.Haskell.Tools.Transform.SourceTemplateHelpers
+import Language.Haskell.Tools.Transform
 
 filterList :: (Ann e dom SrcTemplateStage -> Bool) -> AnnListG e dom SrcTemplateStage -> AnnListG e dom SrcTemplateStage
 -- QUESTION: is it OK? No problem from losing separators?

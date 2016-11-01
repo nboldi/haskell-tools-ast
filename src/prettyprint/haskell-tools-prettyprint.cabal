@@ -13,7 +13,8 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Language.Haskell.Tools.PrettyPrint
-                     , Language.Haskell.Tools.PrettyPrint.RoseTree
+                     , Language.Haskell.Tools.Transform
+  other-modules:       Language.Haskell.Tools.PrettyPrint.RoseTree
                      , Language.Haskell.Tools.Transform.RangeToRangeTemplate
                      , Language.Haskell.Tools.Transform.RangeTemplateToSourceTemplate
                      , Language.Haskell.Tools.Transform.RangeTemplate

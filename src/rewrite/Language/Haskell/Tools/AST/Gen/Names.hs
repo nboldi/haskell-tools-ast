@@ -14,8 +14,7 @@ import Control.Reference
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST.Gen.Utils
-import Language.Haskell.Tools.Transform.SourceTemplate
-import Language.Haskell.Tools.Transform.SourceTemplateHelpers
+import Language.Haskell.Tools.Transform
 
 -- | Creates a simple, unqualified name
 mkName :: String -> Name dom

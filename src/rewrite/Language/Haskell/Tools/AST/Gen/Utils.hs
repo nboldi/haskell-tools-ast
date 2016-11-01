@@ -7,8 +7,7 @@ module Language.Haskell.Tools.AST.Gen.Utils where
 import Control.Reference
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.ElementTypes
-import Language.Haskell.Tools.Transform.SourceTemplate
-import Language.Haskell.Tools.Transform.SourceTemplateHelpers
+import Language.Haskell.Tools.Transform
 
 fromTemplate :: src -> NodeInfo sema src
 fromTemplate = NodeInfo (error "The newly generated AST fragments have no semantic info")

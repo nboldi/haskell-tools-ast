@@ -15,8 +15,7 @@ import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.AST.Gen.Names
-import Language.Haskell.Tools.Transform.SourceTemplate
-import Language.Haskell.Tools.Transform.SourceTemplateHelpers
+import Language.Haskell.Tools.Transform
 
 mkVarPat :: Name dom -> Pattern dom
 mkVarPat = mkAnn child . UVarPat

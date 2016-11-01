@@ -14,9 +14,7 @@ import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.AST.Gen.Names
-import Language.Haskell.Tools.Transform.SourceTemplate
-import Language.Haskell.Tools.Transform.SourceTemplateHelpers
-
+import Language.Haskell.Tools.Transform
 
 -- | Kind constraint (@ :: * -> * @)
 mkKindConstraint :: Kind dom -> KindConstraint dom

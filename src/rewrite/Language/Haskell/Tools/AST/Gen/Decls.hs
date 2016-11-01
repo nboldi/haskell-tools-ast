@@ -15,8 +15,7 @@ import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.AST.Gen.Names
-import Language.Haskell.Tools.Transform.SourceTemplate
-import Language.Haskell.Tools.Transform.SourceTemplateHelpers
+import Language.Haskell.Tools.Transform
 
 -- | Creates a type synonym ( @type String = [Char]@ )
 mkTypeDecl :: DeclHead dom -> Type dom -> Decl dom 

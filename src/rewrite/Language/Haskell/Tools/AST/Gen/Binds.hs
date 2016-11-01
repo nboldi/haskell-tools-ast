@@ -16,8 +16,7 @@ import Language.Haskell.Tools.AST.ElementTypes
 import Language.Haskell.Tools.AST.Gen.Patterns
 import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.AST.Gen.Names
-import Language.Haskell.Tools.Transform.SourceTemplate
-import Language.Haskell.Tools.Transform.SourceTemplateHelpers
+import Language.Haskell.Tools.Transform
 
 -- | A simplified function to generate simple value bindings without local definitions, guards or complex lhs.
 mkSimpleBind' :: Name dom -> Expr dom -> ValueBind dom

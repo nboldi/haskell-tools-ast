@@ -34,6 +34,8 @@ instance SourceInfo SrcTemplateStage where
                                                          }
     deriving (Eq, Ord, Data)
 
+-- QUESTION: why cant these references be generated?
+
 sourceTemplateNodeRange :: Simple Lens (SpanInfo SrcTemplateStage) SrcSpan
 sourceTemplateNodeRange = lens _sourceTemplateNodeRange (\v s -> s { _sourceTemplateNodeRange = v })
 

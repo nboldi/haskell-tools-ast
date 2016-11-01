@@ -1,7 +1,7 @@
 module Language.Haskell.Tools.AST.ElementTypes where
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Transform.SourceTemplate
+import Language.Haskell.Tools.Transform
 
 type AnnList node dom = AnnListG node dom SrcTemplateStage 
 type AnnMaybe node dom = AnnMaybeG node dom SrcTemplateStage 

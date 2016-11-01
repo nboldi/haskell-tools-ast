@@ -34,9 +34,7 @@ import Unique as GHC
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.FromGHC
-import Language.Haskell.Tools.Transform.RangeToRangeTemplate
-import Language.Haskell.Tools.Transform.RangeTemplate
-import Language.Haskell.Tools.Transform.SourceTemplate
+import Language.Haskell.Tools.Transform
 --import Language.Haskell.Tools.Refactor.RangeDebug
 import Language.Haskell.Tools.AST.SemaInfoTypes
 
