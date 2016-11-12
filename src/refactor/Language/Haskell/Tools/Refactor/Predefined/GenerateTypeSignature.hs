@@ -15,6 +15,7 @@ import OccName as GHC
 import Outputable as GHC
 import TysWiredIn as GHC
 import Id as GHC
+import Unique as GHC
 
 import Data.List
 import Data.Maybe
@@ -28,6 +29,8 @@ import Language.Haskell.Tools.Refactor as AST
 
 type GenerateSignatureDomain dom = ( HasModuleInfo dom, HasIdInfo dom, HasImportInfo dom ) 
 
+tryItOut moduleName sp = tryRefactor (localRefactoring $ generateTypeSignature' (readSrcSpan (toFileName "." moduleName) sp)) moduleName
+
 generateTypeSignature' :: GenerateSignatureDomain dom => RealSrcSpan -> LocalRefactoring dom
 generateTypeSignature' sp = generateTypeSignature (nodesContaining sp) (nodesContaining sp) (getValBindInList sp) 
 
@@ -39,14 +42,19 @@ generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Module
                            -> (forall d . (BindingElem d) => AnnList d dom -> Maybe (ValueBind dom)) 
                                 -- ^ Selector for either local or top-level declaration in the definition list
                            -> LocalRefactoring dom
-generateTypeSignature topLevelRef localRef vbAccess
-  = flip evalStateT False .
-     (topLevelRef !~ genTypeSig vbAccess
-        <=< localRef !~ genTypeSig vbAccess)
+generateTypeSignature topLevelRef localRef vbAccess mod
+  = let typeSigs = universeBi mod
+        scopedSigs = hasScopedTypeSignatures mod
+     in flip evalStateT False .
+          (topLevelRef !~ genTypeSig scopedSigs typeSigs vbAccess
+             <=< localRef !~ genTypeSig scopedSigs typeSigs vbAccess) $ mod
   
-genTypeSig :: (GenerateSignatureDomain dom, BindingElem d) => (AnnList d dom -> Maybe (ValueBind dom))  
+hasScopedTypeSignatures :: Module dom -> Bool
+hasScopedTypeSignatures mod = "ScopedTypeVariables" `elem` (mod ^? filePragmas & annList & lpPragmas & annList & langExt :: [String])
+
+genTypeSig :: (GenerateSignatureDomain dom, BindingElem d) => Bool -> [TypeSignature dom] -> (AnnList d dom -> Maybe (ValueBind dom))  
                 -> AnnList d dom -> StateT Bool (LocalRefactor dom) (AnnList d dom)
-genTypeSig vbAccess ls 
+genTypeSig scopedSigs typeSigs vbAccess ls 
   | Just vb <- vbAccess ls 
   , not (typeSignatureAlreadyExist ls vb)
     = do let id = getBindingName vb
@@ -58,13 +66,34 @@ genTypeSig vbAccess ls
          if alreadyGenerated 
            then return ls
            else do put True
-                   typeSig <- lift $ generateTSFor (getName id) (idType id)
-                   return $ insertWhere (createTypeSig typeSig) (const True) isTheBind ls
+                   let tvs = map (occNameString . getOccName) $ getExternalTVs (idType id)
+                       dangerousSigs = if scopedSigs then filter (not . isForalledTS) typeSigs else typeSigs
+                       dangerousTVs = concatMap @[] (map (occNameString . getOccName) . getBoundedTVs . idType . semanticsId) (dangerousSigs ^? traversal & tsName & annList & simpleName)
+                   if not $ null @[] $ tvs `intersect` dangerousTVs
+                     then refactError "Could not refactor: the type variable cannot be captured."
+                     else do 
+                       typeSig <- lift $ generateTSFor (getName id) (idType id)
+                       return $ insertWhere (createTypeSig typeSig) (const True) isTheBind ls
   | otherwise = return ls
 
+getExternalTVs :: GHC.Type -> [GHC.Var]
+getExternalTVs t
+  | Just tv <- getTyVar_maybe t = [tv]
+  | Just (op, arg) <- splitAppTy_maybe t = getExternalTVs op `union` getExternalTVs arg
+  | Just (tv, t') <- splitForAllTy_maybe t = delete tv $ getExternalTVs t'
+  | otherwise = []
 
 generateTSFor :: GenerateSignatureDomain dom => GHC.Name -> GHC.Type -> LocalRefactor dom (TypeSignature dom)
 generateTSFor n t = mkTypeSignature (mkUnqualName' n) <$> generateTypeFor (-1) (dropForAlls t)
+
+getBoundedTVs :: GHC.Type -> [GHC.Var]
+getBoundedTVs t
+  | Just (op, arg) <- splitAppTy_maybe t = getBoundedTVs op `union` getBoundedTVs arg
+  | Just (tv, t') <- splitForAllTy_maybe t = tv : getBoundedTVs t'
+  | otherwise = []
+
+isForalledTS :: TypeSignature dom -> Bool
+isForalledTS ts = not $ null @[] $ ts ^? tsType & typeBounded & annList
 
 -- | Generates the source-level type for a GHC internal type
 generateTypeFor :: GenerateSignatureDomain dom => Int -> GHC.Type -> LocalRefactor dom (AST.Type dom) 
