@@ -214,6 +214,7 @@ generateSignatureTests =
   , ("Refactor.GenerateTypeSignature.TypeDefinedInModule", "3:1-3:1")
   , ("Refactor.GenerateTypeSignature.BringToScope.AlreadyQualImport", "6:1-6:2")
   , ("Refactor.GenerateTypeSignature.CanCaptureVariable", "8:10-8:10")
+  , ("Refactor.GenerateTypeSignature.CanCaptureVariableHasOtherDef", "8:10-8:10")
   ]
 
 wrongGenerateSigTests = 

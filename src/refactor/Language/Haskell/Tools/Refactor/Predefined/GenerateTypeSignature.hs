@@ -5,6 +5,7 @@
            , TypeApplications
            , TypeFamilies
            , ConstraintKinds
+           , TupleSections
            #-}
 module Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature (generateTypeSignature, generateTypeSignature', GenerateSignatureDomain) where
 
@@ -27,7 +28,7 @@ import Control.Reference
 
 import Language.Haskell.Tools.Refactor as AST
 
-type GenerateSignatureDomain dom = ( HasModuleInfo dom, HasIdInfo dom, HasImportInfo dom ) 
+type GenerateSignatureDomain dom = ( HasModuleInfo dom, HasIdInfo dom, HasImportInfo dom, HasScopeInfo dom ) 
 
 tryItOut moduleName sp = tryRefactor (localRefactoring $ generateTypeSignature' (readSrcSpan (toFileName "." moduleName) sp)) moduleName
 
@@ -44,17 +45,20 @@ generateTypeSignature :: GenerateSignatureDomain dom => Simple Traversal (Module
                            -> LocalRefactoring dom
 generateTypeSignature topLevelRef localRef vbAccess mod
   = let typeSigs = universeBi mod
+        bindings = universeBi mod
+        findTypeSigFor id = find (\ts -> any (id ==) $ map semanticsId (ts ^? tsName & annList & simpleName))
+        bindsWithSigs = catMaybes $ concatMap (\b -> map (\n -> let id = semanticsId n in fmap (id,,b) (findTypeSigFor id typeSigs)) (b ^? bindingName)) bindings 
         scopedSigs = hasScopedTypeSignatures mod
      in flip evalStateT False .
-          (topLevelRef !~ genTypeSig scopedSigs typeSigs vbAccess
-             <=< localRef !~ genTypeSig scopedSigs typeSigs vbAccess) $ mod
+          (topLevelRef !~ genTypeSig scopedSigs bindsWithSigs vbAccess
+             <=< localRef !~ genTypeSig scopedSigs bindsWithSigs vbAccess) $ mod
   
 hasScopedTypeSignatures :: Module dom -> Bool
 hasScopedTypeSignatures mod = "ScopedTypeVariables" `elem` (mod ^? filePragmas & annList & lpPragmas & annList & langExt :: [String])
 
-genTypeSig :: (GenerateSignatureDomain dom, BindingElem d) => Bool -> [TypeSignature dom] -> (AnnList d dom -> Maybe (ValueBind dom))  
+genTypeSig :: forall dom d . (GenerateSignatureDomain dom, BindingElem d) => Bool -> [(GHC.Var, TypeSignature dom, ValueBind dom)] -> (AnnList d dom -> Maybe (ValueBind dom))  
                 -> AnnList d dom -> StateT Bool (LocalRefactor dom) (AnnList d dom)
-genTypeSig scopedSigs typeSigs vbAccess ls 
+genTypeSig scopedSigs sigBinds vbAccess ls 
   | Just vb <- vbAccess ls 
   , not (typeSignatureAlreadyExist ls vb)
     = do let id = getBindingName vb
@@ -66,34 +70,23 @@ genTypeSig scopedSigs typeSigs vbAccess ls
          if alreadyGenerated 
            then return ls
            else do put True
-                   let tvs = map (occNameString . getOccName) $ getExternalTVs (idType id)
-                       dangerousSigs = if scopedSigs then filter (not . isForalledTS) typeSigs else typeSigs
-                       dangerousTVs = concatMap @[] (map (occNameString . getOccName) . getBoundedTVs . idType . semanticsId) (dangerousSigs ^? traversal & tsName & annList & simpleName)
-                   if not $ null @[] $ tvs `intersect` dangerousTVs
-                     then refactError "Could not refactor: the type variable cannot be captured."
+                   -- checking for possible situations when we cannot generate signature because of
+                   -- an implicitly passed value
+                   let myTvs = concatMap @[] (getExternalTVs . idType . semanticsId) (vb ^? bindingName)
+                       dangerousDecls = if scopedSigs then filter (\(_,ts,_) -> not $ isForalledTS ts) sigBinds else sigBinds
+                       dangerousNames = map (\(_,_,bn) -> bn ^? (valBindPats & biplateRef &+& bindingName)) dangerousDecls
+                       dangerousTVs = concatMap (concatMap @[] (getExternalTVs . idType .  semanticsId @(QualifiedName dom))) dangerousNames
+                   if not $ null @[] $ myTvs `intersect` dangerousTVs
+                     then refactError $ "Could not generate type signature: the type variable(s) " 
+                                          ++ concat (intersperse ", " $ map (showSDocUnsafe . ppr) (myTvs `intersect` dangerousTVs)) 
+                                          ++ " cannot be captured. (Use ScopedTypeVariables and forall-ed type signatures)"
                      else do 
                        typeSig <- lift $ generateTSFor (getName id) (idType id)
                        return $ insertWhere (createTypeSig typeSig) (const True) isTheBind ls
   | otherwise = return ls
 
-getExternalTVs :: GHC.Type -> [GHC.Var]
-getExternalTVs t
-  | Just tv <- getTyVar_maybe t = [tv]
-  | Just (op, arg) <- splitAppTy_maybe t = getExternalTVs op `union` getExternalTVs arg
-  | Just (tv, t') <- splitForAllTy_maybe t = delete tv $ getExternalTVs t'
-  | otherwise = []
-
 generateTSFor :: GenerateSignatureDomain dom => GHC.Name -> GHC.Type -> LocalRefactor dom (TypeSignature dom)
 generateTSFor n t = mkTypeSignature (mkUnqualName' n) <$> generateTypeFor (-1) (dropForAlls t)
-
-getBoundedTVs :: GHC.Type -> [GHC.Var]
-getBoundedTVs t
-  | Just (op, arg) <- splitAppTy_maybe t = getBoundedTVs op `union` getBoundedTVs arg
-  | Just (tv, t') <- splitForAllTy_maybe t = tv : getBoundedTVs t'
-  | otherwise = []
-
-isForalledTS :: TypeSignature dom -> Bool
-isForalledTS ts = not $ null @[] $ ts ^? tsType & typeBounded & annList
 
 -- | Generates the source-level type for a GHC internal type
 generateTypeFor :: GenerateSignatureDomain dom => Int -> GHC.Type -> LocalRefactor dom (AST.Type dom) 
@@ -161,3 +154,15 @@ getBindingName vb = case nub $ map semanticsId $ vb ^? bindingName of
   [n] -> n
   [] -> error "Trying to generate a signature for a binding with no name"
   _ -> error "Trying to generate a signature for a binding with multiple names"
+
+-- * Checking for type variable constraints
+
+getExternalTVs :: GHC.Type -> [GHC.Var]
+getExternalTVs t
+  | Just tv <- getTyVar_maybe t = [tv]
+  | Just (op, arg) <- splitAppTy_maybe t = getExternalTVs op `union` getExternalTVs arg
+  | Just (tv, t') <- splitForAllTy_maybe t = delete tv $ getExternalTVs t'
+  | otherwise = []
+
+isForalledTS :: TypeSignature dom -> Bool
+isForalledTS ts = not $ null @[] $ ts ^? tsType & typeBounded & annList
