@@ -2,6 +2,7 @@
            , ConstraintKinds
            , FlexibleContexts
            , TypeFamilies
+           , LambdaCase
            #-}
 module Language.Haskell.Tools.Refactor.Predefined.InlineBinding (inlineBinding, InlineBindingDomain) where
 
@@ -10,6 +11,9 @@ import Control.Monad.Writer hiding (Alt)
 import Control.Monad.State
 import Data.Maybe
 import Data.List (nub)
+import Data.Either (isLeft)
+import Data.Generics.Uniplate.Operations
+import Data.Generics.Uniplate.Data
 
 import SrcLoc as GHC
 import Name as GHC
@@ -39,7 +43,7 @@ inlineBinding' topLevelRef localRef elemAccess mod
             do replacement <- createReplacement removedBinding
                let [removedBindingName] = nub $ catMaybes $ map semanticsName (removedBinding ^? bindingName)
                    mod' = removeBindingAndSig topLevelRef localRef removedBindingName mod
-                   mod'' = biplateRef .- replaceInvocations removedBindingName replacement $ mod'
+                   mod'' = descendBi (replaceInvocations removedBindingName replacement) mod'
                return mod''
 
 -- | Removes the inlined binding
@@ -63,30 +67,67 @@ removeBindingAndSig' name = (annList .- removeNameFromSigBind) . filterList notT
           = createTypeSig $ tsName .- filterList (\n -> semanticsName (n ^. simpleName) /= Just name) $ sb
           | otherwise = d
 
-replaceInvocations :: InlineBindingDomain dom => GHC.Name -> (Int -> Expr dom) -> Expr dom -> Expr dom
-replaceInvocations name replacement (Var n) | semanticsName (n ^. simpleName) == Just name  
-  = replacement 0
--- TODO: replace applied
-replaceInvocations _ _ other = other
+replaceInvocations :: InlineBindingDomain dom => GHC.Name -> ([Expr dom] -> Expr dom) -> Expr dom -> Expr dom
+replaceInvocations name replacement expr
+  | (Var n, args) <- splitApps expr
+  , semanticsName (n ^. simpleName) == Just name  
+  = replacement args
+  | otherwise 
+  = descend (replaceInvocations name replacement) expr
 
-createReplacement :: ValueBind dom -> LocalRefactor dom (Int -> Expr dom)
+splitApps :: Expr dom -> (Expr dom, [Expr dom])
+splitApps (App f a) = case splitApps f of (fun, args) -> (fun, args ++ [a]) 
+-- splitApps (InfixApp l (op) r) = (mkVar op, [l,r])
+-- splitApps (PrefixApp op expr) = (mkVar op, expr)
+splitApps (Paren expr) = splitApps expr
+splitApps expr = (expr, [])
+
+joinApps :: Expr dom -> [Expr dom] -> Expr dom
+joinApps = foldl mkApp
+
+createReplacement :: InlineBindingDomain dom => ValueBind dom -> LocalRefactor dom ([Expr dom] -> Expr dom)
 createReplacement (SimpleBind (VarPat _) (UnguardedRhs e) locals) 
-  = return $ const (wrapLocals locals e)
+  = return $ \args -> (wrapLocals locals e)
 createReplacement (SimpleBind _ _ _)
   = refactError "Cannot inline, illegal simple bind. Only variable left-hand sides and unguarded right-hand sides are accepted."
 createReplacement (FunctionBind (AnnList [Match lhs (UnguardedRhs expr) locals]))
-  = return $ const $ mkLambda args (wrapLocals locals expr) 
-  where args = getArgsOf lhs
-        getArgsOf (MatchLhs n (AnnList args)) = args
+  = return $ \args -> let (argReplacement, matchedPats, appliedArgs) = matchArguments (getArgsOf lhs) args
+                       in mkParen (createLambdaFor matchedPats (wrapLocals locals (replaceExprs argReplacement expr)))
+  where getArgsOf (MatchLhs n (AnnList args)) = args
         getArgsOf (InfixLhs lhs _ rhs (AnnList more)) = lhs:rhs:more
+        createLambdaFor [] = id
+        createLambdaFor pats = mkLambda pats
 createReplacement (FunctionBind matches) 
   -- TODO: no case x, y if the variables aren't actually pattern matched 
-  = return $ const (mkLambda (map mkVarPat newArgs) $ mkCase (mkTuple $ map mkVar newArgs) $ map replaceMatch (matches ^? annList))
+  = return $ const $ mkParen $ mkLambda (map mkVarPat newArgs) $ mkCase (mkTuple $ map mkVar newArgs) $ map replaceMatch (matches ^? annList)
   where numArgs = getArgNum (head (matches ^? annList & matchLhs))
         getArgNum (MatchLhs n (AnnList args)) = length args
         getArgNum (InfixLhs _ _ _ (AnnList more)) = length more + 2
         
         newArgs = map (mkName . ("x" ++ ) . show) [1..numArgs]
+
+replaceExprs :: InlineBindingDomain dom => [(GHC.Name, Expr dom)] -> Expr dom -> Expr dom
+replaceExprs [] = id
+replaceExprs replaces = (uniplateRef .-) $ \case 
+    Var n | Just name <- semanticsName (n ^. simpleName)
+          , Just replace <- lookup name replaces
+          -> replace
+    e -> e
+
+matchArguments :: InlineBindingDomain dom => [Pattern dom] -> [Expr dom] -> ([(GHC.Name, Expr dom)], [Pattern dom], [Expr dom])
+matchArguments (p:pats) (e:exprs) 
+  | Just replacement <- staticPatternMatch p e
+  = case matchArguments pats exprs of (replacements, patterns, expressions) -> (replacement ++ replacements, patterns, expressions)
+  | otherwise 
+  = ([], p:pats, e:exprs)
+matchArguments pats [] = ([], pats, [])
+matchArguments [] exprs = ([], [], exprs)
+
+staticPatternMatch :: InlineBindingDomain dom => Pattern dom -> Expr dom -> Maybe [(GHC.Name, Expr dom)]
+staticPatternMatch (VarPat n) v@(Var n') 
+  | Just name <- semanticsName $ n ^. simpleName
+  = Just [(name, v)]
+staticPatternMatch p e = Nothing
 
 replaceMatch :: Match dom -> Alt dom
 replaceMatch (Match lhs rhs locals) = mkAlt (toPattern lhs) (toAltRhs rhs) (locals ^? annJust)
