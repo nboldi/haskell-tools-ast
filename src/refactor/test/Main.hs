@@ -65,6 +65,7 @@ functionalTests = map makeReprintTest checkTestCases
               ++ map makeWrongRenameDefinitionTest wrongRenameDefinitionTests
               ++ map makeExtractBindingTest extractBindingTests
               ++ map makeWrongExtractBindingTest wrongExtractBindingTests
+              ++ map makeInlineBindingTest inlineBindingTests
               ++ map makeMultiModuleTest multiModuleTests
               ++ map makeMiscRefactorTest miscRefactorTests
   where checkTestCases = languageTests 
@@ -75,6 +76,7 @@ functionalTests = map makeReprintTest checkTestCases
                           ++ map (\(mod,_,_) -> mod) wrongRenameDefinitionTests
                           ++ map (\(mod,_,_) -> mod) extractBindingTests
                           ++ map (\(mod,_,_) -> mod) wrongExtractBindingTests
+                          ++ map (\(mod,_) -> mod) inlineBindingTests
 
 rootDir = ".." </> ".." </> "examples"
         
@@ -286,6 +288,12 @@ wrongExtractBindingTests =
   , ("Refactor.ExtractBinding.NameConflict", "3:19-3:27", "stms")
   ]
 
+inlineBindingTests =
+  [ ("Refactor.InlineBinding.Simplest", "4:1-4:2")
+  , ("Refactor.InlineBinding.WithLocals", "4:1-4:2")
+  , ("Refactor.InlineBinding.MultiMatch", "4:1-4:2")
+  ]
+
 multiModuleTests =
   [ ("RenameDefinition 5:5-5:6 bb", "A", "Refactor" </> "RenameDefinition" </> "MultiModule", [])
   , ("RenameDefinition 1:8-1:9 C", "B", "Refactor" </> "RenameDefinition" </> "RenameModule", ["B"])
@@ -349,9 +357,12 @@ makeWrongGenerateSigTest (mod, rng) = createFailTest "GenerateSignature" [rng] m
 
 makeExtractBindingTest :: (String, String, String) -> Test
 makeExtractBindingTest (mod, rng, newName) = createTest "ExtractBinding" [rng, newName] mod
-  
+
 makeWrongExtractBindingTest :: (String, String, String) -> Test
 makeWrongExtractBindingTest (mod, rng, newName) = createFailTest "ExtractBinding" [rng, newName] mod
+  
+makeInlineBindingTest :: (String, String) -> Test
+makeInlineBindingTest (mod, rng) = createTest "InlineBinding" [rng] mod
 
 checkCorrectlyTransformed :: String -> String -> String -> IO ()
 checkCorrectlyTransformed command workingDir moduleName
