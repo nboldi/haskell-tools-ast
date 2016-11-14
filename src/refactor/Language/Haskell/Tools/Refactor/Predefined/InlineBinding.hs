@@ -74,6 +74,11 @@ createReplacement (SimpleBind (VarPat _) (UnguardedRhs e) locals)
   = return $ const (wrapLocals locals e)
 createReplacement (SimpleBind _ _ _)
   = refactError "Cannot inline, illegal simple bind. Only variable left-hand sides and unguarded right-hand sides are accepted."
+createReplacement (FunctionBind (AnnList [Match lhs (UnguardedRhs expr) locals]))
+  = return $ const $ mkLambda args (wrapLocals locals expr) 
+  where args = getArgsOf lhs
+        getArgsOf (MatchLhs n (AnnList args)) = args
+        getArgsOf (InfixLhs lhs _ rhs (AnnList more)) = lhs:rhs:more
 createReplacement (FunctionBind matches) 
   -- TODO: no case x, y if the variables aren't actually pattern matched 
   = return $ const (mkLambda (map mkVarPat newArgs) $ mkCase (mkTuple $ map mkVar newArgs) $ map replaceMatch (matches ^? annList))
