@@ -4,6 +4,7 @@
            , TypeFamilies
            , LambdaCase
            , TypeApplications
+           , ScopedTypeVariables
            #-}
 module Language.Haskell.Tools.Refactor.Predefined.InlineBinding (inlineBinding, InlineBindingDomain) where
 
@@ -24,30 +25,43 @@ import Language.Haskell.Tools.AST as AST
 
 import Debug.Trace
 
-tryItOut moduleName sp = tryRefactor (localRefactoring $ inlineBinding (readSrcSpan (toFileName "." moduleName) sp)) moduleName
+tryItOut moduleName sp = tryRefactor (inlineBinding (readSrcSpan (toFileName "." moduleName) sp)) moduleName
 
-type InlineBindingDomain dom = ( HasNameInfo dom, HasDefiningInfo dom, HasScopeInfo dom )
+type InlineBindingDomain dom = ( HasNameInfo dom, HasDefiningInfo dom, HasScopeInfo dom, HasModuleInfo dom )
 
 -- TODO: check that the name is not used outside of the module
 
-inlineBinding :: InlineBindingDomain dom => RealSrcSpan -> LocalRefactoring dom
-inlineBinding span mod = inlineBinding' (nodesContaining span) (nodesContaining span) (getValBindInList span) mod
+inlineBinding :: InlineBindingDomain dom => RealSrcSpan -> Refactoring dom
+inlineBinding span namedMod@(_,mod) mods 
+  = let topLevel :: Domain dom => Simple Traversal (Module dom) (DeclList dom)
+        topLevel = nodesContaining span
+        local :: Domain dom => Simple Traversal (Module dom) (LocalBindList dom)
+        local = nodesContaining span
+        elemAccess :: (Domain dom, BindingElem d) => AnnList d dom -> Maybe (ValueBind dom)
+        elemAccess = getValBindInList span
+        removed = catMaybes $ map elemAccess (mod ^? topLevel) ++ map elemAccess (mod ^? local)
+     in case removed of 
+          [] -> refactError "No binding is selected."
+          removedBinding:_ -> 
+           let [removedBindingName] = nub $ catMaybes $ map semanticsName (removedBinding ^? bindingName)
+            in if any (containInlined removedBindingName) mods
+                 then refactError "Cannot inline the definition, it is used in other modules." 
+                 else localRefactoring (inlineBinding' topLevel local removedBinding removedBindingName) namedMod mods
 
 inlineBinding' :: InlineBindingDomain dom 
                     => Simple Traversal (Module dom) (DeclList dom) 
                     -> Simple Traversal (Module dom) (LocalBindList dom) 
-                    -> (forall d . (BindingElem d) => AnnList d dom -> Maybe (ValueBind dom))
+                    -> ValueBind dom -> GHC.Name
                     -> LocalRefactoring dom
-inlineBinding' topLevelRef localRef elemAccess mod
-  = let removed = catMaybes $ map elemAccess (mod ^? topLevelRef) ++ map elemAccess (mod ^? localRef)
-     in case removed of 
-          [] -> refactError "No binding is selected."
-          removedBinding:_ -> 
-            do replacement <- createReplacement removedBinding
-               let [removedBindingName] = nub $ catMaybes $ map semanticsName (removedBinding ^? bindingName)
-                   mod' = removeBindingAndSig topLevelRef localRef removedBindingName mod
-                   mod'' = descendBi (replaceInvocations removedBindingName replacement) mod'
-               return mod''
+inlineBinding' topLevelRef localRef removedBinding removedBindingName mod
+  = do replacement <- createReplacement removedBinding
+       let mod' = removeBindingAndSig topLevelRef localRef removedBindingName mod
+           mod'' = descendBi (replaceInvocations removedBindingName replacement) mod'
+       return mod''
+
+containInlined ::forall dom . InlineBindingDomain dom => GHC.Name -> ModuleDom dom -> Bool
+containInlined name (_,mod) 
+  = any (\qn -> semanticsName qn == Just name) $ (mod ^? biplateRef :: [QualifiedName dom])
 
 -- | Removes the inlined binding
 removeBindingAndSig :: InlineBindingDomain dom 

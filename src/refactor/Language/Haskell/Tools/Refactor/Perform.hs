@@ -65,7 +65,7 @@ performCommand rf mod mods = runRefactor mod mods $ selectCommand rf
         selectCommand (GenerateSignature sp) = localRefactoring $ generateTypeSignature' (correctSp mod sp)
         selectCommand (RenameDefinition sp str) = renameDefinition' (correctSp mod sp) str
         selectCommand (ExtractBinding sp str) = localRefactoring $ extractBinding' (correctSp mod sp) str
-        selectCommand (InlineBinding sp) = localRefactoring $ inlineBinding (correctSp mod sp)
+        selectCommand (InlineBinding sp) = inlineBinding (correctSp mod sp)
 
         correctSp mod sp = mkRealSrcSpan (updateSrcFile fileName $ realSrcSpanStart sp) 
                                          (updateSrcFile fileName $ realSrcSpanEnd sp)

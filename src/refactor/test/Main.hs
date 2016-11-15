@@ -66,7 +66,8 @@ functionalTests = map makeReprintTest checkTestCases
               ++ map makeExtractBindingTest extractBindingTests
               ++ map makeWrongExtractBindingTest wrongExtractBindingTests
               ++ map makeInlineBindingTest inlineBindingTests
-              ++ map makeMultiModuleTest multiModuleTests
+              ++ map (makeMultiModuleTest checkMultiResults) multiModuleTests
+              ++ map (makeMultiModuleTest checkMultiFail) wrongMultiModuleTests
               ++ map makeMiscRefactorTest miscRefactorTests
   where checkTestCases = languageTests 
                           ++ organizeImportTests 
@@ -311,6 +312,10 @@ multiModuleTests =
   , ("RenameDefinition 6:1-6:4 spliceTyp", "Define", "Refactor" </> "RenameDefinition" </> "SpliceType", [])
   ]
 
+wrongMultiModuleTests =
+  [ ("InlineBinding 3:1-3:2", "A", "Refactor" </> "InlineBinding" </> "AppearsInAnother", [])
+  ]
+
 miscRefactorTests =
   [ ("Refactor.DataToNewtype.Cases", \_ _ -> dataToNewtype)
   , ("Refactor.IfToGuards.Simple", \wd mod -> ifToGuards (readSrcSpan (toFileName wd mod) "3:11-3:33"))
@@ -321,21 +326,28 @@ miscRefactorTests =
   , ("Refactor.DollarApp.ImportDollar", \wd mod -> dollarApp (readSrcSpan (toFileName wd mod) "6:5-6:12"))
   ]
 
-makeMultiModuleTest :: (String, String, String, [String]) -> Test
-makeMultiModuleTest (refact, mod, root, removed)
+makeMultiModuleTest :: ((String, String, String, [String]) -> Either String [(String, Maybe String)] -> IO ()) 
+                         -> (String, String, String, [String]) -> Test
+makeMultiModuleTest checker test@(refact, mod, root, removed)
   = TestLabel (root ++ ":" ++ mod) $ TestCase 
       $ do res <- performRefactors refact (rootDir </> root) [] mod
-           case res of Right result -> checkResults result removed
-                       Left err -> assertFailure $ "The transformation failed : " ++ err
-  where checkResults :: [(String, Maybe String)] -> [String] -> IO ()
-        checkResults ((name, Just mod):rest) removed = 
-          do expected <- loadExpected False ((rootDir </> root) ++ "_res") name
-             assertEqual "The transformed result is not what is expected" (standardizeLineEndings expected)
-                                                                          (standardizeLineEndings mod)
-             checkResults rest removed
-        checkResults ((name, Nothing) : rest) removed = checkResults rest (delete name removed)
-        checkResults [] [] = return ()
-        checkResults [] removed = assertFailure $ "Modules has not been marked as removed: " ++ concat (intersperse ", " removed)
+           checker test res
+           
+checkMultiResults :: (String, String, String, [String]) -> Either String [(String, Maybe String)] -> IO ()
+checkMultiResults _ (Left err) = assertFailure $ "The transformation failed : " ++ err
+checkMultiResults test@(_,_,root,removed) (Right ((name, Just mod):rest)) = 
+  do expected <- loadExpected False ((rootDir </> root) ++ "_res") name
+     assertEqual "The transformed result is not what is expected" (standardizeLineEndings expected)
+                                                                  (standardizeLineEndings mod)
+     checkMultiResults test (Right rest)
+checkMultiResults (r,m,root,removed) (Right ((name, Nothing) : rest)) = checkMultiResults (r,m,root,delete name removed) (Right rest)
+checkMultiResults (_,_,_,[]) (Right []) = return ()
+checkMultiResults (_,_,_,removed) (Right []) 
+  = assertFailure $ "Modules has not been marked as removed: " ++ concat (intersperse ", " removed)
+
+checkMultiFail :: (String, String, String, [String]) -> Either String [(String, Maybe String)] -> IO ()
+checkMultiFail _ (Left _) = return ()
+checkMultiFail _ (Right _) = assertFailure "The transformation should fail."
 
 createTest :: String -> [String] -> String -> Test
 createTest refactoring args mod
