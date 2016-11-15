@@ -25,15 +25,6 @@ filterList pred (AnnListG (NodeInfo sema src) elems)
           | otherwise = filterElems' ls seps
         filterElems' elems [] = (filter pred elems, [])
         filterElems' [] seps = ([], seps)
-       
--- | Replaces the list with a new one with the given elements, keeping the most common separator as the new one.
-replaceList :: [Ann e dom SrcTemplateStage] -> AnnListG e dom SrcTemplateStage -> AnnListG e dom SrcTemplateStage
-replaceList elems (AnnListG (NodeInfo sema src) _)
-  = AnnListG (NodeInfo sema (listSep mostCommonSeparator)) elems
-  where mostCommonSeparator  
-          = case trace (show (src ^. srcTmpSeparators)) $ group $ sort (src ^. srcTmpSeparators) of 
-                   [] -> src ^. srcTmpDefaultSeparator
-                   nonempty@(_:_) -> head $ maximumBy (compare `on` length) nonempty
                             
 -- | Inserts the element in the places where the two positioning functions (one checks the element before, one the element after)
 -- allows the placement.         
