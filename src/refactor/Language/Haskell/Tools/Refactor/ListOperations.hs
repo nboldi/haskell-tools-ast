@@ -4,21 +4,34 @@ import SrcLoc
 import Data.String
 import Data.List
 import Control.Reference
+import Debug.Trace
 import Data.Function (on)
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Rewrite
 import Language.Haskell.Tools.Transform
 
 filterList :: (Ann e dom SrcTemplateStage -> Bool) -> AnnListG e dom SrcTemplateStage -> AnnListG e dom SrcTemplateStage
--- QUESTION: is it OK? No problem from losing separators?
-filterList pred ls = replaceList (filter pred (ls ^. annListElems)) ls   
+filterList pred (AnnListG (NodeInfo sema src) elems)
+  = let (filteredElems, separators) = filterElems elems (src ^. srcTmpSeparators)
+     in AnnListG (NodeInfo sema (srcTmpSeparators .= separators $ src)) filteredElems
+  where filterElems (elem:ls) (sep:seps) 
+          | pred elem = let (elems',seps') = filterElems' ls (sep:seps) in (elem:elems', seps')
+          | otherwise = filterElems ls seps
+        filterElems elems [] = (filter pred elems, [])
+        filterElems [] seps = ([], seps)
+        
+        filterElems' (elem:ls) (sep:seps) 
+          | pred elem = let (elems',seps') = filterElems' ls seps in (elem:elems', sep:seps')
+          | otherwise = filterElems' ls seps
+        filterElems' elems [] = (filter pred elems, [])
+        filterElems' [] seps = ([], seps)
        
 -- | Replaces the list with a new one with the given elements, keeping the most common separator as the new one.
 replaceList :: [Ann e dom SrcTemplateStage] -> AnnListG e dom SrcTemplateStage -> AnnListG e dom SrcTemplateStage
 replaceList elems (AnnListG (NodeInfo sema src) _)
   = AnnListG (NodeInfo sema (listSep mostCommonSeparator)) elems
   where mostCommonSeparator  
-          = case group $ sort (src ^. srcTmpSeparators) of 
+          = case trace (show (src ^. srcTmpSeparators)) $ group $ sort (src ^. srcTmpSeparators) of 
                    [] -> src ^. srcTmpDefaultSeparator
                    nonempty@(_:_) -> head $ maximumBy (compare `on` length) nonempty
                             
