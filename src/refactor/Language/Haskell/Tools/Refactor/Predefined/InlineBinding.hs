@@ -79,8 +79,8 @@ replaceInvocations name replacement expr
 
 splitApps :: Expr dom -> (Expr dom, [Expr dom])
 splitApps (App f a) = case splitApps f of (fun, args) -> (fun, args ++ [a]) 
--- splitApps (InfixApp l (op) r) = (mkVar op, [l,r])
--- splitApps (PrefixApp op expr) = (mkVar op, expr)
+splitApps (InfixApp l (NormalOp qn) r) = (mkVar (mkParenName qn), [l,r])
+splitApps (InfixApp l (BacktickOp qn) r) = (mkVar (mkNormalName qn), [l,r])
 splitApps (Paren expr) = splitApps expr
 splitApps expr = (expr, [])
 
@@ -95,7 +95,7 @@ createReplacement (SimpleBind _ _ _)
 createReplacement (FunctionBind (AnnList [Match lhs (UnguardedRhs expr) locals]))
   = return $ \args -> let (argReplacement, matchedPats, appliedArgs) = matchArguments (getArgsOf lhs) args
                        in joinApps (mkParen (createLambda matchedPats (wrapLocals locals (replaceExprs argReplacement expr)))) appliedArgs
-  where getArgsOf (MatchLhs n (AnnList args)) = args
+  where getArgsOf (MatchLhs _ (AnnList args)) = args
         getArgsOf (InfixLhs lhs _ rhs (AnnList more)) = lhs:rhs:more
 
 createReplacement (FunctionBind matches) 
