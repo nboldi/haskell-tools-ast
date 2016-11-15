@@ -3,6 +3,7 @@
            , FlexibleContexts
            , TypeFamilies
            , LambdaCase
+           , TypeApplications
            #-}
 module Language.Haskell.Tools.Refactor.Predefined.InlineBinding (inlineBinding, InlineBindingDomain) where
 
@@ -69,11 +70,11 @@ removeBindingAndSig' name = (annList .- removeNameFromSigBind) . filterList notT
           = createTypeSig $ tsName .- filterList (\n -> semanticsName (n ^. simpleName) /= Just name) $ sb
           | otherwise = d
 
-replaceInvocations :: InlineBindingDomain dom => GHC.Name -> ([Expr dom] -> Expr dom) -> Expr dom -> Expr dom
+replaceInvocations :: InlineBindingDomain dom => GHC.Name -> ([[GHC.Name]] -> [Expr dom] -> Expr dom) -> Expr dom -> Expr dom
 replaceInvocations name replacement expr
   | (Var n, args) <- splitApps expr
-  , semanticsName (n ^. simpleName) == Just name  
-  = replacement args
+  , semanticsName (n ^. simpleName) == Just name
+  = replacement (semanticsScope expr) args
   | otherwise 
   = descend (replaceInvocations name replacement) expr
 
@@ -87,26 +88,26 @@ splitApps expr = (expr, [])
 joinApps :: Expr dom -> [Expr dom] -> Expr dom
 joinApps = foldl mkApp
 
-createReplacement :: InlineBindingDomain dom => ValueBind dom -> LocalRefactor dom ([Expr dom] -> Expr dom)
+createReplacement :: InlineBindingDomain dom => ValueBind dom -> LocalRefactor dom ([[GHC.Name]] -> [Expr dom] -> Expr dom)
 createReplacement (SimpleBind (VarPat _) (UnguardedRhs e) locals) 
-  = return $ \args -> (wrapLocals locals e)
+  = return $ \_ args -> (wrapLocals locals e)
 createReplacement (SimpleBind _ _ _)
   = refactError "Cannot inline, illegal simple bind. Only variable left-hand sides and unguarded right-hand sides are accepted."
 createReplacement (FunctionBind (AnnList [Match lhs (UnguardedRhs expr) locals]))
-  = return $ \args -> let (argReplacement, matchedPats, appliedArgs) = matchArguments (getArgsOf lhs) args
-                       in joinApps (mkParen (createLambda matchedPats (wrapLocals locals (replaceExprs argReplacement expr)))) appliedArgs
+  = return $ \_ args -> let (argReplacement, matchedPats, appliedArgs) = matchArguments (getArgsOf lhs) args
+                         in joinApps (mkParen (createLambda matchedPats (wrapLocals locals (replaceExprs argReplacement expr)))) appliedArgs
   where getArgsOf (MatchLhs _ (AnnList args)) = args
         getArgsOf (InfixLhs lhs _ rhs (AnnList more)) = lhs:rhs:more
-
 createReplacement (FunctionBind matches) 
-  -- TODO: no case x, y if the variables aren't actually pattern matched 
-  = return $ \args -> let numArgs = getArgNum (head (matches ^? annList & matchLhs)) - length args
-                          newArgs = map (mkName . ("x" ++ ) . show) [1..numArgs]
-                       in mkParen $ createLambda (map mkVarPat newArgs) 
-                                  $ mkCase (mkTuple $ map mkVar newArgs ++ args) 
-                                  $ map replaceMatch (matches ^? annList)
+  = return $ \sc args -> let numArgs = getArgNum (head (matches ^? annList & matchLhs)) - length args
+                             newArgs = take numArgs $ map mkName $ filter notInScope $ map (("x" ++ ) . show @Int) [1..]
+                             notInScope str = not $ any (any ((== str) . occNameString . getOccName)) sc 
+                          in mkParen $ createLambda (map mkVarPat newArgs) 
+                                     $ mkCase (mkTuple $ map mkVar newArgs ++ args) 
+                                     $ map replaceMatch (matches ^? annList)
   where getArgNum (MatchLhs n (AnnList args)) = length args
         getArgNum (InfixLhs _ _ _ (AnnList more)) = length more + 2
+
 
 replaceExprs :: InlineBindingDomain dom => [(GHC.Name, Expr dom)] -> Expr dom -> Expr dom
 replaceExprs [] = id
