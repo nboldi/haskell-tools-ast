@@ -21,6 +21,8 @@ import Name as GHC
 import Language.Haskell.Tools.Refactor as AST
 import Language.Haskell.Tools.AST as AST
 
+import Debug.Trace
+
 tryItOut moduleName sp = tryRefactor (localRefactoring $ inlineBinding (readSrcSpan (toFileName "." moduleName) sp)) moduleName
 
 type InlineBindingDomain dom = ( HasNameInfo dom, HasDefiningInfo dom, HasScopeInfo dom )
@@ -92,11 +94,11 @@ createReplacement (SimpleBind _ _ _)
   = refactError "Cannot inline, illegal simple bind. Only variable left-hand sides and unguarded right-hand sides are accepted."
 createReplacement (FunctionBind (AnnList [Match lhs (UnguardedRhs expr) locals]))
   = return $ \args -> let (argReplacement, matchedPats, appliedArgs) = matchArguments (getArgsOf lhs) args
-                       in mkParen (createLambdaFor matchedPats (wrapLocals locals (replaceExprs argReplacement expr)))
+                       in joinApps (mkParen (createLambdaFor matchedPats (wrapLocals locals (replaceExprs argReplacement expr)))) appliedArgs
   where getArgsOf (MatchLhs n (AnnList args)) = args
         getArgsOf (InfixLhs lhs _ rhs (AnnList more)) = lhs:rhs:more
         createLambdaFor [] = id
-        createLambdaFor pats = mkLambda pats
+        createLambdaFor pats = mkLambda (map (\p -> if compositePat p then mkParenPat p else p) pats)
 createReplacement (FunctionBind matches) 
   -- TODO: no case x, y if the variables aren't actually pattern matched 
   = return $ const $ mkParen $ mkLambda (map mkVarPat newArgs) $ mkCase (mkTuple $ map mkVar newArgs) $ map replaceMatch (matches ^? annList)
@@ -115,6 +117,7 @@ replaceExprs replaces = (uniplateRef .-) $ \case
     e -> e
 
 matchArguments :: InlineBindingDomain dom => [Pattern dom] -> [Expr dom] -> ([(GHC.Name, Expr dom)], [Pattern dom], [Expr dom])
+matchArguments (ParenPat p : pats) exprs = matchArguments (p:pats) exprs
 matchArguments (p:pats) (e:exprs) 
   | Just replacement <- staticPatternMatch p e
   = case matchArguments pats exprs of (replacements, patterns, expressions) -> (replacement ++ replacements, patterns, expressions)
@@ -124,9 +127,15 @@ matchArguments pats [] = ([], pats, [])
 matchArguments [] exprs = ([], [], exprs)
 
 staticPatternMatch :: InlineBindingDomain dom => Pattern dom -> Expr dom -> Maybe [(GHC.Name, Expr dom)]
-staticPatternMatch (VarPat n) v@(Var n') 
+staticPatternMatch (VarPat n) e
   | Just name <- semanticsName $ n ^. simpleName
-  = Just [(name, v)]
+  = Just [(name, e)]
+staticPatternMatch (AppPat n (AnnList args)) e 
+  | (Var n', exprs) <- splitApps e
+  , length args == length exprs 
+      && semanticsName (n ^. simpleName) == semanticsName (n' ^. simpleName)
+  , Just subs <- sequence $ zipWith staticPatternMatch args exprs
+  = Just $ concat subs
 staticPatternMatch p e = Nothing
 
 replaceMatch :: Match dom -> Alt dom
@@ -143,3 +152,11 @@ wrapLocals :: MaybeLocalBinds dom -> Expr dom -> Expr dom
 wrapLocals bnds = case bnds ^? annJust & localBinds & annList of 
                     [] -> id
                     localBinds -> mkLet localBinds 
+
+-- | True for patterns that need to be parenthesized if in a lambda
+compositePat :: Pattern dom -> Bool
+compositePat (AppPat {}) = True
+compositePat (InfixAppPat {}) = True
+compositePat (TypeSigPat {}) = True
+compositePat (ViewPat {}) = True
+compositePat _ = False
