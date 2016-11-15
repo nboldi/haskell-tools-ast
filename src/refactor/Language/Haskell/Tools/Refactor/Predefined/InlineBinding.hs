@@ -94,19 +94,19 @@ createReplacement (SimpleBind _ _ _)
   = refactError "Cannot inline, illegal simple bind. Only variable left-hand sides and unguarded right-hand sides are accepted."
 createReplacement (FunctionBind (AnnList [Match lhs (UnguardedRhs expr) locals]))
   = return $ \args -> let (argReplacement, matchedPats, appliedArgs) = matchArguments (getArgsOf lhs) args
-                       in joinApps (mkParen (createLambdaFor matchedPats (wrapLocals locals (replaceExprs argReplacement expr)))) appliedArgs
+                       in joinApps (mkParen (createLambda matchedPats (wrapLocals locals (replaceExprs argReplacement expr)))) appliedArgs
   where getArgsOf (MatchLhs n (AnnList args)) = args
         getArgsOf (InfixLhs lhs _ rhs (AnnList more)) = lhs:rhs:more
-        createLambdaFor [] = id
-        createLambdaFor pats = mkLambda (map (\p -> if compositePat p then mkParenPat p else p) pats)
+
 createReplacement (FunctionBind matches) 
   -- TODO: no case x, y if the variables aren't actually pattern matched 
-  = return $ const $ mkParen $ mkLambda (map mkVarPat newArgs) $ mkCase (mkTuple $ map mkVar newArgs) $ map replaceMatch (matches ^? annList)
-  where numArgs = getArgNum (head (matches ^? annList & matchLhs))
-        getArgNum (MatchLhs n (AnnList args)) = length args
+  = return $ \args -> let numArgs = getArgNum (head (matches ^? annList & matchLhs)) - length args
+                          newArgs = map (mkName . ("x" ++ ) . show) [1..numArgs]
+                       in mkParen $ createLambda (map mkVarPat newArgs) 
+                                  $ mkCase (mkTuple $ map mkVar newArgs ++ args) 
+                                  $ map replaceMatch (matches ^? annList)
+  where getArgNum (MatchLhs n (AnnList args)) = length args
         getArgNum (InfixLhs _ _ _ (AnnList more)) = length more + 2
-        
-        newArgs = map (mkName . ("x" ++ ) . show) [1..numArgs]
 
 replaceExprs :: InlineBindingDomain dom => [(GHC.Name, Expr dom)] -> Expr dom -> Expr dom
 replaceExprs [] = id
@@ -160,3 +160,7 @@ compositePat (InfixAppPat {}) = True
 compositePat (TypeSigPat {}) = True
 compositePat (ViewPat {}) = True
 compositePat _ = False
+
+createLambda :: [Pattern dom] -> Expr dom -> Expr dom
+createLambda [] = id
+createLambda pats = mkLambda (map (\p -> if compositePat p then mkParenPat p else p) pats)

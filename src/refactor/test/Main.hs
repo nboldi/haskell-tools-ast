@@ -295,6 +295,7 @@ inlineBindingTests =
   , ("Refactor.InlineBinding.SimpleMultiMatch", "4:1-4:2")
   , ("Refactor.InlineBinding.AlreadyApplied", "4:1-4:2")
   , ("Refactor.InlineBinding.PatternMatched", "4:1-4:2")
+  , ("Refactor.InlineBinding.MultiApplied", "4:1-4:2")
   ]
 
 multiModuleTests =
