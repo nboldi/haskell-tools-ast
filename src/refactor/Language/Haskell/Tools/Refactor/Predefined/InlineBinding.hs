@@ -63,11 +63,15 @@ removeBindingAndSig' name = (annList .- removeNameFromSigBind) . filterList notT
   where notThatBindOrSig e 
           | Just sb <- e ^? sigBind = nub (map semanticsName (sb ^? tsName & annList & simpleName)) /= [Just name]
           | Just vb <- e ^? valBind = nub (map semanticsName (vb ^? bindingName)) /= [Just name]
+          | Just fs <- e ^? fixitySig = nub (map semanticsName (fs ^? fixityOperators & annList & operatorName)) /= [Just name]
           -- TODO: also remove from fixity signatures
           | otherwise               = True
         
-        removeNameFromSigBind d | Just sb <- d ^? sigBind 
+        removeNameFromSigBind d 
+          | Just sb <- d ^? sigBind 
           = createTypeSig $ tsName .- filterList (\n -> semanticsName (n ^. simpleName) /= Just name) $ sb
+          | Just fs <- d ^? fixitySig
+          = createFixitySig $ fixityOperators .- filterList (\n -> semanticsName (n ^. operatorName) /= Just name) $ fs
           | otherwise = d
 
 replaceInvocations :: InlineBindingDomain dom => GHC.Name -> ([[GHC.Name]] -> [Expr dom] -> Expr dom) -> Expr dom -> Expr dom
