@@ -59,7 +59,7 @@ inlineBinding' topLevelRef localRef removedBinding removedBindingName mod
            mod'' = descendBi (replaceInvocations removedBindingName replacement) mod'
        return mod''
 
-containInlined ::forall dom . InlineBindingDomain dom => GHC.Name -> ModuleDom dom -> Bool
+containInlined :: forall dom . InlineBindingDomain dom => GHC.Name -> ModuleDom dom -> Bool
 containInlined name (_,mod) 
   = any (\qn -> semanticsName qn == Just name) $ (mod ^? biplateRef :: [QualifiedName dom])
 
@@ -78,8 +78,7 @@ removeBindingAndSig' name = (annList .- removeNameFromSigBind) . filterList notT
           | Just sb <- e ^? sigBind = nub (map semanticsName (sb ^? tsName & annList & simpleName)) /= [Just name]
           | Just vb <- e ^? valBind = nub (map semanticsName (vb ^? bindingName)) /= [Just name]
           | Just fs <- e ^? fixitySig = nub (map semanticsName (fs ^? fixityOperators & annList & operatorName)) /= [Just name]
-          -- TODO: also remove from fixity signatures
-          | otherwise               = True
+          | otherwise = True
         
         removeNameFromSigBind d 
           | Just sb <- d ^? sigBind 
@@ -104,11 +103,12 @@ splitApps (Paren expr) = splitApps expr
 splitApps expr = (expr, [])
 
 joinApps :: Expr dom -> [Expr dom] -> Expr dom
-joinApps = foldl mkApp
+joinApps f [] = f
+joinApps f args = mkParen (foldl mkApp f args)
 
 createReplacement :: InlineBindingDomain dom => ValueBind dom -> LocalRefactor dom ([[GHC.Name]] -> [Expr dom] -> Expr dom)
 createReplacement (SimpleBind (VarPat _) (UnguardedRhs e) locals) 
-  = return $ \_ args -> (wrapLocals locals e)
+  = return $ \_ args -> joinApps (parenIfNeeded $ wrapLocals locals e) args
 createReplacement (SimpleBind _ _ _)
   = refactError "Cannot inline, illegal simple bind. Only variable left-hand sides and unguarded right-hand sides are accepted."
 createReplacement (FunctionBind (AnnList [Match lhs (UnguardedRhs expr) locals]))
@@ -155,6 +155,10 @@ staticPatternMatch (AppPat n (AnnList args)) e
       && semanticsName (n ^. simpleName) == semanticsName (n' ^. simpleName)
   , Just subs <- sequence $ zipWith staticPatternMatch args exprs
   = Just $ concat subs
+staticPatternMatch (TuplePat (AnnList pats)) (Tuple (AnnList args))
+  | length pats == length args
+  , Just subs <- sequence $ zipWith staticPatternMatch pats args
+  = Just $ concat subs
 staticPatternMatch p e = Nothing
 
 replaceMatch :: Match dom -> Alt dom
@@ -179,6 +183,20 @@ compositePat (InfixAppPat {}) = True
 compositePat (TypeSigPat {}) = True
 compositePat (ViewPat {}) = True
 compositePat _ = False
+
+parenIfNeeded :: Expr dom -> Expr dom
+parenIfNeeded e = if compositeExprs e then mkParen e else e
+
+-- | True for expresssions that need to be parenthesized if in application
+compositeExprs :: Expr dom -> Bool
+compositeExprs (App {}) = True
+compositeExprs (InfixApp {}) = True
+compositeExprs (Lambda {}) = True
+compositeExprs (Let {}) = True
+compositeExprs (If {}) = True
+compositeExprs (Case {}) = True
+compositeExprs (Do {}) = True
+compositeExprs _ = False
 
 createLambda :: [Pattern dom] -> Expr dom -> Expr dom
 createLambda [] = id
