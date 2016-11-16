@@ -12,8 +12,7 @@ module Language.Haskell.Tools.Refactor.RefactorBase where
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.Rewrite
-import Language.Haskell.Tools.AnnTrf.SourceTemplateHelpers
-import Language.Haskell.Tools.AnnTrf.SourceTemplate
+import Language.Haskell.Tools.Transform
 import GHC (Ghc, GhcMonad(..), TyThing(..), lookupName)
 import Exception (ExceptionMonad(..))
 import DynFlags (HasDynFlags(..))
@@ -72,7 +71,7 @@ localRefactoringRes access mod trf
 addGeneratedImports :: [GHC.Name] -> Ann UModule dom SrcTemplateStage -> Ann UModule dom SrcTemplateStage
 addGeneratedImports names m = modImports&annListElems .- (++ addImports names) $ m
   where addImports :: [GHC.Name] -> [Ann UImportDecl dom SrcTemplateStage]
-        addImports names = map createImport $ groupBy ((==) `on` GHC.nameModule) $ nub $ sort names
+        addImports names = map createImport $ groupBy ((==) `on` GHC.nameModule) $ filter (isJust . GHC.nameModule_maybe) $ nub $ sort names
 
         -- TODO: group names like constructors into correct IESpecs
         createImport :: [GHC.Name] -> Ann UImportDecl dom SrcTemplateStage

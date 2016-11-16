@@ -1,5 +1,5 @@
 {-# LANGUAGE ViewPatterns, FlexibleContexts, ConstraintKinds #-}
-module Language.Haskell.Tools.Refactor.Predefined.DollarApp (dollarApp) where
+module Language.Haskell.Tools.Refactor.Predefined.DollarApp (dollarApp, DollarDomain) where
 
 import Language.Haskell.Tools.Refactor
 
@@ -11,7 +11,7 @@ import PrelInfo (wiredInIds)
 import BasicTypes (Fixity(..))
 
 import Control.Monad.State
-import Control.Reference hiding (element)
+import Control.Reference
 import Data.Generics.Uniplate.Data
 import Debug.Trace
 

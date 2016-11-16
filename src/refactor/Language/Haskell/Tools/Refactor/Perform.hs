@@ -15,12 +15,7 @@ module Language.Haskell.Tools.Refactor.Perform where
 
 import Language.Haskell.Tools.AST.FromGHC
 import Language.Haskell.Tools.AST as AST
-import Language.Haskell.Tools.AnnTrf.RangeToRangeTemplate
-import Language.Haskell.Tools.AnnTrf.RangeTemplateToSourceTemplate
-import Language.Haskell.Tools.AnnTrf.SourceTemplate
-import Language.Haskell.Tools.AnnTrf.RangeTemplate
-import Language.Haskell.Tools.AnnTrf.PlaceComments
-import Language.Haskell.Tools.PrettyPrint.RoseTree
+import Language.Haskell.Tools.Transform
 import Language.Haskell.Tools.PrettyPrint
  
 import Data.List
@@ -45,6 +40,7 @@ import Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature
 import Language.Haskell.Tools.Refactor.Predefined.GenerateExports
 import Language.Haskell.Tools.Refactor.Predefined.RenameDefinition
 import Language.Haskell.Tools.Refactor.Predefined.ExtractBinding
+import Language.Haskell.Tools.Refactor.Predefined.InlineBinding
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Prepare
@@ -69,6 +65,7 @@ performCommand rf mod mods = runRefactor mod mods $ selectCommand rf
         selectCommand (GenerateSignature sp) = localRefactoring $ generateTypeSignature' (correctSp mod sp)
         selectCommand (RenameDefinition sp str) = renameDefinition' (correctSp mod sp) str
         selectCommand (ExtractBinding sp str) = localRefactoring $ extractBinding' (correctSp mod sp) str
+        selectCommand (InlineBinding sp) = inlineBinding (correctSp mod sp)
 
         correctSp mod sp = mkRealSrcSpan (updateSrcFile fileName $ realSrcSpanStart sp) 
                                          (updateSrcFile fileName $ realSrcSpanEnd sp)
@@ -82,6 +79,7 @@ data RefactorCommand = NoRefactor
                      | GenerateSignature RealSrcSpan
                      | RenameDefinition RealSrcSpan String
                      | ExtractBinding RealSrcSpan String
+                     | InlineBinding RealSrcSpan
     deriving Show
 
 readCommand :: String -> RefactorCommand
@@ -95,5 +93,6 @@ analyzeCommand "GenerateExports" _ = GenerateExports
 analyzeCommand "GenerateSignature" [sp] = GenerateSignature (readSrcSpan sp)
 analyzeCommand "RenameDefinition" [sp, newName] = RenameDefinition (readSrcSpan sp) newName
 analyzeCommand "ExtractBinding" [sp, newName] = ExtractBinding (readSrcSpan sp) newName
+analyzeCommand "InlineBinding" [sp] = InlineBinding (readSrcSpan sp)
 analyzeCommand ref _ = error $ "Unknown command: " ++ ref
 

@@ -7,7 +7,7 @@
            , ConstraintKinds
            , TypeFamilies
            #-}
-module Language.Haskell.Tools.Refactor.Predefined.ExtractBinding where
+module Language.Haskell.Tools.Refactor.Predefined.ExtractBinding (extractBinding', ExtractBindingDomain) where
 
 import qualified GHC
 import qualified Var as GHC
@@ -18,7 +18,7 @@ import Unique
 import Data.Char
 import Data.Maybe
 import Data.Generics.Uniplate.Data
-import Control.Reference hiding (element)
+import Control.Reference
 import Control.Monad.State
 
 import Language.Haskell.Tools.Refactor
