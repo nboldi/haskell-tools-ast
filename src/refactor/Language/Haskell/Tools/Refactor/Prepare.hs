@@ -14,6 +14,7 @@
 module Language.Haskell.Tools.Refactor.Prepare where
 
 import GHC hiding (loadModule)
+import qualified GHC (loadModule)
 import Panic (handleGhcException)
 import Outputable
 import BasicTypes
@@ -106,6 +107,7 @@ parseTyped :: ModSummary -> Ghc TypedModule
 parseTyped modSum = do
   p <- parseModule modSum
   tc <- typecheckModule p
+  GHC.loadModule tc
   let annots = pm_annotations p
       srcBuffer = fromJust $ ms_hspp_buf $ pm_mod_summary p
   prepareAST srcBuffer . placeComments (getNormalComments $ snd annots) 
@@ -115,8 +117,6 @@ parseTyped modSum = do
                      $ trfModuleRename modSum parseTrf
                          (fromJust $ tm_renamed_source tc) 
                          (pm_parsed_source p)))
-
-data IsBoot = NormalHs | IsHsBoot deriving (Eq, Ord, Show)
 
 readSrcSpan :: String -> String -> RealSrcSpan
 readSrcSpan fileName s = case splitOn "-" s of

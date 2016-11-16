@@ -63,6 +63,8 @@ data RefactorSessionState
                          , _actualMod :: Maybe (String, String, IsBoot)
                          }
 
+data IsBoot = NormalHs | IsHsBoot deriving (Eq, Ord, Show)
+
 makeReferences ''RefactorSessionState
 
 initSession :: RefactorSessionState

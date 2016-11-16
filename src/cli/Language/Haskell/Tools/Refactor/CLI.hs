@@ -40,13 +40,12 @@ refactorSession args = runGhc (Just libdir) $ flip evalStateT initSession $
      
   where initializeSession :: [FilePath] -> [String] -> RefactorSession Ghc ()
         initializeSession workingDirs flags = do
-          moduleNames <- liftIO $ concat <$> mapM getModules workingDirs
-          lift $ useDirs (concatMap fst moduleNames)
+          modColls <- liftIO $ getAllModules workingDirs
+          lift $ useDirs (concatMap mcSourceDirs modColls)
           lift $ setTargets $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) 
                                   (concatMap snd moduleNames)
           liftIO $ putStrLn "Compiling modules. This may take some time. Please wait."
-          lift $ load LoadAllTargets
-          allMods <- lift getModuleGraph
+          allMods <- lift $ depanal [] True
           mods <- lift $ forM allMods loadModule
           liftIO $ putStrLn "All modules loaded. Use 'SelectModule module-name' to select a module"
           modify $ refSessMods .= Map.fromList mods
@@ -130,7 +129,6 @@ performSessionCommand (RefactorCommand cmd)
               liftIO $ removeFile (toFileName workingDir mod)
               modify $ refSessMods .- Map.delete (workingDir, mod, IsHsBoot) . Map.delete (workingDir, mod, NormalHs)
               return Nothing
-          lift $ load LoadAllTargets
           forM_ (catMaybes mss) $ \(n, workingDir, modName, isBoot) -> do
               -- TODO: add target if module is added as a change
               ms <- getModSummary modName (isBoot == IsHsBoot)
@@ -140,9 +138,9 @@ performSessionCommand (RefactorCommand cmd)
           return ""
         performChanges True resMods = concat <$> forM resMods (liftIO . \case 
           ContentChanged (n,m) -> do
-            return $ "### UModule changed: " ++ n ++ "\n### new content:\n" ++ prettyPrint m
+            return $ "### Module changed: " ++ n ++ "\n### new content:\n" ++ prettyPrint m
           ModuleRemoved mod ->
-            return $ "### UModule removed: " ++ mod)
+            return $ "### Module removed: " ++ mod)
 
         getModSummary name boot
           = do allMods <- lift getModuleGraph

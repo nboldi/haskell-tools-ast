@@ -6,7 +6,7 @@ import Control.Monad.State
 import Control.Reference
 
 import Language.Haskell.Tools.AST (IdDom)
-import Language.Haskell.Tools.Refactor (IsBoot(..))
+import Language.Haskell.Tools.Refactor.GetModules (IsBoot(..))
 import Language.Haskell.Tools.Refactor.RefactorBase (UnnamedModule)
 
 type RefactorSession = StateT RefactorSessionState
