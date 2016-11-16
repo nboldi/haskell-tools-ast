@@ -73,25 +73,35 @@ runDaemonCLI = getArgs >>= runDaemon
 
 runDaemon :: [String] -> IO ()
 runDaemon _ = withSocketsDo $
-  do addrinfos <- getAddrInfo
-                  (Just (defaultHints {addrFlags = [AI_PASSIVE]}))
-                  Nothing (Just "4123")
-     let serveraddr = head addrinfos
-     sock <- socket (addrFamily serveraddr) Stream defaultProtocol
-     setSocketOption sock ReuseAddr 1
-     bind sock (addrAddress serveraddr)
-     listen sock 1
-     (conn,_) <- accept sock
-     ghcSess <- initGhcSession
-     state <- newMVar initSession
-     serverLoop ghcSess state conn
+    do addrinfos <- getAddrInfo
+                    (Just (defaultHints {addrFlags = [AI_PASSIVE]}))
+                    Nothing (Just "4123")
+       let serveraddr = head addrinfos
+       sock <- socket (addrFamily serveraddr) Stream defaultProtocol
+       setSocketOption sock ReuseAddr 1
+       bind sock (addrAddress serveraddr)
+       listen sock 1
+       clientLoop sock
+
+clientLoop :: Socket -> IO ()
+clientLoop sock
+  = do (conn,_) <- accept sock
+       ghcSess <- initGhcSession
+       state <- newMVar initSession
+       serverLoop ghcSess state conn
+       clientLoop sock
 
 serverLoop :: Session -> MVar RefactorSessionState -> Socket -> IO ()
-serverLoop ghcSess state conn =
-    do msg <- recv conn 1024
+serverLoop ghcSess state sock =
+    do msg <- recv sock 1024
        putStrLn $ "message received: " ++ unpack msg
-       respondTo ghcSess state (sendAll conn) msg
-       serverLoop ghcSess state conn
+       respondTo ghcSess state (sendAll sock) msg
+       serverLoop ghcSess state sock
+  `catch` interrupted sock
+  where interrupted = \s ex -> do
+                        let err = show (ex :: IOException)
+                        putStrLn "Closing down socket"
+                        hPutStrLn stderr $ "Some exception caught: " ++ err
 
 respondTo :: Session -> MVar RefactorSessionState -> (ByteString -> IO ()) -> ByteString -> IO ()
 respondTo ghcSess state next mess = case decode mess of
