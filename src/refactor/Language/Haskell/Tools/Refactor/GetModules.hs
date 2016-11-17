@@ -1,9 +1,11 @@
 {-# LANGUAGE TupleSections
            , NamedFieldPuns
            , LambdaCase
+           , TemplateHaskell
            #-}
 module Language.Haskell.Tools.Refactor.GetModules where
 
+import Control.Reference
 import Data.List (intersperse, find, sortBy)
 import qualified Data.Map as Map
 import Distribution.Package (Dependency(..), PackageName(..), pkgName)
@@ -26,32 +28,22 @@ import qualified Language.Haskell.TH.LanguageExtensions as GHC
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.AST (IdDom)
 
+type AnalyzedModColl = ModuleCollection ()
+
 -- | The modules of a library, executable, test or benchmark. A package contains one or more module collection.
-data ModuleCollection key mod
-  = ModuleCollection { mcId :: ModuleCollectionId
-                     , mcSourceDirs :: [FilePath]
-                     , mcModules :: Map.Map key mod
-                     , mcFlagSetup :: DynFlags -> IO DynFlags -- ^ Sets up the ghc environment for compiling the modules of this collection
-                     , mcDependencies :: [ModuleCollectionId]
+data ModuleCollection mod
+  = ModuleCollection { _mcId :: ModuleCollectionId
+                     , _mcSourceDirs :: [FilePath]
+                     , _mcModules :: Map.Map SourceFileKey mod
+                     , _mcFlagSetup :: DynFlags -> IO DynFlags -- ^ Sets up the ghc environment for compiling the modules of this collection
+                     , _mcDependencies :: [ModuleCollectionId]
                      }
 
 -- | Module name and marker to separate .hs-boot module definitions. Specifies a source file in a working directory.
-data SourceFileKey = SourceFileKey { sfkIsBoot :: IsBoot
-                                   , sfkModuleName :: String
+data SourceFileKey = SourceFileKey { _sfkIsBoot :: IsBoot
+                                   , _sfkModuleName :: String
                                    }
   deriving (Eq, Ord, Show)
-
--- | Specifies as ource file.
-data AbsoluteSourceKey = AbsoluteSourceKey { askSrcDir :: FilePath
-                                           , askSrcKey :: SourceFileKey
-                                           }
-  deriving (Eq, Ord, Show)
-
-askModule :: AbsoluteSourceKey -> String
-askModule = sfkModuleName . askSrcKey
-
-mkAbsSrcKey :: FilePath -> String -> IsBoot -> AbsoluteSourceKey
-mkAbsSrcKey wd mod boot = AbsoluteSourceKey wd (SourceFileKey boot mod)
 
 -- | This data structure identifies a module collection
 data ModuleCollectionId = DirectoryMC FilePath
@@ -64,32 +56,47 @@ data ModuleCollectionId = DirectoryMC FilePath
 -- | Decides if a module is a .hs-boot file or a normal .hs file
 data IsBoot = NormalHs | IsHsBoot deriving (Eq, Ord, Show)
 
+makeReferences ''ModuleCollection
+makeReferences ''SourceFileKey
+
+lookupModuleColl :: String -> [ModuleCollection mod] -> Maybe (ModuleCollection mod)
+lookupModuleColl moduleName = find (any ((moduleName ==) . (^. sfkModuleName)) . Map.keys . (^. mcModules))
+
+lookupModInSCs :: SourceFileKey -> [ModuleCollection mod] -> Maybe (SourceFileKey, mod)
+lookupModInSCs moduleName = find ((moduleName ==) . fst) . concatMap (Map.assocs . (^. mcModules))
+
+removeModule :: String -> [ModuleCollection mod] -> [ModuleCollection mod]
+removeModule moduleName = map (mcModules .- Map.filterWithKey (\k v -> moduleName /= (k ^. sfkModuleName)))
+
+updateModule :: String -> IsBoot -> mod -> [ModuleCollection mod] -> [ModuleCollection mod]
+updateModule moduleName boot mod = map (mcModules .- Map.insert (SourceFileKey boot moduleName) mod)
+
 -- | Gets all ModuleCollections from a list of source directories. It also orders the source directories that are package roots so that
 -- they can be loaded in the order they are defined (no backward imports). This matters in those cases because for them there can be
 -- special compilation flags.
-getAllModules :: [FilePath] -> IO [ModuleCollection SourceFileKey ()]
+getAllModules :: [FilePath] -> IO [AnalyzedModColl]
 getAllModules pathes = orderMCs . concat <$> mapM getModules pathes
 
 -- | Sorts model collection in an order to remove all backward references.
 -- Works because module collections defined by directories cannot be recursive.
-orderMCs :: [ModuleCollection k a] -> [ModuleCollection k a]
+orderMCs :: [ModuleCollection a] -> [ModuleCollection a]
 orderMCs = sortBy compareMCs
-  where compareMCs :: ModuleCollection k a -> ModuleCollection k a -> Ordering
-        compareMCs ModuleCollection{mcId = DirectoryMC _} _ = GT
-        compareMCs _ ModuleCollection{mcId = DirectoryMC _} = LT
-        compareMCs mc1 mc2 | mcId mc2 `elem` mcDependencies mc1 = GT
-        compareMCs mc1 mc2 | mcId mc1 `elem` mcDependencies mc2 = LT
+  where compareMCs :: ModuleCollection a -> ModuleCollection a -> Ordering
+        compareMCs mc _ | DirectoryMC _ <- (mc ^. mcId) = GT
+        compareMCs _ mc | DirectoryMC _ <- (mc ^. mcId) = LT
+        compareMCs mc1 mc2 | (mc2 ^. mcId) `elem` (mc1 ^. mcDependencies) = GT
+        compareMCs mc1 mc2 | (mc1 ^. mcId) `elem` (mc2 ^. mcDependencies) = LT
         compareMCs _ _ = EQ
 
 
 -- | Get modules of the project with the indicated root directory.
 -- If there is a cabal file, it uses that, otherwise it just scans the directory recursively for haskell sourcefiles.
 -- Only returns the non-boot haskell modules, the boot modules will be found during loading.
-getModules :: FilePath -> IO [ModuleCollection SourceFileKey ()]
+getModules :: FilePath -> IO [AnalyzedModColl]
 getModules root
   = do files <- listDirectory root
        case find (\p -> takeExtension p == ".cabal") files of
-          Just cabalFile -> modulesFromCabalFile (root </> cabalFile)
+          Just cabalFile -> modulesFromCabalFile root cabalFile
           Nothing        -> do mods <- modulesFromDirectory root root
                                return [ModuleCollection (DirectoryMC root) [root] (Map.fromList $ map ((, ()) . SourceFileKey NormalHs) mods) return []]
 
@@ -109,17 +116,18 @@ srcDirFromRoot fileName "" = fileName
 srcDirFromRoot fileName moduleName 
   = srcDirFromRoot (takeDirectory fileName) (dropWhile (/= '.') $ dropWhile (== '.') moduleName)
 
-modulesFromCabalFile :: FilePath -> IO [ModuleCollection SourceFileKey ()]
+modulesFromCabalFile :: FilePath -> FilePath -> IO [AnalyzedModColl]
 -- now adding all conditional entries, regardless of flags
-modulesFromCabalFile cabal = getModules . flattenPackageDescription <$> readPackageDescription silent cabal
+modulesFromCabalFile root cabal = getModules . flattenPackageDescription <$> readPackageDescription silent (root </> cabal)
   where getModules pkg = maybe [] ((:[]) . toModuleCollection pkg) (library pkg) 
                            ++ map (toModuleCollection pkg) (executables pkg) 
                            ++ map (toModuleCollection pkg) (testSuites pkg) 
                            ++ map (toModuleCollection pkg) (benchmarks pkg)
            
-        toModuleCollection :: ToModuleCollection tmc => PackageDescription -> tmc -> ModuleCollection SourceFileKey ()
+        toModuleCollection :: ToModuleCollection tmc => PackageDescription -> tmc -> AnalyzedModColl
         toModuleCollection pkg tmc = let bi = getBuildInfo tmc 
-                                      in ModuleCollection (mkModuleCollKey (pkgName $ package pkg) tmc) (hsSourceDirs bi) 
+                                      in ModuleCollection (mkModuleCollKey (pkgName $ package pkg) tmc) 
+                                                          (map (normalise . (root </>)) $ hsSourceDirs bi) 
                                                           (Map.fromList $ map ((, ()) . SourceFileKey NormalHs . moduleName) (getModuleNames tmc)) 
                                                           (flagsFromBuildInfo bi)
                                                           (map (\(Dependency pkgName _) -> LibraryMC (unPackageName pkgName)) (targetBuildDepends bi))
