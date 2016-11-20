@@ -97,7 +97,7 @@ loadModule workingDir moduleName
        useDirs [workingDir]
        target <- guessTarget moduleName Nothing
        setTargets [target]
-       load (LoadUpTo $ mkModuleName moduleName)
+       load (LoadDependenciesOf $ mkModuleName moduleName)
        getModSummary $ mkModuleName moduleName
     
 -- | The final version of our AST, with type infromation added

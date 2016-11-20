@@ -76,6 +76,13 @@ withAlteredDynFlags modDFs action = do
   setSessionDynFlags dfs
   return res
 
+-- reloadChangedModules :: IsRefactSessionState st => [String] -> StateT st Ghc ()
+-- reloadChangedModules changedMods = do
+--   allMods <- lift $ depanal alreadyLoaded True
+--   let allModsGraph = topSortModuleGraph False allMods Nothing
+
+  
+
 reloadModule :: IsRefactSessionState st => String -> ModSummary -> StateT st Ghc ()
 reloadModule modName ms = do 
   Just mc <- gets (lookupModuleColl modName . (^. refSessMCs))

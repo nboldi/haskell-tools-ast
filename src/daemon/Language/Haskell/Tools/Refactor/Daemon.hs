@@ -171,8 +171,8 @@ data ClientMessage
                        , editorSelection :: String
                        , details :: [String]
                        }
-  | ReLoad
   -- | Stop
+  | ReLoad
   deriving (Eq, Show, Generic)
 
 instance ToJSON ClientMessage
