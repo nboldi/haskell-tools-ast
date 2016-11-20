@@ -67,8 +67,9 @@ initGhcFlags = do
     $ flip gopt_set Opt_KeepRawTokenStream
     $ flip gopt_set Opt_NoHsMain
     $ dflags { importPaths = []
-             , hscTarget = HscAsm -- needed for static pointers
-             , ghcLink = LinkInMemory
+             , -- TODO: switch to HscNone, only generate code if explicitely needed
+               hscTarget = HscAsm -- needed for static pointers
+             , ghcLink = LinkInMemory -- needed for template haskell
              , ghcMode = CompManager 
              , packageFlags = ExposePackage "template-haskell" (PackageArg "template-haskell") (ModRenaming True []) : packageFlags dflags
              }
@@ -96,7 +97,7 @@ loadModule workingDir moduleName
        useDirs [workingDir]
        target <- guessTarget moduleName Nothing
        setTargets [target]
-       load LoadAllTargets
+       load (LoadUpTo $ mkModuleName moduleName)
        getModSummary $ mkModuleName moduleName
     
 -- | The final version of our AST, with type infromation added
@@ -118,10 +119,10 @@ parseTyped modSum = do
                          (fromJust $ tm_renamed_source tc) 
                          (pm_parsed_source p)))
 
-readSrcSpan :: String -> String -> RealSrcSpan
-readSrcSpan fileName s = case splitOn "-" s of
-  [from,to] -> mkRealSrcSpan (readSrcLoc fileName from) (readSrcLoc fileName to)
+readSrcSpan :: String -> RealSrcSpan
+readSrcSpan s = case splitOn "-" s of
+  [from,to] -> mkRealSrcSpan (readSrcLoc from) (readSrcLoc to)
   
-readSrcLoc :: String -> String -> RealSrcLoc
-readSrcLoc fileName s = case splitOn ":" s of
-  [line,col] -> mkRealSrcLoc (mkFastString fileName) (read line) (read col)
+readSrcLoc :: String -> RealSrcLoc
+readSrcLoc s = case splitOn ":" s of
+  [line,col] -> mkRealSrcLoc (mkFastString "file-name-should-be-fixed") (read line) (read col)

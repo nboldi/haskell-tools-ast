@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase
            , TupleSections
            , FlexibleContexts
+           , TemplateHaskell
            #-}
 module Language.Haskell.Tools.Refactor.CLI (refactorSession) where
 
@@ -27,6 +28,17 @@ import Language.Haskell.Tools.Refactor.Session
 
 import Debug.Trace
 
+type CLIRefactorSession = StateT CLISessionState Ghc
+
+data CLISessionState = 
+  CLISessionState { _refactState :: RefactorSessionState
+                  , _actualMod :: Maybe SourceFileKey
+                  , _exiting :: Bool
+                  , _dryMode :: Bool
+                  }
+
+makeReferences ''CLISessionState
+
 tryOut = refactorSession [ "-dry-run", "-one-shot", "-module-name=Language.Haskell.Tools.AST", "-refactoring=OrganizeImports"
                          , "src/ast", "src/backend-ghc", "src/prettyprint", "src/rewrite", "src/refactor"]
 
@@ -39,36 +51,15 @@ refactorSession args = runGhc (Just libdir) $ flip evalStateT initSession $
                          else do initializeSession workingDirs htFlags
                                  runSession htFlags
      
-  where initializeSession :: [FilePath] -> [String] -> RefactorSession Ghc ()
+  where initializeSession :: [FilePath] -> [String] -> CLIRefactorSession ()
         initializeSession workingDirs flags = do
-          modColls <- liftIO $ getAllModules workingDirs
-
           liftIO $ putStrLn "Compiling modules. This may take some time. Please wait."
-          modColls' <- lift $ flip evalStateT [] $ forM modColls $ \mc -> do
-            lift $ useDirs (mc ^. mcSourceDirs)
-            lift $ setTargets $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) 
-                                             (map (^. sfkModuleName) $ Map.keys $ mc ^. mcModules)
-            alreadyLoaded <- get
-            -- depanal sets the dynamic flags for modules, so they need to be set before calling it
-            withAlteredDynFlags (liftIO . (mc ^. mcFlagSetup)) $
-              do modsForMC <- lift $ depanal alreadyLoaded True
-                 mods <- lift $ forM (flattenSCCs $ topSortModuleGraph False modsForMC Nothing) loadModule
-                 modify $ (++ map ms_mod_name modsForMC)
-                 return $ (mcModules .= Map.fromList mods) mc
-
+          loadPackagesFrom (\m -> liftIO $ putStrLn ("Loaded module: " ++ m)) workingDirs
           liftIO $ putStrLn "All modules loaded. Use 'SelectModule module-name' to select a module"
-          modify $ refSessMCs .= modColls'
           liftIO $ hSetBuffering stdout NoBuffering
           when ("-dry-run" `elem` flags) $ modify (dryMode .= True)
 
-        loadModule :: ModSummary -> Ghc (SourceFileKey, TypedModule)
-        loadModule ms = 
-          do let modName = GHC.moduleNameString $ moduleName $ ms_mod ms
-             mm <- parseTyped ms
-             liftIO $ putStrLn ("Loaded module: " ++ modName)
-             return (SourceFileKey (case ms_hsc_src ms of HsSrcFile -> NormalHs; _ -> IsHsBoot) modName, mm)
-
-        runSession :: [String] -> RefactorSession Ghc String
+        runSession :: [String] -> CLIRefactorSession String
         runSession flags | "-one-shot" `elem` flags
           = let modName = catMaybes $ map (\f -> case splitOn "=" f of ["-module-name", mod] -> Just mod; _ -> Nothing) flags
                 refactoring = catMaybes $ map (\f -> case splitOn "=" f of ["-refactoring", ref] -> Just ref; _ -> Nothing) flags
@@ -80,7 +71,7 @@ refactorSession args = runGhc (Just libdir) $ flip evalStateT initSession $
                   _ -> return usageMessage
         runSession _ = runSessionLoop
 
-        runSessionLoop :: RefactorSession Ghc String
+        runSessionLoop :: CLIRefactorSession String
         runSessionLoop = do 
           actualMod <- gets (^. actualMod)
           liftIO $ putStr (maybe "no-module-selected" (\sfk -> (sfk ^. sfkModuleName) ++ ">") actualMod)
@@ -94,29 +85,21 @@ refactorSession args = runGhc (Just libdir) $ flip evalStateT initSession $
         usageMessage = "Usage: ht-refact [ht-flags, ghc-flags] package-pathes\n"
                          ++ "ht-flags: -dry-run -one-shot -module-name=modulename -refactoring=\"refactoring\""
 
-withAlteredDynFlags :: GhcMonad m => (DynFlags -> m DynFlags) -> m a -> m a
-withAlteredDynFlags modDFs action = do
-  dfs <- getSessionDynFlags
-  setSessionDynFlags =<< modDFs dfs
-  res <- action
-  setSessionDynFlags dfs
-  return res
-
 data RefactorSessionCommand 
   = LoadModule String
   | Exit
   | RefactorCommand RefactorCommand
   deriving Show
 
-readSessionCommand :: Monad m => String -> RefactorSession m RefactorSessionCommand
+readSessionCommand :: String -> CLIRefactorSession RefactorSessionCommand
 readSessionCommand cmd = case splitOn " " cmd of 
     ["SelectModule", mod] -> return $ LoadModule mod
     ["Exit"] -> return Exit
     _ -> do actualMod <- gets (^. actualMod)
-            case actualMod of Just sf -> return $ RefactorCommand $ readCommand "" cmd
+            case actualMod of Just _ -> return $ RefactorCommand $ readCommand cmd
                               Nothing -> error "Set the actual module first"
 
-performSessionCommand :: RefactorSessionCommand -> RefactorSession Ghc String
+performSessionCommand :: RefactorSessionCommand -> CLIRefactorSession String
 performSessionCommand (LoadModule modName) = do 
   mod <- gets (lookupModInSCs (SourceFileKey NormalHs modName) . (^. refSessMCs))
   if isJust mod then modify $ actualMod .= fmap fst mod
@@ -125,7 +108,8 @@ performSessionCommand (LoadModule modName) = do
 performSessionCommand Exit = do modify $ exiting .= True
                                 return ""
 performSessionCommand (RefactorCommand cmd) 
-  = do (Just actualMod, otherMods) <- getMods
+  = do actMod <- gets (^. actualMod)
+       (Just actualMod, otherMods) <- getMods actMod
        res <- lift $ performCommand cmd (assocToNamedMod actualMod) (map assocToNamedMod otherMods)
        inDryMode <- gets (^. dryMode)
        case res of Left err -> return err
@@ -140,14 +124,16 @@ performSessionCommand (RefactorCommand cmd)
               liftIO $ withBinaryFile file WriteMode (`hPutStr` prettyPrint m)
               return $ Just (GHC.moduleNameString $ moduleName modName, ms)
             ModuleRemoved mod -> do
-              modify $ refSessMCs .- removeModule mod
+              Just (_,m) <- gets (lookupModInSCs (SourceFileKey NormalHs mod) . (^. refSessMCs))
+              let modName = semanticsModule m 
+              ms <- getModSummary modName (isBootModule $ m ^. semantics)
+              let file = fromJust $ ml_hs_file $ ms_location ms
+              modify $ (refSessMCs .- removeModule mod)
+              liftIO $ removeFile file
               return Nothing
           forM_ (catMaybes mss) $ \(modName, ms) -> do
               -- TODO: add target if module is added as a change
-              Just mc <- gets (lookupModuleColl modName . (^. refSessMCs))
-              newm <- lift $ withAlteredDynFlags (liftIO . (mc ^. mcFlagSetup)) $
-                parseTyped ms
-              modify $ refSessMCs .- updateModule modName NormalHs newm
+              reloadModule modName ms
               liftIO $ putStrLn ("Re-loaded module: " ++ modName)
           return ""
         performChanges True resMods = concat <$> forM resMods (liftIO . \case 
@@ -159,3 +145,8 @@ performSessionCommand (RefactorCommand cmd)
         getModSummary name boot
           = do allMods <- lift getModuleGraph
                return $ fromJust $ find (\ms -> ms_mod ms == name && (ms_hsc_src ms == HsSrcFile) /= boot) allMods 
+
+
+instance IsRefactSessionState CLISessionState where
+  refSessMCs = refactState & _refSessMCs
+  initSession = CLISessionState initSession Nothing False False
