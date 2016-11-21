@@ -51,6 +51,12 @@ cliTests
     , ( ".." </> ".." </> "examples" </> "Project" </> "has-cabal"
       , ["-dry-run", "-one-shot", "-module-name=A", "-refactoring=\"GenerateSignature 3:1-3:1\""] 
       , "", prefixText ["A"] ++ "### Module changed: A\n### new content:\nmodule A where\n\nx :: ()\nx = ()\n")
+    , ( ".." </> ".." </> "examples" </> "Project" </> "selection", [] 
+      , "SelectModule C\nSelectModule B\nRenameDefinition 5:1-5:2 bb\nSelectModule C\nRenameDefinition 3:1-3:2 cc\nExit"
+      , prefixText ["C","B"] ++ "no-module-selected> C> B> " 
+          ++ reloads ["B"] ++ "B> C> "
+          ++ reloads ["C", "B"] ++ "C> "
+          )
     , ( ".." </> ".." </> "examples" </> "Project" </> "reloading", [] 
       , "SelectModule C\nRenameDefinition 3:1-3:2 cc\nSelectModule B\nRenameDefinition 5:1-5:2 bb\nExit"
       , prefixText ["C","B","A"] ++ "no-module-selected> C> " 
@@ -79,3 +85,8 @@ copyDir src dst = do
     if isDirectory
       then copyDir srcPath dstPath
       else copyFile srcPath dstPath
+
+-- copyFileBinary :: FilePath -> FilePath -> IO ()
+-- copyFileBinary src dst
+--   = withBinaryFile src ReadMode $ \hSrc -> withBinaryFile dst WriteMode $ \hDst ->
+--       hGetContents hSrc >>= hPutStr hDst
