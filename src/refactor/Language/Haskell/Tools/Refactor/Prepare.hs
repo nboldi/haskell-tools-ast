@@ -97,7 +97,7 @@ loadModule workingDir moduleName
        useDirs [workingDir]
        target <- guessTarget moduleName Nothing
        setTargets [target]
-       load (LoadDependenciesOf $ mkModuleName moduleName)
+       load (LoadUpTo $ mkModuleName moduleName)
        getModSummary $ mkModuleName moduleName
     
 -- | The final version of our AST, with type infromation added
@@ -108,7 +108,7 @@ parseTyped :: ModSummary -> Ghc TypedModule
 parseTyped modSum = do
   p <- parseModule modSum
   tc <- typecheckModule p
-  GHC.loadModule tc
+  GHC.loadModule tc -- when used with loadModule, the module will be loaded twice
   let annots = pm_annotations p
       srcBuffer = fromJust $ ms_hspp_buf $ pm_mod_summary p
   prepareAST srcBuffer . placeComments (getNormalComments $ snd annots) 
