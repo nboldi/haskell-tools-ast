@@ -126,20 +126,23 @@ updateClient (PerformRefactoring refact modName selection args) = do
   where trfDiff (ContentChanged (name,_)) = name
         trfDiff (ModuleRemoved name) = name
 
-        applyChanges 
-          = mapM_ $ \case 
-              ContentChanged (n,m) -> do
-                ms <- lift $ getModSummary (mkModuleName n)
-                let file = fromJust $ ml_hs_file $ ms_location ms
-                liftIO $ withBinaryFile file WriteMode (`hPutStr` prettyPrint m)
-                reloadModule n ms
-              ModuleRemoved mod -> do
-                Just (_,m) <- gets (lookupModInSCs (SourceFileKey NormalHs mod) . (^. refSessMCs))
-                let modName = GHC.moduleName $ semanticsModule m 
-                ms <- getModSummary modName
-                let file = fromJust $ ml_hs_file $ ms_location ms
-                modify $ (refSessMCs .- removeModule mod)
-                liftIO $ removeFile file
+        applyChanges changes = do 
+          changedMods <- forM changes $ \case 
+            ContentChanged (n,m) -> do
+              ms <- lift $ getModSummary (mkModuleName n)
+              let file = fromJust $ ml_hs_file $ ms_location ms
+              liftIO $ withBinaryFile file WriteMode (`hPutStr` prettyPrint m)
+              return n
+            ModuleRemoved mod -> do
+              Just (_,m) <- gets (lookupModInSCs (SourceFileKey NormalHs mod) . (^. refSessMCs))
+              let modName = GHC.moduleName $ semanticsModule m 
+              ms <- getModSummary modName
+              let file = fromJust $ ml_hs_file $ ms_location ms
+              modify $ (refSessMCs .- removeModule mod)
+              liftIO $ removeFile file
+              return mod
+          reloadChangedModules (\_ -> return ()) changedMods
+
 
 getModuleFilePath :: UnnamedModule IdDom -> Ghc FilePath
 getModuleFilePath mod = do
