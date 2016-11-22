@@ -6,6 +6,7 @@ import System.Directory
 import System.FilePath
 import Control.Monad (forM_)
 import Control.Exception
+import qualified Data.List as List
 import Data.Knob
 import Data.ByteString.Char8 (pack, unpack)
 import System.IO
@@ -24,45 +25,60 @@ run tests = do results <- runTestTT $ TestList tests
 allTests :: [Test]
 allTests = map makeCliTest cliTests
 
-makeCliTest :: (String, [String], String, String) -> Test
-makeCliTest (dir, args, input, output) = TestLabel dir $ TestCase $ do 
+makeCliTest :: ([FilePath], [String], String, String) -> Test
+makeCliTest (dirs, args, input, output) = let dir = joinPath $ longestCommonPrefix $ map splitDirectories dirs
+  in TestLabel dir $ TestCase $ do   
     copyDir dir (dir ++ "_orig")
     inKnob <- newKnob (pack input)
     inHandle <- newFileHandle inKnob "<input>" ReadMode
     outKnob <- newKnob (pack [])
     outHandle <- newFileHandle outKnob "<output>" WriteMode
-    res <- refactorSession inHandle outHandle (args ++ [dir])
+    res <- refactorSession inHandle outHandle (args ++ dirs)
     actualOut <- Data.Knob.getContents outKnob
     assertEqual "" (filter (/= '\r') output) (filter (/= '\r') $ unpack actualOut)
   `finally` do removeDirectoryRecursive dir
                renameDirectory (dir ++ "_orig") dir
 
-cliTests :: [(String, [String], String, String)]
+cliTests :: [([FilePath], [String], String, String)]
 cliTests 
-  = [ ( ".." </> ".." </> "examples" </> "Project" </> "source-dir"
+  = [ ( [testRoot </> "source-dir"]
       , ["-dry-run", "-one-shot", "-module-name=A", "-refactoring=\"GenerateSignature 3:1-3:1\""] 
       , "", prefixText ["A"] ++ "### Module changed: A\n### new content:\nmodule A where\n\nx :: ()\nx = ()\n")
-    , ( ".." </> ".." </> "examples" </> "Project" </> "source-dir-outside"
+    , ( [testRoot </> "source-dir-outside"]
       , ["-dry-run", "-one-shot", "-module-name=A", "-refactoring=\"GenerateSignature 3:1-3:1\""] 
       , "", prefixText ["A"] ++ "### Module changed: A\n### new content:\nmodule A where\n\nx :: ()\nx = ()\n")
-    , ( ".." </> ".." </> "examples" </> "Project" </> "no-cabal"
+    , ( [testRoot </> "no-cabal"]
       , ["-dry-run", "-one-shot", "-module-name=A", "-refactoring=\"GenerateSignature 3:1-3:1\""] 
       , "", prefixText ["A"] ++ "### Module changed: A\n### new content:\nmodule A where\n\nx :: ()\nx = ()\n")
-    , ( ".." </> ".." </> "examples" </> "Project" </> "has-cabal"
+    , ( [testRoot </> "has-cabal"]
       , ["-dry-run", "-one-shot", "-module-name=A", "-refactoring=\"GenerateSignature 3:1-3:1\""] 
       , "", prefixText ["A"] ++ "### Module changed: A\n### new content:\nmodule A where\n\nx :: ()\nx = ()\n")
-    , ( ".." </> ".." </> "examples" </> "Project" </> "selection", [] 
+    , ( [testRoot </> "selection"], [] 
       , "SelectModule C\nSelectModule B\nRenameDefinition 5:1-5:2 bb\nSelectModule C\nRenameDefinition 3:1-3:2 cc\nExit"
       , prefixText ["C","B"] ++ "no-module-selected> C> B> " 
           ++ reloads ["B"] ++ "B> C> "
           ++ reloads ["C", "B"] ++ "C> "
           )
-    , ( ".." </> ".." </> "examples" </> "Project" </> "reloading", [] 
+    , ( [testRoot </> "reloading"], [] 
       , "SelectModule C\nRenameDefinition 3:1-3:2 cc\nSelectModule B\nRenameDefinition 5:1-5:2 bb\nExit"
       , prefixText ["C","B","A"] ++ "no-module-selected> C> " 
           ++ reloads ["C", "B", "A"] ++ "C> B> "
           ++ reloads ["B", "A"] ++ "B> ")
+    , ( map ((testRoot </> "multi-packages") </>) ["package1", "package2"]
+      , ["-dry-run", "-one-shot", "-module-name=A", "-refactoring=\"RenameDefinition 3:1-3:2 xx\""], ""
+      , prefixText ["A", "B"] ++ "### Module changed: A\n### new content:\nmodule A where\n\nxx = ()\n" 
+      )
+    , ( map ((testRoot </> "multi-packages-flags") </>) ["package1", "package2"]
+      , ["-dry-run", "-one-shot", "-module-name=A", "-refactoring=\"RenameDefinition 3:1-3:2 xx\""], ""
+      , prefixText ["A", "B"] ++ "### Module changed: A\n### new content:\nmodule A where\n\nxx = \\case () -> ()\n"
+      )
+    -- , ( map ((testRoot </> "multi-packages-same-module") </>) ["package1", "package2"]
+    --   , ["-dry-run", "-one-shot"], ""
+    --   , prefixText ["A", "A"] 
+    --   )
     ]
+
+testRoot = ".." </> ".." </> "examples" </> "Project"
 
 prefixText :: [String] -> String
 prefixText mods 
@@ -86,7 +102,12 @@ copyDir src dst = do
       then copyDir srcPath dstPath
       else copyFile srcPath dstPath
 
--- copyFileBinary :: FilePath -> FilePath -> IO ()
--- copyFileBinary src dst
---   = withBinaryFile src ReadMode $ \hSrc -> withBinaryFile dst WriteMode $ \hDst ->
---       hGetContents hSrc >>= hPutStr hDst
+commonPrefix :: (Eq e) => [e] -> [e] -> [e]
+commonPrefix _ [] = []
+commonPrefix [] _ = []
+commonPrefix (x:xs) (y:ys)
+  | x == y    = x : commonPrefix xs ys
+  | otherwise = []
+
+longestCommonPrefix :: (Eq a) => [[a]] -> [a]
+longestCommonPrefix = foldl1 commonPrefix
