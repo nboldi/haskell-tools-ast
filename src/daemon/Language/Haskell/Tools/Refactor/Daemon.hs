@@ -105,8 +105,13 @@ respondTo ghcSess state next mess = case decode mess of
 updateClient :: ClientMessage -> StateT RefactorSessionState Ghc (Maybe ResponseMsg)
 updateClient KeepAlive = return $ Just KeepAliveResponse
 updateClient (AddPackages packagePathes) = do 
-    modules <- loadPackagesFrom return packagePathes
-    return (Just $ LoadedModules modules)
+    (modules, ignoredMods) <- loadPackagesFrom return packagePathes
+    return $ Just $ if not (null ignoredMods) 
+      then ErrorMessage 
+             $ "The following modules are ignored: " 
+                 ++ concat (intersperse ", " $ map (\(id,mod) -> mod ++ " (from " ++ moduleCollectionIdString id ++ ")") ignoredMods)
+                 ++ ". Multiple modules with the same qualified name are not supported."
+      else LoadedModules modules
 
 updateClient ReLoad = do
     lift $ load LoadAllTargets

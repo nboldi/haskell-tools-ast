@@ -56,7 +56,12 @@ refactorSession input output args = runGhc (Just libdir) $ flip evalStateT initS
         initializeSession output workingDirs flags = do
           liftIO $ hSetBuffering output NoBuffering
           liftIO $ hPutStrLn output "Compiling modules. This may take some time. Please wait."
-          loadPackagesFrom (\m -> liftIO $ hPutStrLn output ("Loaded module: " ++ m)) workingDirs
+          (_, ignoredMods) <- loadPackagesFrom (\m -> liftIO $ hPutStrLn output ("Loaded module: " ++ m)) workingDirs
+          when (not $ null ignoredMods) 
+            $ liftIO $ hPutStrLn output 
+            $ "The following modules are ignored: " 
+                ++ concat (intersperse ", " $ map (\(id,mod) -> mod ++ " (from " ++ moduleCollectionIdString id ++ ")") ignoredMods)
+                ++ ". Multiple modules with the same qualified name are not supported."
           liftIO $ hPutStrLn output "All modules loaded. Use 'SelectModule module-name' to select a module"
           when ("-dry-run" `elem` flags) $ modify (dryMode .= True)
 

@@ -53,6 +53,13 @@ data ModuleCollectionId = DirectoryMC FilePath
                         | BenchmarkMC String
   deriving (Eq, Ord, Show)
 
+moduleCollectionIdString :: ModuleCollectionId -> String
+moduleCollectionIdString (DirectoryMC fp) = fp
+moduleCollectionIdString (LibraryMC id) = id
+moduleCollectionIdString (ExecutableMC id) = id
+moduleCollectionIdString (TestSuiteMC id) = id
+moduleCollectionIdString (BenchmarkMC id) = id
+
 -- | Decides if a module is a .hs-boot file or a normal .hs file
 data IsBoot = NormalHs | IsHsBoot deriving (Eq, Ord, Show)
 

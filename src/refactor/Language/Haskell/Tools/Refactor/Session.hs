@@ -1,4 +1,6 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell 
+           , TupleSections
+           #-}
 module Language.Haskell.Tools.Refactor.Session where
 
 import qualified Data.Map as Map
@@ -35,24 +37,26 @@ instance IsRefactSessionState RefactorSessionState where
   initSession = RefactorSessionState []
 
 
-loadPackagesFrom :: IsRefactSessionState st => (String -> IO a) -> [FilePath] -> StateT st Ghc [a]
+loadPackagesFrom :: IsRefactSessionState st => (String -> IO a) -> [FilePath] -> StateT st Ghc ([a], [(ModuleCollectionId, String)])
 loadPackagesFrom report packages = 
   do modColls <- liftIO $ getAllModules packages
      res <- lift $ flip evalStateT [] $ forM modColls $ \mc -> do
+       alreadyLoaded <- get
+       let loadedModNames = map GHC.moduleNameString alreadyLoaded
+           newModNames = map (^. sfkModuleName) $ Map.keys $ mc ^. mcModules
+           ignoredMods = newModNames `List.intersect` loadedModNames
        lift $ useDirs (mc ^. mcSourceDirs)
        lift $ setTargets $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) 
-                                        (map (^. sfkModuleName) $ Map.keys $ mc ^. mcModules)
-       -- lift $ load LoadAllTargets
-       alreadyLoaded <- get
+                                        (newModNames List.\\ ignoredMods)
        -- depanal sets the dynamic flags for modules, so they need to be set before calling it
        withAlteredDynFlags (liftIO . (mc ^. mcFlagSetup)) $
          do modsForMC <- lift $ depanal alreadyLoaded True
             let modsToParse = flattenSCCs $ topSortModuleGraph False modsForMC Nothing
             mods <- lift $ mapM (loadModule report) modsToParse
             modify $ (++ map ms_mod_name modsForMC)
-            return $ (map fst mods, (mcModules .= Map.fromList (map snd mods)) mc)
+            return $ ((map fst mods, map (mc ^. mcId, ) ignoredMods), (mcModules .= Map.fromList (map snd mods)) mc)
      modify $ refSessMCs .= map snd res
-     return (concatMap fst res)
+     return (concatMap (fst . fst) res, concatMap (snd . fst) res)
 
   where loadModule :: (String -> IO a) -> ModSummary -> Ghc (a, (SourceFileKey, UnnamedModule IdDom))
         loadModule report ms = 
