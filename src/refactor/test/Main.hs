@@ -454,24 +454,24 @@ checkCorrectlyPrinted workingDir moduleName
 -- TODO: find out why the commented-out code doesn't work for the two Template Haskell tests. These work for CLI. 
 -- performRefactors :: String -> String -> [String] -> String -> IO (Either String [(String, Maybe String)])
 -- performRefactors command workingDir flags target = runGhc (Just libdir) $ flip evalStateT (initSession :: RefactorSessionState) $ do 
-  -- lift initGhcFlags
-  -- mods <- loadPackagesFrom ({- const $ return () -} \m -> liftIO $ (putStrLn ("Loaded module: " ++ workingDir ++ " " ++ m) >> hFlush stdout)) [workingDir]
-  -- (selectedMod, otherMods) <- getMods (Just $ SourceFileKey NormalHs target)
-  -- case selectedMod of 
-  --   Just (_, selMod) -> do 
-  --     res <- lift $ performCommand (readCommand command) (target, selMod) (map assocToNamedMod otherMods)
-      -- return $ (\case Right r -> Right $ (map (\case ContentChanged (n,m) -> (n, Just $ prettyPrint m)
-      --                                                ModuleRemoved m -> (m, Nothing)
-      --                                         )) r
-      --                 Left l -> Left l) 
-      --        $ res
-    -- Nothing -> error "The selected module is not found"
+--   lift initGhcFlags
+--   mods <- loadPackagesFrom ({- const $ return () -} \m -> liftIO $ (putStrLn ("Loaded module: " ++ workingDir ++ " " ++ m) >> hFlush stdout)) [workingDir]
+--   (selectedMod, otherMods) <- getMods (Just $ SourceFileKey NormalHs target)
+--   case selectedMod of 
+--     Just (_, selMod) -> do 
+--       res <- lift $ performCommand (readCommand command) (target, selMod) (map assocToNamedMod otherMods)
+--       return $ (\case Right r -> Right $ (map (\case ContentChanged (n,m) -> (n, Just $ prettyPrint m)
+--                                                      ModuleRemoved m -> (m, Nothing)
+--                                               )) r
+--                       Left l -> Left l) 
+--              $ res
+--     Nothing -> error "The selected module is not found"
     
 performRefactors :: String -> String -> [String] -> String -> IO (Either String [(String, Maybe String)])
 performRefactors command workingDir flags target = do 
     mods <- getAllModules [workingDir]
     runGhc (Just libdir) $ do
-      initGhcFlags
+      initGhcFlagsForTest
       useFlags flags
       useDirs [workingDir]
       setTargets (map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) (concatMap (map (^. sfkModuleName) . Map.keys . (^. mcModules)) mods))

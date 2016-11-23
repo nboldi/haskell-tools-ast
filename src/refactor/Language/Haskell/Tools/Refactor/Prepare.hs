@@ -29,6 +29,7 @@ import CmdLineParser
 import DynFlags
 import StringBuffer
 
+import Control.Monad
 import Control.Monad.IO.Class
 import System.FilePath
 import Data.Maybe
@@ -61,26 +62,29 @@ useFlags args = do
 
 -- | Initialize GHC flags to default values that support refactoring
 initGhcFlags :: Ghc ()
-initGhcFlags = do
+initGhcFlags = initGhcFlags' False
+
+initGhcFlagsForTest :: Ghc ()
+initGhcFlagsForTest = initGhcFlags' True
+
+initGhcFlags' :: Bool -> Ghc ()
+initGhcFlags' needsCodeGen = do
   dflags <- getSessionDynFlags
-  setSessionDynFlags 
+  void $ setSessionDynFlags 
     $ flip gopt_set Opt_KeepRawTokenStream
     $ flip gopt_set Opt_NoHsMain
     $ dflags { importPaths = []
-             , -- TODO: switch to HscNone, only generate code if explicitely needed
-               hscTarget = HscAsm -- needed for static pointers
-             , ghcLink = LinkInMemory -- needed for template haskell
+             , hscTarget = if needsCodeGen then HscInterpreted else HscNothing
+             , ghcLink = if needsCodeGen then LinkInMemory else NoLink
              , ghcMode = CompManager 
              , packageFlags = ExposePackage "template-haskell" (PackageArg "template-haskell") (ModRenaming True []) : packageFlags dflags
              }
-  return () 
 
 -- | Use the given source directories
 useDirs :: [FilePath] -> Ghc ()
 useDirs workingDirs = do
   dynflags <- getSessionDynFlags
-  setSessionDynFlags dynflags { importPaths = importPaths dynflags ++ workingDirs }
-  return ()
+  void $ setSessionDynFlags dynflags { importPaths = importPaths dynflags ++ workingDirs }
   
 -- | Translates module name and working directory into the name of the file where the given module should be defined
 toFileName :: String -> String -> FilePath
@@ -118,6 +122,11 @@ parseTyped modSum = do
                      $ trfModuleRename modSum parseTrf
                          (fromJust $ tm_renamed_source tc) 
                          (pm_parsed_source p)))
+
+forceCodeGen :: ModSummary -> ModSummary
+forceCodeGen ms = ms { ms_hspp_opts = modOpts' }
+  where modOpts = (ms_hspp_opts ms) { hscTarget = HscInterpreted }
+        modOpts' = modOpts { ghcLink = LinkInMemory }
 
 readSrcSpan :: String -> RealSrcSpan
 readSrcSpan s = case splitOn "-" s of
