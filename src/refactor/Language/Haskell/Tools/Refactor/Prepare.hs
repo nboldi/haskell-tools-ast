@@ -33,7 +33,9 @@ import Control.Monad
 import Control.Monad.IO.Class
 import System.FilePath
 import Data.Maybe
+import Data.List (isInfixOf)
 import Data.List.Split
+import System.Info (os)
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC
@@ -74,8 +76,8 @@ initGhcFlags' needsCodeGen = do
     $ flip gopt_set Opt_KeepRawTokenStream
     $ flip gopt_set Opt_NoHsMain
     $ dflags { importPaths = []
-             , hscTarget = if needsCodeGen then HscInterpreted else HscNothing
-             , ghcLink = if needsCodeGen then LinkInMemory else NoLink
+             , hscTarget = if needsCodeGen || ("linux" `isInfixOf` os) then HscInterpreted else HscNothing
+             , ghcLink = if needsCodeGen || ("linux" `isInfixOf` os) then LinkInMemory else NoLink
              , ghcMode = CompManager 
              , packageFlags = ExposePackage "template-haskell" (PackageArg "template-haskell") (ModRenaming True []) : packageFlags dflags
              }
