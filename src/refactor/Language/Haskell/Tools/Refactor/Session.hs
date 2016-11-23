@@ -66,11 +66,9 @@ loadPackagesFrom report packages =
                    => (String -> IO a) -> ModSummary -> StateT st Ghc (a, (SourceFileKey, ModuleRecord))
         loadModule report ms = do
           let modName = GHC.moduleNameString $ moduleName $ ms_mod ms
-              compExts = extensionFlags $ ms_hspp_opts ms
               key = SourceFileKey (case ms_hsc_src ms of HsSrcFile -> NormalHs; _ -> IsHsBoot) modName
-          codeGenFromTHs <- gets (needsGeneratedCode key . (^. refSessMCs))
+          needsCodeGen <- gets (needsGeneratedCode key . (^. refSessMCs))
           lift $ do 
-            let needsCodeGen = codeGenFromTHs || fromEnum StaticPointers `member` compExts
             mm <- parseTyped (if needsCodeGen then forceCodeGen ms else ms)
             rep <- liftIO $ report modName
             res <- return (rep, ( key, (if needsCodeGen then ModuleCodeGenerated else ModuleTypeChecked) mm))
