@@ -21,6 +21,8 @@ import Test.HUnit hiding (test)
 import System.IO
 import System.Exit
 import System.FilePath
+import Data.IntSet (member)
+import Language.Haskell.TH.LanguageExtensions
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.Rewrite as G
@@ -493,24 +495,30 @@ type ParsedModule = Ann AST.UModule (Dom RdrName) SrcTemplateStage
 
 parseAST :: ModSummary -> Ghc ParsedModule
 parseAST modSum = do
-  p <- parseModule modSum
+  let compExts = extensionFlags $ ms_hspp_opts modSum
+      hasStaticFlags = fromEnum StaticPointers `member` compExts
+      ms = if hasStaticFlags then forceAsmGen modSum else modSum
+  p <- parseModule ms
   let annots = pm_annotations p
       srcBuffer = fromJust $ ms_hspp_buf $ pm_mod_summary p
   prepareAST srcBuffer . placeComments (snd annots) 
-     <$> (runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule modSum $ pm_parsed_source p)          
+     <$> (runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms $ pm_parsed_source p)          
 
 type RenamedModule = Ann AST.UModule (Dom GHC.Name) SrcTemplateStage
 
 parseRenamed :: ModSummary -> Ghc RenamedModule
 parseRenamed modSum = do
-  p <- parseModule modSum
+  let compExts = extensionFlags $ ms_hspp_opts modSum
+      hasStaticFlags = fromEnum StaticPointers `member` compExts
+      ms = if hasStaticFlags then forceAsmGen modSum else modSum
+  p <- parseModule ms
   tc <- typecheckModule p
   let annots = pm_annotations p
       srcBuffer = fromJust $ ms_hspp_buf $ pm_mod_summary p
   prepareAST srcBuffer . placeComments (getNormalComments $ snd annots) 
-    <$> (do parseTrf <- runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule modSum (pm_parsed_source p)
+    <$> (do parseTrf <- runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms (pm_parsed_source p)
             runTrf (fst annots) (getPragmaComments $ snd annots)
-              $ trfModuleRename modSum parseTrf
+              $ trfModuleRename ms parseTrf
                   (fromJust $ tm_renamed_source tc) 
                   (pm_parsed_source p))
 
