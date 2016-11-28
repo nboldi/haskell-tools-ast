@@ -121,8 +121,8 @@ updateClient ReLoad = do
     return Nothing
 -- updateClient _ Stop = return () 
 
-updateClient (PerformRefactoring refact modName selection args) = do
-    (Just actualMod, otherMods) <- getMods (Just $ SourceFileKey NormalHs modName)
+updateClient (PerformRefactoring refact modPath selection args) = do
+    (Just actualMod, otherMods) <- getFileMods modPath
     let cmd = analyzeCommand refact (selection:args)
     res <- lift $ performCommand cmd (assocToNamedMod actualMod) (map assocToNamedMod otherMods)
     case res of
@@ -178,7 +178,7 @@ data ClientMessage
   | AddPackages { addedPathes :: [FilePath] }
   -- | RemovePackage { removedPathes :: [FilePath] }
   | PerformRefactoring { refactoring :: String
-                       , moduleName :: String
+                       , modulePath :: FilePath
                        , editorSelection :: String
                        , details :: [String]
                        }

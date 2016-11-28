@@ -10,6 +10,8 @@ import Data.Function (on)
 import Control.Monad.State
 import Control.Reference
 import System.IO
+import System.FilePath
+import Debug.Trace
 
 import GHC
 import GhcMonad as GHC
@@ -19,7 +21,7 @@ import FastString as GHC
 import Data.IntSet (member)
 import Language.Haskell.TH.LanguageExtensions
 
-import Language.Haskell.Tools.AST (IdDom)
+import Language.Haskell.Tools.AST (IdDom, semanticsModule)
 import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.RefactorBase
@@ -81,6 +83,17 @@ getMods actMod
   = do mcs <- gets (^. refSessMCs)
        return $ ( (_2 !~ (^? typedRecModule)) =<< flip lookupModInSCs mcs =<< actMod
                 , filter ((actMod /=) . Just . fst) $ concatMap (catMaybes . map (_2 !~ (^? typedRecModule)) . Map.assocs . (^. mcModules)) mcs )
+
+getFileMods :: (GhcMonad m, IsRefactSessionState st) 
+        => FilePath -> StateT st m ( Maybe (SourceFileKey, UnnamedModule IdDom)
+                                   , [(SourceFileKey, UnnamedModule IdDom)] )
+getFileMods fname 
+  = do mcs <- gets (^. refSessMCs)
+       mods <- mapM (\(k,m) -> (,k) <$> getModSummary (moduleName (semanticsModule (fromJust $ m ^? typedRecModule)))) 
+                    (concatMap Map.assocs $ (mcs ^? traversal & mcModules :: [Map.Map SourceFileKey ModuleRecord]))
+       let sfs = catMaybes $ map (\(ms,k) -> if Just fname == fmap normalise (ml_hs_file (ms_location ms)) then Just k else Nothing) mods
+       case sfs of sf:_ -> getMods (Just sf)
+                   [] -> getMods Nothing
 
 assocToNamedMod :: (SourceFileKey, UnnamedModule dom) -> ModuleDom dom
 assocToNamedMod (SourceFileKey _ n, mod) = (n, mod)
