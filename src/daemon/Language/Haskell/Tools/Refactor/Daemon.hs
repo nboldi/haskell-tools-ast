@@ -53,6 +53,7 @@ import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Refactor.Session
 import Language.Haskell.Tools.PrettyPrint
+import Language.Haskell.Tools.Refactor.Daemon.State
 
 -- TODO: find out which modules have changed
 -- TODO: exit
@@ -81,21 +82,25 @@ clientLoop sock
        ghcSess <- initGhcSession
        state <- newMVar initSession
        serverLoop ghcSess state conn
-       clientLoop sock
+       sessionData <- readMVar state
+       when (not (sessionData ^. exiting))
+         $ clientLoop sock
 
-serverLoop :: Session -> MVar RefactorSessionState -> Socket -> IO ()
+serverLoop :: Session -> MVar DaemonSessionState -> Socket -> IO ()
 serverLoop ghcSess state sock =
     do msg <- recv sock 1024
        putStrLn $ "message received: " ++ unpack msg
        respondTo ghcSess state (sendAll sock) msg
-       serverLoop ghcSess state sock
+       sessionData <- readMVar state
+       when (not (sessionData ^. exiting))
+         $ serverLoop ghcSess state sock
   `catch` interrupted sock
   where interrupted = \s ex -> do
                         let err = show (ex :: IOException)
                         putStrLn "Closing down socket"
                         hPutStrLn stderr $ "Some exception caught: " ++ err
 
-respondTo :: Session -> MVar RefactorSessionState -> (ByteString -> IO ()) -> ByteString -> IO ()
+respondTo :: Session -> MVar DaemonSessionState -> (ByteString -> IO ()) -> ByteString -> IO ()
 respondTo ghcSess state next mess = case decode mess of
   Nothing -> next $ encode $ ErrorMessage "WRONG MESSAGE FORMAT"
   Just req -> do resp <- modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient req) st) ghcSess)
@@ -103,7 +108,7 @@ respondTo ghcSess state next mess = case decode mess of
                               Nothing -> return ()
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a client
-updateClient :: ClientMessage -> StateT RefactorSessionState Ghc (Maybe ResponseMsg)
+updateClient :: ClientMessage -> StateT DaemonSessionState Ghc (Maybe ResponseMsg)
 updateClient KeepAlive = return $ Just KeepAliveResponse
 updateClient (AddPackages packagePathes) = do 
     (modules, ignoredMods) <- loadPackagesFrom return packagePathes
@@ -119,7 +124,8 @@ updateClient ReLoad = do
     -- mod <- lift $ getModSummary (GHC.mkModuleName name) >>= parseTyped
     -- modify $ refSessMods .- Map.insert (name, NormalHs) mod
     return Nothing
--- updateClient _ Stop = return () 
+updateClient Stop = do modify (exiting .= True)
+                       return Nothing
 
 updateClient (PerformRefactoring refact modPath selection args) = do
     (Just actualMod, otherMods) <- getFileMods modPath
@@ -182,7 +188,7 @@ data ClientMessage
                        , editorSelection :: String
                        , details :: [String]
                        }
-  -- | Stop
+  | Stop
   | ReLoad
   deriving (Eq, Show, Generic)
 
