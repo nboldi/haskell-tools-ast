@@ -58,7 +58,7 @@ refactorSession input output args = runGhc (Just libdir) $ flip evalStateT initS
         initializeSession output workingDirs flags = do
           liftIO $ hSetBuffering output NoBuffering
           liftIO $ hPutStrLn output "Compiling modules. This may take some time. Please wait."
-          (_, ignoredMods) <- loadPackagesFrom (\m -> liftIO $ hPutStrLn output ("Loaded module: " ++ m)) workingDirs
+          (_, ignoredMods) <- loadPackagesFrom (\ms -> liftIO $ hPutStrLn output ("Loaded module: " ++ modSumName ms)) workingDirs
           when (not $ null ignoredMods) 
             $ liftIO $ hPutStrLn output 
             $ "The following modules are ignored: " 
@@ -142,8 +142,8 @@ performSessionCommand output (RefactorCommand cmd)
                   liftIO $ removeFile file
                 _ -> do liftIO $ hPutStrLn output ("Module " ++ mod ++ " could not be removed.")
               return mod
-          void $ reloadChangedModules (hPutStrLn output . ("Re-loaded module: " ++)) 
-                   (\ms -> (GHC.moduleNameString $ moduleName $ ms_mod ms) `elem` changedMods)
+          void $ reloadChangedModules (hPutStrLn output . ("Re-loaded module: " ++) . modSumName) 
+                   (\ms -> modSumName ms `elem` changedMods)
         performChanges output True resMods = forM_ resMods (liftIO . \case 
           ContentChanged (n,m) -> do
             hPutStrLn output $ "### Module changed: " ++ n ++ "\n### new content:\n" ++ prettyPrint m
@@ -153,7 +153,6 @@ performSessionCommand output (RefactorCommand cmd)
         getModSummary name boot
           = do allMods <- lift getModuleGraph
                return $ fromJust $ find (\ms -> ms_mod ms == name && (ms_hsc_src ms == HsSrcFile) /= boot) allMods 
-
 
 instance IsRefactSessionState CLISessionState where
   refSessMCs = refactState & _refSessMCs

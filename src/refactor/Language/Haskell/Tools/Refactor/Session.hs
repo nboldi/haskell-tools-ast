@@ -41,7 +41,7 @@ instance IsRefactSessionState RefactorSessionState where
   initSession = RefactorSessionState []
 
 
-loadPackagesFrom :: IsRefactSessionState st => (String -> IO a) -> [FilePath] -> StateT st Ghc ([a], [(ModuleCollectionId, String)])
+loadPackagesFrom :: IsRefactSessionState st => (ModSummary -> IO a) -> [FilePath] -> StateT st Ghc ([a], [(ModuleCollectionId, String)])
 loadPackagesFrom report packages = 
   do modColls <- liftIO $ getAllModules packages
      modify $ refSessMCs .= modColls
@@ -65,14 +65,14 @@ loadPackagesFrom report packages =
      return (concatMap (fst . fst) res, concatMap (snd . fst) res)
 
   where loadModule :: IsRefactSessionState st 
-                   => (String -> IO a) -> ModSummary -> StateT st Ghc (a, (SourceFileKey, ModuleRecord))
+                   => (ModSummary -> IO a) -> ModSummary -> StateT st Ghc (a, (SourceFileKey, ModuleRecord))
         loadModule report ms = do
-          let modName = GHC.moduleNameString $ moduleName $ ms_mod ms
+          let modName = modSumName ms
               key = SourceFileKey (case ms_hsc_src ms of HsSrcFile -> NormalHs; _ -> IsHsBoot) modName
           needsCodeGen <- gets (needsGeneratedCode key . (^. refSessMCs))
           lift $ do 
             mm <- parseTyped (if needsCodeGen then forceCodeGen ms else ms)
-            rep <- liftIO $ report modName
+            rep <- liftIO $ report ms
             res <- return (rep, ( key, (if needsCodeGen then ModuleCodeGenerated else ModuleTypeChecked) mm))
             return res
 
@@ -106,7 +106,7 @@ withAlteredDynFlags modDFs action = do
   setSessionDynFlags dfs
   return res
 
-reloadChangedModules :: IsRefactSessionState st => (String -> IO a) -> (ModSummary -> Bool) -> StateT st Ghc [a]
+reloadChangedModules :: IsRefactSessionState st => (ModSummary -> IO a) -> (ModSummary -> Bool) -> StateT st Ghc [a]
 reloadChangedModules report isChanged = do
   allMods <- lift $ depanal [] True
   let (allModsGraph, lookup) = moduleGraphNodes False allMods
@@ -118,18 +118,18 @@ reloadChangedModules report isChanged = do
   checkEvaluatedMods report (map getModFromNode sortedRecompMods)
   mapM (reloadModule report) (map getModFromNode sortedRecompMods)
 
-reloadModule :: IsRefactSessionState st => (String -> IO a) -> ModSummary -> StateT st Ghc a
+reloadModule :: IsRefactSessionState st => (ModSummary -> IO a) -> ModSummary -> StateT st Ghc a
 reloadModule report ms = do 
-  let modName = GHC.moduleNameString $ moduleName $ ms_mod ms
+  let modName = modSumName ms
   mcs <- gets (^. refSessMCs)
   let Just mc = lookupModuleColl modName mcs
       codeGen = hasGeneratedCode (SourceFileKey NormalHs modName) mcs
   newm <- lift $ withAlteredDynFlags (liftIO . (mc ^. mcFlagSetup)) $
     parseTyped (if codeGen then forceCodeGen ms else ms)
   modify $ refSessMCs .- updateModule modName NormalHs ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm)
-  liftIO $ report modName
+  liftIO $ report ms
 
-checkEvaluatedMods :: IsRefactSessionState st => (String -> IO a) -> [ModSummary] -> StateT st Ghc [a]
+checkEvaluatedMods :: IsRefactSessionState st => (ModSummary -> IO a) -> [ModSummary] -> StateT st Ghc [a]
 checkEvaluatedMods report mods = do
     modsNeedCode <- lift (getEvaluatedMods mods)
     mcs <- gets (^. refSessMCs)
@@ -147,15 +147,15 @@ checkEvaluatedMods report mods = do
                         else return Nothing
               else return Nothing
 
-codeGenForModule :: (String -> IO a) -> [ModuleCollection] -> ModSummary -> Ghc a
+codeGenForModule :: (ModSummary -> IO a) -> [ModuleCollection] -> ModSummary -> Ghc a
 codeGenForModule report mcs ms 
-  = let modName = GHC.moduleNameString $ moduleName $ ms_mod ms
+  = let modName = modSumName ms
         Just mc = lookupModuleColl modName mcs
         Just rec = lookupModInSCs (SourceFileKey NormalHs modName) mcs
      in -- TODO: don't recompile, only load?
         do withAlteredDynFlags (liftIO . (mc ^. mcFlagSetup))
              $ parseTyped (forceCodeGen ms)
-           liftIO $ report modName 
+           liftIO $ report ms 
 
 -- | Check which modules can be reached from the module, if it uses template haskell.
 getEvaluatedMods :: [ModSummary] -> Ghc [GHC.ModuleName]
@@ -171,6 +171,9 @@ getEvaluatedMods mods
        return $ map (moduleName . ms_mod) sortedTHMods
   where isTH mod = fromEnum TemplateHaskell `member` extensionFlags (ms_hspp_opts mod)
 
+
+modSumName :: ModSummary -> String
+modSumName = GHC.moduleNameString . moduleName . ms_mod
 
 -- * code copied from GHC because it is not public in GhcMake module
 

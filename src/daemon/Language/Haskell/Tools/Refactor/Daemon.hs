@@ -108,7 +108,7 @@ respondTo ghcSess state next mess = case decode mess of
 updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc ()
 updateClient resp KeepAlive = liftIO $ resp KeepAliveResponse
 updateClient resp (AddPackages packagePathes) = do 
-    (modules, ignoredMods) <- loadPackagesFrom return packagePathes
+    (modules, ignoredMods) <- loadPackagesFrom (return . getModSumOrig) packagePathes
     liftIO $ resp 
       $ if not (null ignoredMods) 
           then ErrorMessage 
@@ -118,7 +118,7 @@ updateClient resp (AddPackages packagePathes) = do
           else LoadedModules modules
 
 updateClient resp (ReLoad changed) =
-  void $ reloadChangedModules (\modName -> resp $ LoadedModules [modName]) (\ms -> fmap normalise (ml_hs_file (ms_location ms)) `elem` map Just changed)
+  void $ reloadChangedModules (\ms -> resp $ LoadedModules [getModSumOrig ms]) (\ms -> getModSumOrig ms `elem` changed)
 updateClient _ Stop = modify (exiting .= True)
 
 updateClient resp (PerformRefactoring refact modPath selection args) = do
@@ -128,39 +128,30 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
     case res of
       Left err -> liftIO $ resp $ ErrorMessage err
       Right diff -> do changedMods <- applyChanges diff
-                       liftIO $ resp $ ModulesChanged (map trfDiff diff)
-                       void $ reloadChanges changedMods
-  where trfDiff (ContentChanged (name,_)) = name
-        trfDiff (ModuleRemoved name) = name
-
-        applyChanges changes = do 
+                       liftIO $ resp $ ModulesChanged (map snd changedMods)
+                       void $ reloadChanges (map fst changedMods)
+  where applyChanges changes = do 
           forM changes $ \case 
             ContentChanged (n,m) -> do
               ms <- lift $ getModSummary (mkModuleName n)
-              let file = fromJust $ ml_hs_file $ ms_location ms
-              liftIO $ withBinaryFile file WriteMode (`hPutStr` prettyPrint m)
-              return n
+              liftIO $ withBinaryFile (getModSumOrig ms) WriteMode (`hPutStr` prettyPrint m)
+              return (n, getModSumOrig ms)
             ModuleRemoved mod -> do
               Just (_,m) <- gets (lookupModInSCs (SourceFileKey NormalHs mod) . (^. refSessMCs))
-              let modName = fmap GHC.moduleName (fmap semanticsModule (m ^? typedRecModule) <|> fmap semanticsModule (m ^? renamedRecModule))
-              case modName of 
-                Just mn -> do
-                  ms <- getModSummary mn
-                  let file = fromJust $ ml_hs_file $ ms_location ms
-                  modify $ (refSessMCs .- removeModule mod)
-                  liftIO $ removeFile file
-                Nothing -> return ()
-              return mod
+              let modName = GHC.moduleName $ fromJust $ fmap semanticsModule (m ^? typedRecModule) <|> fmap semanticsModule (m ^? renamedRecModule)
+              ms <- getModSummary modName
+              modify $ (refSessMCs .- removeModule mod)
+              liftIO $ removeFile (getModSumOrig ms)
+              return (mod, getModSumOrig ms)
           
         reloadChanges changedMods 
-          = reloadChangedModules (\modName -> resp $ LoadedModules [modName]) 
-                                 (\ms -> (GHC.moduleNameString $ GHC.moduleName $ ms_mod ms) `elem` changedMods)
+          = reloadChangedModules (\ms -> resp $ LoadedModules [getModSumOrig ms]) (\ms -> modSumName ms `elem` changedMods)
 
 getModuleFilePath :: UnnamedModule IdDom -> Ghc FilePath
 getModuleFilePath mod = do
   let modName = GHC.moduleName $ semanticsModule mod 
   ms <- getModSummary modName
-  return $ fromMaybe (error "Module location not found: " ++ GHC.moduleNameString modName) $ ml_hs_file $ ms_location ms
+  return $ getModSumOrig ms
 
 createFileForModule :: FilePath -> String -> String -> IO ()
 createFileForModule dir name newContent = do
@@ -176,6 +167,9 @@ moduleNameAndContent ((name,_), mod) = (name, mod)
 
 initGhcSession :: IO Session
 initGhcSession = Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags >> getSession))
+
+getModSumOrig :: ModSummary -> FilePath
+getModSumOrig = normalise . fromMaybe (error "getModSumOrig: The given module doesn't have haskell source file.") . ml_hs_file . ms_location
 
 data ClientMessage
   = KeepAlive
