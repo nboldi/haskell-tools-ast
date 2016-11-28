@@ -106,12 +106,12 @@ withAlteredDynFlags modDFs action = do
   setSessionDynFlags dfs
   return res
 
-reloadChangedModules :: IsRefactSessionState st => (String -> IO a) -> [String] -> StateT st Ghc [a]
-reloadChangedModules report changedModNames = do
+reloadChangedModules :: IsRefactSessionState st => (String -> IO a) -> (ModSummary -> Bool) -> StateT st Ghc [a]
+reloadChangedModules report isChanged = do
   allMods <- lift $ depanal [] True
   let (allModsGraph, lookup) = moduleGraphNodes False allMods
       changedMods = catMaybes $ map (\ms -> lookup (ms_hsc_src ms) (moduleName $ ms_mod ms))
-                      $ filter (\ms -> (GHC.moduleNameString $ moduleName $ ms_mod ms) `elem` changedModNames) allMods
+                      $ filter isChanged allMods
       recompMods = map (ms_mod . getModFromNode) $ reachablesG (transposeG allModsGraph) changedMods
       sortedMods = reverse $ topologicalSortG allModsGraph
       sortedRecompMods = filter ((`elem` recompMods) . ms_mod . getModFromNode) sortedMods

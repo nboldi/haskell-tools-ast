@@ -33,6 +33,7 @@ import Control.Monad.State
 import Control.Concurrent.MVar
 import Control.Monad.IO.Class
 import System.Environment
+import Debug.Trace
 
 import GHC hiding (loadModule)
 import Bag (bagToList)
@@ -56,9 +57,7 @@ import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor.Daemon.State
 
 -- TODO: find out which modules have changed
--- TODO: exit
 -- TODO: handle boot files
--- TODO: handle multiple modules in different packages with the same module name
 
 
 runDaemonCLI :: IO ()
@@ -119,10 +118,8 @@ updateClient (AddPackages packagePathes) = do
                  ++ ". Multiple modules with the same qualified name are not supported."
       else LoadedModules modules
 
-updateClient ReLoad = do
-    lift $ load LoadAllTargets
-    -- mod <- lift $ getModSummary (GHC.mkModuleName name) >>= parseTyped
-    -- modify $ refSessMods .- Map.insert (name, NormalHs) mod
+updateClient (ReLoad changed) = do
+    reloadChangedModules (\modName -> putStrLn $ "Re-loaded: " ++ modName) (\ms -> fmap normalise (ml_hs_file (ms_location ms)) `elem` map Just changed)
     return Nothing
 updateClient Stop = do modify (exiting .= True)
                        return Nothing
@@ -156,7 +153,7 @@ updateClient (PerformRefactoring refact modPath selection args) = do
                   liftIO $ removeFile file
                 Nothing -> return ()
               return mod
-          reloadChangedModules (\_ -> return ()) changedMods
+          reloadChangedModules (\modName -> putStrLn $ "Re-loaded: " ++ modName) (\ms -> (GHC.moduleNameString $ GHC.moduleName $ ms_mod ms) `elem` changedMods)
 
 getModuleFilePath :: UnnamedModule IdDom -> Ghc FilePath
 getModuleFilePath mod = do
@@ -189,7 +186,7 @@ data ClientMessage
                        , details :: [String]
                        }
   | Stop
-  | ReLoad
+  | ReLoad { changedModules :: [FilePath] }
   deriving (Eq, Show, Generic)
 
 instance ToJSON ClientMessage

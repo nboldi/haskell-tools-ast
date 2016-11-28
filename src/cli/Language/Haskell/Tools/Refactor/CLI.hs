@@ -142,7 +142,8 @@ performSessionCommand output (RefactorCommand cmd)
                   liftIO $ removeFile file
                 _ -> do liftIO $ hPutStrLn output ("Module " ++ mod ++ " could not be removed.")
               return mod
-          void $ reloadChangedModules (hPutStrLn output . ("Re-loaded module: " ++)) changedMods
+          void $ reloadChangedModules (hPutStrLn output . ("Re-loaded module: " ++)) 
+                   (\ms -> (GHC.moduleNameString $ moduleName $ ms_mod ms) `elem` changedMods)
         performChanges output True resMods = forM_ resMods (liftIO . \case 
           ContentChanged (n,m) -> do
             hPutStrLn output $ "### Module changed: " ++ n ++ "\n### new content:\n" ++ prettyPrint m
