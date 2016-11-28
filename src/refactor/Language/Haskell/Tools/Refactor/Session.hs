@@ -44,7 +44,7 @@ instance IsRefactSessionState RefactorSessionState where
 loadPackagesFrom :: IsRefactSessionState st => (ModSummary -> IO a) -> [FilePath] -> StateT st Ghc ([a], [(ModuleCollectionId, String)])
 loadPackagesFrom report packages = 
   do modColls <- liftIO $ getAllModules packages
-     modify $ refSessMCs .= modColls
+     modify $ refSessMCs .- (++ modColls)
      res <- flip evalStateT [] $ forM modColls $ \mc -> do
        alreadyLoaded <- get
        let loadedModNames = map GHC.moduleNameString alreadyLoaded
@@ -54,14 +54,14 @@ loadPackagesFrom report packages =
        lift $ lift $ setTargets $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) 
                                         (newModNames List.\\ ignoredMods)
        -- depanal sets the dynamic flags for modules, so they need to be set before calling it
-       withAlteredDynFlags (liftIO . (mc ^. mcFlagSetup)) $
+       withAlteredDynFlags (liftIO . compileInContext mc modColls) $
          do modsForMC <- lift $ lift $ depanal alreadyLoaded True
             let modsToParse = flattenSCCs $ topSortModuleGraph False modsForMC Nothing
             lift $ checkEvaluatedMods report modsToParse
             mods <- lift $ mapM (loadModule report) modsToParse
             modify $ (++ map ms_mod_name modsForMC)
             return $ ((map fst mods, map (mc ^. mcId, ) ignoredMods), mcModules .= Map.fromList (map snd mods) $ mc)
-     modify $ refSessMCs .= map snd res
+     modify $ refSessMCs .- ((++ map snd res) . (List.\\ modColls))
      return (concatMap (fst . fst) res, concatMap (snd . fst) res)
 
   where loadModule :: IsRefactSessionState st 
@@ -108,15 +108,19 @@ withAlteredDynFlags modDFs action = do
 
 reloadChangedModules :: IsRefactSessionState st => (ModSummary -> IO a) -> (ModSummary -> Bool) -> StateT st Ghc [a]
 reloadChangedModules report isChanged = do
+  reachable <- getReachableModules isChanged
+  checkEvaluatedMods report reachable
+  mapM (reloadModule report) reachable
+
+getReachableModules :: (ModSummary -> Bool) -> StateT st Ghc [ModSummary]
+getReachableModules selected = do
   allMods <- lift $ depanal [] True
   let (allModsGraph, lookup) = moduleGraphNodes False allMods
       changedMods = catMaybes $ map (\ms -> lookup (ms_hsc_src ms) (moduleName $ ms_mod ms))
-                      $ filter isChanged allMods
+                      $ filter selected allMods
       recompMods = map (ms_mod . getModFromNode) $ reachablesG (transposeG allModsGraph) changedMods
       sortedMods = reverse $ topologicalSortG allModsGraph
-      sortedRecompMods = filter ((`elem` recompMods) . ms_mod . getModFromNode) sortedMods
-  checkEvaluatedMods report (map getModFromNode sortedRecompMods)
-  mapM (reloadModule report) (map getModFromNode sortedRecompMods)
+  return $ filter ((`elem` recompMods) . ms_mod) $ map getModFromNode sortedMods
 
 reloadModule :: IsRefactSessionState st => (ModSummary -> IO a) -> ModSummary -> StateT st Ghc a
 reloadModule report ms = do 
@@ -124,7 +128,7 @@ reloadModule report ms = do
   mcs <- gets (^. refSessMCs)
   let Just mc = lookupModuleColl modName mcs
       codeGen = hasGeneratedCode (SourceFileKey NormalHs modName) mcs
-  newm <- lift $ withAlteredDynFlags (liftIO . (mc ^. mcFlagSetup)) $
+  newm <- lift $ withAlteredDynFlags (liftIO . compileInContext mc mcs) $
     parseTyped (if codeGen then forceCodeGen ms else ms)
   modify $ refSessMCs .- updateModule modName NormalHs ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm)
   liftIO $ report ms
@@ -153,7 +157,7 @@ codeGenForModule report mcs ms
         Just mc = lookupModuleColl modName mcs
         Just rec = lookupModInSCs (SourceFileKey NormalHs modName) mcs
      in -- TODO: don't recompile, only load?
-        do withAlteredDynFlags (liftIO . (mc ^. mcFlagSetup))
+        do withAlteredDynFlags (liftIO . compileInContext mc mcs)
              $ parseTyped (forceCodeGen ms)
            liftIO $ report ms 
 

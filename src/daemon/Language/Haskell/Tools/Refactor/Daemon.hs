@@ -56,9 +56,7 @@ import Language.Haskell.Tools.Refactor.Session
 import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor.Daemon.State
 
--- TODO: find out which modules have changed
 -- TODO: handle boot files
-
 
 runDaemonCLI :: IO ()
 runDaemonCLI = getArgs >>= runDaemon
@@ -107,8 +105,13 @@ respondTo ghcSess state next mess = case decode mess of
 -- | This function does the real job of acting upon client messages in a stateful environment of a client
 updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc ()
 updateClient resp KeepAlive = liftIO $ resp KeepAliveResponse
-updateClient resp (AddPackages packagePathes) = do 
+updateClient resp (AddPackages packagePathes) = do
+    existing <- gets (map semanticsModule . (^? refSessMCs & traversal & filtered isTheAdded & mcModules & traversal & typedRecModule))
+    needToReload <- (filter (\ms -> not $ ms_mod ms `elem` existing)) 
+                      <$> getReachableModules (\ms -> ms_mod ms `elem` existing)
+    modify $ refSessMCs .- filter (not . isTheAdded) -- remove the added package from the database
     (modules, ignoredMods) <- loadPackagesFrom (return . getModSumOrig) packagePathes
+    mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
     liftIO $ resp 
       $ if not (null ignoredMods) 
           then ErrorMessage 
@@ -116,6 +119,7 @@ updateClient resp (AddPackages packagePathes) = do
                      ++ concat (intersperse ", " $ map (\(id,mod) -> mod ++ " (from " ++ moduleCollectionIdString id ++ ")") ignoredMods)
                      ++ ". Multiple modules with the same qualified name are not supported."
           else LoadedModules modules
+  where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
 
 updateClient resp (ReLoad changed) =
   void $ reloadChangedModules (\ms -> resp $ LoadedModules [getModSumOrig ms]) (\ms -> getModSumOrig ms `elem` changed)
@@ -174,7 +178,7 @@ getModSumOrig = normalise . fromMaybe (error "getModSumOrig: The given module do
 data ClientMessage
   = KeepAlive
   | AddPackages { addedPathes :: [FilePath] }
-  -- | RemovePackage { removedPathes :: [FilePath] }
+  | RemovePackage { removedPathes :: [FilePath] }
   | PerformRefactoring { refactoring :: String
                        , modulePath :: FilePath
                        , editorSelection :: String

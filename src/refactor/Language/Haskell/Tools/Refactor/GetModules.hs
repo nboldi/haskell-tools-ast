@@ -7,8 +7,10 @@
 module Language.Haskell.Tools.Refactor.GetModules where
 
 import Control.Reference
+import Data.Function (on)
 import Data.List (intersperse, find, sortBy)
 import qualified Data.Map as Map
+import Data.Maybe
 import Distribution.Package (Dependency(..), PackageName(..), pkgName)
 import Distribution.Verbosity (silent)
 import Distribution.ModuleName (components)
@@ -34,15 +36,19 @@ import Language.Haskell.Tools.AST (Dom, IdDom)
 -- | The modules of a library, executable, test or benchmark. A package contains one or more module collection.
 data ModuleCollection
   = ModuleCollection { _mcId :: ModuleCollectionId
+                     , _mcRoot :: FilePath
                      , _mcSourceDirs :: [FilePath]
                      , _mcModules :: Map.Map SourceFileKey ModuleRecord
                      , _mcFlagSetup :: DynFlags -> IO DynFlags -- ^ Sets up the ghc environment for compiling the modules of this collection
                      , _mcDependencies :: [ModuleCollectionId]
                      }
 
+instance Eq ModuleCollection where
+  (==) = (==) `on` _mcId
+
 instance Show ModuleCollection where
-  show (ModuleCollection id srcDirs mods _ deps) 
-    = "ModuleCollection (" ++ show id ++ ") " ++ show srcDirs ++ " (" ++ show mods ++ ") " ++ show deps
+  show (ModuleCollection id root srcDirs mods _ deps) 
+    = "ModuleCollection (" ++ show id ++ ") " ++ root ++ " " ++ show srcDirs ++ " (" ++ show mods ++ ") " ++ show deps
 
 data ModuleRecord 
        = ModuleNotLoaded { _recModuleWillNeedCode :: Bool }
@@ -61,17 +67,24 @@ data SourceFileKey = SourceFileKey { _sfkIsBoot :: IsBoot
 -- | This data structure identifies a module collection
 data ModuleCollectionId = DirectoryMC FilePath
                         | LibraryMC String
-                        | ExecutableMC String
-                        | TestSuiteMC String
-                        | BenchmarkMC String
+                        | ExecutableMC String String
+                        | TestSuiteMC String String
+                        | BenchmarkMC String String
   deriving (Eq, Ord, Show)
 
 moduleCollectionIdString :: ModuleCollectionId -> String
 moduleCollectionIdString (DirectoryMC fp) = fp
 moduleCollectionIdString (LibraryMC id) = id
-moduleCollectionIdString (ExecutableMC id) = id
-moduleCollectionIdString (TestSuiteMC id) = id
-moduleCollectionIdString (BenchmarkMC id) = id
+moduleCollectionIdString (ExecutableMC _ id) = id
+moduleCollectionIdString (TestSuiteMC _ id) = id
+moduleCollectionIdString (BenchmarkMC _ id) = id
+
+moduleCollectionPkgId :: ModuleCollectionId -> Maybe String
+moduleCollectionPkgId (DirectoryMC fp) = Nothing
+moduleCollectionPkgId (LibraryMC id) = Just id
+moduleCollectionPkgId (ExecutableMC id _) = Just id
+moduleCollectionPkgId (TestSuiteMC id _) = Just id
+moduleCollectionPkgId (BenchmarkMC id _) = Just id
 
 -- | Decides if a module is a .hs-boot file or a normal .hs file
 data IsBoot = NormalHs | IsHsBoot deriving (Eq, Ord, Show)
@@ -136,7 +149,7 @@ getModules root
        case find (\p -> takeExtension p == ".cabal") files of
           Just cabalFile -> modulesFromCabalFile root cabalFile
           Nothing        -> do mods <- modulesFromDirectory root root
-                               return [ModuleCollection (DirectoryMC root) [root] (Map.fromList $ map ((, ModuleNotLoaded False) . SourceFileKey NormalHs) mods) return []]
+                               return [ModuleCollection (DirectoryMC root) root [root] (Map.fromList $ map ((, ModuleNotLoaded False) . SourceFileKey NormalHs) mods) return []]
 
 modulesFromDirectory :: FilePath -> FilePath -> IO [String]
 -- now recognizing only .hs files
@@ -165,6 +178,7 @@ modulesFromCabalFile root cabal = getModules . flattenPackageDescription <$> rea
         toModuleCollection :: ToModuleCollection tmc => PackageDescription -> tmc -> ModuleCollection
         toModuleCollection pkg tmc = let bi = getBuildInfo tmc 
                                       in ModuleCollection (mkModuleCollKey (pkgName $ package pkg) tmc) 
+                                                          root
                                                           (map (normalise . (root </>)) $ hsSourceDirs bi) 
                                                           (Map.fromList $ map ((, ModuleNotLoaded False) . SourceFileKey NormalHs . moduleName) (getModuleNames tmc)) 
                                                           (flagsFromBuildInfo bi)
@@ -183,34 +197,39 @@ instance ToModuleCollection Library where
   getModuleNames = libModules
 
 instance ToModuleCollection Executable where
-  mkModuleCollKey _ exe = ExecutableMC (exeName exe)
+  mkModuleCollKey pn exe = ExecutableMC (unPackageName pn) (exeName exe)
   getBuildInfo = buildInfo
   getModuleNames = exeModules
 
 instance ToModuleCollection TestSuite where
-  mkModuleCollKey _ test = TestSuiteMC (testName test)
+  mkModuleCollKey pn test = TestSuiteMC (unPackageName pn) (testName test)
   getBuildInfo = testBuildInfo
   getModuleNames = testModules
 
 instance ToModuleCollection Benchmark where
-  mkModuleCollKey _ test = BenchmarkMC (benchmarkName test)
+  mkModuleCollKey pn test = BenchmarkMC (unPackageName pn) (benchmarkName test)
   getBuildInfo = benchmarkBuildInfo
   getModuleNames = benchmarkModules
 
 
+compileInContext :: ModuleCollection -> [ModuleCollection] -> DynFlags -> IO DynFlags
+compileInContext mc mcs dfs 
+  = (\dfs' -> dfs' { GHC.packageFlags = catMaybes $ map dependencyToPkgFlag (mc ^. mcDependencies) }) 
+       <$> (mc ^. mcFlagSetup $ dfs)
+  where dependencyToPkgFlag lib@(LibraryMC pkgName) 
+          = if isNothing $ find (\mc -> (mc ^. mcId) == lib) mcs 
+              then Just $ GHC.ExposePackage pkgName (GHC.PackageArg pkgName) (GHC.ModRenaming True [])
+              else Nothing
 
 flagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
 -- the import pathes are already set globally
-flagsFromBuildInfo BuildInfo{ defaultExtensions, targetBuildDepends, options } df
+flagsFromBuildInfo BuildInfo{ defaultExtensions, options } df
   = do (df,_,_) <- parseDynamicFlags df (map (L noSrcSpan) $ concatMap snd options)
-       return $ foldl (.) (\df -> df { GHC.packageFlags = map dependencyToPkgFlag targetBuildDepends }) 
-                          (map (\case EnableExtension ext -> translateExtension ext
-                                      _                   -> id                               
-                               ) defaultExtensions) 
+       return $ foldl (.) id (map (\case EnableExtension ext -> translateExtension ext
+                                         _                   -> id                               
+                                  ) defaultExtensions)
                           $ df
-  where dependencyToPkgFlag (Dependency (PackageName pkgName) _) = GHC.ExposePackage pkgName (GHC.PackageArg pkgName) (GHC.ModRenaming True [])
-
-        translateExtension OverlappingInstances = flip xopt_set GHC.OverlappingInstances
+  where translateExtension OverlappingInstances = flip xopt_set GHC.OverlappingInstances
         translateExtension UndecidableInstances = flip xopt_set GHC.UndecidableInstances
         translateExtension IncoherentInstances = flip xopt_set GHC.IncoherentInstances
         translateExtension DoRec = flip xopt_set GHC.RecursiveDo
