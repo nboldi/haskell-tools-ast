@@ -102,41 +102,39 @@ serverLoop ghcSess state sock =
 respondTo :: Session -> MVar DaemonSessionState -> (ByteString -> IO ()) -> ByteString -> IO ()
 respondTo ghcSess state next mess = case decode mess of
   Nothing -> next $ encode $ ErrorMessage "WRONG MESSAGE FORMAT"
-  Just req -> do resp <- modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient req) st) ghcSess)
-                 case resp of Just respMsg -> next $ encode respMsg
-                              Nothing -> return ()
+  Just req -> modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient (next . encode) req) st) ghcSess)
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a client
-updateClient :: ClientMessage -> StateT DaemonSessionState Ghc (Maybe ResponseMsg)
-updateClient KeepAlive = return $ Just KeepAliveResponse
-updateClient (AddPackages packagePathes) = do 
+updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc ()
+updateClient resp KeepAlive = liftIO $ resp KeepAliveResponse
+updateClient resp (AddPackages packagePathes) = do 
     (modules, ignoredMods) <- loadPackagesFrom return packagePathes
-    return $ Just $ if not (null ignoredMods) 
-      then ErrorMessage 
-             $ "The following modules are ignored: " 
-                 ++ concat (intersperse ", " $ map (\(id,mod) -> mod ++ " (from " ++ moduleCollectionIdString id ++ ")") ignoredMods)
-                 ++ ". Multiple modules with the same qualified name are not supported."
-      else LoadedModules modules
+    liftIO $ resp 
+      $ if not (null ignoredMods) 
+          then ErrorMessage 
+                 $ "The following modules are ignored: " 
+                     ++ concat (intersperse ", " $ map (\(id,mod) -> mod ++ " (from " ++ moduleCollectionIdString id ++ ")") ignoredMods)
+                     ++ ". Multiple modules with the same qualified name are not supported."
+          else LoadedModules modules
 
-updateClient (ReLoad changed) = do
-    reloadChangedModules (\modName -> putStrLn $ "Re-loaded: " ++ modName) (\ms -> fmap normalise (ml_hs_file (ms_location ms)) `elem` map Just changed)
-    return Nothing
-updateClient Stop = do modify (exiting .= True)
-                       return Nothing
+updateClient resp (ReLoad changed) =
+  void $ reloadChangedModules (\modName -> resp $ LoadedModules [modName]) (\ms -> fmap normalise (ml_hs_file (ms_location ms)) `elem` map Just changed)
+updateClient _ Stop = modify (exiting .= True)
 
-updateClient (PerformRefactoring refact modPath selection args) = do
+updateClient resp (PerformRefactoring refact modPath selection args) = do
     (Just actualMod, otherMods) <- getFileMods modPath
     let cmd = analyzeCommand refact (selection:args)
     res <- lift $ performCommand cmd (assocToNamedMod actualMod) (map assocToNamedMod otherMods)
     case res of
-      Left err -> return $ Just $ ErrorMessage err
-      Right diff -> do applyChanges diff
-                       return $ Just $ RefactorChanges (map trfDiff diff)
+      Left err -> liftIO $ resp $ ErrorMessage err
+      Right diff -> do changedMods <- applyChanges diff
+                       liftIO $ resp $ ModulesChanged (map trfDiff diff)
+                       void $ reloadChanges changedMods
   where trfDiff (ContentChanged (name,_)) = name
         trfDiff (ModuleRemoved name) = name
 
         applyChanges changes = do 
-          changedMods <- forM changes $ \case 
+          forM changes $ \case 
             ContentChanged (n,m) -> do
               ms <- lift $ getModSummary (mkModuleName n)
               let file = fromJust $ ml_hs_file $ ms_location ms
@@ -153,7 +151,10 @@ updateClient (PerformRefactoring refact modPath selection args) = do
                   liftIO $ removeFile file
                 Nothing -> return ()
               return mod
-          reloadChangedModules (\modName -> putStrLn $ "Re-loaded: " ++ modName) (\ms -> (GHC.moduleNameString $ GHC.moduleName $ ms_mod ms) `elem` changedMods)
+          
+        reloadChanges changedMods 
+          = reloadChangedModules (\modName -> resp $ LoadedModules [modName]) 
+                                 (\ms -> (GHC.moduleNameString $ GHC.moduleName $ ms_mod ms) `elem` changedMods)
 
 getModuleFilePath :: UnnamedModule IdDom -> Ghc FilePath
 getModuleFilePath mod = do
@@ -194,10 +195,10 @@ instance FromJSON ClientMessage
 
 data ResponseMsg
   = KeepAliveResponse
-  | RefactorChanges { moduleChanges :: [String] }
   | ErrorMessage { errorMsg :: String }
   | CompilationProblem { errorMsg :: String }
-  | LoadedModules { loadedModules :: [String] }
+  | ModulesChanged { moduleChanges :: [FilePath] }
+  | LoadedModules { loadedModules :: [FilePath] }
   deriving (Eq, Show, Generic)
 
 instance ToJSON ResponseMsg

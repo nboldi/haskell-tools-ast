@@ -1,3 +1,4 @@
 module A where
 
-x = ()
+
+z = ()
