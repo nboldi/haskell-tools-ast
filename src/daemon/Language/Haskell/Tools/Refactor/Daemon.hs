@@ -204,10 +204,10 @@ data ClientMessage
                        }
   | Stop
   | ReLoad { changedModules :: [FilePath] } -- must contain any removed files
+  -- ReLoadAll -- re-load all modules
+  -- Reset -- completely re-initialize the refactor sesson
   deriving (Eq, Show, Generic)
-  
-  -- | ReLoadAll -- re-load all modules
-  -- | Reset -- completely re-initialize the refactor sesson
+
 
 instance ToJSON ClientMessage
 instance FromJSON ClientMessage 
