@@ -106,9 +106,29 @@ communicateWithDaemon msgs numResps = withSocketsDo $ do
   sock <- socket (addrFamily serverAddr) Stream defaultProtocol
   connect sock (addrAddress serverAddr)
   forM msgs (sendAll sock . (`BS.snoc` '\n') . encode)
-  resps <- replicateM numResps (recv sock 2048)
+  resp <- readSockNResponse sock numResps
   close sock
-  return $ map (\r -> fromMaybe (error $ "Response cannot be decoded: " ++ show (BS.unpack r)) $ decode r) resps
+  return resp
+
+readSockNResponse :: Socket -> Int -> IO [ResponseMsg]
+readSockNResponse _ n | n <= 0 = return [] 
+readSockNResponse sock n 
+  = do resp <- recv sock 2048
+       if BS.null resp 
+         then return []
+         else
+           let splitted = BS.split '\n' resp
+               recognized = catMaybes $ map decode splitted
+            in (recognized ++) <$> readSockNResponse sock (n - length recognized)
+
+  -- responses <- Sock.getContents sock
+  -- let resps = BS.split '\n' responses
+  -- let res = if not (null resps) 
+  --             then map (\r -> fromMaybe (error $ "Response cannot be decoded: " ++ show (BS.unpack r)) $ decode r)
+  --                               (init resps)
+  --             else []
+  -- close sock
+  -- return res
 
 stopDaemon :: IO ()
 stopDaemon = withSocketsDo $ do

@@ -94,8 +94,7 @@ serverLoop isSilent ghcSess state sock =
        when (not $ BS.null msg) $ do -- null on TCP means closed connection
          when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
          let msgs = BS.split '\n' msg
-         forM_ (init msgs) $ \msg -> respondTo ghcSess state (sendAll sock) msg
-         respondTo ghcSess state (sendAll sock) msg
+         forM_ msgs $ \msg -> respondTo ghcSess state (sendAll sock . (`BS.snoc` '\n')) msg
          sessionData <- readMVar state
          when (not (sessionData ^. exiting))
            $ serverLoop isSilent ghcSess state sock
@@ -108,8 +107,11 @@ serverLoop isSilent ghcSess state sock =
 
 respondTo :: Session -> MVar DaemonSessionState -> (ByteString -> IO ()) -> ByteString -> IO ()
 respondTo ghcSess state next mess
+  | BS.null mess = return ()
+  | otherwise
   = case decode mess of
-      Nothing -> next $ encode $ ErrorMessage "WRONG MESSAGE FORMAT"
+      Nothing -> do putStrLn "sending malf"
+                    next $ encode $ ErrorMessage $ "MALFORMED MESSAGE: " ++ unpack mess
       Just req -> modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient (next . encode) req) st) ghcSess)
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a client
