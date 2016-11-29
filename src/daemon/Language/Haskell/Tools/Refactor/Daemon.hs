@@ -62,40 +62,45 @@ runDaemonCLI :: IO ()
 runDaemonCLI = getArgs >>= runDaemon
 
 runDaemon :: [String] -> IO ()
-runDaemon _ = withSocketsDo $
-    do addrinfos <- getAddrInfo
+runDaemon args = withSocketsDo $
+    do let finalArgs = args ++ drop (length args) defaultArgs
+           isSilent = read (finalArgs !! 1)
+       addrinfos <- getAddrInfo
                     (Just (defaultHints {addrFlags = [AI_PASSIVE]}))
-                    Nothing (Just "4123")
+                    Nothing (Just (finalArgs !! 0))
        let serveraddr = head addrinfos
        sock <- socket (addrFamily serveraddr) Stream defaultProtocol
        setSocketOption sock ReuseAddr 1
        bind sock (addrAddress serveraddr)
        listen sock 1
-       clientLoop sock
+       clientLoop isSilent sock
 
-clientLoop :: Socket -> IO ()
-clientLoop sock
+defaultArgs = ["4123", "False"]
+
+clientLoop :: Bool -> Socket -> IO ()
+clientLoop isSilent sock
   = do (conn,_) <- accept sock
        ghcSess <- initGhcSession
        state <- newMVar initSession
-       serverLoop ghcSess state conn
+       serverLoop isSilent ghcSess state conn
        sessionData <- readMVar state
        when (not (sessionData ^. exiting))
-         $ clientLoop sock
+         $ clientLoop isSilent sock
 
-serverLoop :: Session -> MVar DaemonSessionState -> Socket -> IO ()
-serverLoop ghcSess state sock =
+serverLoop :: Bool -> Session -> MVar DaemonSessionState -> Socket -> IO ()
+serverLoop isSilent ghcSess state sock =
     do msg <- recv sock 1024
-       putStrLn $ "message received: " ++ unpack msg
+       -- putStrLn $ "message received: " ++ unpack msg
        respondTo ghcSess state (sendAll sock) msg
        sessionData <- readMVar state
        when (not (sessionData ^. exiting))
-         $ serverLoop ghcSess state sock
+         $ serverLoop isSilent ghcSess state sock
   `catch` interrupted sock
   where interrupted = \s ex -> do
                         let err = show (ex :: IOException)
-                        putStrLn "Closing down socket"
-                        hPutStrLn stderr $ "Some exception caught: " ++ err
+                        when (not isSilent) $ do
+                          putStrLn "Closing down socket"
+                          hPutStrLn stderr $ "Some exception caught: " ++ err
 
 respondTo :: Session -> MVar DaemonSessionState -> (ByteString -> IO ()) -> ByteString -> IO ()
 respondTo ghcSess state next mess = case decode mess of
@@ -199,9 +204,10 @@ data ClientMessage
                        }
   | Stop
   | ReLoad { changedModules :: [FilePath] } -- must contain any removed files
+  deriving (Eq, Show, Generic)
+  
   -- | ReLoadAll -- re-load all modules
   -- | Reset -- completely re-initialize the refactor sesson
-  deriving (Eq, Show, Generic)
 
 instance ToJSON ClientMessage
 instance FromJSON ClientMessage 
