@@ -73,7 +73,7 @@ loadPackagesFrom report packages =
           lift $ do 
             mm <- parseTyped (if needsCodeGen then forceCodeGen ms else ms)
             rep <- liftIO $ report ms
-            res <- return (rep, ( key, (if needsCodeGen then ModuleCodeGenerated else ModuleTypeChecked) mm))
+            res <- return (rep, ( key, (if needsCodeGen then ModuleCodeGenerated else ModuleTypeChecked) mm ms))
             return res
 
 getMods :: (Monad m, IsRefactSessionState st) 
@@ -130,7 +130,7 @@ reloadModule report ms = do
       codeGen = hasGeneratedCode (SourceFileKey NormalHs modName) mcs
   newm <- lift $ withAlteredDynFlags (liftIO . compileInContext mc mcs) $
     parseTyped (if codeGen then forceCodeGen ms else ms)
-  modify $ refSessMCs .- updateModule modName NormalHs ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm)
+  modify $ refSessMCs .- updateModule modName NormalHs ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm ms)
   liftIO $ report ms
 
 checkEvaluatedMods :: IsRefactSessionState st => (ModSummary -> IO a) -> [ModSummary] -> StateT st Ghc [a]

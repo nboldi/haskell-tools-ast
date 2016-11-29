@@ -23,7 +23,7 @@ import System.Directory
 import Language.Haskell.Extension
 
 import DynFlags (DynFlags, xopt_set, xopt_unset)
-import GHC (parseDynamicFlags)
+import GHC hiding (ModuleName)
 import qualified DynFlags as GHC
 import SrcLoc as GHC
 import RdrName as GHC (RdrName)
@@ -52,11 +52,18 @@ instance Show ModuleCollection where
 
 data ModuleRecord 
        = ModuleNotLoaded { _recModuleWillNeedCode :: Bool }
-       | ModuleParsed { _parsedRecModule :: UnnamedModule (Dom RdrName) }
-       | ModuleRenamed { _renamedRecModule :: UnnamedModule (Dom Name) }
-       | ModuleTypeChecked { _typedRecModule :: UnnamedModule IdDom }
-       | ModuleCodeGenerated { _typedRecModule :: UnnamedModule IdDom }
-  deriving (Eq, Show)
+       | ModuleParsed { _parsedRecModule :: UnnamedModule (Dom RdrName)
+                      , _modRecMS :: ModSummary
+                      }
+       | ModuleRenamed { _renamedRecModule :: UnnamedModule (Dom Name)
+                       , _modRecMS :: ModSummary 
+                       }
+       | ModuleTypeChecked { _typedRecModule :: UnnamedModule IdDom 
+                           , _modRecMS :: ModSummary
+                           }
+       | ModuleCodeGenerated { _typedRecModule :: UnnamedModule IdDom
+                             , _modRecMS :: ModSummary
+                             }
 
 -- | Module name and marker to separate .hs-boot module definitions. Specifies a source file in a working directory.
 data SourceFileKey = SourceFileKey { _sfkIsBoot :: IsBoot
@@ -93,6 +100,11 @@ makeReferences ''ModuleCollection
 makeReferences ''SourceFileKey
 makeReferences ''ModuleRecord
 
+instance Show ModuleRecord where
+  show (ModuleNotLoaded code) = "ModuleNotLoaded " ++ show code
+  show mr = GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS
+
+
 lookupModuleColl :: String -> [ModuleCollection] -> Maybe (ModuleCollection)
 lookupModuleColl moduleName = find (any ((moduleName ==) . (^. sfkModuleName)) . Map.keys . (^. mcModules))
 
@@ -114,7 +126,7 @@ needsGeneratedCode key = maybe False (\case (_, ModuleCodeGenerated {}) -> True;
                            . find ((key ==) . fst) . concatMap (Map.assocs . (^. mcModules))
 
 codeGeneratedFor :: SourceFileKey -> [ModuleCollection] -> [ModuleCollection]
-codeGeneratedFor key = map (mcModules .- Map.adjust (\case (ModuleTypeChecked mod) -> ModuleCodeGenerated mod
+codeGeneratedFor key = map (mcModules .- Map.adjust (\case (ModuleTypeChecked mod ms) -> ModuleCodeGenerated mod ms
                                                            ModuleNotLoaded _ -> ModuleNotLoaded True
                                                            r -> r) key)
 

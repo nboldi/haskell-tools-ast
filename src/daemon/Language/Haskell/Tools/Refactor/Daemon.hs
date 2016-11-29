@@ -121,8 +121,21 @@ updateClient resp (AddPackages packagePathes) = do
           else LoadedModules modules
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
 
+updateClient resp (RemovePackages packagePathes) = do
+    existing <- gets (map semanticsModule . (^? refSessMCs & traversal & filtered isTheAdded & mcModules & traversal & typedRecModule))
+    needToReload <- (filter (\ms -> not $ ms_mod ms `elem` existing)) 
+                      <$> getReachableModules (\ms -> ms_mod ms `elem` existing)
+    modify $ refSessMCs .- filter (not . isTheAdded)
+    mapM_ (reloadModule (\_ -> return ())) needToReload
+  where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
+
 updateClient resp (ReLoad changed) =
-  void $ reloadChangedModules (\ms -> resp $ LoadedModules [getModSumOrig ms]) (\ms -> getModSumOrig ms `elem` changed)
+  do found <- reloadChangedModules (\ms -> resp (LoadedModules [getModSumOrig ms]) >> return ms) 
+                                   (\ms -> getModSumOrig ms `elem` changed)
+     -- remove the missing files from database
+     let missingMods = changed \\ map getModSumOrig found 
+     modify $ refSessMCs & traversal & mcModules 
+                .- Map.filter (\m -> maybe True (not . (`elem` missingMods) . getModSumOrig) (m ^? modRecMS))
 updateClient _ Stop = modify (exiting .= True)
 
 updateClient resp (PerformRefactoring refact modPath selection args) = do
@@ -178,14 +191,16 @@ getModSumOrig = normalise . fromMaybe (error "getModSumOrig: The given module do
 data ClientMessage
   = KeepAlive
   | AddPackages { addedPathes :: [FilePath] }
-  | RemovePackage { removedPathes :: [FilePath] }
+  | RemovePackages { removedPathes :: [FilePath] }
   | PerformRefactoring { refactoring :: String
                        , modulePath :: FilePath
                        , editorSelection :: String
                        , details :: [String]
                        }
   | Stop
-  | ReLoad { changedModules :: [FilePath] }
+  | ReLoad { changedModules :: [FilePath] } -- must contain any removed files
+  -- | ReLoadAll -- re-load all modules
+  -- | Reset -- completely re-initialize the refactor sesson
   deriving (Eq, Show, Generic)
 
 instance ToJSON ClientMessage
