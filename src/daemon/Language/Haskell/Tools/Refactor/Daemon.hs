@@ -7,8 +7,9 @@
 module Language.Haskell.Tools.Refactor.Daemon where
 
 import Data.Aeson hiding ((.=))
-import Data.ByteString.Lazy (ByteString)
+import Data.ByteString.Lazy.Char8 (ByteString)
 import Data.ByteString.Lazy.Char8 (unpack)
+import qualified Data.ByteString.Lazy.Char8 as BS
 import GHC.Generics
 
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
@@ -75,7 +76,7 @@ runDaemon args = withSocketsDo $
        listen sock 1
        clientLoop isSilent sock
 
-defaultArgs = ["4123", "False"]
+defaultArgs = ["4123", "True"]
 
 clientLoop :: Bool -> Socket -> IO ()
 clientLoop isSilent sock
@@ -89,12 +90,15 @@ clientLoop isSilent sock
 
 serverLoop :: Bool -> Session -> MVar DaemonSessionState -> Socket -> IO ()
 serverLoop isSilent ghcSess state sock =
-    do msg <- recv sock 1024
-       -- putStrLn $ "message received: " ++ unpack msg
-       respondTo ghcSess state (sendAll sock) msg
-       sessionData <- readMVar state
-       when (not (sessionData ^. exiting))
-         $ serverLoop isSilent ghcSess state sock
+    do msg <- recv sock 2048
+       when (not $ BS.null msg) $ do -- null on TCP means closed connection
+         when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
+         let msgs = BS.split '\n' msg
+         forM_ (init msgs) $ \msg -> respondTo ghcSess state (sendAll sock) msg
+         respondTo ghcSess state (sendAll sock) msg
+         sessionData <- readMVar state
+         when (not (sessionData ^. exiting))
+           $ serverLoop isSilent ghcSess state sock
   `catch` interrupted sock
   where interrupted = \s ex -> do
                         let err = show (ex :: IOException)
@@ -103,9 +107,10 @@ serverLoop isSilent ghcSess state sock =
                           hPutStrLn stderr $ "Some exception caught: " ++ err
 
 respondTo :: Session -> MVar DaemonSessionState -> (ByteString -> IO ()) -> ByteString -> IO ()
-respondTo ghcSess state next mess = case decode mess of
-  Nothing -> next $ encode $ ErrorMessage "WRONG MESSAGE FORMAT"
-  Just req -> modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient (next . encode) req) st) ghcSess)
+respondTo ghcSess state next mess
+  = case decode mess of
+      Nothing -> next $ encode $ ErrorMessage "WRONG MESSAGE FORMAT"
+      Just req -> modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient (next . encode) req) st) ghcSess)
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a client
 updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc ()
