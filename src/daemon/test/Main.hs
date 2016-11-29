@@ -108,7 +108,7 @@ communicateWithDaemon msgs numResps = withSocketsDo $ do
   forM msgs (sendAll sock . (`BS.snoc` '\n') . encode)
   resps <- replicateM numResps (recv sock 2048)
   close sock
-  return $ map (fromMaybe (error "Response cannot be decoded") . decode) resps
+  return $ map (\r -> fromMaybe (error $ "Response cannot be decoded: " ++ show (BS.unpack r)) $ decode r) resps
 
 stopDaemon :: IO ()
 stopDaemon = withSocketsDo $ do
