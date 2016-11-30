@@ -64,13 +64,13 @@ loadingTests =
   , ( "multi-packages"
     , [ AddPackages [ testRoot </> "multi-packages" </> "package1"
                     , testRoot </> "multi-packages" </> "package2" ]]
-    , [ LoadedModules [ testRoot </> "multi-packages" </> "package1" </> "A.hs"
-                      , testRoot </> "multi-packages" </> "package2" </> "B.hs"]] )
+    , [ LoadedModules [ testRoot </> "multi-packages" </> "package2" </> "B.hs"
+                      , testRoot </> "multi-packages" </> "package1" </> "A.hs"]] )
   , ( "multi-packages-flags"
     , [ AddPackages [ testRoot </> "multi-packages-flags" </> "package1"
                     , testRoot </> "multi-packages-flags" </> "package2" ]]
-    , [ LoadedModules [ testRoot </> "multi-packages-flags" </> "package1" </> "A.hs"
-                      , testRoot </> "multi-packages-flags" </> "package2" </> "B.hs"]] )
+    , [ LoadedModules [ testRoot </> "multi-packages-flags" </> "package2" </> "B.hs"
+                      , testRoot </> "multi-packages-flags" </> "package1" </> "A.hs"]] )
   , ( "multi-packages-dependent"
     , [ AddPackages [ testRoot </> "multi-packages-dependent" </> "package1"
                     , testRoot </> "multi-packages-dependent" </> "package2" ]]
@@ -138,6 +138,20 @@ reloadingTests =
       , LoadedModules [ testRoot </> "reloading" </> "C.hs" ]
       , ModulesChanged [ testRoot </> "reloading" </> "C.hs" ]
       , LoadedModules [ testRoot </> "reloading" </> "C.hs" ]
+      ]
+    )
+  , ( "remove-package", testRoot </> "multi-packages-dependent"
+    , [ AddPackages [ testRoot </> "multi-packages-dependent" </> "package1"
+                    , testRoot </> "multi-packages-dependent" </> "package2" ]]
+    , removeDirectoryRecursive (testRoot </> "multi-packages-dependent" </> "package2")
+    , [ RemovePackages [testRoot </> "multi-packages-dependent" </> "package2"] 
+      , PerformRefactoring "RenameDefinition" (testRoot </> "multi-packages-dependent" </> "package1" </> "A.hs") 
+                                              "3:1-3:2" ["d"] 
+      ]
+    , [ LoadedModules [ testRoot </> "multi-packages-dependent" </> "package1" </> "A.hs"
+                      , testRoot </> "multi-packages-dependent" </> "package2" </> "B.hs" ]
+      , ModulesChanged [ testRoot </> "multi-packages-dependent" </> "package1" </> "A.hs" ]
+      , LoadedModules [ testRoot </> "multi-packages-dependent" </> "package1" </> "A.hs" ]
       ]
     )
   ]

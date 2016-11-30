@@ -41,40 +41,31 @@ instance IsRefactSessionState RefactorSessionState where
   initSession = RefactorSessionState []
 
 
-loadPackagesFrom :: IsRefactSessionState st => (ModSummary -> IO a) -> [FilePath] -> StateT st Ghc ([a], [(ModuleCollectionId, String)])
+loadPackagesFrom :: IsRefactSessionState st => (ModSummary -> IO a) -> [FilePath] -> StateT st Ghc ([a], [String])
 loadPackagesFrom report packages = 
   do modColls <- liftIO $ getAllModules packages
      modify $ refSessMCs .- (++ modColls)
-     res <- flip evalStateT [] $ forM modColls $ \mc -> do
-       alreadyLoaded <- get
-       let loadedModNames = map GHC.moduleNameString alreadyLoaded
-           newModNames = map (^. sfkModuleName) $ Map.keys $ mc ^. mcModules
-           ignoredMods = newModNames `List.intersect` loadedModNames
-       lift $ lift $ useDirs (mc ^. mcSourceDirs)
-       lift $ lift $ setTargets $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) 
-                                      (newModNames List.\\ ignoredMods)
-       -- depanal sets the dynamic flags for modules, so they need to be set before calling it
-       withAlteredDynFlags (liftIO . compileInContext mc modColls) $
-         do modsForMC <- lift $ lift $ depanal alreadyLoaded True
-            let modsToParse = flattenSCCs $ topSortModuleGraph False modsForMC Nothing
-            lift $ checkEvaluatedMods report modsToParse
-            mods <- lift $ mapM (loadModule report) modsToParse
-            modify $ (++ map ms_mod_name modsForMC)
-            return $ ((map fst mods, map (mc ^. mcId, ) ignoredMods), mcModules .= Map.fromList (map snd mods) $ mc)
-     modify $ refSessMCs .- ((++ map snd res) . (List.\\ modColls))
-     return (concatMap (fst . fst) res, concatMap (snd . fst) res)
+     lift $ useDirs (modColls ^? traversal & mcSourceDirs & traversal)
+     let (ignored, modNames) = extractDuplicates $ map (^. sfkModuleName) $ concat $ map Map.keys $ modColls ^? traversal & mcModules
+     lift $ mapM addTarget $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) 
+                                 ( modNames)
+     modsForColls <- lift $ depanal [] True
+     let modsToParse = flattenSCCs $ topSortModuleGraph False modsForColls Nothing
+     checkEvaluatedMods report modsToParse
+     mods <- mapM (loadModule report) modsToParse
+     -- TODO: check modules defined in multiple packages
+     return (mods, ignored)
 
-  where loadModule :: IsRefactSessionState st 
-                   => (ModSummary -> IO a) -> ModSummary -> StateT st Ghc (a, (SourceFileKey, ModuleRecord))
+  where extractDuplicates :: Eq a => [a] -> ([a],[a])
+        extractDuplicates (a:rest) 
+          = case extractDuplicates rest of (repl, orig) -> if a `elem` orig then (a:repl, orig) else (repl, a:orig)
+        extractDuplicates [] = ([],[])
+
+        loadModule :: IsRefactSessionState st => (ModSummary -> IO a) -> ModSummary -> StateT st Ghc a
         loadModule report ms = do
-          let modName = modSumName ms
-              key = SourceFileKey (case ms_hsc_src ms of HsSrcFile -> NormalHs; _ -> IsHsBoot) modName
+          let key = SourceFileKey (case ms_hsc_src ms of HsSrcFile -> NormalHs; _ -> IsHsBoot) (modSumName ms)
           needsCodeGen <- gets (needsGeneratedCode key . (^. refSessMCs))
-          lift $ do 
-            mm <- parseTyped (if needsCodeGen then forceCodeGen ms else ms)
-            rep <- liftIO $ report ms
-            res <- return (rep, ( key, (if needsCodeGen then ModuleCodeGenerated else ModuleTypeChecked) mm ms))
-            return res
+          reloadModule report (if needsCodeGen then forceCodeGen ms else ms)
 
 getMods :: (Monad m, IsRefactSessionState st) 
         => Maybe SourceFileKey -> StateT st m ( Maybe (SourceFileKey, UnnamedModule IdDom)
@@ -89,8 +80,8 @@ getFileMods :: (GhcMonad m, IsRefactSessionState st)
                                    , [(SourceFileKey, UnnamedModule IdDom)] )
 getFileMods fname 
   = do mcs <- gets (^. refSessMCs)
-       mods <- mapM (\(k,m) -> (,k) <$> getModSummary (moduleName (semanticsModule (fromJust $ m ^? typedRecModule)))) 
-                    (concatMap Map.assocs $ (mcs ^? traversal & mcModules :: [Map.Map SourceFileKey ModuleRecord]))
+       let mods = map (\(k,m) -> (fromJust $ m ^? modRecMS, k))
+                      (concatMap Map.assocs $ (mcs ^? traversal & mcModules :: [Map.Map SourceFileKey ModuleRecord]))
        let sfs = catMaybes $ map (\(ms,k) -> if Just fname == fmap normalise (ml_hs_file (ms_location ms)) then Just k else Nothing) mods
        case sfs of sf:_ -> getMods (Just sf)
                    [] -> getMods Nothing
@@ -114,6 +105,9 @@ reloadChangedModules report isChanged = do
 
 getReachableModules :: (ModSummary -> Bool) -> StateT st Ghc [ModSummary]
 getReachableModules selected = do
+  -- FIXME: not sure if depanal is correct here
+  -- it replaces module graph that will cause the module graph of GHC and
+  -- our module collections to be different, not sure if it causes any actual problems
   allMods <- lift $ depanal [] True
   let (allModsGraph, lookup) = moduleGraphNodes False allMods
       changedMods = catMaybes $ map (\ms -> lookup (ms_hsc_src ms) (moduleName $ ms_mod ms))
@@ -128,9 +122,13 @@ reloadModule report ms = do
   mcs <- gets (^. refSessMCs)
   let Just mc = lookupModuleColl modName mcs
       codeGen = hasGeneratedCode (SourceFileKey NormalHs modName) mcs
-  newm <- lift $ withAlteredDynFlags (liftIO . compileInContext mc mcs) $
-    parseTyped (if codeGen then forceCodeGen ms else ms)
-  modify $ refSessMCs .- updateModule modName NormalHs ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm ms)
+  let dfs = ms_hspp_opts ms 
+  dfs' <- liftIO $ compileInContext mc mcs dfs
+  let ms' = ms { ms_hspp_opts = dfs' }
+  newm <- lift $ withAlteredDynFlags (liftIO . compileInContext mc mcs) $ 
+    parseTyped (if codeGen then forceCodeGen ms' else ms')
+  modify $ refSessMCs & traversal & filtered (\mc' -> (mc' ^. mcRoot) == (mc ^. mcRoot)) & mcModules 
+             .- Map.insert (SourceFileKey NormalHs modName) ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm ms)
   liftIO $ report ms
 
 checkEvaluatedMods :: IsRefactSessionState st => (ModSummary -> IO a) -> [ModSummary] -> StateT st Ghc [a]

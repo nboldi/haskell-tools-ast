@@ -33,7 +33,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import System.FilePath
 import Data.Maybe
-import Data.List (isInfixOf)
+import Data.List (isInfixOf, (\\))
 import Data.List.Split
 import System.Info (os)
 import Data.IntSet (member)
@@ -97,6 +97,11 @@ useDirs :: [FilePath] -> Ghc ()
 useDirs workingDirs = do
   dynflags <- getSessionDynFlags
   void $ setSessionDynFlags dynflags { importPaths = importPaths dynflags ++ workingDirs }
+
+deregisterDirs :: [FilePath] -> Ghc ()
+deregisterDirs workingDirs = do
+  dynflags <- getSessionDynFlags
+  void $ setSessionDynFlags dynflags { importPaths = importPaths dynflags \\ workingDirs }
   
 -- | Translates module name and working directory into the name of the file where the given module should be defined
 toFileName :: String -> String -> FilePath

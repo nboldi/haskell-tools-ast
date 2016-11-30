@@ -114,9 +114,6 @@ lookupModInSCs moduleName = find ((moduleName ==) . fst) . concatMap (Map.assocs
 removeModule :: String -> [ModuleCollection] -> [ModuleCollection]
 removeModule moduleName = map (mcModules .- Map.filterWithKey (\k v -> moduleName /= (k ^. sfkModuleName)))
 
-updateModule :: String -> IsBoot -> ModuleRecord -> [ModuleCollection] -> [ModuleCollection]
-updateModule moduleName boot mod = map (mcModules .- Map.insert (SourceFileKey boot moduleName) mod)
-
 hasGeneratedCode :: SourceFileKey -> [ModuleCollection] -> Bool
 hasGeneratedCode key = maybe False (\case (_, ModuleCodeGenerated {}) -> True; _ -> False) 
                          . find ((key ==) . fst) . concatMap (Map.assocs . (^. mcModules))
