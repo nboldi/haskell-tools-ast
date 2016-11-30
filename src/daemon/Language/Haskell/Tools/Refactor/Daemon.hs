@@ -94,9 +94,9 @@ serverLoop isSilent ghcSess state sock =
        when (not $ BS.null msg) $ do -- null on TCP means closed connection
          when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
          let msgs = BS.split '\n' msg
-         forM_ msgs $ \msg -> respondTo ghcSess state (sendAll sock . (`BS.snoc` '\n')) msg
+         continue <- forM msgs $ \msg -> respondTo ghcSess state (sendAll sock . (`BS.snoc` '\n')) msg
          sessionData <- readMVar state
-         when (not (sessionData ^. exiting))
+         when (not (sessionData ^. exiting) && all (== True) continue)
            $ serverLoop isSilent ghcSess state sock
   `catch` interrupted sock
   where interrupted = \s ex -> do
@@ -105,18 +105,19 @@ serverLoop isSilent ghcSess state sock =
                           putStrLn "Closing down socket"
                           hPutStrLn stderr $ "Some exception caught: " ++ err
 
-respondTo :: Session -> MVar DaemonSessionState -> (ByteString -> IO ()) -> ByteString -> IO ()
+respondTo :: Session -> MVar DaemonSessionState -> (ByteString -> IO ()) -> ByteString -> IO Bool
 respondTo ghcSess state next mess
-  | BS.null mess = return ()
+  | BS.null mess = return True
   | otherwise
   = case decode mess of
-      Nothing -> do putStrLn "sending malf"
-                    next $ encode $ ErrorMessage $ "MALFORMED MESSAGE: " ++ unpack mess
+      Nothing -> do next $ encode $ ErrorMessage $ "MALFORMED MESSAGE: " ++ unpack mess
+                    return True
       Just req -> modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient (next . encode) req) st) ghcSess)
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a client
-updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc ()
-updateClient resp KeepAlive = liftIO $ resp KeepAliveResponse
+updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc Bool
+updateClient resp KeepAlive = liftIO (resp KeepAliveResponse) >> return True
+updateClient resp Disconnect = liftIO (resp Disconnected) >> return False
 updateClient resp (AddPackages packagePathes) = do
     existing <- gets (map semanticsModule . (^? refSessMCs & traversal & filtered isTheAdded & mcModules & traversal & typedRecModule))
     needToReload <- (filter (\ms -> not $ ms_mod ms `elem` existing)) 
@@ -131,6 +132,7 @@ updateClient resp (AddPackages packagePathes) = do
                      ++ concat (intersperse ", " $ map (\(id,mod) -> mod ++ " (from " ++ moduleCollectionIdString id ++ ")") ignoredMods)
                      ++ ". Multiple modules with the same qualified name are not supported."
           else LoadedModules modules
+    return True
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
 
 updateClient resp (RemovePackages packagePathes) = do
@@ -139,6 +141,7 @@ updateClient resp (RemovePackages packagePathes) = do
                       <$> getReachableModules (\ms -> ms_mod ms `elem` existing)
     modify $ refSessMCs .- filter (not . isTheAdded)
     mapM_ (reloadModule (\_ -> return ())) needToReload
+    return True
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
 
 updateClient resp (ReLoad changed) =
@@ -148,7 +151,9 @@ updateClient resp (ReLoad changed) =
      let missingMods = changed \\ map getModSumOrig found 
      modify $ refSessMCs & traversal & mcModules 
                 .- Map.filter (\m -> maybe True (not . (`elem` missingMods) . getModSumOrig) (m ^? modRecMS))
-updateClient _ Stop = modify (exiting .= True)
+     return True
+
+updateClient _ Stop = modify (exiting .= True) >> return False
 
 updateClient resp (PerformRefactoring refact modPath selection args) = do
     (Just actualMod, otherMods) <- getFileMods modPath
@@ -159,6 +164,7 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
       Right diff -> do changedMods <- applyChanges diff
                        liftIO $ resp $ ModulesChanged (map snd changedMods)
                        void $ reloadChanges (map fst changedMods)
+    return True
   where applyChanges changes = do 
           forM changes $ \case 
             ContentChanged (n,m) -> do
@@ -210,6 +216,7 @@ data ClientMessage
                        , details :: [String]
                        }
   | Stop
+  | Disconnect
   | ReLoad { changedModules :: [FilePath] } -- must contain any removed files
   -- ReLoadAll -- re-load all modules
   -- Reset -- completely re-initialize the refactor sesson
@@ -225,6 +232,7 @@ data ResponseMsg
   | CompilationProblem { errorMsg :: String }
   | ModulesChanged { moduleChanges :: [FilePath] }
   | LoadedModules { loadedModules :: [FilePath] }
+  | Disconnected
   deriving (Eq, Show, Generic)
 
 instance ToJSON ResponseMsg

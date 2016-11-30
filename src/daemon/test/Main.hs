@@ -10,7 +10,7 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.MVar
 import Network.Socket hiding (KeepAlive, send, recv)
-import Network.Socket.ByteString.Lazy
+import Network.Socket.ByteString.Lazy as Sock
 import qualified Data.ByteString.Lazy.Char8 as BS
 import qualified Data.List as List
 import Data.Aeson (encode, decode)
@@ -37,6 +37,8 @@ allTests
               $ map (makeDaemonTest . (\(label, input, output) -> (Nothing, label, input, output))) loadingTests
           , testGroup "refactor-tests" 
               $ map (makeDaemonTest . (\(label, input, output) -> (Just (testRoot </> label), label, input, output))) refactorTests
+          , testGroup "reload-tests" 
+              $ map makeReloadTest reloadingTests
           ]
 
 simpleTests :: [(String, [ClientMessage], [ResponseMsg])]
@@ -88,47 +90,89 @@ refactorTests =
       ] )
   ]
 
+reloadingTests :: [(String, FilePath, [ClientMessage], IO (), [ClientMessage], [ResponseMsg])]
+reloadingTests =
+  [ ( "reloading-module", testRoot </> "reloading", [ AddPackages [ testRoot </> "reloading" ] ]
+    , writeFile (testRoot </> "reloading" </> "C.hs") "module C where\nc = ()" 
+    , [ ReLoad [testRoot </> "reloading" </> "C.hs"]
+      , PerformRefactoring "RenameDefinition" (testRoot </> "reloading" </> "C.hs") "2:1-2:2" ["d"] 
+      ]
+    , [ LoadedModules [ testRoot </> "reloading" </> "C.hs"
+                      , testRoot </> "reloading" </> "B.hs"
+                      , testRoot </> "reloading" </> "A.hs" ]
+      , LoadedModules [ testRoot </> "reloading" </> "C.hs" ]
+      , LoadedModules [ testRoot </> "reloading" </> "B.hs" ]
+      , LoadedModules [ testRoot </> "reloading" </> "A.hs" ]
+      , ModulesChanged [ testRoot </> "reloading" </> "C.hs"
+                       , testRoot </> "reloading" </> "B.hs" ]
+      , LoadedModules [ testRoot </> "reloading" </> "C.hs" ]
+      , LoadedModules [ testRoot </> "reloading" </> "B.hs" ]
+      , LoadedModules [ testRoot </> "reloading" </> "A.hs" ]
+      ]
+    )
+  , ( "reloading-package", testRoot </> "changing-cabal"
+    , [ AddPackages [ testRoot </> "changing-cabal" ] ]
+    , appendFile (testRoot </> "changing-cabal" </> "some-test-package.cabal") ", B" 
+    , [ AddPackages [testRoot </> "changing-cabal"]
+      , PerformRefactoring "RenameDefinition" (testRoot </> "changing-cabal" </> "A.hs") "3:1-3:2" ["z"] 
+      ]
+    , [ LoadedModules [ testRoot </> "changing-cabal" </> "A.hs" ]
+      , LoadedModules [ testRoot </> "changing-cabal" </> "A.hs"
+                      , testRoot </> "changing-cabal" </> "B.hs" ]
+      , ModulesChanged [ testRoot </> "changing-cabal" </> "A.hs"
+                       , testRoot </> "changing-cabal" </> "B.hs" ]
+      , LoadedModules [ testRoot </> "changing-cabal" </> "A.hs" ]
+      , LoadedModules [ testRoot </> "changing-cabal" </> "B.hs" ]
+      ]
+    )
+  ]
+
 makeDaemonTest :: (Maybe FilePath, String, [ClientMessage], [ResponseMsg]) -> TestTree
 makeDaemonTest (Nothing, label, input, expected) = testCase label $ do  
-    actual <- communicateWithDaemon input (length expected)
+    actual <- communicateWithDaemon (map Right input)
     assertEqual "" expected actual
 makeDaemonTest (Just dir, label, input, expected) = testCase label $ do   
     copyDir dir (dir ++ "_orig")
-    actual <- communicateWithDaemon input (length expected)
+    actual <- communicateWithDaemon (map Right input)
     assertEqual "" expected actual
   `finally` do removeDirectoryRecursive dir
                renameDirectory (dir ++ "_orig") dir
 
-communicateWithDaemon :: [ClientMessage] -> Int -> IO [ResponseMsg]
-communicateWithDaemon msgs numResps = withSocketsDo $ do
+makeReloadTest :: (String, FilePath, [ClientMessage], IO (), [ClientMessage], [ResponseMsg]) -> TestTree
+makeReloadTest (label, dir, input1, io, input2, expected) = testCase label $ do  
+    copyDir dir (dir ++ "_orig")
+    actual <- communicateWithDaemon (map Right input1 ++ [Left io] ++ map Right input2)
+    assertEqual "" expected actual
+  `finally` do removeDirectoryRecursive dir
+               renameDirectory (dir ++ "_orig") dir
+
+communicateWithDaemon :: [Either (IO ()) ClientMessage] -> IO [ResponseMsg]
+communicateWithDaemon msgs = withSocketsDo $ do
   addrInfo <- getAddrInfo Nothing (Just "127.0.0.1") (Just "4123")
   let serverAddr = head addrInfo
   sock <- socket (addrFamily serverAddr) Stream defaultProtocol
   connect sock (addrAddress serverAddr)
-  forM msgs (sendAll sock . (`BS.snoc` '\n') . encode)
-  resp <- readSockNResponse sock numResps
+  intermedRes <- sequence (map (either (\io -> do sendAll sock (encode KeepAlive)
+                                                  r <- readSockResponsesUntil sock KeepAliveResponse
+                                                  io
+                                                  return r)
+                               ((>> return []) . sendAll sock . (`BS.snoc` '\n') . encode)) msgs)
+  sendAll sock $ encode Disconnect
+  resps <- readSockResponsesUntil sock Disconnected
   close sock
-  return resp
+  return (concat intermedRes ++ resps)
 
-readSockNResponse :: Socket -> Int -> IO [ResponseMsg]
-readSockNResponse _ n | n <= 0 = return [] 
-readSockNResponse sock n 
+readSockResponsesUntil :: Socket -> ResponseMsg -> IO [ResponseMsg]
+readSockResponsesUntil sock rsp
   = do resp <- recv sock 2048
        if BS.null resp 
          then return []
          else
            let splitted = BS.split '\n' resp
                recognized = catMaybes $ map decode splitted
-            in (recognized ++) <$> readSockNResponse sock (n - length recognized)
-
-  -- responses <- Sock.getContents sock
-  -- let resps = BS.split '\n' responses
-  -- let res = if not (null resps) 
-  --             then map (\r -> fromMaybe (error $ "Response cannot be decoded: " ++ show (BS.unpack r)) $ decode r)
-  --                               (init resps)
-  --             else []
-  -- close sock
-  -- return res
+            in if rsp `elem` recognized 
+                 then return $ List.delete rsp recognized 
+                 else (recognized ++) <$> readSockResponsesUntil sock rsp
 
 stopDaemon :: IO ()
 stopDaemon = withSocketsDo $ do
