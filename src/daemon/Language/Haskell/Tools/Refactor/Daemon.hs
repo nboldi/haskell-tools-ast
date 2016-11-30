@@ -144,13 +144,13 @@ updateClient resp (RemovePackages packagePathes) = do
     return True
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
 
-updateClient resp (ReLoad changed) =
-  do found <- reloadChangedModules (\ms -> resp (LoadedModules [getModSumOrig ms]) >> return ms) 
-                                   (\ms -> getModSumOrig ms `elem` changed)
-     -- remove the missing files from database
-     let missingMods = changed \\ map getModSumOrig found 
+updateClient resp (ReLoad changed removed) =
+  do removedMods <- gets (filter ((`elem` removed) . getModSumOrig) . (^? refSessMCs & traversal & mcModules & traversal & modRecMS))
+     lift $ forM_ removedMods (\ms -> removeTarget (TargetModule (GHC.moduleName (ms_mod ms))))
      modify $ refSessMCs & traversal & mcModules 
-                .- Map.filter (\m -> maybe True (not . (`elem` missingMods) . getModSumOrig) (m ^? modRecMS))
+                .- Map.filter (\m -> maybe True (not . (`elem` removed) . getModSumOrig) (m ^? modRecMS))
+     reloadChangedModules (\ms -> resp (LoadedModules [getModSumOrig ms]))
+                          (\ms -> getModSumOrig ms `elem` changed)
      return True
 
 updateClient _ Stop = modify (exiting .= True) >> return False
@@ -217,7 +217,9 @@ data ClientMessage
                        }
   | Stop
   | Disconnect
-  | ReLoad { changedModules :: [FilePath] } -- must contain any removed files
+  | ReLoad { changedModules :: [FilePath]
+           , removedModules :: [FilePath]
+           }
   -- ReLoadAll -- re-load all modules
   -- Reset -- completely re-initialize the refactor sesson
   deriving (Eq, Show, Generic)

@@ -94,7 +94,7 @@ reloadingTests :: [(String, FilePath, [ClientMessage], IO (), [ClientMessage], [
 reloadingTests =
   [ ( "reloading-module", testRoot </> "reloading", [ AddPackages [ testRoot </> "reloading" ] ]
     , writeFile (testRoot </> "reloading" </> "C.hs") "module C where\nc = ()" 
-    , [ ReLoad [testRoot </> "reloading" </> "C.hs"]
+    , [ ReLoad [testRoot </> "reloading" </> "C.hs"] []
       , PerformRefactoring "RenameDefinition" (testRoot </> "reloading" </> "C.hs") "2:1-2:2" ["d"] 
       ]
     , [ LoadedModules [ testRoot </> "reloading" </> "C.hs"
@@ -123,6 +123,21 @@ reloadingTests =
                        , testRoot </> "changing-cabal" </> "B.hs" ]
       , LoadedModules [ testRoot </> "changing-cabal" </> "A.hs" ]
       , LoadedModules [ testRoot </> "changing-cabal" </> "B.hs" ]
+      ]
+    )
+  , ( "reloading-remove", testRoot </> "reloading", [ AddPackages [ testRoot </> "reloading" ] ]
+    , do removeFile (testRoot </> "reloading" </> "A.hs")
+         removeFile (testRoot </> "reloading" </> "B.hs")
+    , [ ReLoad [testRoot </> "reloading" </> "C.hs"] 
+               [testRoot </> "reloading" </> "A.hs", testRoot </> "reloading" </> "B.hs"]
+      , PerformRefactoring "RenameDefinition" (testRoot </> "reloading" </> "C.hs") "3:1-3:2" ["d"] 
+      ]
+    , [ LoadedModules [ testRoot </> "reloading" </> "C.hs"
+                      , testRoot </> "reloading" </> "B.hs"
+                      , testRoot </> "reloading" </> "A.hs" ]
+      , LoadedModules [ testRoot </> "reloading" </> "C.hs" ]
+      , ModulesChanged [ testRoot </> "reloading" </> "C.hs" ]
+      , LoadedModules [ testRoot </> "reloading" </> "C.hs" ]
       ]
     )
   ]

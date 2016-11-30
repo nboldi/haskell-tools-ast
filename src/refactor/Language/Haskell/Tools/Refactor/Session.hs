@@ -52,7 +52,7 @@ loadPackagesFrom report packages =
            ignoredMods = newModNames `List.intersect` loadedModNames
        lift $ lift $ useDirs (mc ^. mcSourceDirs)
        lift $ lift $ setTargets $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) 
-                                        (newModNames List.\\ ignoredMods)
+                                      (newModNames List.\\ ignoredMods)
        -- depanal sets the dynamic flags for modules, so they need to be set before calling it
        withAlteredDynFlags (liftIO . compileInContext mc modColls) $
          do modsForMC <- lift $ lift $ depanal alreadyLoaded True
