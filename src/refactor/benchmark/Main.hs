@@ -110,31 +110,67 @@ instance ToJSON BMCase
 
 bms :: [BM]
 bms = [ BM { bmId = "full-1", workingDir = rootDir, refactors = [
-          "SelectModule C"
-        , "RenameDefinition 5:1-5:2 bb"
-        , "RenameDefinition 3:1-3:2 cc"
+          "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "ExtractBinding 182:8-182:36"
+        , "RenameDefinition 181:1 gDefined"
+        , "GenerateTypeSignature 51:5-51:5"
+        , "GenerateTypeSignature 50:5-50:5"
+        , "GenerateTypeSignature 49:5-49:5"
+        , "ExtractBinding 47:46-47:64"
+        , "RenameDefinition 46:1 cppIfDef"
+        , "OrganizeImports"
         , "Exit"
         ]  }
       , BM { bmId = "full-2", workingDir = rootDir, refactors = [
-          "SelectModule C"
-        , ""
-        , ""
+          "SelectModule Language.Preprocessor.Cpphs.MacroPass"
+        , "ExtractBinding 96:29-96:47 tokenizeTT"
+        , "ExtractBinding 90:11-90:67 fun"
+        , "OrganizeImports"
+        , "Exit"
+        ]  }
+      , BM { bmId = "full-3", workingDir = rootDir, refactors = [
+          "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "ExtractBinding 182:8-182:36"
+        , "RenameDefinition 181:1 gDefined"
+        , "SelectModule Language.Preprocessor.Cpphs.MacroPass"
+        , "ExtractBinding 96:29-96:47 tokenizeTT"
+        , "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "GenerateTypeSignature 51:5-51:5"
+        , "GenerateTypeSignature 50:5-50:5"
+        , "GenerateTypeSignature 49:5-49:5"
+        , "SelectModule Language.Preprocessor.Cpphs.MacroPass"
+        , "ExtractBinding 90:11-90:67 fun"
+        , "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "ExtractBinding 47:46-47:64"
+        , "RenameDefinition 46:1 cppIfDef"
+        , "OrganizeImports"
+        , "Exit"
+        ]  }
+      , BM { bmId = "3xGenerateTypeSignature", workingDir = rootDir, refactors = [
+          "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "GenerateTypeSignature 51:5-51:5"
+        , "GenerateTypeSignature 50:5-50:5"
+        , "GenerateTypeSignature 49:5-49:5"
+        , "Exit"
+        ]  }
+      , BM { bmId ="selects", workingDir = rootDir, refactors = [
+          "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "SelectModule Language.Preprocessor.Cpphs.MacroPass"
+        , "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "SelectModule Language.Preprocessor.Cpphs.MacroPass"
+        , "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "SelectModule Language.Preprocessor.Cpphs.MacroPass"
+        , "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "SelectModule Language.Preprocessor.Cpphs.MacroPass"
+        , "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
+        , "Exit"
         ]  }
       ]
-
-{-
-oneShotRefactor moduleName refactoring = refactorSession stdin stdout 
-           [ "-dry-run", "-one-shot", "-package", "ghc"
-           , "-module-name=" ++ moduleName  --Language.Haskell.Tools.AST"
-           , "-refactoring=\"" ++ refactoring ++ "\""
-           , "../../examples" ]
--}
-
 
 
 
 bms2Mcases :: Date -> [BM] -> IO [BMCase]
-bms2Mcases d = mapM (bm2Mcase d)
+bms2Mcases = mapM . bm2Mcase
 
 runBenchmark :: Benchmarkable -> IO Measured
 runBenchmark bm = fst <$> (measure bm 1)
@@ -154,7 +190,7 @@ makeCliTest wd rfs = let dir = joinPath $ longestCommonPrefix $ map splitDirecto
     inHandle <- newFileHandle inKnob "<input>" ReadMode
     outKnob <- newKnob (pack [])
     outHandle <- newFileHandle outKnob "<output>" WriteMode
-    refactorSession inHandle outHandle wd
+    refactorSession inHandle outHandle [wd]
   `finally` do removeDirectoryRecursive dir
                renameDirectory (dir ++ "_orig") dir
 
