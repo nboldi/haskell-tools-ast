@@ -63,9 +63,11 @@ loadPackagesFrom report packages =
 
         loadModule :: IsRefactSessionState st => (ModSummary -> IO a) -> ModSummary -> StateT st Ghc a
         loadModule report ms = do
-          let key = SourceFileKey (case ms_hsc_src ms of HsSrcFile -> NormalHs; _ -> IsHsBoot) (modSumName ms)
-          needsCodeGen <- gets (needsGeneratedCode key . (^. refSessMCs))
+          needsCodeGen <- gets (needsGeneratedCode (keyFromMS ms) . (^. refSessMCs))
           reloadModule report (if needsCodeGen then forceCodeGen ms else ms)
+
+keyFromMS :: ModSummary -> SourceFileKey
+keyFromMS ms = SourceFileKey (case ms_hsc_src ms of HsSrcFile -> NormalHs; _ -> IsHsBoot) (modSumName ms)
 
 getMods :: (Monad m, IsRefactSessionState st) 
         => Maybe SourceFileKey -> StateT st m ( Maybe (SourceFileKey, UnnamedModule IdDom)
@@ -121,46 +123,44 @@ reloadModule report ms = do
   let modName = modSumName ms
   mcs <- gets (^. refSessMCs)
   let Just mc = lookupModuleColl modName mcs
-      codeGen = hasGeneratedCode (SourceFileKey NormalHs modName) mcs
+      codeGen = hasGeneratedCode (keyFromMS ms) mcs
   let dfs = ms_hspp_opts ms 
   dfs' <- liftIO $ compileInContext mc mcs dfs
   let ms' = ms { ms_hspp_opts = dfs' }
   newm <- lift $ withAlteredDynFlags (liftIO . compileInContext mc mcs) $ 
     parseTyped (if codeGen then forceCodeGen ms' else ms')
   modify $ refSessMCs & traversal & filtered (\mc' -> (mc' ^. mcRoot) == (mc ^. mcRoot)) & mcModules 
-             .- Map.insert (SourceFileKey NormalHs modName) ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm ms)
+             .- Map.insert (keyFromMS ms) ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm ms)
   liftIO $ report ms
 
 checkEvaluatedMods :: IsRefactSessionState st => (ModSummary -> IO a) -> [ModSummary] -> StateT st Ghc [a]
 checkEvaluatedMods report mods = do
     modsNeedCode <- lift (getEvaluatedMods mods)
     mcs <- gets (^. refSessMCs)
-    res <- forM modsNeedCode $ \mn -> 
-      let key = SourceFileKey NormalHs (GHC.moduleNameString mn)
-       in reloadIfNeeded key mn mcs
+    res <- forM modsNeedCode $ \ms -> reloadIfNeeded ms mcs
     return $ catMaybes res
-  where reloadIfNeeded key mn mcs 
-          = if not (hasGeneratedCode key mcs)
-              then do modify $ refSessMCs .- codeGeneratedFor key
-                      if (isAlreadyLoaded key mcs) then 
-                          -- The module is already loaded but code is not generated. Need to reload.
-                          do ms <- getModSummary mn
-                             Just <$> lift (codeGenForModule report (codeGeneratedFor key mcs) ms)
-                        else return Nothing
-              else return Nothing
+  where reloadIfNeeded ms mcs 
+          = let key = keyFromMS ms
+              in if not (hasGeneratedCode key mcs)
+                   then do modify $ refSessMCs .- codeGeneratedFor key
+                           if (isAlreadyLoaded key mcs) then 
+                               -- The module is already loaded but code is not generated. Need to reload.
+                               Just <$> lift (codeGenForModule report (codeGeneratedFor key mcs) ms)
+                             else return Nothing
+                   else return Nothing
 
 codeGenForModule :: (ModSummary -> IO a) -> [ModuleCollection] -> ModSummary -> Ghc a
 codeGenForModule report mcs ms 
   = let modName = modSumName ms
         Just mc = lookupModuleColl modName mcs
-        Just rec = lookupModInSCs (SourceFileKey NormalHs modName) mcs
+        Just rec = lookupModInSCs (keyFromMS ms) mcs
      in -- TODO: don't recompile, only load?
         do withAlteredDynFlags (liftIO . compileInContext mc mcs)
              $ parseTyped (forceCodeGen ms)
            liftIO $ report ms 
 
 -- | Check which modules can be reached from the module, if it uses template haskell.
-getEvaluatedMods :: [ModSummary] -> Ghc [GHC.ModuleName]
+getEvaluatedMods :: [ModSummary] -> Ghc [GHC.ModSummary]
 -- We cannot really get the modules that need to be linked, because we cannot rename splice content if the
 -- module is not type checked and that is impossible if the splice cannot be evaluated.
 getEvaluatedMods mods
@@ -170,7 +170,7 @@ getEvaluatedMods mods
            recompMods = map (moduleName . ms_mod . getModFromNode) $ reachablesG allModsGraph modsWithTH
            sortedMods = map getModFromNode $ reverse $ topologicalSortG allModsGraph
            sortedTHMods = filter ((`elem` recompMods) . moduleName . ms_mod) sortedMods
-       return $ map (moduleName . ms_mod) sortedTHMods
+       return sortedTHMods
   where isTH mod = fromEnum TemplateHaskell `member` extensionFlags (ms_hspp_opts mod)
 
 
