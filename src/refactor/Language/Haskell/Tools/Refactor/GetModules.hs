@@ -65,12 +65,6 @@ data ModuleRecord
                              , _modRecMS :: ModSummary
                              }
 
--- | Module name and marker to separate .hs-boot module definitions. Specifies a source file in a working directory.
-data SourceFileKey = SourceFileKey { _sfkIsBoot :: IsBoot
-                                   , _sfkModuleName :: String
-                                   }
-  deriving (Eq, Ord, Show)
-
 -- | This data structure identifies a module collection
 data ModuleCollectionId = DirectoryMC FilePath
                         | LibraryMC String
@@ -93,11 +87,7 @@ moduleCollectionPkgId (ExecutableMC id _) = Just id
 moduleCollectionPkgId (TestSuiteMC id _) = Just id
 moduleCollectionPkgId (BenchmarkMC id _) = Just id
 
--- | Decides if a module is a .hs-boot file or a normal .hs file
-data IsBoot = NormalHs | IsHsBoot deriving (Eq, Ord, Show)
-
 makeReferences ''ModuleCollection
-makeReferences ''SourceFileKey
 makeReferences ''ModuleRecord
 
 instance Show ModuleRecord where

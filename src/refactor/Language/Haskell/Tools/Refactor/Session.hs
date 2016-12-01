@@ -88,9 +88,6 @@ getFileMods fname
        case sfs of sf:_ -> getMods (Just sf)
                    [] -> getMods Nothing
 
-assocToNamedMod :: (SourceFileKey, UnnamedModule dom) -> ModuleDom dom
-assocToNamedMod (SourceFileKey _ n, mod) = (n, mod)
-
 withAlteredDynFlags :: GhcMonad m => (DynFlags -> m DynFlags) -> m a -> m a
 withAlteredDynFlags modDFs action = do
   dfs <- getSessionDynFlags

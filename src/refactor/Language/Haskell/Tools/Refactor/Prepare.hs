@@ -51,7 +51,7 @@ tryRefactor refact moduleName span
       initGhcFlags
       useDirs ["."]
       mod <- loadModule "." moduleName >>= parseTyped
-      res <- runRefactor (toFileName "." moduleName, mod) [] 
+      res <- runRefactor (SourceFileKey NormalHs moduleName, mod) [] 
                $ refact $ correctRefactorSpan mod $ readSrcSpan span 
       case res of Right r -> liftIO $ mapM_ (putStrLn . prettyPrint . snd . fromContentChanged) r
                   Left err -> liftIO $ putStrLn err

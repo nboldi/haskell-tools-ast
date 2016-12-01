@@ -118,7 +118,7 @@ performSessionCommand _ Exit = modify $ exiting .= True
 performSessionCommand output (RefactorCommand cmd) 
   = do actMod <- gets (^. actualMod)
        (Just actualMod, otherMods) <- getMods actMod
-       res <- lift $ performCommand cmd (assocToNamedMod actualMod) (map assocToNamedMod otherMods)
+       res <- lift $ performCommand cmd actualMod otherMods
        inDryMode <- gets (^. dryMode)
        case res of Left err -> liftIO $ hPutStrLn output err
                    Right resMods -> performChanges output inDryMode resMods
@@ -141,12 +141,12 @@ performSessionCommand output (RefactorCommand cmd)
                   modify $ (refSessMCs .- removeModule mod)
                   liftIO $ removeFile file
                 _ -> do liftIO $ hPutStrLn output ("Module " ++ mod ++ " could not be removed.")
-              return mod
+              return (SourceFileKey NormalHs mod)
           void $ reloadChangedModules (hPutStrLn output . ("Re-loaded module: " ++) . modSumName) 
-                   (\ms -> modSumName ms `elem` changedMods)
+                   (\ms -> keyFromMS ms `elem` changedMods)
         performChanges output True resMods = forM_ resMods (liftIO . \case 
           ContentChanged (n,m) -> do
-            hPutStrLn output $ "### Module changed: " ++ n ++ "\n### new content:\n" ++ prettyPrint m
+            hPutStrLn output $ "### Module changed: " ++ (n ^. sfkModuleName) ++ "\n### new content:\n" ++ prettyPrint m
           ModuleRemoved mod ->
             hPutStrLn output $ "### Module removed: " ++ mod)
 

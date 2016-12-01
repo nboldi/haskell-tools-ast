@@ -3,6 +3,7 @@
            , DeriveGeneric
            , LambdaCase
            , TemplateHaskell
+           , FlexibleContexts
            #-}
 module Language.Haskell.Tools.Refactor.Daemon where
 
@@ -161,20 +162,20 @@ updateClient resp (ReLoad changed removed) =
 updateClient _ Stop = modify (exiting .= True) >> return False
 
 updateClient resp (PerformRefactoring refact modPath selection args) = do
-    -- liftIO $ putStrLn "PerformRefactoring"
     (Just actualMod, otherMods) <- getFileMods modPath
     let cmd = analyzeCommand refact (selection:args)
-    res <- lift $ performCommand cmd (assocToNamedMod actualMod) (map assocToNamedMod otherMods)
+    res <- lift $ performCommand cmd actualMod otherMods
     case res of
       Left err -> liftIO $ resp $ ErrorMessage err
       Right diff -> do changedMods <- applyChanges diff
                        liftIO $ resp $ ModulesChanged (map snd changedMods)
-                       void $ reloadChanges (map fst changedMods)
+                       void $ reloadChanges (map ((^. sfkModuleName) . fst) changedMods)
     return True
   where applyChanges changes = do 
           forM changes $ \case 
             ContentChanged (n,m) -> do
-              ms <- lift $ getModSummary (mkModuleName n)
+              Just (_, mr) <- gets (lookupModInSCs n . (^. refSessMCs))
+              let Just ms = mr ^? modRecMS
               liftIO $ withBinaryFile (getModSumOrig ms) WriteMode (`hPutStr` prettyPrint m)
               return (n, getModSumOrig ms)
             ModuleRemoved mod -> do
@@ -183,7 +184,7 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
               ms <- getModSummary modName
               modify $ (refSessMCs .- removeModule mod)
               liftIO $ removeFile (getModSumOrig ms)
-              return (mod, getModSumOrig ms)
+              return (SourceFileKey NormalHs mod, getModSumOrig ms)
           
         reloadChanges changedMods 
           = reloadChangedModules (\ms -> resp $ LoadedModules [getModSumOrig ms]) (\ms -> modSumName ms `elem` changedMods)

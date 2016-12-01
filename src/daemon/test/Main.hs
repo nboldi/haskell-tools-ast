@@ -88,6 +88,18 @@ refactorTests =
       , ModulesChanged [ testRoot </> "simple-refactor" </> "A.hs" ] 
       , LoadedModules [ testRoot </> "simple-refactor" </> "A.hs" ]
       ] )
+  , ( "hs-boots"
+    , [ AddPackages [ testRoot </> "hs-boots" ]
+      , PerformRefactoring "RenameDefinition" (testRoot </> "hs-boots" </> "A.hs") "5:1-5:2" ["aa"]
+      ]
+    , [ LoadedModules [ testRoot </> "hs-boots" </> "B.hs-boot", testRoot </> "hs-boots" </> "A.hs-boot"
+                      , testRoot </> "hs-boots" </> "A.hs", testRoot </> "hs-boots" </> "B.hs" ]
+      , ModulesChanged [ testRoot </> "hs-boots" </> "A.hs", testRoot </> "hs-boots" </> "B.hs", testRoot </> "hs-boots" </> "A.hs-boot" ] 
+      , LoadedModules [ testRoot </> "hs-boots" </> "A.hs-boot" ]
+      , LoadedModules [ testRoot </> "hs-boots" </> "B.hs-boot" ]
+      , LoadedModules [ testRoot </> "hs-boots" </> "A.hs" ]
+      , LoadedModules [ testRoot </> "hs-boots" </> "B.hs" ]
+      ] )
   ]
 
 reloadingTests :: [(String, FilePath, [ClientMessage], IO (), [ClientMessage], [ResponseMsg])]

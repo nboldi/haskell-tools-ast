@@ -7,6 +7,7 @@
            , FlexibleContexts
            , TypeSynonymInstances
            , MultiWayIf
+           , TemplateHaskell
            #-}
 module Language.Haskell.Tools.Refactor.RefactorBase where
 
@@ -35,7 +36,16 @@ import Control.Monad.State
 type UnnamedModule dom = Ann AST.UModule dom SrcTemplateStage
 
 -- | The name of the module and the AST
-type ModuleDom dom = (String, UnnamedModule dom)
+type ModuleDom dom = (SourceFileKey, UnnamedModule dom)
+
+-- | Module name and marker to separate .hs-boot module definitions. Specifies a source file in a working directory.
+data SourceFileKey = SourceFileKey { _sfkIsBoot :: IsBoot
+                                   , _sfkModuleName :: String
+                                   }
+  deriving (Eq, Ord, Show)
+
+-- | Decides if a module is a .hs-boot file or a normal .hs file
+data IsBoot = NormalHs | IsHsBoot deriving (Eq, Ord, Show)
 
 -- | A refactoring that only affects one module
 type LocalRefactoring dom = UnnamedModule dom -> LocalRefactor dom (UnnamedModule dom)
@@ -254,3 +264,5 @@ nameValid _ _ = False
 
 isIdStartChar c = (isLetter c && isAscii c) || c == '\'' || c == '_'
 isOperatorChar c = (isPunctuation c || isSymbol c) && isAscii c
+
+makeReferences ''SourceFileKey

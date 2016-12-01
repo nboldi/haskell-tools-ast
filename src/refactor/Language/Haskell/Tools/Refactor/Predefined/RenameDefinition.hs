@@ -46,7 +46,7 @@ renameModule :: forall dom . DomainRenameDefinition dom => String -> String -> R
 renameModule from to m mods 
     | any (nameConflict to) (map snd $ m:mods) = refactError "Name conflict when renaming module" 
     | not (validModuleName to) = refactError "The given name is not a valid module name" 
-    | otherwise = fmap (\ls -> ModuleRemoved from : map (\(ContentChanged (mod,res)) -> ContentChanged (if mod == from then to else mod, res)) ls)
+    | otherwise = fmap (\ls -> ModuleRemoved from : map (\(ContentChanged (mod,res)) -> ContentChanged (if (mod ^. sfkModuleName) == from then sfkModuleName .= to $ mod else mod, res)) ls)
                     $ localRefactoring (replaceModuleNames >=> alterNormalNames) m mods
   where replaceModuleNames :: LocalRefactoring dom
         replaceModuleNames = biplateRef @_ @(ModuleName dom) & filtered (\e -> (e ^. moduleNameString) == from) != mkModuleName to
