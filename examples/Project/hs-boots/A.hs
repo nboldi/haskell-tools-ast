@@ -1,3 +1,5 @@
 module A where
 
-a :: ()
+import {-# SOURCE #-} B
+
+a = b
