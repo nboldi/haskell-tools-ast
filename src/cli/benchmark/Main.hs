@@ -142,16 +142,15 @@ benchmakable wd rfs = Benchmarkable $ \ _ -> do
   makeCliTest wd rfs
 
 makeCliTest :: String -> [String] -> IO ()
-makeCliTest wd rfs = let dir = joinPath $ longestCommonPrefix $ map splitDirectories [wd]
-  in do   
-    copyDir dir (dir ++ "_orig")
+makeCliTest wd rfs = do   
+    copyDir wd (wd ++ "_orig")
     inKnob <- newKnob (pack $ unlines rfs)
     inHandle <- newFileHandle inKnob "<input>" ReadMode
     outKnob <- newKnob (pack [])
     outHandle <- newFileHandle outKnob "<output>" WriteMode
     refactorSession inHandle outHandle [wd]
-  `finally` do removeDirectoryRecursive dir
-               renameDirectory (dir ++ "_orig") dir
+  `finally` do removeDirectoryRecursive wd
+               renameDirectory (wd ++ "_orig") wd
 
 
 copyDir ::  FilePath -> FilePath -> IO ()
@@ -166,13 +165,3 @@ copyDir src dst = do
     if isDirectory
       then copyDir srcPath dstPath
       else copyFile srcPath dstPath
-
-commonPrefix :: (Eq e) => [e] -> [e] -> [e]
-commonPrefix _ [] = []
-commonPrefix [] _ = []
-commonPrefix (x:xs) (y:ys)
-  | x == y    = x : commonPrefix xs ys
-  | otherwise = []
-
-longestCommonPrefix :: (Eq a) => [[a]] -> [a]
-longestCommonPrefix = foldl1 commonPrefix
