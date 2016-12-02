@@ -127,6 +127,7 @@ bms = [ BM { bmId = "full-1", workingDir = rootDir </> "CppHs", refactors = [
         , "SelectModule Language.Preprocessor.Cpphs.CppIfdef"
         , "Exit"
         ]  }
+      , BM { bmId ="empty", workingDir = rootDir </> "CppHs", refactors = [ "Exit" ] }
       ]
 
 
