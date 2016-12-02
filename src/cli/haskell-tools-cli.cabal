@@ -51,6 +51,7 @@ test-suite haskell-tools-cli-tests
 
 benchmark cli-benchmark
   type:                exitcode-stdio-1.0
+  ghc-options:         -with-rtsopts=-M2g
   build-depends:       base                      >= 4.9 && < 4.10
                      , haskell-tools-cli         >= 0.3 && < 0.4
                      , criterion                 >= 1.1 && < 1.2
@@ -60,6 +61,7 @@ benchmark cli-benchmark
                      , filepath                  >= 1.4 && < 2.0
                      , knob                      >= 0.1 && < 0.2
                      , bytestring                >= 0.10 && < 0.11
+                     , split                     >= 0.2 && < 0.3
   hs-source-dirs:      benchmark
   main-is:             Main.hs  
 

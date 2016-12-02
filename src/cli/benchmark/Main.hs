@@ -10,7 +10,8 @@ module Main where
 import Criterion.Measurement hiding (runBenchmark)
 import Criterion.Types hiding(measure)
 
-import Data.ByteString.Char8 (pack, unpack)
+import qualified Data.ByteString.Lazy.Char8 as LazyBS (pack, unpack)
+import qualified Data.ByteString.Char8 as BS (pack, unpack)
 import Data.Aeson
 import Data.Knob
 import GHC.Generics
@@ -20,6 +21,8 @@ import System.IO
 import Control.Monad
 import Control.Exception
 import System.Environment
+import Data.List
+import Data.List.Split
 import Data.Time.Clock
 import Data.Time.Calendar
 
@@ -34,7 +37,10 @@ main = do
   cases <- bms2Mcases (Date {..}) bms
   case args of 
     [file] -> writeFile file (show $ encode cases)
-    _ -> putStrLn $ show $ encode cases
+    _ -> putStrLn $ LazyBS.unpack $ encode cases
+  putStrLn "Execution times (cycles):"
+  mapM_ (\c -> putStrLn $ "# " ++ bmId (bm c) ++ ": " ++ showGrouped (measCycles (ms c))) cases
+    where showGrouped = reverse . concat . intersperse " " . chunksOf 3 . reverse . show
 
 date :: IO (Integer,Int,Int) -- (year,month,day)
 date = getCurrentTime >>= return . toGregorian . utctDay
@@ -144,9 +150,9 @@ benchmakable wd rfs = Benchmarkable $ \ _ -> do
 makeCliTest :: String -> [String] -> IO ()
 makeCliTest wd rfs = do   
     copyDir wd (wd ++ "_orig")
-    inKnob <- newKnob (pack $ unlines rfs)
+    inKnob <- newKnob (BS.pack $ unlines rfs)
     inHandle <- newFileHandle inKnob "<input>" ReadMode
-    outKnob <- newKnob (pack [])
+    outKnob <- newKnob (BS.pack [])
     outHandle <- newFileHandle outKnob "<output>" WriteMode
     refactorSession inHandle outHandle [wd]
   `finally` do removeDirectoryRecursive wd
