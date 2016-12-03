@@ -1,3 +1,4 @@
+{-# LANGUAGE StandaloneDeriving #-}
 module Main where
 
 import Test.Tasty
@@ -13,7 +14,7 @@ import Network.Socket hiding (KeepAlive, send, recv)
 import Network.Socket.ByteString.Lazy as Sock
 import qualified Data.ByteString.Lazy.Char8 as BS
 import qualified Data.List as List
-import Data.Aeson (encode, decode)
+import Data.Aeson
 import Data.Maybe
 import System.IO
 import System.Directory
@@ -24,11 +25,12 @@ main :: IO ()
 main = do -- create one daemon process for the whole testing session
           -- with separate processes it is not a problem
           forkIO $ runDaemon ["4123", "True"]
-          defaultMain allTests
+          tr <- canonicalizePath testRoot
+          defaultMain (allTests tr)
           stopDaemon
 
-allTests :: TestTree
-allTests 
+allTests :: FilePath -> TestTree
+allTests testRoot
   = localOption (mkTimeout ({- 5s -} 1000 * 1000 * 5)) 
       $ testGroup "daemon-tests" 
           [ testGroup "simple-tests" 
@@ -36,7 +38,7 @@ allTests
           , testGroup "loading-tests" 
               $ map (makeDaemonTest . (\(label, input, output) -> (Nothing, label, input, output))) loadingTests
           , testGroup "refactor-tests" 
-              $ map (makeDaemonTest . (\(label, input, output) -> (Just (testRoot </> label), label, input, output))) refactorTests
+              $ map (makeDaemonTest . (\(label, dir, input, output) -> (Just (testRoot </> dir), label, input, output))) (refactorTests testRoot)
           , testGroup "reload-tests" 
               $ map makeReloadTest reloadingTests
           ]
@@ -78,9 +80,9 @@ loadingTests =
                       , testRoot </> "multi-packages-dependent" </> "package2" </> "B.hs"]] )
   ]
 
-refactorTests :: [(String, [ClientMessage], [ResponseMsg])]
-refactorTests =
-  [ ( "simple-refactor"
+refactorTests :: FilePath -> [(String, FilePath, [ClientMessage], [ResponseMsg])]
+refactorTests testRoot =
+  [ ( "simple-refactor", "simple-refactor"
     , [ AddPackages [ testRoot </> "simple-refactor" ]
       , PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" </> "A.hs") "3:1-3:2" ["y"]
       ]
@@ -88,7 +90,7 @@ refactorTests =
       , ModulesChanged [ testRoot </> "simple-refactor" </> "A.hs" ] 
       , LoadedModules [ testRoot </> "simple-refactor" </> "A.hs" ]
       ] )
-  , ( "hs-boots"
+  , ( "hs-boots", "hs-boots"
     , [ AddPackages [ testRoot </> "hs-boots" ]
       , PerformRefactoring "RenameDefinition" (testRoot </> "hs-boots" </> "A.hs") "5:1-5:2" ["aa"]
       ]
@@ -99,6 +101,14 @@ refactorTests =
       , LoadedModules [ testRoot </> "hs-boots" </> "B.hs-boot" ]
       , LoadedModules [ testRoot </> "hs-boots" </> "A.hs" ]
       , LoadedModules [ testRoot </> "hs-boots" </> "B.hs" ]
+      ] )
+  , ( "remove-module", "simple-refactor"
+    , [ AddPackages [ testRoot </> "simple-refactor" ]
+      , PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" </> "A.hs") "1:8-1:9" ["AA"]
+      ]
+    , [ LoadedModules [ testRoot </> "simple-refactor" </> "A.hs" ]
+      , ModulesChanged [ testRoot </> "simple-refactor" </> "AA.hs" ] 
+      , LoadedModules [ testRoot </> "simple-refactor" </> "AA.hs" ]
       ] )
   ]
 
@@ -226,6 +236,10 @@ stopDaemon = withSocketsDo $ do
   close sock
 
 testRoot = ".." </> ".." </> "examples" </> "Project"
+
+deriving instance Eq ResponseMsg
+instance FromJSON ResponseMsg
+instance ToJSON ClientMessage
 
 copyDir ::  FilePath -> FilePath -> IO ()
 copyDir src dst = do

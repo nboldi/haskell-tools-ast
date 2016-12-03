@@ -125,6 +125,13 @@ performSessionCommand output (RefactorCommand cmd)
 
   where performChanges output False resMods = do 
           changedMods <- forM resMods $ \case 
+            ModuleCreated n m otherM -> do 
+              Just (_, otherMR) <- gets (lookupModInSCs otherM . (^. refSessMCs))
+              let Just otherMS = otherMR ^? modRecMS
+              otherSrcDir <- liftIO $ getSourceDir otherMS
+              let loc = srcDirFromRoot otherSrcDir n
+              liftIO $ withBinaryFile loc WriteMode (`hPutStr` prettyPrint m)
+              return (SourceFileKey NormalHs n)
             ContentChanged (n,m) -> do
               let modName = semanticsModule m
               ms <- getModSummary modName (isBootModule $ m ^. semantics)

@@ -56,6 +56,15 @@ type Refactoring dom = ModuleDom dom -> [ModuleDom dom] -> Refactor [RefactorCha
 -- | Change in the project, modification or removal of a module.
 data RefactorChange dom = ContentChanged { fromContentChanged :: (ModuleDom dom) }
                         | ModuleRemoved { removedModuleName :: String }
+                        | ModuleCreated { createdModuleName :: String
+                                        , createdModuleContent :: UnnamedModule dom
+                                        , sameLocation :: SourceFileKey
+                                        }
+
+instance Show (RefactorChange dom) where
+  show (ContentChanged (n, _)) = "ContentChanged (" ++ show n  ++ ")"
+  show (ModuleRemoved n) = "ModuleRemoved " ++ n
+  show (ModuleCreated n _ other) = "ModuleCreated " ++ n ++ " (" ++ show other ++ ")"
 
 -- | Performs the given refactoring, transforming it into a Ghc action
 runRefactor :: (HasModuleInfo dom) => ModuleDom dom -> [ModuleDom dom] -> Refactoring dom -> Ghc (Either String [RefactorChange dom])

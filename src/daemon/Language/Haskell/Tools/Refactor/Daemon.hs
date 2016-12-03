@@ -167,45 +167,44 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
     res <- lift $ performCommand cmd actualMod otherMods
     case res of
       Left err -> liftIO $ resp $ ErrorMessage err
-      Right diff -> do changedMods <- applyChanges diff
+      Right diff -> do changedMods <- catMaybes <$> applyChanges diff
                        liftIO $ resp $ ModulesChanged (map snd changedMods)
                        void $ reloadChanges (map ((^. sfkModuleName) . fst) changedMods)
     return True
   where applyChanges changes = do 
           forM changes $ \case 
+            ModuleCreated n m otherM -> do 
+              mcs <- gets (^. refSessMCs)
+              Just (_, otherMR) <- gets (lookupModInSCs otherM . (^. refSessMCs))
+
+              let Just otherMS = otherMR ^? modRecMS
+                  Just mc = lookupModuleColl (otherM ^. sfkModuleName) mcs
+              modify $ refSessMCs & traversal & filtered (\mc' -> (mc' ^. mcId) == (mc ^. mcId)) & mcModules 
+                         .- Map.insert (SourceFileKey NormalHs n) (ModuleNotLoaded False)
+              otherSrcDir <- liftIO $ getSourceDir otherMS
+              let loc = toFileName otherSrcDir n
+              liftIO $ withBinaryFile loc WriteMode (`hPutStr` prettyPrint m)
+              lift $ addTarget (Target (TargetModule (GHC.mkModuleName n)) True Nothing)
+              return $ Just (SourceFileKey NormalHs n, loc)
             ContentChanged (n,m) -> do
               Just (_, mr) <- gets (lookupModInSCs n . (^. refSessMCs))
               let Just ms = mr ^? modRecMS
               liftIO $ withBinaryFile (getModSumOrig ms) WriteMode (`hPutStr` prettyPrint m)
-              return (n, getModSumOrig ms)
+              return $ Just (n, getModSumOrig ms)
             ModuleRemoved mod -> do
               Just (_,m) <- gets (lookupModInSCs (SourceFileKey NormalHs mod) . (^. refSessMCs))
               let modName = GHC.moduleName $ fromJust $ fmap semanticsModule (m ^? typedRecModule) <|> fmap semanticsModule (m ^? renamedRecModule)
               ms <- getModSummary modName
+              lift $ removeTarget (TargetModule modName)
               modify $ (refSessMCs .- removeModule mod)
               liftIO $ removeFile (getModSumOrig ms)
-              return (SourceFileKey NormalHs mod, getModSumOrig ms)
+              return Nothing
           
         reloadChanges changedMods 
           = reloadChangedModules (\ms -> resp $ LoadedModules [getModSumOrig ms]) (\ms -> modSumName ms `elem` changedMods)
 
-createFileForModule :: FilePath -> String -> String -> IO ()
-createFileForModule dir name newContent = do
-  let fname = toFileName dir name
-  createDirectoryIfMissing True (takeDirectory fname)
-  withBinaryFile fname WriteMode (`hPutStr` newContent) 
-
-removeDirectoryIfPresent :: FilePath -> IO ()
-removeDirectoryIfPresent dir = removeDirectoryRecursive dir `catch` \e -> if isDoesNotExistError e then return () else throwIO e
-
-moduleNameAndContent :: ((String,IsBoot), mod) -> (String, mod)
-moduleNameAndContent ((name,_), mod) = (name, mod)
-
 initGhcSession :: IO Session
 initGhcSession = Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags >> getSession))
-
-getModSumOrig :: ModSummary -> FilePath
-getModSumOrig = normalise . fromMaybe (error "getModSumOrig: The given module doesn't have haskell source file.") . ml_hs_file . ms_location
 
 data ClientMessage
   = KeepAlive
@@ -223,10 +222,9 @@ data ClientMessage
            }
   -- ReLoadAll -- re-load all modules
   -- Reset -- completely re-initialize the refactor sesson
-  deriving (Eq, Show, Generic)
+  deriving (Show, Generic)
 
 
-instance ToJSON ClientMessage
 instance FromJSON ClientMessage 
 
 data ResponseMsg
@@ -236,7 +234,6 @@ data ResponseMsg
   | ModulesChanged { moduleChanges :: [FilePath] }
   | LoadedModules { loadedModules :: [FilePath] }
   | Disconnected
-  deriving (Eq, Show, Generic)
+  deriving (Show, Generic)
 
 instance ToJSON ResponseMsg
-instance FromJSON ResponseMsg 
