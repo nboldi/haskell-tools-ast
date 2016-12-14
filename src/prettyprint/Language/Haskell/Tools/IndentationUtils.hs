@@ -1,5 +1,4 @@
-
--- * Utilities to modify the indentation of AST fragments
+-- | Utilities to modify the indentation of AST fragments
 module Language.Haskell.Tools.IndentationUtils where
 
 import Control.Reference
