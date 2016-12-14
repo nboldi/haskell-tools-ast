@@ -255,6 +255,7 @@ renameDefinitionTests =
   , ("Refactor.RenameDefinition.ClassMember", "7:3-7:4", "q")
   , ("Refactor.RenameDefinition.LocalFunction", "4:5-4:6", "g")
   , ("Refactor.RenameDefinition.LayoutAware", "3:1-3:2", "main")
+  , ("Refactor.RenameDefinition.FormattingAware", "3:1-3:2", "aa")
   , ("Refactor.RenameDefinition.Arg", "4:3-4:4", "y")
   , ("Refactor.RenameDefinition.FunTypeVar", "3:6-3:7", "x")
   , ("Refactor.RenameDefinition.FunTypeVarLocal", "5:10-5:11", "b")
@@ -296,6 +297,8 @@ extractBindingTests =
   , ("Refactor.ExtractBinding.ExistingLocalDef", "3:5-3:10", "a")
   , ("Refactor.ExtractBinding.Indentation", "3:12-3:18", "extracted")
   , ("Refactor.ExtractBinding.IndentationMultiLine", "3:12-3:18", "extracted")
+  , ("Refactor.ExtractBinding.IndentationOperator", "3:13-3:20", "extracted")
+  , ("Refactor.ExtractBinding.ExtractedFormatting", "4:5-5:7", "extracted")
   ]
 
 wrongExtractBindingTests = 

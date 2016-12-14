@@ -84,17 +84,10 @@ addLocalBinding declRange exprRange local bind
       = funBindMatches & annList & filtered (isInside rng) & matchBinds 
           .- insertLocalBind declRng local $ fb
 
-    indentBody = (valBindRhs .- updWS) . (funBindMatches & annList & matchLhs .- updWS) . (funBindMatches & annList & matchRhs .- updWS)
+    indentBody = (valBindRhs .- updIndent) . (funBindMatches & annList & matchLhs .- updIndent) . (funBindMatches & annList & matchRhs .- updIndent)
 
-    updWS :: SourceInfoTraversal elem => elem dom SrcTemplateStage -> elem dom SrcTemplateStage
-    updWS = runIdentity . updateWhiteSpace (Identity . indentToNSpaces 4)
-
-    indentToNSpaces n ('\r':'\n':rest) = '\r' : '\n' : indentToNSpaces n (extendToNSpaces 4 rest)
-    indentToNSpaces n ('\n':rest) = '\n' : indentToNSpaces n (extendToNSpaces 4 rest)
-    indentToNSpaces n (c:rest) = c : indentToNSpaces n rest
-    indentToNSpaces n [] = []
-
-    extendToNSpaces n str = replicate n ' ' ++ (dropWhile (== ' ') $ take n str) ++ drop n str
+    updIndent :: SourceInfoTraversal elem => elem dom SrcTemplateStage -> elem dom SrcTemplateStage
+    updIndent = setMinimalIndent 4
 
 -- | Puts a value definition into a list of local binds
 insertLocalBind :: SrcSpan -> ValueBind dom -> MaybeLocalBinds dom -> MaybeLocalBinds dom
