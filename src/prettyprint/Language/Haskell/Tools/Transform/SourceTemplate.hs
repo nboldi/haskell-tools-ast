@@ -71,7 +71,7 @@ srcTmpOptAfter = lens _srcTmpOptAfter (\v s -> s { _srcTmpOptAfter = v })
       
 -- | An element of a source template for a singleton AST node.
 data SourceTemplateElem
-  = TextElem String -- ^ Source text belonging to the current node
+  = TextElem { _sourceTemplateText :: String } -- ^ Source text belonging to the current node
   | ChildElem -- ^ Placeholder for the next children of the node
      deriving (Eq, Ord, Data)
 

@@ -20,6 +20,7 @@ import Data.Maybe
 import Data.Generics.Uniplate.Data
 import Control.Reference
 import Control.Monad.State
+import Control.Monad.Identity
 
 import Language.Haskell.Tools.Refactor
 
@@ -75,13 +76,25 @@ addLocalBinding :: SrcSpan -> SrcSpan -> ValueBind dom -> ValueBind dom -> State
 addLocalBinding declRange exprRange local bind 
   = do done <- get
        if not done then do put True
-                           return $ doAddBinding declRange exprRange local bind
+                           return $ indentBody $ doAddBinding declRange exprRange local bind
                    else return bind 
   where
     doAddBinding declRng _ local sb@(SimpleBind {}) = valBindLocals .- insertLocalBind declRng local $ sb
     doAddBinding declRng (RealSrcSpan rng) local fb@(FunctionBind {}) 
       = funBindMatches & annList & filtered (isInside rng) & matchBinds 
           .- insertLocalBind declRng local $ fb
+
+    indentBody = (valBindRhs .- updWS) . (funBindMatches & annList & matchLhs .- updWS) . (funBindMatches & annList & matchRhs .- updWS)
+
+    updWS :: SourceInfoTraversal elem => elem dom SrcTemplateStage -> elem dom SrcTemplateStage
+    updWS = runIdentity . updateWhiteSpace (Identity . indentToNSpaces 4)
+
+    indentToNSpaces n ('\r':'\n':rest) = '\r' : '\n' : indentToNSpaces n (extendToNSpaces 4 rest)
+    indentToNSpaces n ('\n':rest) = '\n' : indentToNSpaces n (extendToNSpaces 4 rest)
+    indentToNSpaces n (c:rest) = c : indentToNSpaces n rest
+    indentToNSpaces n [] = []
+
+    extendToNSpaces n str = replicate n ' ' ++ (dropWhile (== ' ') $ take n str) ++ drop n str
 
 -- | Puts a value definition into a list of local binds
 insertLocalBind :: SrcSpan -> ValueBind dom -> MaybeLocalBinds dom -> MaybeLocalBinds dom

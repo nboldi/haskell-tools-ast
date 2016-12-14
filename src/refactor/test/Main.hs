@@ -294,6 +294,8 @@ extractBindingTests =
   , ("Refactor.ExtractBinding.Records", "5:5-5:39", "plus")
   , ("Refactor.ExtractBinding.RecordWildcards", "6:5-6:27", "plus")
   , ("Refactor.ExtractBinding.ExistingLocalDef", "3:5-3:10", "a")
+  , ("Refactor.ExtractBinding.Indentation", "3:12-3:18", "extracted")
+  , ("Refactor.ExtractBinding.IndentationMultiLine", "3:12-3:18", "extracted")
   ]
 
 wrongExtractBindingTests = 
