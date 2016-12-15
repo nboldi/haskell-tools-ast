@@ -39,22 +39,28 @@ type PPState = State RealSrcLoc
 printRose' :: RealSrcLoc -> RoseTree SrcTemplateStage -> PPState (Seq Char)
 -- simple implementation could be optimized a bit
 -- warning: the length of the file should not exceed maxbound::Int
-printRose' _ (RoseTree (RoseSpan (SourceTemplateNode rng elems minInd)) children) 
+printRose' parent (RoseTree (RoseSpan (SourceTemplateNode rng elems minInd relInd)) children) 
   = do slide <- calculateSlide rng
        actRng <- get
-       printTemplateElems actRng slide elems children
-  where printTemplateElems :: RealSrcLoc -> Int -> [SourceTemplateElem] -> [RoseTree SrcTemplateStage] -> PPState (Seq Char)
-        printTemplateElems parentRng slide (TextElem txt : rest) children = putString slide minInd txt >+< printTemplateElems parentRng slide rest children
-        printTemplateElems parentRng slide (ChildElem : rest) (child : children) = printRose' parentRng child >+< printTemplateElems parentRng slide rest children
-        printTemplateElems _ _ [] [] = return empty
-        printTemplateElems _ _ _ [] = error $ "More child elem in template than actual children (elems: " ++ show elems ++ ", children: " ++ show children ++ ")"
-        printTemplateElems _ _ [] _ = error $ "Not all children are used to pretty printing. (elems: " ++ show elems ++ ", children: " ++ show children ++ ")"
+       let printTemplateElems :: [SourceTemplateElem] -> [RoseTree SrcTemplateStage] -> PPState (Seq Char)
+           printTemplateElems (TextElem txt : rest) children = putString slide min txt >+< printTemplateElems rest children
+           printTemplateElems (ChildElem : rest) (child : children) = printRose' parent child >+< printTemplateElems rest children
+           printTemplateElems [] [] = return empty
+           printTemplateElems _ [] = error $ "More child elem in template than actual children (elems: " ++ show elems ++ ", children: " ++ show children ++ ")"
+           printTemplateElems [] _ = error $ "Not all children are used to pretty printing. (elems: " ++ show elems ++ ", children: " ++ show children ++ ")"
+
+           min = minInd `max` getPosByRelative parent relInd
+
+       printTemplateElems elems children
   
 printRose' _ (RoseTree (RoseList (SourceTemplateList {})) []) = return empty
-printRose' _ (RoseTree (RoseList (SourceTemplateList rng bef aft defSep indented seps minInd)) children) 
+printRose' parent (RoseTree (RoseList (SourceTemplateList rng bef aft defSep indented seps minInd relInd)) children) 
     = do slide <- calculateSlide rng
          actRng <- get
-         putString slide minInd bef >+< (if indented then printListWithSepsIndented else printListWithSeps) actRng slide minInd actualSeps children >+< putString slide minInd aft
+         let min = minInd `max` getPosByRelative parent relInd
+         putString slide min bef 
+           >+< (if indented then printListWithSepsIndented else printListWithSeps) actRng slide min actualSeps children 
+           >+< putString slide min aft
   where actualSeps = case seps of [] -> repeat defSep
                                   _  -> seps ++ repeat (last seps)
 
@@ -69,7 +75,6 @@ printRose' _ (RoseTree (RoseOptional _) _) = error "More than one child element 
 getPosByRelative :: RealSrcLoc -> Maybe Int -> Int
 getPosByRelative sp (Just i) = srcLocCol sp + i - 1
 getPosByRelative _ _ = 0
-
 
 calculateSlide :: SrcSpan -> PPState Int
 calculateSlide (RealSrcSpan originalSpan) = do 
