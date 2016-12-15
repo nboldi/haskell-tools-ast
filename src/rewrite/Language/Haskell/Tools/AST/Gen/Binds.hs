@@ -52,13 +52,8 @@ mkInfixLhs lhs op rhs pats
 -- | Local bindings attached to a declaration (@ where x = 42 @)
 mkLocalBinds :: [LocalBind dom] -> MaybeLocalBinds dom
 -- TODO: make the indentation automatic
-<<<<<<< HEAD
 mkLocalBinds = mkAnnMaybe (relativeIndented 2 $ after "\nwhere " opt)
                      . Just . mkAnn child . ULocalBinds . mkAnnList (indented list)
-=======
-mkLocalBinds = mkAnnMaybe (indentRelative 2 $ optBefore ("\nwhere "))
-                     . Just . mkAnn child . ULocalBinds . mkAnnList indentedList
->>>>>>> master
 
 mkLocalBinds' :: [LocalBind dom] -> LocalBinds dom
 mkLocalBinds' = mkAnn (" where " <> child) . ULocalBinds . mkAnnList (indented list)
