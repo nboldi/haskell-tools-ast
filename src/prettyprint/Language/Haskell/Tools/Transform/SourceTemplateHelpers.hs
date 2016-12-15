@@ -19,12 +19,73 @@ type ASTMulti node dom = AnnListG node dom SrcTemplateStage
 
 instance IsString (SpanInfo SrcTemplateStage) where
   fromString s = SourceTemplateNode noSrcSpan [TextElem s] 0 Nothing
+<<<<<<< HEAD
+
+-- * Basic elements
+=======
+>>>>>>> master
     
 child :: SpanInfo SrcTemplateStage
 child = SourceTemplateNode noSrcSpan [ChildElem] 0 Nothing
 
 opt :: OptionalInfo SrcTemplateStage
 opt = SourceTemplateOpt noSrcSpan "" "" 0 Nothing
+<<<<<<< HEAD
+
+list :: ListInfo SrcTemplateStage
+list = SourceTemplateList noSrcSpan "" "" "" False [] 0 Nothing
+
+-- * Modifiers
+
+class AfterBefore i where
+  -- | Put the given string before the element if it is not empty
+  after :: String -> i -> i
+  -- | The given string should follow the element if it is not empty
+  followedBy :: String -> i -> i
+
+instance AfterBefore (ListInfo SrcTemplateStage) where
+  after str = srcTmpListBefore .= str
+  followedBy str = srcTmpListAfter .= str
+
+instance AfterBefore (OptionalInfo SrcTemplateStage) where
+  after str = srcTmpOptBefore .= str
+  followedBy str = srcTmpOptAfter .= str
+
+class RelativeIndent i where
+  -- | The element should be indented relatively to its parent
+  relativeIndented :: Int -> i -> i
+
+instance RelativeIndent (SpanInfo SrcTemplateStage) where
+  relativeIndented i = srcTmpRelPos .= Just i
+
+instance RelativeIndent (ListInfo SrcTemplateStage) where
+  relativeIndented i = srcTmpListRelPos .= Just i
+
+instance RelativeIndent (OptionalInfo SrcTemplateStage) where
+  relativeIndented i = srcTmpOptRelPos .= Just i
+
+
+class MinimumIndent i where
+  -- | The elements should be indented at least to the given number of spaces
+  minimumIndented :: Int -> i -> i
+
+instance MinimumIndent (SpanInfo SrcTemplateStage) where
+  minimumIndented i = sourceTemplateMinimalIndent .= i
+
+instance MinimumIndent (ListInfo SrcTemplateStage) where
+  minimumIndented i = srcTmpListMinimalIndent .= i
+
+instance MinimumIndent (OptionalInfo SrcTemplateStage) where
+  minimumIndented i = srcTmpOptMinimalIndent .= i
+
+-- | The elements of the list should be separated by the given string by default (might be overridden)
+separatedBy :: String -> ListInfo SrcTemplateStage -> ListInfo SrcTemplateStage
+separatedBy sep = srcTmpDefaultSeparator .= sep
+
+-- | The elements of the list should be indented on the same column
+indented :: ListInfo SrcTemplateStage -> ListInfo SrcTemplateStage
+indented = (srcTmpIndented .= True) . (srcTmpDefaultSeparator .= "\n")
+=======
 
 optBefore :: String -> OptionalInfo SrcTemplateStage
 optBefore s = SourceTemplateOpt noSrcSpan s "" 0 Nothing
@@ -61,6 +122,7 @@ listSepAfter s aft = SourceTemplateList noSrcSpan "" aft s False [] 0 Nothing
 
 listSepBeforeAfter :: String -> String -> String -> ListInfo SrcTemplateStage
 listSepBeforeAfter s bef aft = SourceTemplateList noSrcSpan bef aft s False [] 0 Nothing
+>>>>>>> master
 
 -- | Concatenates two source templates to produce a new template with all child elements.
 (<>) :: SpanInfo SrcTemplateStage -> SpanInfo SrcTemplateStage -> SpanInfo SrcTemplateStage
