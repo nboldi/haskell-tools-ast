@@ -24,16 +24,19 @@ child :: SpanInfo SrcTemplateStage
 child = SourceTemplateNode noSrcSpan [ChildElem] 0
 
 opt :: OptionalInfo SrcTemplateStage
-opt = SourceTemplateOpt noSrcSpan "" "" 0
+opt = SourceTemplateOpt noSrcSpan "" "" 0 Nothing
 
 optBefore :: String -> OptionalInfo SrcTemplateStage
-optBefore s = SourceTemplateOpt noSrcSpan s "" 0
+optBefore s = SourceTemplateOpt noSrcSpan s "" 0 Nothing
 
 optAfter :: String -> OptionalInfo SrcTemplateStage
-optAfter s = SourceTemplateOpt noSrcSpan "" s 0
+optAfter s = SourceTemplateOpt noSrcSpan "" s 0 Nothing
 
 optBeforeAfter :: String -> String -> OptionalInfo SrcTemplateStage
-optBeforeAfter bef aft = SourceTemplateOpt noSrcSpan bef aft 0
+optBeforeAfter bef aft = SourceTemplateOpt noSrcSpan bef aft 0 Nothing
+
+indentRelative :: Int -> OptionalInfo SrcTemplateStage -> OptionalInfo SrcTemplateStage
+indentRelative i = srcTmpRelPos .= Just i
 
 list :: ListInfo SrcTemplateStage
 list = SourceTemplateList noSrcSpan "" "" "" False [] 0

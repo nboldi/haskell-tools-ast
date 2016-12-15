@@ -60,7 +60,7 @@ applyFragments srcs = flip evalState srcs
          -> do (own, rest) <- splitAt (length seps) <$> get 
                put rest
                return (SourceTemplateList (RealSrcSpan rng) bef aft sep indented own 0))
-     (\(RangeTemplateOpt rng bef aft) -> return (SourceTemplateOpt (RealSrcSpan rng) bef aft 0))) 
+     (\(RangeTemplateOpt rng bef aft) -> return (SourceTemplateOpt (RealSrcSpan rng) bef aft 0 Nothing))) 
      (return ()) (return ())
   where getTextFor RangeChildElem = return ChildElem
         getTextFor (RangeElem sp) = do (src:rest) <- get

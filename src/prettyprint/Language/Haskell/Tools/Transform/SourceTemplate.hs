@@ -34,6 +34,7 @@ instance SourceInfo SrcTemplateStage where
                                                          , _srcTmpOptBefore :: String -- ^ Text that should be put before the element if it appears
                                                          , _srcTmpOptAfter :: String -- ^ Text that should be put after the element if it appears
                                                          , _srcTmpOptMinInd :: Int
+                                                         , _srcTmpRelPos :: Maybe Int -- ^ Relative indentation for newly created elements
                                                          }
     deriving (Eq, Ord, Data)
 
@@ -81,6 +82,10 @@ srcTmpOptAfter = lens _srcTmpOptAfter (\v s -> s { _srcTmpOptAfter = v })
 srcTmpOptMinimalIndent :: Simple Lens (OptionalInfo SrcTemplateStage) Int
 srcTmpOptMinimalIndent = lens _srcTmpOptMinInd (\v s -> s { _srcTmpOptMinInd = v })
       
+srcTmpRelPos :: Simple Lens (OptionalInfo SrcTemplateStage) (Maybe Int)
+srcTmpRelPos = lens _srcTmpRelPos (\v s -> s { _srcTmpRelPos = v })
+      
+
 -- | An element of a source template for a singleton AST node.
 data SourceTemplateElem
   = TextElem { _sourceTemplateText :: String } -- ^ Source text belonging to the current node
