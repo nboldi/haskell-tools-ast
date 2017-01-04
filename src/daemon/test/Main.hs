@@ -99,7 +99,7 @@ sourceRoot = ".." </> ".." </> "src"
 selfLoadingTest :: TestTree
 selfLoadingTest = localOption (mkTimeout ({- 5 min -} 1000 * 1000 * 60 * 5)) $ testCase "self-load" $ do  
     actual <- communicateWithDaemon 
-                [ Right $ AddPackages (map (sourceRoot </>) ["ast", "backend-ghc", "prettyprint", "rewrite", "refactor", "cli", "daemon"] ) ]
+                [ Right $ AddPackages (map (sourceRoot </>) ["ast", "backend-ghc", "prettyprint", "rewrite", "refactor", "daemon"] ) ]
     assertBool ("The expected result is a nonempty response message list that does not contain errors. Actual result: " ++ show actual) 
                (not (null actual) && all (\case ErrorMessage {} -> False; _ -> True) actual)
 
