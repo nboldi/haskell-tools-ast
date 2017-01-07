@@ -35,7 +35,7 @@ main = do -- create one daemon process for the whole testing session
 
 allTests :: Bool -> FilePath -> TestTree
 allTests isSource testRoot
-  = localOption (mkTimeout ({- 10s -} 1000 * 1000 * 10)) 
+  = localOption (mkTimeout ({- 20s -} 1000 * 1000 * 20)) 
       $ testGroup "daemon-tests" 
           [ testGroup "simple-tests" 
               $ map (makeDaemonTest . (\(label, input, output) -> (Nothing, label, input, output))) simpleTests
