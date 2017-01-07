@@ -317,7 +317,8 @@ communicateWithDaemon port msgs = withSocketsDo $ do
         retryConnect port = do portNum <- readMVar port 
                                forkIO $ runDaemon [show portNum, "True"]
                                return portNum
-          `catch` \(e :: SomeException) -> do modifyMVar_ port (\i -> if i < pORT_NUM_END 
+          `catch` \(e :: SomeException) -> do putStrLn ("exception caught: `" ++ show e ++ "` trying with a new port")
+                                              modifyMVar_ port (\i -> if i < pORT_NUM_END 
                                                                         then return (i+1) 
                                                                         else error "The port number reached the maximum")
                                               retryConnect port
