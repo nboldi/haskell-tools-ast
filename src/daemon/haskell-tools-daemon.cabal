@@ -37,6 +37,7 @@ extra-source-files: examples/Project/has-cabal/*.hs
                   , examples/Project/reloading/*.hs
                   , examples/Project/selection/*.hs
                   , examples/Project/simple-refactor/*.hs
+                  , examples/Project/simple-refactor/*.cabal
                   , examples/Project/source-dir/*.cabal
                   , examples/Project/source-dir/src/*.hs
                   , examples/Project/source-dir-outside/*.cabal

@@ -25,6 +25,7 @@ extra-source-files: examples/CppHs/Language/Preprocessor/*.hs
                   , examples/Refactor/ExtractBinding/*.hs
                   , examples/Refactor/GenerateExports/*.hs
                   , examples/Refactor/GenerateTypeSignature/*.hs
+                  , examples/Refactor/GenerateTypeSignature/BringToScope/*.hs
                   , examples/Refactor/IfToGuards/*.hs
                   , examples/Refactor/InlineBinding/*.hs
                   , examples/Refactor/InlineBinding/AppearsInAnother/*.hs
