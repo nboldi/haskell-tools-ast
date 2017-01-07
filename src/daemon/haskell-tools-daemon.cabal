@@ -17,6 +17,7 @@ extra-source-files: examples/Project/has-cabal/*.hs
                   , examples/Project/changing-cabal/*.cabal
                   , examples/Project/has-th/*.hs
                   , examples/Project/hs-boots/*.hs
+                  , examples/Project/hs-boots/*.hs-boot
                   , examples/Project/multi-packages/package1/*.hs
                   , examples/Project/multi-packages/package1/*.cabal
                   , examples/Project/multi-packages/package2/*.hs
