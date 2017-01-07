@@ -98,19 +98,6 @@ loadingTests =
       ]
     , [ LoadedModules [testRoot </> "th-added-later" </> "package1" </> "A.hs"] 
       , LoadedModules [testRoot </> "th-added-later" </> "package2" </> "B.hs"]] )
-  -- , ( "cabal-sandbox"
-  --   , [AddPackages [testRoot </> "cabal-sandbox"] CabalSandboxDB]
-  --   , [LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]] )
-  -- need to programmatically create the test environment
-  -- , ( "stack"
-  --   , [AddPackages [testRoot </> "stack"] StackDB]
-  --   , [LoadedModules [testRoot </> "stack" </> "A.hs"]] )
-  -- , ( "cabal-sandbox"
-  --   , [AddPackages [testRoot </> "cabal-sandbox"] AutoDB]
-  --   , [LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]] )
-  -- , ( "stack"
-  --   , [AddPackages [testRoot </> "stack"] AutoDB]
-  --   , [LoadedModules [testRoot </> "stack" </> "A.hs"]] )
   ]
 
 sourceRoot = ".." </> ".." </> "src"
@@ -224,18 +211,39 @@ reloadingTests =
 
 pkgDbTests :: [(String, IO (), [ClientMessage], [ResponseMsg])]
 pkgDbTests 
-  = [ ( "pkg-db-reload"
-      , void $ withCurrentDirectory (testRoot </> "cabal-sandbox")
-             $ do execute "cabal" ["sandbox", "init"]
-                  withCurrentDirectory ("groups-0.4.0.0") $ do
-                    execute "cabal" ["sandbox", "init", "--sandbox", ".." </> ".cabal-sandbox"]
-                    execute "cabal" ["install"]
+  = [ ( "stack"
+       , withCurrentDirectory (testRoot </> "stack") initStack
+       , [AddPackages [testRoot </> "stack"] StackDB]
+       , [LoadedModules [testRoot </> "stack" </> "UseGroups.hs"]] )
+    , ( "cabal-sandbox"
+      , withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
+      , [AddPackages [testRoot </> "cabal-sandbox"] CabalSandboxDB]
+      , [LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]] )
+    , ( "cabal-sandbox-auto"
+      , withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
+      , [AddPackages [testRoot </> "cabal-sandbox"] AutoDB]
+      , [LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]] )
+    , ( "stack-auto"
+      , withCurrentDirectory (testRoot </> "stack") initStack
+      , [AddPackages [testRoot </> "stack"] AutoDB]
+      , [LoadedModules [testRoot </> "stack" </> "UseGroups.hs"]] )
+    , ( "pkg-db-reload"
+      , withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
       , [ AddPackages [testRoot </> "cabal-sandbox"] CabalSandboxDB
         , ReLoad [testRoot </> "cabal-sandbox" </> "UseGroups.hs"] []]
       , [ LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]
-        , LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]
-        ])
+        , LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"] ])
     ] 
+  where initCabalSandbox = do 
+          execute "cabal" ["sandbox", "delete"]
+          execute "cabal" ["sandbox", "init"]
+          withCurrentDirectory ("groups-0.4.0.0") $ do
+            execute "cabal" ["sandbox", "init", "--sandbox", ".." </> ".cabal-sandbox"]
+            execute "cabal" ["install"]
+        initStack = do
+          execute "stack" ["clean"]
+          execute "stack" ["build"]
+
 
 execute :: String -> [String] -> IO ()
 execute cmd args 
@@ -271,9 +279,11 @@ makeReloadTest port (label, dir, input1, io, input2, expected) = testCase label 
   `finally` removeDirectoryRecursive (dir ++ testSuffix)
 
 makePkgDbTest :: MVar Int -> (String, IO (), [ClientMessage], [ResponseMsg]) -> TestTree
-makePkgDbTest port (label, prepare, inputs, expected) = testCase label $ do  
-    actual <- communicateWithDaemon port ([Left prepare] ++ map Right inputs)
-    assertEqual "" expected actual
+makePkgDbTest port (label, prepare, inputs, expected) 
+  = localOption (mkTimeout ({- 30s -} 1000 * 1000 * 30)) 
+      $ testCase label $ do  
+          actual <- communicateWithDaemon port ([Left prepare] ++ map Right inputs)
+          assertEqual "" expected actual
 
 communicateWithDaemon :: MVar Int -> [Either (IO ()) ClientMessage] -> IO [ResponseMsg]
 communicateWithDaemon port msgs = withSocketsDo $ do
