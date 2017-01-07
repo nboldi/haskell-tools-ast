@@ -27,7 +27,7 @@ import Language.Haskell.Tools.Refactor.Daemon
 import Language.Haskell.Tools.Refactor.Daemon.PackageDB
 
 pORT_NUM_START = 4100
-pORT_NUM_END = 4101
+pORT_NUM_END = 4200
 
 main :: IO ()
 main = do unsetEnv "GHC_PACKAGE_PATH"
