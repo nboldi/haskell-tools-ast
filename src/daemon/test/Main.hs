@@ -33,10 +33,11 @@ main :: IO ()
 main = do unsetEnv "GHC_PACKAGE_PATH"
           portCounter <- newMVar pORT_NUM_START 
           tr <- canonicalizePath testRoot
-          defaultMain (allTests tr portCounter)
+          isStackRun <- isJust <$> lookupEnv "STACK_ROOT"
+          defaultMain (allTests isStackRun tr portCounter)
 
-allTests :: FilePath -> MVar Int -> TestTree
-allTests testRoot portCounter
+allTests :: Bool -> FilePath -> MVar Int -> TestTree
+allTests isSource testRoot portCounter
   = localOption (mkTimeout ({- 10s -} 1000 * 1000 * 10)) 
       $ testGroup "daemon-tests" 
           [ testGroup "simple-tests" 
@@ -49,7 +50,8 @@ allTests testRoot portCounter
               $ map (makeReloadTest portCounter) reloadingTests
           , testGroup "pkg-db-tests" 
               $ map (makePkgDbTest portCounter) pkgDbTests
-          , selfLoadingTest portCounter
+          -- cannot execute this when the source is not present
+          , if isSource then selfLoadingTest portCounter else testCase "IGNORED self-load" (return ())
           ]
 
 testSuffix = "_test"
@@ -326,7 +328,7 @@ readSockResponsesUntil sock rsp bs
                  then return $ List.delete rsp recognized 
                  else readSockResponsesUntil sock rsp fullBS
 
-testRoot = ".." </> ".." </> "examples" </> "Project"
+testRoot = "examples" </> "Project"
 
 deriving instance Eq ResponseMsg
 instance FromJSON ResponseMsg

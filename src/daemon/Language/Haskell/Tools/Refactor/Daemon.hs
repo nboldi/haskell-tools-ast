@@ -131,15 +131,18 @@ updateClient resp (AddPackages packagePathes packageDB) = do
     modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existing) . ms_mod) (hsc_mod_graph s) })
     pkgDbLocs <- liftIO $ packageDBLocs packageDB packagePathes
     usePackageDB pkgDbLocs
-    (modules, ignoredMods) <- loadPackagesFrom (return . getModSumOrig) packagePathes
-    mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
-    liftIO $ resp 
-      $ if not (null ignoredMods) 
-          then ErrorMessage 
-                 $ "The following modules are ignored: " 
-                     ++ concat (intersperse ", " ignoredMods)
-                     ++ ". Multiple modules with the same qualified name are not supported."
-          else LoadedModules modules
+    res <- loadPackagesFrom (return . getModSumOrig) packagePathes
+    case res of 
+      Right (modules, ignoredMods) -> do
+        mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
+        liftIO $ resp 
+          $ if not (null ignoredMods) 
+              then ErrorMessage 
+                     $ "The following modules are ignored: " 
+                         ++ concat (intersperse ", " ignoredMods)
+                         ++ ". Multiple modules with the same qualified name are not supported."
+              else LoadedModules modules
+      Left err -> liftIO $ resp $ CompilationProblem err 
     return True
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
 
