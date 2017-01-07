@@ -27,13 +27,13 @@ import Language.Haskell.Tools.Refactor.Daemon
 import Language.Haskell.Tools.Refactor.Daemon.PackageDB
 
 pORT_NUM_START = 4100
-pORT_NUM_END = 4200
+pORT_NUM_END = 4101
 
 main :: IO ()
 main = do unsetEnv "GHC_PACKAGE_PATH"
           portCounter <- newMVar pORT_NUM_START 
           tr <- canonicalizePath testRoot
-          isStackRun <- isJust <$> lookupEnv "STACK_ROOT"
+          isStackRun <- isJust <$> lookupEnv "STACK_EXE"
           defaultMain (allTests isStackRun tr portCounter)
 
 allTests :: Bool -> FilePath -> MVar Int -> TestTree
@@ -48,8 +48,10 @@ allTests isSource testRoot portCounter
               $ map (makeDaemonTest portCounter . (\(label, dir, input, output) -> (Just (testRoot </> dir), label, input, output))) (refactorTests testRoot)
           , testGroup "reload-tests" 
               $ map (makeReloadTest portCounter) reloadingTests
-          , testGroup "pkg-db-tests" 
-              $ map (makePkgDbTest portCounter) pkgDbTests
+          -- if not a stack build, we cannot guarantee that stack is on the path
+          , if isSource
+             then testGroup "pkg-db-tests" $ map (makePkgDbTest portCounter) pkgDbTests
+             else testCase "IGNORED pkg-db-tests" (return ())
           -- cannot execute this when the source is not present
           , if isSource then selfLoadingTest portCounter else testCase "IGNORED self-load" (return ())
           ]
@@ -237,7 +239,7 @@ pkgDbTests
         , LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"] ])
     ] 
   where initCabalSandbox = do 
-          execute "cabal" ["sandbox", "delete"]
+          tryToExecute "cabal" ["sandbox", "delete"]
           execute "cabal" ["sandbox", "init"]
           withCurrentDirectory ("groups-0.4.0.0") $ do
             execute "cabal" ["sandbox", "init", "--sandbox", ".." </> ".cabal-sandbox"]
@@ -256,6 +258,12 @@ execute cmd args
          output <- hGetContents stdOut
          errors <- hGetContents stdErr
          error ("Command exited with nonzero: " ++ command ++ " output:\n" ++ output ++ "\nerrors:\n" ++ errors)
+
+tryToExecute :: String -> [String] -> IO ()
+tryToExecute cmd args 
+  = do let command = (cmd ++ concat (map (" " ++) args))
+       (_, _, _, handle) <- createProcess ((shell command) { std_out = NoStream, std_err = NoStream })
+       void $ waitForProcess handle
 
 makeDaemonTest :: MVar Int -> (Maybe FilePath, String, [ClientMessage], [ResponseMsg]) -> TestTree
 makeDaemonTest port (Nothing, label, input, expected) = testCase label $ do  
