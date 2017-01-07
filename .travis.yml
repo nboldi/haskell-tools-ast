@@ -55,7 +55,7 @@ script:
   - stack --no-terminal build --test --no-run-tests --coverage --haddock --no-haddock-deps 
 
   # Run tests. We record test coverage information.
-  - stack --no-terminal test --coverage
+  - stack --no-terminal test --coverage --log=/dev/stdout
 
 after_script:
   
