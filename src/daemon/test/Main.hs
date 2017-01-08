@@ -238,8 +238,9 @@ pkgDbTests
       , [ LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]
         , LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"] ])
     ] 
-  where initCabalSandbox = do 
-          tryToExecute "cabal" ["sandbox", "delete"]
+  where initCabalSandbox = do
+          sandboxExists <- doesDirectoryExist ".cabal-sandbox"
+          when sandboxExists $ tryToExecute "cabal" ["sandbox", "delete"]
           execute "cabal" ["sandbox", "init"]
           withCurrentDirectory ("groups-0.4.0.0") $ do
             execute "cabal" ["sandbox", "init", "--sandbox", ".." </> ".cabal-sandbox"]
