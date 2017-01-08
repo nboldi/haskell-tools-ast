@@ -55,7 +55,11 @@ script:
   - stack --no-terminal build --test --no-run-tests --coverage --haddock --no-haddock-deps 
 
   # Run tests. We record test coverage information.
-  - stack --no-terminal test --coverage --log=/dev/stdout
+  - stack --no-terminal test --coverage haskell-tools-rewrite
+  - stack --no-terminal test --coverage haskell-tools-refactor
+  - stack --no-terminal test --coverage haskell-tools-cli
+  - stack --no-terminal test --coverage haskell-tools-daemon
+  - stack --no-terminal test --coverage haskell-tools-demo
 
 after_script:
   
