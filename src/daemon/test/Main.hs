@@ -244,6 +244,7 @@ pkgDbTests
           withCurrentDirectory ("groups-0.4.0.0") $ do
             execute "cabal" ["sandbox", "init", "--sandbox", ".." </> ".cabal-sandbox"]
             execute "cabal" ["install"]
+          putStrLn "all commands executed"
         initStack = do
           execute "stack" ["clean"]
           execute "stack" ["build"]
@@ -252,6 +253,7 @@ pkgDbTests
 execute :: String -> [String] -> IO ()
 execute cmd args 
   = do let command = (cmd ++ concat (map (" " ++) args))
+       putStrLn ("executing : " ++ command)
        (_, Just stdOut, Just stdErr, handle) <- createProcess ((shell command) { std_out = CreatePipe, std_err = CreatePipe })
        exitCode <- waitForProcess handle
        when (exitCode /= ExitSuccess) $ do 
@@ -262,6 +264,7 @@ execute cmd args
 tryToExecute :: String -> [String] -> IO ()
 tryToExecute cmd args 
   = do let command = (cmd ++ concat (map (" " ++) args))
+       putStrLn ("executing : " ++ command)
        (_, _, _, handle) <- createProcess ((shell command) { std_out = NoStream, std_err = NoStream })
        void $ waitForProcess handle
 
