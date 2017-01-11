@@ -25,41 +25,60 @@ type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom )
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
-  = modImports&annListElems !~ narrowImports usedNames . sortImports $ mod
+  = modImports !~ narrowImports usedNames . sortImports $ mod
   where usedNames = map getName $ catMaybes $ map semanticsName
                         -- obviously we don't want the names in the imports to be considered, but both from
                         -- the declarations (used), both from the module head (re-exported) will count as usage
                       $ (universeBi (mod ^. modHead) ++ universeBi (mod ^. modDecl) :: [QualifiedName dom])
         
 -- | Sorts the imports in alphabetical order
-sortImports :: [ImportDecl dom] -> [ImportDecl dom]
-sortImports = sortBy (compare `on` (^. importModule&AST.moduleNameString))
+sortImports :: forall dom . ImportDeclList dom -> ImportDeclList dom
+sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null) (concatMap (\(sep,elems) -> sep : map fst elems) reordered)
+                   $ annListElems .= concatMap (map snd . snd) reordered
+                   $ ls
+  where reordered :: [(String, [(String, ImportDecl dom)])]
+        reordered = map (_2 .- sortBy (compare `on` (^. _2 & importModule & AST.moduleNameString))) parts
+
+        parts = map (_2 .- reverse) $ reverse $ breakApart [] imports
+        
+        breakApart :: [(String, [(String, ImportDecl dom)])] -> [(String, ImportDecl dom)] -> [(String, [(String, ImportDecl dom)])]
+        breakApart res [] = res
+        breakApart res ((sep, e) : rest) | length (filter ('\n' ==) sep) > 1 
+          = breakApart ((sep, [("",e)]) : res) rest
+        breakApart ((lastSep, lastRes) : res) (elem : rest)
+          = breakApart ((lastSep, elem : lastRes) : res) rest
+        breakApart [] ((sep, e) : rest)
+          = breakApart [(sep, [("",e)])] rest
+
+        imports = zipWithSeparators ls
 
 -- | Modify an import to only import  names that are used.
 narrowImports :: forall dom . OrganizeImportsDomain dom 
-              => [GHC.Name] -> [ImportDecl dom] -> LocalRefactor dom [ImportDecl dom]
-narrowImports usedNames imps = foldM (narrowOneImport usedNames) imps imps 
-  where narrowOneImport :: [GHC.Name] -> [ImportDecl dom] -> ImportDecl dom -> LocalRefactor dom [ImportDecl dom]
-        narrowOneImport names all one =
-          (\case Just x -> map (\e -> if e == one then x else e) all
-                 Nothing -> delete one all) <$> narrowImport names (map semanticsImportedModule all) one 
+              => [GHC.Name] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
+narrowImports usedNames imps 
+  = annListElems & traversal !~ narrowImport usedNames 
+      $ filterListIndexed (importIsNeeded usedNames (map semanticsImportedModule (imps ^. annListElems))) imps
 
 -- | Reduces the number of definitions used from an import
 narrowImport :: OrganizeImportsDomain dom
-             => [GHC.Name] -> [GHC.Module] -> ImportDecl dom 
-                           -> LocalRefactor dom (Maybe (ImportDecl dom))
-narrowImport usedNames otherModules imp
+             => [GHC.Name] -> ImportDecl dom -> LocalRefactor dom (ImportDecl dom)
+narrowImport usedNames imp
   | importIsExact imp
-  = Just <$> (importSpec&annJust&importSpecList !~ narrowImportSpecs usedNames $ imp)
-  | otherwise 
-  = if null actuallyImported
-      then if length (filter (== importedMod) otherModules) > 1 
-              then pure Nothing
-              else Just <$> (importSpec !- replaceWithJust (mkImportSpecList []) $ imp)
-      else pure (Just imp)
+  = importSpec&annJust&importSpecList !~ narrowImportSpecs usedNames $ imp
+  | null actuallyImported 
+  = importSpec !- replaceWithJust (mkImportSpecList []) $ imp
+  | otherwise
+  = return imp
+  where actuallyImported = semanticsImported imp `intersect` usedNames
+
+-- | Check if the import is actually needed
+importIsNeeded :: OrganizeImportsDomain dom
+               => [GHC.Name] -> [GHC.Module] -> Int -> ImportDecl dom -> Bool
+importIsNeeded usedNames allModules i imp = not (null actuallyImported) || importedMod `notElem` previousModules
   where actuallyImported = semanticsImported imp `intersect` usedNames
         importedMod = semanticsImportedModule imp
-    
+        previousModules = take i allModules
+
 -- | Narrows the import specification (explicitely imported elements)
 narrowImportSpecs :: forall dom . OrganizeImportsDomain dom
                   => [GHC.Name] -> IESpecList dom -> LocalRefactor dom (IESpecList dom)
