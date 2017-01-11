@@ -206,6 +206,8 @@ organizeImportTests =
   , "Refactor.OrganizeImports.Removed"
   , "Refactor.OrganizeImports.ReorderGroups"
   , "Refactor.OrganizeImports.ReorderComment"
+  , "Refactor.OrganizeImports.KeepReexported"
+  , "Refactor.OrganizeImports.KeepRenamedReexported"
   ]
   
 generateSignatureTests = 

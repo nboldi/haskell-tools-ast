@@ -25,11 +25,13 @@ type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom )
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
-  = modImports !~ narrowImports usedNames . sortImports $ mod
+  = modImports !~ narrowImports exportedModules usedNames . sortImports $ mod
   where usedNames = map getName $ catMaybes $ map semanticsName
                         -- obviously we don't want the names in the imports to be considered, but both from
                         -- the declarations (used), both from the module head (re-exported) will count as usage
                       $ (universeBi (mod ^. modHead) ++ universeBi (mod ^. modDecl) :: [QualifiedName dom])
+        exportedModules = mod ^? modHead & annJust & mhExports & annJust 
+                                   & espExports & annList & exportModuleName & moduleNameString
         
 -- | Sorts the imports in alphabetical order
 sortImports :: forall dom . ImportDeclList dom -> ImportDeclList dom
@@ -54,15 +56,18 @@ sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null) (concatMap (\
 
 -- | Modify an import to only import  names that are used.
 narrowImports :: forall dom . OrganizeImportsDomain dom 
-              => [GHC.Name] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
-narrowImports usedNames imps 
-  = annListElems & traversal !~ narrowImport usedNames 
+              => [String] -> [GHC.Name] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
+narrowImports exportedModules usedNames imps 
+  = annListElems & traversal !~ narrowImport exportedModules usedNames 
       $ filterListIndexed (importIsNeeded usedNames (map semanticsImportedModule (imps ^. annListElems))) imps
 
 -- | Reduces the number of definitions used from an import
 narrowImport :: OrganizeImportsDomain dom
-             => [GHC.Name] -> ImportDecl dom -> LocalRefactor dom (ImportDecl dom)
-narrowImport usedNames imp
+             => [String] -> [GHC.Name] -> ImportDecl dom -> LocalRefactor dom (ImportDecl dom)
+narrowImport exportedModules usedNames imp
+  | (imp ^. importModule & moduleNameString) `elem` exportedModules
+      || maybe False (`elem` exportedModules) (imp ^? importAs & annJust & importRename & moduleNameString)
+  = return imp -- dont change an import if it is exported as-is (module export)
   | importIsExact imp
   = importSpec&annJust&importSpecList !~ narrowImportSpecs usedNames $ imp
   | null actuallyImported 
