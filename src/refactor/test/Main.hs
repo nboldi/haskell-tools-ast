@@ -208,6 +208,14 @@ organizeImportTests =
   , "Refactor.OrganizeImports.ReorderComment"
   , "Refactor.OrganizeImports.KeepReexported"
   , "Refactor.OrganizeImports.KeepRenamedReexported"
+  , "Refactor.OrganizeImports.MakeExplicit.ImportOne"
+  , "Refactor.OrganizeImports.MakeExplicit.ImportThree"
+  , "Refactor.OrganizeImports.MakeExplicit.ImportClassFun"
+  , "Refactor.OrganizeImports.MakeExplicit.ImportCon"
+  , "Refactor.OrganizeImports.MakeExplicit.ImportRecordSel"
+  , "Refactor.OrganizeImports.MakeExplicit.ImportUnited"
+  , "Refactor.OrganizeImports.MakeExplicit.ImportUnitedCount"
+  , "Refactor.OrganizeImports.MakeExplicit.ImportFour"
   ]
   
 generateSignatureTests = 

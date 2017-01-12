@@ -7,11 +7,15 @@
 module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports (organizeImports, OrganizeImportsDomain) where
 
 import Name hiding (Name)
-import GHC (TyThing(..))
+import GHC (TyThing(..), lookupName)
 import qualified GHC
+import Id
 import TyCon
+import IdInfo
 import DataCon
+import ConLike
 
+import Control.Applicative
 import Control.Reference hiding (element)
 import Control.Monad
 import Data.Function hiding ((&))
@@ -70,11 +74,31 @@ narrowImport exportedModules usedNames imp
   = return imp -- dont change an import if it is exported as-is (module export)
   | importIsExact imp
   = importSpec&annJust&importSpecList !~ narrowImportSpecs usedNames $ imp
-  | null actuallyImported 
-  = importSpec !- replaceWithJust (mkImportSpecList []) $ imp
   | otherwise
-  = return imp
+  = do namedThings <- mapM lookupName actuallyImported
+       let groups = groupThings (catMaybes namedThings)
+       return $ if length groups < 4 then importSpec .- replaceWithJust (createImportSpec groups) $ imp
+                                     else imp 
   where actuallyImported = semanticsImported imp `intersect` usedNames
+
+groupThings :: [TyThing] -> [(GHC.Name, Bool)]
+groupThings = nub . sort . map (\tt -> case getTopDef tt of Just td -> (td, True) 
+                                                            Nothing -> (getName tt, False))
+
+getTopDef :: TyThing -> Maybe GHC.Name
+getTopDef (AnId id) | isRecordSelector id
+  = Just $ case recordSelectorTyCon id of RecSelData tc -> getName tc
+                                          RecSelPatSyn ps -> getName ps
+getTopDef (AnId id) = fmap (getName . dataConTyCon) (isDataConWorkId_maybe id <|> isDataConId_maybe id) 
+                        <|> fmap getName (isClassOpId_maybe id)
+getTopDef (AConLike (RealDataCon dc)) = Just (getName $ dataConTyCon dc)
+getTopDef (AConLike (PatSynCon _)) = Nothing
+getTopDef tc@(ATyCon _) = Just (getName tc)
+
+createImportSpec :: [(GHC.Name, Bool)] -> ImportSpec dom
+createImportSpec elems = mkImportSpecList $ map createIESpec elems
+  where createIESpec (n, False) = mkIESpec (mkUnqualName' (GHC.getName n)) Nothing
+        createIESpec (n, True)  = mkIESpec (mkUnqualName' (GHC.getName n)) (Just mkSubAll)
 
 -- | Check if the import is actually needed
 importIsNeeded :: OrganizeImportsDomain dom
@@ -113,3 +137,5 @@ narrowImportSubspecs [] SubAll = mkSubList []
 narrowImportSubspecs _ ss@SubAll = ss
 narrowImportSubspecs usedNames ss@(SubList {}) 
   = essList .- filterList (\n -> fmap getName (semanticsName =<< (n ^? simpleName)) `elem` map Just usedNames) $ ss
+
+
