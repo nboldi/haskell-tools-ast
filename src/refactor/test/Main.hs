@@ -198,7 +198,6 @@ instanceControlTests =
 organizeImportTests = 
   [ "Refactor.OrganizeImports.Narrow"
   , "Refactor.OrganizeImports.Reorder"
-  , "Refactor.OrganizeImports.Unused"
   , "Refactor.OrganizeImports.Ctor"
   , "Refactor.OrganizeImports.Class"
   , "Refactor.OrganizeImports.Operator"
@@ -216,6 +215,9 @@ organizeImportTests =
   , "Refactor.OrganizeImports.MakeExplicit.ImportUnited"
   , "Refactor.OrganizeImports.MakeExplicit.ImportUnitedCount"
   , "Refactor.OrganizeImports.MakeExplicit.ImportFour"
+  , "Refactor.OrganizeImports.InstanceCarry.ImportOrphan"
+  , "Refactor.OrganizeImports.InstanceCarry.ImportNonOrphan"
+  , "Refactor.OrganizeImports.NarrowQual"
   ]
   
 generateSignatureTests = 

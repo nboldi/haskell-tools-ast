@@ -31,6 +31,7 @@ extra-source-files: examples/CppHs/Language/Preprocessor/*.hs
                   , examples/Refactor/InlineBinding/AppearsInAnother/*.hs
                   , examples/Refactor/OrganizeImports/*.hs
                   , examples/Refactor/OrganizeImports/MakeExplicit/*.hs
+                  , examples/Refactor/OrganizeImports/InstanceCarry/*.hs
                   , examples/Refactor/RenameDefinition/*.hs
                   , examples/Refactor/RenameDefinition/MultiModule/*.hs
                   , examples/Refactor/RenameDefinition/MultiModule_res/*.hs

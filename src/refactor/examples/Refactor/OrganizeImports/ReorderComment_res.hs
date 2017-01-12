@@ -1,7 +1,12 @@
 module Refactor.OrganizeImports.ReorderComment where
 
-import Control.Monad ()
-import Control.Monad.State ()
-import Data.List ()
+import Control.Monad ((>>=))
+import Data.List (intersperse)
+import Data.Maybe (catMaybes)
 -- some comment
-import Data.Maybe ()
+import Data.Tuple (swap)
+
+a = intersperse '-' "abc"
+b = Just () >>= \_ -> Nothing
+c = catMaybes [Just ()]
+d = swap ("a","b")

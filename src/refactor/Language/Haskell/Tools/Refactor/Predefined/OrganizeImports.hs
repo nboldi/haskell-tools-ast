@@ -13,6 +13,8 @@ import Id
 import TyCon
 import IdInfo
 import DataCon
+import InstEnv
+import FamInstEnv
 import ConLike
 
 import Control.Applicative
@@ -25,12 +27,17 @@ import Data.Generics.Uniplate.Data
 
 import Language.Haskell.Tools.Refactor as AST
 
-type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom )
+import Outputable
+import Debug.Trace
+
+type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom, HasModuleInfo dom )
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
-  = modImports !~ narrowImports exportedModules usedNames . sortImports $ mod
-  where usedNames = map getName $ catMaybes $ map semanticsName
+  = modImports !~ narrowImports exportedModules usedNames prelInstances prelFamInsts . sortImports $ mod
+  where prelInstances = semanticsPrelOrphanInsts mod
+        prelFamInsts = semanticsPrelFamInsts mod
+        usedNames = map getName $ catMaybes $ map semanticsName
                         -- obviously we don't want the names in the imports to be considered, but both from
                         -- the declarations (used), both from the module head (re-exported) will count as usage
                       $ (universeBi (mod ^. modHead) ++ universeBi (mod ^. modDecl) :: [QualifiedName dom])
@@ -60,10 +67,11 @@ sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null) (concatMap (\
 
 -- | Modify an import to only import  names that are used.
 narrowImports :: forall dom . OrganizeImportsDomain dom 
-              => [String] -> [GHC.Name] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
-narrowImports exportedModules usedNames imps 
+              => [String] -> [GHC.Name] -> [ClsInst] -> [FamInst] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
+narrowImports exportedModules usedNames prelInsts prelFamInsts imps 
   = annListElems & traversal !~ narrowImport exportedModules usedNames 
-      $ filterListIndexed (importIsNeeded usedNames (map semanticsImportedModule (imps ^. annListElems))) imps
+      $ filterListIndexed (\i _ -> neededImps !! i) imps
+  where neededImps = neededImports exportedModules usedNames prelInsts prelFamInsts (imps ^. annListElems)
 
 -- | Reduces the number of definitions used from an import
 narrowImport :: OrganizeImportsDomain dom
@@ -100,13 +108,24 @@ createImportSpec elems = mkImportSpecList $ map createIESpec elems
   where createIESpec (n, False) = mkIESpec (mkUnqualName' (GHC.getName n)) Nothing
         createIESpec (n, True)  = mkIESpec (mkUnqualName' (GHC.getName n)) (Just mkSubAll)
 
--- | Check if the import is actually needed
-importIsNeeded :: OrganizeImportsDomain dom
-               => [GHC.Name] -> [GHC.Module] -> Int -> ImportDecl dom -> Bool
-importIsNeeded usedNames allModules i imp = not (null actuallyImported) || importedMod `notElem` previousModules
-  where actuallyImported = semanticsImported imp `intersect` usedNames
-        importedMod = semanticsImportedModule imp
-        previousModules = take i allModules
+-- | Check each import if it is actually needed
+neededImports :: OrganizeImportsDomain dom
+              => [String] -> [GHC.Name] -> [ClsInst] -> [FamInst] -> [ImportDecl dom] -> [Bool]
+neededImports exportedModules usedNames prelInsts prelFamInsts imps = neededImports' usedNames [] imps
+  where neededImports' _ _ [] = []
+        -- keep the import if any definition is needed from it
+        neededImports' usedNames kept (imp : rest) 
+          | not (null actuallyImported) 
+               || (imp ^. importModule & moduleNameString) `elem` exportedModules
+               || maybe False (`elem` exportedModules) (imp ^? importAs & annJust & importRename & moduleNameString)
+            = True : neededImports' usedNames (imp : kept) rest
+          where actuallyImported = semanticsImported imp `intersect` usedNames
+        neededImports' usedNames kept (imp : rest) 
+            = needed : neededImports' usedNames (if needed then imp : kept else kept) rest
+          where needed = any (`notElem` otherClsInstances) (map is_dfun $ semanticsOrphanInsts imp)
+                           || any (`notElem` otherFamInstances) (map fi_axiom $ semanticsFamInsts imp)
+                otherClsInstances = map is_dfun (concatMap semanticsOrphanInsts kept ++ prelInsts)
+                otherFamInstances = map fi_axiom (concatMap semanticsFamInsts kept ++ prelFamInsts)
 
 -- | Narrows the import specification (explicitely imported elements)
 narrowImportSpecs :: forall dom . OrganizeImportsDomain dom
