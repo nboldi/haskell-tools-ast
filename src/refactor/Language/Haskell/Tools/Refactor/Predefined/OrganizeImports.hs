@@ -3,8 +3,9 @@
            , FlexibleContexts
            , TypeFamilies
            , ConstraintKinds
+           , TupleSections
            #-}
-module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports (organizeImports, OrganizeImportsDomain) where
+module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports (organizeImports, OrganizeImportsDomain, projectOrganizeImports) where
 
 import Name hiding (Name)
 import GHC (TyThing(..), lookupName)
@@ -31,6 +32,10 @@ import Outputable
 import Debug.Trace
 
 type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom, HasModuleInfo dom )
+
+projectOrganizeImports :: forall dom . OrganizeImportsDomain dom => Refactoring dom
+projectOrganizeImports mod mods
+  = mapM (\(k, m) -> ContentChanged . (k,) <$> localRefactoringRes id m (organizeImports m)) (mod:mods)
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
