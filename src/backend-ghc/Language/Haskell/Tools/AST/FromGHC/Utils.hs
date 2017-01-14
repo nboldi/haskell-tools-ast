@@ -391,6 +391,10 @@ orderDefs = sortBy (compare `on` AST.ordSrcSpan . (^. AST.annotation & AST.sourc
 orderAnnList :: AnnListG e (Dom n) RangeStage -> AnnListG e (Dom n) RangeStage
 orderAnnList (AnnListG a ls) = AnnListG a (orderDefs ls)
 
+-- | Only keeps one of the elements that are on the same source location
+removeDuplicates :: [Located e] -> [Located e]
+removeDuplicates (fst:rest) = fst : removeDuplicates (filter ((/= getLoc fst) . getLoc) rest)
+removeDuplicates [] = []
 
 -- | Transform a list of definitions where the defined names are in scope for subsequent definitions
 trfScopedSequence :: HsHasName d => (d -> Trf e) -> [d] -> Trf [e]
