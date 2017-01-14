@@ -102,6 +102,7 @@ languageTests =
   , "Decl.InstanceOverlaps"
   , "Decl.InstanceSpec"
   , "Decl.LocalBindings"
+  , "Decl.LocalBindingInDo"
   , "Decl.LocalFixity"
   , "Decl.MultipleFixity"
   , "Decl.MultipleSigs"
