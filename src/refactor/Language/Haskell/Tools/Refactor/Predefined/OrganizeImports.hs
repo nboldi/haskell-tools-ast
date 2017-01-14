@@ -98,14 +98,18 @@ narrowImport exportedModules usedNames imp
   = importSpec&annJust&importSpecList !~ narrowImportSpecs usedNames $ imp
   | otherwise
   = do namedThings <- mapM lookupName actuallyImported
-       let groups = groupThings (catMaybes namedThings)
+       let groups = groupThings (semanticsImported imp) (catMaybes namedThings)
        return $ if length groups < 4 then importSpec .- replaceWithJust (createImportSpec groups) $ imp
                                      else imp 
   where actuallyImported = semanticsImported imp `intersect` usedNames
 
-groupThings :: [TyThing] -> [(GHC.Name, Bool)]
-groupThings = nub . sort . map (\tt -> case getTopDef tt of Just td -> (td, True) 
-                                                            Nothing -> (getName tt, False))
+groupThings :: [GHC.Name] -> [TyThing] -> [(GHC.Name, Bool)]
+groupThings importable = nub . sort . map createImportFromTyThing
+  where createImportFromTyThing :: TyThing -> (GHC.Name, Bool)
+        createImportFromTyThing tt | Just td <- getTopDef tt
+          = if (td `elem` importable) then (td, True) 
+                                      else (getName tt, False)
+          | otherwise = (getName tt, False)
 
 getTopDef :: TyThing -> Maybe GHC.Name
 getTopDef (AnId id) | isRecordSelector id
