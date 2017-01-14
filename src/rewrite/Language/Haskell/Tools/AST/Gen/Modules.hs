@@ -40,7 +40,7 @@ mkModuleExport = mkAnn ("module " <> child) . UModuleExport
 
 -- | Marks a name to be imported or exported with related names (subspecifier)
 mkIESpec :: Name dom -> Maybe (SubSpec dom) -> IESpec dom
-mkIESpec name ss = mkAnn (child <> child) (UIESpec noth name (mkAnnMaybe (after "(" $ followedBy ")" opt) ss))
+mkIESpec name ss = mkAnn (child <> child <> child) (UIESpec noth name (mkAnnMaybe (after "(" $ followedBy ")" opt) ss))
 
 -- | Marks a pattern synonym to be imported or exported
 mkPatternIESpec :: Name dom -> IESpec dom
