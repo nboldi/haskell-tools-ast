@@ -44,8 +44,6 @@ import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils
 import Language.Haskell.Tools.AST.FromGHC.SourceMap
 
-import Outputable
-
 createModuleInfo :: ModSummary -> Trf (Sema.ModuleInfo GHC.Name)
 createModuleInfo mod = do 
   let prelude = xopt ImplicitPrelude $ ms_hspp_opts mod

@@ -10,6 +10,7 @@ module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports (organizeImpor
 import Name hiding (Name)
 import GHC (TyThing(..), lookupName)
 import qualified GHC
+import DynFlags
 import Id
 import TyCon
 import IdInfo
@@ -17,10 +18,12 @@ import DataCon
 import InstEnv
 import FamInstEnv
 import ConLike
+import Language.Haskell.TH.LanguageExtensions
 
 import Control.Applicative
 import Control.Reference hiding (element)
 import Control.Monad
+import Control.Monad.Trans
 import Data.Function hiding ((&))
 import Data.Maybe
 import Data.List
@@ -39,7 +42,13 @@ projectOrganizeImports mod mods
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
-  = modImports !~ narrowImports exportedModules usedNames prelInstances prelFamInsts . sortImports $ mod
+  = do ms <- lift $ GHC.getModSummary (GHC.moduleName $ semanticsModule mod)
+       let th = xopt TemplateHaskell $ GHC.ms_hspp_opts ms
+       if th 
+         then -- don't change the imports for template haskell modules 
+              -- (we don't know what definitions the generated code will use)
+              return $ modImports .- sortImports $ mod 
+         else modImports !~ narrowImports exportedModules usedNames prelInstances prelFamInsts . sortImports $ mod
   where prelInstances = semanticsPrelOrphanInsts mod
         prelFamInsts = semanticsPrelFamInsts mod
         usedNames = map getName $ catMaybes $ map semanticsName
