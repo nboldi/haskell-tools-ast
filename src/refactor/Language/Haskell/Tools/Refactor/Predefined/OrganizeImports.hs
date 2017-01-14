@@ -98,9 +98,12 @@ narrowImport exportedModules usedNames imp
   = importSpec&annJust&importSpecList !~ narrowImportSpecs usedNames $ imp
   | otherwise
   = do namedThings <- mapM lookupName actuallyImported
-       let groups = groupThings (semanticsImported imp) (catMaybes namedThings)
-       return $ if length groups < 4 then importSpec .- replaceWithJust (createImportSpec groups) $ imp
-                                     else imp 
+       let -- to explicitely import pattern synonyms we need to enable an extension, and the user might not expect this
+           hasPatSyn = any (\case Just (AConLike (PatSynCon _)) -> True; _ -> False) namedThings
+           groups = groupThings (semanticsImported imp) (catMaybes namedThings)
+       return $ if not hasPatSyn && length groups < 4 
+         then importSpec .- replaceWithJust (createImportSpec groups) $ imp
+         else imp 
   where actuallyImported = semanticsImported imp `intersect` usedNames
 
 groupThings :: [GHC.Name] -> [TyThing] -> [(GHC.Name, Bool)]
@@ -118,7 +121,7 @@ getTopDef (AnId id) | isRecordSelector id
 getTopDef (AnId id) = fmap (getName . dataConTyCon) (isDataConWorkId_maybe id <|> isDataConId_maybe id) 
                         <|> fmap getName (isClassOpId_maybe id)
 getTopDef (AConLike (RealDataCon dc)) = Just (getName $ dataConTyCon dc)
-getTopDef (AConLike (PatSynCon _)) = Nothing
+getTopDef (AConLike (PatSynCon _)) = error "getTopDef: should not be called with pattern synonyms"
 getTopDef tc@(ATyCon _) = Just (getName tc)
 
 createImportSpec :: [(GHC.Name, Bool)] -> ImportSpec dom
