@@ -198,9 +198,9 @@ trfIESpec' (IEThingAbs n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfN
 trfIESpec' (IEThingAll n) 
   = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> (annLocNoSema (tokenLoc AnnDotdot) (pure AST.USubSpecAll))))
 trfIESpec' (IEThingWith n _ ls _)
-  = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n
-                          <*> (makeJust <$> between AnnOpenP AnnCloseP 
-                                                   (annContNoSema $ AST.USubSpecList <$> makeList ", " atTheStart (mapM trfName ls))))
+  = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> subspec))
+  where subspec = betweenIncluding AnnOpenP AnnCloseP $ annContNoSema 
+                    $ AST.USubSpecList <$> between AnnOpenP AnnCloseP (makeList ", " atTheStart (mapM trfName ls))
 trfIESpec' _ = pure Nothing
 
 trfImportModifier :: Trf (AnnMaybeG AST.UImportModifier (Dom r) RangeStage)
