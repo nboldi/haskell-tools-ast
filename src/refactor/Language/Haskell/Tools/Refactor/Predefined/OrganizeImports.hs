@@ -16,7 +16,7 @@ import qualified GHC
 import Id
 import IdInfo (RecSelParent(..))
 import InstEnv (ClsInst(..))
-import Language.Haskell.TH.LanguageExtensions (Extension(..))
+import Language.Haskell.TH.LanguageExtensions as GHC (Extension(..))
 import Name (NamedThing(..))
 import TyCon (tyConFieldLabels, tyConDataCons, isClassTyCon)
 
@@ -40,10 +40,11 @@ projectOrganizeImports mod mods
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
   = do ms <- lift $ GHC.getModSummary (GHC.moduleName $ semanticsModule mod)
-       let th = xopt TemplateHaskell $ GHC.ms_hspp_opts ms
-       if th 
+       let notAllowed = xopt TemplateHaskell (GHC.ms_hspp_opts ms) || xopt GHC.StandaloneDeriving (GHC.ms_hspp_opts ms)
+       if notAllowed 
          then -- don't change the imports for template haskell modules 
               -- (we don't know what definitions the generated code will use)
+              -- standalone deriving can implicitely use constructors
               return $ modImports .- sortImports $ mod 
          else modImports !~ narrowImports exportedModules usedNames prelInstances prelFamInsts . sortImports $ mod
   where prelInstances = semanticsPrelOrphanInsts mod
