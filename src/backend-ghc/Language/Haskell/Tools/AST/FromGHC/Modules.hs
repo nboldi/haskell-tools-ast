@@ -196,7 +196,8 @@ trfIESpec' :: TransformName n r => IE n -> Trf (Maybe (AST.UIESpec (Dom r) Range
 trfIESpec' (IEVar n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (nothing "(" ")" atTheEnd))
 trfIESpec' (IEThingAbs n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (nothing "(" ")" atTheEnd))
 trfIESpec' (IEThingAll n) 
-  = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> (annLocNoSema (tokenLoc AnnDotdot) (pure AST.USubSpecAll))))
+  = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> subspec))
+  where subspec = betweenIncluding AnnOpenP AnnCloseP $ annContNoSema (pure AST.USubSpecAll)
 trfIESpec' (IEThingWith n _ ls _)
   = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> subspec))
   where subspec = betweenIncluding AnnOpenP AnnCloseP $ annContNoSema 
