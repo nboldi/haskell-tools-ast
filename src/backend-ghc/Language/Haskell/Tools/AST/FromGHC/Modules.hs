@@ -200,7 +200,7 @@ trfIESpec' (IEThingAll n)
 trfIESpec' (IEThingWith n _ ls _)
   = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n
                           <*> (makeJust <$> between AnnOpenP AnnCloseP 
-                                                   (annContNoSema $ AST.USubSpecList <$> makeList ", " (after AnnOpenP) (mapM trfName ls))))
+                                                   (annContNoSema $ AST.USubSpecList <$> makeList ", " atTheStart (mapM trfName ls))))
 trfIESpec' _ = pure Nothing
 
 trfImportModifier :: Trf (AnnMaybeG AST.UImportModifier (Dom r) RangeStage)
