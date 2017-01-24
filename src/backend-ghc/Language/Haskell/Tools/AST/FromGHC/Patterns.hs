@@ -17,7 +17,7 @@ import SrcLoc as GHC
 
 import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Exprs (trfExpr)
 import Language.Haskell.Tools.AST.FromGHC.Literals (trfLiteral', trfOverloadedLit)
-import Language.Haskell.Tools.AST.FromGHC.Monad (Trf(..), define)
+import Language.Haskell.Tools.AST.FromGHC.Monad (Trf(), define)
 import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfOperator, trfName)
 import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfSplice')
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)

@@ -4,22 +4,22 @@
 module Language.Haskell.Tools.Debug where
 
 import Control.Monad.IO.Class
-import GHC.Generics hiding (moduleName)
 import Data.Maybe
+import GHC.Generics hiding (moduleName)
 
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.FromGHC
-import Language.Haskell.Tools.Transform
-import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.DebugGhcAST ()
+import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.RangeDebug
 import Language.Haskell.Tools.RangeDebug.Instances ()
-import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.Perform
+import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.RefactorBase
+import Language.Haskell.Tools.Transform
 
 -- | Should be only used for testing
 demoRefactor :: String -> String -> [String] -> String -> IO ()

@@ -11,7 +11,7 @@
            #-}
 module Language.Haskell.Tools.AST.FromGHC.Utils where
 
-import ApiAnnotation (AnnKeywordId(..))
+import ApiAnnotation (AnnKeywordId())
 import Avail (availNamesWithSelectors, availNames)
 import BasicTypes (StringLiteral(..))
 import CoAxiom as GHC (CoAxiom(..))

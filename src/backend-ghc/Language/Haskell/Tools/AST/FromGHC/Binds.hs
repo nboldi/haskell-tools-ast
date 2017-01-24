@@ -9,7 +9,7 @@ import Bag as GHC (bagToList)
 import BasicTypes as GHC (FixityDirection(..), Fixity(..))
 import HsBinds as GHC
 import HsExpr as GHC
-import HsPat as GHC (LPat(..))
+import HsPat as GHC (LPat())
 import HsTypes as GHC (HsWildCardBndrs(..), HsImplicitBndrs(..))
 import SrcLoc as GHC
 

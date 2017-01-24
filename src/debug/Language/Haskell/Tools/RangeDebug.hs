@@ -9,12 +9,12 @@
 -- | A module for displaying debug info about the source annotations of the syntax tree in different phases.
 module Language.Haskell.Tools.RangeDebug where
 
-import GHC.Generics
 import Control.Reference
-import SrcLoc
+import GHC.Generics
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.FromGHC
 import Language.Haskell.Tools.Transform
+import SrcLoc
 
 srcInfoDebug :: TreeDebug e dom st => e dom st -> String
 srcInfoDebug = treeDebug' 0

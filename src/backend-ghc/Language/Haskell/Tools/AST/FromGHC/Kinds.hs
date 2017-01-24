@@ -19,7 +19,7 @@ import Data.Data (toConstr)
 import Language.Haskell.Tools.AST (Ann(), AnnMaybeG(), Dom, RangeStage, HasNoSemanticInfo)
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..), cleanHsType)
-import Language.Haskell.Tools.AST.FromGHC.Monad (TrfInput(..), Trf(..), transformingPossibleVar)
+import Language.Haskell.Tools.AST.FromGHC.Monad (TrfInput(..), Trf(), transformingPossibleVar)
 import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfName)
 import Language.Haskell.Tools.AST.FromGHC.Utils
 

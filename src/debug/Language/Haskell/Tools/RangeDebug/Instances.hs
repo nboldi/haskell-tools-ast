@@ -9,8 +9,8 @@ module Language.Haskell.Tools.RangeDebug.Instances where
 
 import Language.Haskell.Tools.RangeDebug
 
-import GHC.Generics
 import Control.Reference
+import GHC.Generics
 
 import Language.Haskell.Tools.AST
 

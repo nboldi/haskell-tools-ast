@@ -21,7 +21,7 @@ import DynFlags as GHC (xopt_set)
 import ErrUtils as GHC (pprErrMsgBagWithLoc)
 import FastString as GHC (unpackFS)
 import GHC
-import HscTypes as GHC (WarningTxt(..), ModSummary(..), HscEnv(..))
+import HscTypes as GHC (WarningTxt(..), ModSummary(), HscEnv(..))
 import Language.Haskell.TH.LanguageExtensions (Extension(..))
 import Name as GHC hiding (varName)
 import Outputable as GHC (vcat, showSDocUnsafe, (<+>))

@@ -9,13 +9,13 @@ import ApiAnnotation as GHC (AnnKeywordId(..))
 import Bag as GHC (bagToList)
 import BasicTypes as GHC
 import BooleanFormula as GHC (BooleanFormula(..))
-import Class as GHC (FunDep(..))
+import Class as GHC (FunDep())
 import ForeignCall as GHC (Safety(..), CExportSpec(..), CCallConv(..))
 import qualified GHC
 import HsSyn as GHC
-import Name as GHC (Name(..), occNameString, nameOccName)
+import Name as GHC (Name(), occNameString, nameOccName)
 import Outputable as GHC (Outputable(..), showSDocUnsafe)
-import RdrName as GHC (RdrName(..), rdrNameOcc)
+import RdrName as GHC (RdrName(), rdrNameOcc)
 import SrcLoc as GHC
 import TyCon as GHC (Role(..))
 
