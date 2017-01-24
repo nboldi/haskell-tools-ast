@@ -14,9 +14,9 @@ import Data.Maybe (Maybe(..), catMaybes)
 
 import Language.Haskell.Tools.Refactor
 
-import Name as GHC (Name(..), NamedThing(..), occNameString)
+import Name as GHC (Name(), NamedThing(..), occNameString)
 import OccName (occNameString)
-import SrcLoc (RealSrcSpan(..))
+import SrcLoc (RealSrcSpan())
 
 type FloatOutDefinition dom = (HasNameInfo dom, HasScopeInfo dom)
 
