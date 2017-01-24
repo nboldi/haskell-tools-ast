@@ -40,13 +40,13 @@ projectOrganizeImports mod mods
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
   = do ms <- lift $ GHC.getModSummary (GHC.moduleName $ semanticsModule mod)
-       let noNarrowImports = xopt TemplateHaskell (GHC.ms_hspp_opts ms)
-           -- standalone deriving can implicitely use constructors
-       if noNarrowImports 
+       let notAllowed = xopt TemplateHaskell (GHC.ms_hspp_opts ms) || xopt GHC.StandaloneDeriving (GHC.ms_hspp_opts ms)
+       if notAllowed 
          then -- don't change the imports for template haskell modules 
               -- (we don't know what definitions the generated code will use)
+              -- standalone deriving can implicitely use constructors
               return $ modImports .- sortImports $ mod 
-         else modImports !~ narrowImports standaloneDerivTypes exportedModules usedNames prelInstances prelFamInsts . sortImports $ mod
+         else modImports !~ narrowImports exportedModules usedNames prelInstances prelFamInsts . sortImports $ mod
   where prelInstances = semanticsPrelOrphanInsts mod
         prelFamInsts = semanticsPrelFamInsts mod
         usedNames = map getName $ catMaybes $ map semanticsName
@@ -55,10 +55,6 @@ organizeImports mod
                       $ (universeBi (mod ^. modHead) ++ universeBi (mod ^. modDecl) :: [QualifiedName dom])
         exportedModules = mod ^? modHead & annJust & mhExports & annJust 
                                    & espExports & annList & exportModuleName & moduleNameString
-        standaloneDerivTypes 
-          = catMaybes $ map semanticsName 
-                      $ (mod ^? modDecl & annList & filtered (\case AST.StandaloneDeriving {} -> True; _ -> False)
-                                  & declInstRule & irHead & instanceHeadBase & simpleName)
         
 -- | Sorts the imports in alphabetical order
 sortImports :: forall dom . ImportDeclList dom -> ImportDeclList dom
@@ -83,28 +79,28 @@ sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null) (concatMap (\
 
 -- | Modify an import to only import  names that are used.
 narrowImports :: forall dom . OrganizeImportsDomain dom 
-              => [GHC.Name] -> [String] -> [GHC.Name] -> [ClsInst] -> [FamInst] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
-narrowImports standaloneDerivs exportedModules usedNames prelInsts prelFamInsts imps 
-  = annListElems & traversal !~ narrowImport standaloneDerivs exportedModules usedNames 
+              => [String] -> [GHC.Name] -> [ClsInst] -> [FamInst] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
+narrowImports exportedModules usedNames prelInsts prelFamInsts imps 
+  = annListElems & traversal !~ narrowImport exportedModules usedNames 
       $ filterListIndexed (\i _ -> neededImps !! i) imps
   where neededImps = neededImports exportedModules usedNames prelInsts prelFamInsts (imps ^. annListElems)
 
 -- | Reduces the number of definitions used from an import
 narrowImport :: OrganizeImportsDomain dom
-             => [GHC.Name] -> [String] -> [GHC.Name] -> ImportDecl dom -> LocalRefactor dom (ImportDecl dom)
-narrowImport standaloneDerivs exportedModules usedNames imp
+             => [String] -> [GHC.Name] -> ImportDecl dom -> LocalRefactor dom (ImportDecl dom)
+narrowImport exportedModules usedNames imp
   | (imp ^. importModule & moduleNameString) `elem` exportedModules
       || maybe False (`elem` exportedModules) (imp ^? importAs & annJust & importRename & moduleNameString)
   = return imp -- dont change an import if it is exported as-is (module export)
   | importIsExact imp
-  = importSpec&annJust&importSpecList !~ narrowImportSpecs standaloneDerivs usedNames $ imp
+  = importSpec&annJust&importSpecList !~ narrowImportSpecs usedNames $ imp
   | otherwise
   = do namedThings <- mapM lookupName actuallyImported
        let -- to explicitely import pattern synonyms we need to enable an extension, and the user might not expect this
            hasPatSyn = any (\case Just (AConLike (PatSynCon _)) -> True; _ -> False) namedThings
            groups = groupThings (semanticsImported imp) (catMaybes namedThings)
        return $ if not hasPatSyn && length groups < 4 
-         then importSpec .- replaceWithJust (createImportSpec standaloneDerivs groups) $ imp
+         then importSpec .- replaceWithJust (createImportSpec groups) $ imp
          else imp 
   where actuallyImported = semanticsImported imp `intersect` usedNames
 
@@ -130,12 +126,10 @@ getTopDef (AConLike (RealDataCon dc)) = Just (getName $ dataConTyCon dc)
 getTopDef (AConLike (PatSynCon _)) = error "getTopDef: should not be called with pattern synonyms"
 getTopDef (ATyCon _) = Nothing
 
-createImportSpec :: [GHC.Name] -> [(GHC.Name, Bool)] -> ImportSpec dom
-createImportSpec standaloneDerivs elems = mkImportSpecList $ map createIESpec elems
-  where createIESpec (n, flag) = mkIESpec (mkUnqualName' (GHC.getName n)) 
-                                          (if flag || (GHC.getName n `elem` standaloneDerivs) 
-                                             then Just mkSubAll 
-                                             else Nothing)
+createImportSpec :: [(GHC.Name, Bool)] -> ImportSpec dom
+createImportSpec elems = mkImportSpecList $ map createIESpec elems
+  where createIESpec (n, False) = mkIESpec (mkUnqualName' (GHC.getName n)) Nothing
+        createIESpec (n, True)  = mkIESpec (mkUnqualName' (GHC.getName n)) (Just mkSubAll)
 
 -- | Check each import if it is actually needed
 neededImports :: OrganizeImportsDomain dom
@@ -158,24 +152,19 @@ neededImports exportedModules usedNames prelInsts prelFamInsts imps = neededImpo
 
 -- | Narrows the import specification (explicitely imported elements)
 narrowImportSpecs :: forall dom . OrganizeImportsDomain dom
-                  => [GHC.Name] -> [GHC.Name] -> IESpecList dom -> LocalRefactor dom (IESpecList dom)
-narrowImportSpecs standaloneDerivs usedNames 
+                  => [GHC.Name] -> IESpecList dom -> LocalRefactor dom (IESpecList dom)
+narrowImportSpecs usedNames 
   = (annList !~ narrowSpecSubspec usedNames) 
        >=> return . filterList isNeededSpec
   where narrowSpecSubspec :: [GHC.Name] -> IESpec dom -> LocalRefactor dom (IESpec dom)
         narrowSpecSubspec usedNames spec 
           = do let Just specName = semanticsName =<< (spec ^? ieName&simpleName)
-               if specName `elem` standaloneDerivs
-                 then return spec -- if it is member of a standalone deriving we don't know if the
-                                  -- inner members (constructors) are used or not
-                 else do
-                   Just tt <- GHC.lookupName (getName specName)
-                   ieSubspec !- narrowImportSubspecs (getSubspecs tt) $ spec
+               Just tt <- GHC.lookupName (getName specName)
+               let subspecsInScope = case tt of ATyCon tc | not (isClassTyCon tc) 
+                                                  -> (map getName (tyConDataCons tc) ++ map flSelector (tyConFieldLabels tc)) `intersect` usedNames
+                                                _ -> usedNames
+               ieSubspec !- narrowImportSubspecs subspecsInScope $ spec
   
-          where getSubspecs (ATyCon tc) | not (isClassTyCon tc)
-                  = (map getName (tyConDataCons tc) ++ map flSelector (tyConFieldLabels tc)) `intersect` usedNames
-                getSubspecs _ = usedNames
-
         isNeededSpec :: IESpec dom -> Bool
         isNeededSpec ie = 
           -- if the name is used, it is needed

@@ -23,9 +23,9 @@ import Data.Maybe (Maybe(..), isJust)
 import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.References
 import Language.Haskell.Tools.AST.Representation.Binds (ULocalBind(), UValueBind())
-import Language.Haskell.Tools.AST.Representation.Decls (UDeclHead(), UDecl(), UInstanceHead)
+import Language.Haskell.Tools.AST.Representation.Decls (UDeclHead(), UDecl())
 import Language.Haskell.Tools.AST.Representation.Modules (UImportDecl())
-import Language.Haskell.Tools.AST.Representation.Names (UQualifiedName(), UName)
+import Language.Haskell.Tools.AST.Representation.Names (UQualifiedName())
 import Language.Haskell.Tools.AST.Representation.Patterns (UPattern())
 import Language.Haskell.Tools.AST.Representation.Types (UType(..))
 import Language.Haskell.Tools.AST.SemaInfoTypes (Scope())
@@ -123,10 +123,6 @@ instance NamedElement ULocalBind where
 
 inScope :: GHC.Name -> Scope -> Bool
 inScope n sc = any (n `elem`) sc
-
--- | Locate the name of the type that is in an instance declaration
-instanceHeadBase :: Simple Traversal (Ann UInstanceHead dom st) (Ann UName dom st)
-instanceHeadBase = ihConName &+& ihOperator &+& ihHead & instanceHeadBase &+& ihFun & instanceHeadBase
 
 -- * Pattern synonyms for annotated lists and maybes
                         
