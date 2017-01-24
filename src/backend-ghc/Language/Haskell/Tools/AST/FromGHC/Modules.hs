@@ -21,7 +21,7 @@ import DynFlags as GHC (xopt_set)
 import ErrUtils as GHC (pprErrMsgBagWithLoc)
 import FastString as GHC (unpackFS)
 import GHC
-import HscTypes as GHC (WarningTxt(..), ModSummary(), HscEnv(..))
+import HscTypes as GHC (WarningTxt(..), ModSummary, HscEnv(..))
 import Language.Haskell.TH.LanguageExtensions (Extension(..))
 import Name as GHC hiding (varName)
 import Outputable as GHC (vcat, showSDocUnsafe, (<+>))
@@ -31,7 +31,7 @@ import RnExpr as GHC (rnLExpr)
 import SrcLoc as GHC
 import TcRnMonad as GHC
 
-import Language.Haskell.Tools.AST (Ann(..), AnnMaybeG(), AnnListG(..), Dom, RangeStage
+import Language.Haskell.Tools.AST (Ann(..), AnnMaybeG, AnnListG(..), Dom, RangeStage
                                   , sourceInfo, semantics, annotation, nodeSpan)
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC.Decls (trfDecls, trfDeclsGroup)

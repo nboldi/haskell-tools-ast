@@ -7,22 +7,22 @@ module Language.Haskell.Tools.DebugGhcAST where
 
 import Language.Haskell.Tools.AST (shortShowSpan)
 
-import Bag
+import Bag (bagToList, Bag(..))
 import BasicTypes
-import BooleanFormula
-import Coercion
-import ConLike
-import CoreSyn
-import FieldLabel
+import BooleanFormula (BooleanFormula(..))
+import Coercion (Var(..), Role(..))
+import ConLike (ConLike(..))
+import CoreSyn (Tickish(..))
+import FieldLabel (FieldLbl(..))
 import ForeignCall
 import GHC
-import Module
-import OccName
-import Outputable
-import PatSyn
-import RdrName
+import Module (UnitId(..), Module(..), ModuleName(..))
+import OccName (OccName(..))
+import Outputable (Outputable(..), OutputableBndr(..), showSDocUnsafe)
+import PatSyn (PatSyn(..))
+import RdrName (RdrName(..))
 import TcEvidence
-import UniqFM
+import UniqFM (UniqFM(..))
 
 instance Show a => Show (Located a) where
   show (L l a) = "L(" ++ shortShowSpan l ++ ") (" ++ show a ++ ")"
