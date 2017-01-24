@@ -104,14 +104,18 @@ narrowImport exportedModules usedNames imp
          else imp 
   where actuallyImported = semanticsImported imp `intersect` usedNames
 
+-- | Group things as importable definitions. The second member of the pair will be true, when there is a sub-name
+-- that should be imported apart from the name of the importable definition.
 groupThings :: [GHC.Name] -> [TyThing] -> [(GHC.Name, Bool)]
-groupThings importable = nub . sort . map createImportFromTyThing
+groupThings importable = map last . groupBy ((==) `on` fst) . sort . map createImportFromTyThing
   where createImportFromTyThing :: TyThing -> (GHC.Name, Bool)
         createImportFromTyThing tt | Just td <- getTopDef tt
           = if (td `elem` importable) then (td, True) 
                                       else (getName tt, False)
           | otherwise = (getName tt, False)
 
+-- | Gets the importable definition for a (looked up) name. For example a class function is only importable
+-- in a class, so it gets the name of the class.
 getTopDef :: TyThing -> Maybe GHC.Name
 getTopDef (AnId id) | isRecordSelector id
   = Just $ case recordSelectorTyCon id of RecSelData tc -> getName tc
@@ -120,7 +124,7 @@ getTopDef (AnId id) = fmap (getName . dataConTyCon) (isDataConWorkId_maybe id <|
                         <|> fmap getName (isClassOpId_maybe id)
 getTopDef (AConLike (RealDataCon dc)) = Just (getName $ dataConTyCon dc)
 getTopDef (AConLike (PatSynCon _)) = error "getTopDef: should not be called with pattern synonyms"
-getTopDef tc@(ATyCon _) = Just (getName tc)
+getTopDef (ATyCon _) = Nothing
 
 createImportSpec :: [(GHC.Name, Bool)] -> ImportSpec dom
 createImportSpec elems = mkImportSpecList $ map createIESpec elems
