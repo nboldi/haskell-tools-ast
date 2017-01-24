@@ -16,7 +16,10 @@ import Language.Haskell.Tools.Refactor.ListOperations (filterList)
 import SrcLoc (srcSpanStart)
 
 replaceWithJust :: Ann e dom SrcTemplateStage -> AnnMaybe e dom -> AnnMaybe e dom           
-replaceWithJust e (AnnMaybeG temp _) = AnnMaybeG temp (Just e)
+replaceWithJust e = annMaybe .= Just e
+
+replaceWithNothing :: AnnMaybe e dom -> AnnMaybe e dom           
+replaceWithNothing = annMaybe .= Nothing
 
 -- | Remove the container (where or let) when the last binding is removed.
 removeEmptyBnds :: Simple Traversal (Module dom) (ValueBind dom) 

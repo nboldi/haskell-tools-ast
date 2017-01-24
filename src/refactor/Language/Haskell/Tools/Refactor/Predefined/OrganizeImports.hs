@@ -163,7 +163,7 @@ narrowImportSpecs usedNames
                let subspecsInScope = case tt of ATyCon tc | not (isClassTyCon tc) 
                                                   -> (map getName (tyConDataCons tc) ++ map flSelector (tyConFieldLabels tc)) `intersect` usedNames
                                                 _ -> usedNames
-               ieSubspec&annJust !- narrowImportSubspecs subspecsInScope $ spec
+               ieSubspec !- narrowImportSubspecs subspecsInScope $ spec
   
         isNeededSpec :: IESpec dom -> Bool
         isNeededSpec ie = 
@@ -174,10 +174,7 @@ narrowImportSpecs usedNames
             || (case ie ^? ieSubspec&annJust of Just SubAll -> True; _ -> False)     
 
 -- | Reduces the number of definitions imported from a sub-specifier.
-narrowImportSubspecs :: OrganizeImportsDomain dom => [GHC.Name] -> SubSpec dom -> SubSpec dom
-narrowImportSubspecs [] SubAll = mkSubList []
-narrowImportSubspecs _ ss@SubAll = ss
-narrowImportSubspecs usedNames ss@(SubList {}) 
-  = essList .- filterList (\n -> fmap getName (semanticsName =<< (n ^? simpleName)) `elem` map Just usedNames) $ ss
-
-
+narrowImportSubspecs :: OrganizeImportsDomain dom => [GHC.Name] -> MaybeSubSpec dom -> MaybeSubSpec dom
+narrowImportSubspecs [] = replaceWithNothing
+narrowImportSubspecs usedNames
+  = annJust & essList .- filterList (\n -> fmap getName (semanticsName =<< (n ^? simpleName)) `elem` map Just usedNames)
