@@ -3,6 +3,7 @@
            , FlexibleContexts
            , TemplateHaskell
            , TypeFamilies
+           , StandaloneDeriving
            #-}
 module Language.Haskell.Tools.Refactor.CLI (refactorSession, tryOut) where
 
@@ -20,6 +21,9 @@ import ErrUtils
 import GHC
 import GHC.Paths ( libdir )
 import HscTypes as GHC
+import DynFlags as GHC
+import Packages
+import Outputable
 
 import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor
@@ -37,6 +41,8 @@ data CLISessionState =
                   }
 
 makeReferences ''CLISessionState
+
+deriving instance Show PkgConfRef
 
 tryOut :: IO ()
 tryOut = refactorSession stdin stdout 
@@ -86,6 +92,8 @@ refactorSession input output args = runGhc (Just libdir) $ handleSourceError pri
                     do performSessionCommand output (LoadModule modName)
                        command <- readSessionCommand output (takeWhile (/='"') $ dropWhile (=='"') $ refactoring)
                        void $ performSessionCommand output command
+                  ([],["ProjectOrganizeImports"]) ->
+                    void $ performSessionCommand output (RefactorCommand ProjectOrganizeImports)
                   _ -> liftIO $ hPutStrLn output "-module-name or -refactoring flag not specified correctly. Not doing any refactoring."
         runSession input output _ = runSessionLoop input output
 
@@ -131,8 +139,11 @@ performSessionCommand _ Exit = do modify $ exiting .= True
                                   return []
 performSessionCommand output (RefactorCommand cmd) 
   = do actMod <- gets (^. actualMod)
-       (Just actualMod, otherMods) <- getMods actMod
-       res <- lift $ performCommand cmd actualMod otherMods
+       (actualMod, otherMods) <- getMods actMod
+       res <- case actualMod of 
+         Just mod -> lift $ performCommand cmd mod otherMods
+         -- WALKAROUND: support running refactors that need no module selected
+         Nothing -> lift $ performCommand cmd (head otherMods) (tail otherMods)
        inDryMode <- gets (^. dryMode)
        case res of Left err -> do liftIO $ hPutStrLn output err
                                   return []
