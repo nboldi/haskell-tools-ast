@@ -11,7 +11,8 @@ import System.Exit
 import Data.List
 import Data.List.Split
 
-data Result = DepInstallFailure
+data Result = GetFailure 
+            | DepInstallFailure
             | BuildFailure
             | RefactError
             | WrongCodeError
@@ -49,16 +50,19 @@ testHackage args = do
 testPackage :: String -> IO Result
 testPackage pack = do
   downloaded <- doesDirectoryExist pack
-  when (not downloaded) $ do
-    callCommand ("cabal get " ++ pack)
-  withCurrentDirectory pack $ do
-    callCommand "cabal sandbox init"
-    runCommands [ ("cabal install --only-dependencies > deps-log.txt 2>&1", DepInstallFailure)
-                , ("cabal configure > config-log.txt 2>&1", BuildFailure)
-                , ("cabal build > build-log.txt 2>&1", BuildFailure)
-                , ("ht-refact -one-shot -refactoring=ProjectOrganizeImports -package-db .cabal-sandbox\\x86_64-windows-ghc-8.0.1-packages.conf.d . > refact-log.txt 2>&1", RefactError)
-                , ("cabal build > reload-log.txt 2>&1", WrongCodeError)
-                ]
+  getSuccess <- if not downloaded then waitForProcess =<< runCommand ("cabal get " ++ pack)
+                                  else return ExitSuccess
+  case getSuccess of 
+    ExitSuccess -> 
+      withCurrentDirectory pack $ do
+        callCommand "cabal sandbox init"
+        runCommands [ ("cabal install --only-dependencies --enable-tests --enable-benchmarks > deps-log.txt 2>&1", DepInstallFailure)
+                    , ("cabal configure --enable-tests --enable-benchmarks > config-log.txt 2>&1", BuildFailure)
+                    , ("cabal build > build-log.txt 2>&1", BuildFailure)
+                    , ("ht-refact -one-shot -refactoring=ProjectOrganizeImports -package-db .cabal-sandbox\\x86_64-windows-ghc-8.0.1-packages.conf.d . > refact-log.txt 2>&1", RefactError)
+                    , ("cabal build > reload-log.txt 2>&1", WrongCodeError)
+                    ]
+    ExitFailure _ -> return GetFailure
 
 runCommands :: [(String, Result)] -> IO Result
 runCommands [] = return OK
