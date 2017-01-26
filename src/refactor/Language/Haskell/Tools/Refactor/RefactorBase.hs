@@ -78,6 +78,8 @@ instance Show ErrorMessages where
   show = show . bagToList
 
 instance Exception RefactorException where
+  displayException (SourceCodeProblem prob)
+    = "Source code problem: " ++ show prob
   displayException (IllegalExtensions exts) 
     = "The following extensions are not allowed: " ++ (concat $ intersperse ", " exts) ++ "."
   displayException (UnknownException ex) = "An unexpected problem appeared: " ++ ex ++ "."
