@@ -46,24 +46,27 @@ makeReferences ''CLISessionState
 deriving instance Show PkgConfRef
 
 tryOut :: IO ()
-tryOut = refactorSession stdin stdout 
-           [ "-dry-run", "-one-shot", "-module-name=Language.Haskell.Tools.AST", "-refactoring=OrganizeImports"
-           , "src/ast", "src/backend-ghc", "src/prettyprint", "src/rewrite", "src/refactor"]
+tryOut = void $ refactorSession stdin stdout 
+                  [ "-dry-run", "-one-shot", "-module-name=Language.Haskell.Tools.AST", "-refactoring=OrganizeImports"
+                  , "src/ast", "src/backend-ghc", "src/prettyprint", "src/rewrite", "src/refactor"]
 
-refactorSession :: Handle -> Handle -> [String] -> IO ()
-refactorSession input output args = runGhc (Just libdir) $ handleSourceError printSrcErrors 
+refactorSession :: Handle -> Handle -> [String] -> IO Bool
+refactorSession input output args = runGhc (Just libdir) $ handleSourceError printSrcErrors
                                                          $ flip evalStateT initSession $
   do lift $ initGhcFlags
      workingDirsAndHtFlags <- lift $ useFlags args
      let (htFlags, workingDirs) = partition (\f -> head f == '-') workingDirsAndHtFlags
-     if null workingDirs then liftIO $ hPutStrLn output usageMessage
-                         else do initializeSession output workingDirs htFlags
-                                 runSession input output htFlags
+     if null workingDirs then do liftIO $ hPutStrLn output usageMessage
+                                 return False
+                         else do initSuccess <- initializeSession output workingDirs htFlags
+                                 when initSuccess $ runSession input output htFlags
+                                 return initSuccess
      
   where printSrcErrors err = do dfs <- getSessionDynFlags 
                                 liftIO $ printBagOfErrors dfs (srcErrorMessages err)
+                                return False
 
-        initializeSession :: Handle -> [FilePath] -> [String] -> CLIRefactorSession ()
+        initializeSession :: Handle -> [FilePath] -> [String] -> CLIRefactorSession Bool
         initializeSession output workingDirs flags = do
           liftIO $ hSetBuffering output NoBuffering
           liftIO $ hPutStrLn output "Compiling modules. This may take some time. Please wait."
@@ -80,8 +83,9 @@ refactorSession input output args = runGhc (Just libdir) $ handleSourceError pri
                 then "All modules loaded."
                 else "All modules loaded. Use 'SelectModule module-name' to select a module."
               when ("-dry-run" `elem` flags) $ modify (dryMode .= True)
+              return True
             Left err -> liftIO $ do hPutStrLn output (displayException err)
-                                    exitFailure
+                                    return False
 
         runSession :: Handle -> Handle -> [String] -> CLIRefactorSession ()
         runSession _ output flags | "-one-shot" `elem` flags
