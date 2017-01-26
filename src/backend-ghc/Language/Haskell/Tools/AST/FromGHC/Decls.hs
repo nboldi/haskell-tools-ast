@@ -76,8 +76,9 @@ trfDeclsGroup (HsGroup vals splices tycls insts derivs fixities defaults foreign
     
     getDeclsToInsert :: Trf [Ann AST.UDecl (Dom r) RangeStage]
     getDeclsToInsert = do decls <- asks declsToInsert
-                          locals <- asks (head . localsInScope)
-                          liftGhc $ mapM (loadIdsForDecls locals) decls
+                          allLocals <- asks localsInScope
+                          case allLocals of locals:_ -> liftGhc $ mapM (loadIdsForDecls locals) decls
+                                            [] -> error "getDeclsToInsert: empty scope"
        where loadIdsForDecls :: [GHC.Name] -> Ann AST.UDecl (Dom RdrName) RangeStage -> GHC.Ghc (Ann AST.UDecl (Dom r) RangeStage)
              loadIdsForDecls locals = AST.semaTraverse $
                 AST.SemaTrf (AST.nameInfo !~ findName) pure (traverse findName) pure pure pure

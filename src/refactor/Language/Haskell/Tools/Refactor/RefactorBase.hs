@@ -118,6 +118,7 @@ addGeneratedImports names m = modImports&annListElems .- (++ addImports names) $
 
         -- TODO: group names like constructors into correct IESpecs
         createImport :: [GHC.Name] -> Ann UImportDecl dom SrcTemplateStage
+        -- works on groupby result, so list is nonempty
         createImport names = mkImportDecl False False False Nothing (mkModuleName $ GHC.moduleNameString $ GHC.moduleName $ GHC.nameModule $ head names)
                                           Nothing (Just $ mkImportSpecList (map (\n -> mkIESpec (mkUnqualName' n) Nothing) names))
 

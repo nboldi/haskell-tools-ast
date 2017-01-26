@@ -141,6 +141,7 @@ trfFixitySig (FixitySig names (Fixity _ prec dir))
        AST.UFixitySignature <$> transformDir dir
                             <*> (if isGoodSrcSpan precLoc 
                                    then makeJust <$> (annLocNoSema (return precLoc) $ pure $ AST.Precedence prec)
+                                                                                         -- names cannot be empty
                                    else nothing "" " " (return $ srcSpanStart $ getLoc $ head names))
                             <*> (nonemptyAnnList . nub <$> mapM trfOperator names)
   where transformDir InfixL = directionChar (pure AST.AssocLeft)

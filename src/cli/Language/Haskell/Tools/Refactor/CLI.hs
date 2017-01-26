@@ -55,7 +55,7 @@ refactorSession input output args = runGhc (Just libdir) $ handleSourceError pri
                                                          $ flip evalStateT initSession $
   do lift $ initGhcFlags
      workingDirsAndHtFlags <- lift $ useFlags args
-     let (htFlags, workingDirs) = partition (\f -> head f == '-') workingDirsAndHtFlags
+     let (htFlags, workingDirs) = partition (\case ('-':_) -> True; _ -> False) workingDirsAndHtFlags
      if null workingDirs then do liftIO $ hPutStrLn output usageMessage
                                  return False
                          else do initSuccess <- initializeSession output workingDirs htFlags
@@ -147,7 +147,8 @@ performSessionCommand output (RefactorCommand cmd)
        res <- case actualMod of 
          Just mod -> lift $ performCommand cmd mod otherMods
          -- WALKAROUND: support running refactors that need no module selected
-         Nothing -> lift $ performCommand cmd (head otherMods) (tail otherMods)
+         Nothing -> case otherMods of (hd:rest) -> lift $ performCommand cmd hd rest
+                                      []        -> return (Right [])
        inDryMode <- gets (^. dryMode)
        case res of Left err -> do liftIO $ hPutStrLn output err
                                   return []
