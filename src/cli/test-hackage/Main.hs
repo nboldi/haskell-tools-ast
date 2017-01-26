@@ -56,10 +56,10 @@ testPackage pack = do
     ExitSuccess -> 
       withCurrentDirectory pack $ do
         callCommand "cabal sandbox init"
-        runCommands [ ("cabal install --only-dependencies --enable-tests --enable-benchmarks > deps-log.txt 2>&1", DepInstallFailure)
+        runCommands [ ("cabal install -j --only-dependencies --enable-tests --enable-benchmarks > deps-log.txt 2>&1", DepInstallFailure)
                     , ("cabal configure --enable-tests --enable-benchmarks > config-log.txt 2>&1", BuildFailure)
-                    , ("cabal build > build-log.txt 2>&1", BuildFailure)
-                    , ("ht-refact -one-shot -refactoring=ProjectOrganizeImports -package-db .cabal-sandbox\\x86_64-windows-ghc-8.0.1-packages.conf.d . > refact-log.txt 2>&1", RefactError)
+                    , ("cabal build -j > build-log.txt 2>&1", BuildFailure)
+                    , ("ht-refact -one-shot -refactoring=ProjectOrganizeImports -package-db .cabal-sandbox\\x86_64-windows-ghc-8.0.1-packages.conf.d . +RTS -M6G -RTS > refact-log.txt 2>&1", RefactError)
                     , ("cabal build > reload-log.txt 2>&1", WrongCodeError)
                     ]
     ExitFailure _ -> return GetFailure

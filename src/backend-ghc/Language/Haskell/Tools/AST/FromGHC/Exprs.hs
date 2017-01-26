@@ -75,10 +75,11 @@ trfExpr' (HsPar (unLoc -> SectionL expr (unLoc -> HsVar op))) = AST.ULeftSection
 trfExpr' (HsPar (unLoc -> SectionR (unLoc -> HsVar op) expr)) = AST.URightSection <$> trfOperator op <*> trfExpr expr
 trfExpr' (HsPar expr) = AST.UParen <$> trfExpr expr
 trfExpr' (ExplicitTuple tupArgs box) | all tupArgPresent tupArgs 
-  = wrap <$> between AnnOpenP AnnCloseP (trfAnnList' ", " (trfExpr . (\(Present e) -> e) . unLoc) tupArgs)
+  = wrap <$> between (if box == Boxed then AnnOpenP else AnnOpen) (if box == Boxed then AnnCloseP else AnnClose) 
+               (trfAnnList' ", " (trfExpr . (\(Present e) -> e) . unLoc) tupArgs)
   where wrap = if box == Boxed then AST.UTuple else AST.UUnboxedTuple
 trfExpr' (ExplicitTuple tupArgs box)
-  = wrap <$> between AnnOpenP AnnCloseP
+  = wrap <$> between (if box == Boxed then AnnOpenP else AnnOpen) (if box == Boxed then AnnCloseP else AnnClose)
                (do locs <- elemLocs
                    makeList ", " atTheEnd $ mapM trfTupSecElem (zip (map unLoc tupArgs) locs))
   where wrap = if box == Boxed then AST.UTupleSection else AST.UUnboxedTupSec

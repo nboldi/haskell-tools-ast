@@ -56,7 +56,7 @@ library
 
 
 executable ht-refact
-  ghc-options:         -O2
+  ghc-options:         -O2 -rtsopts
   build-depends:       base                      >= 4.9 && < 4.10
                      , haskell-tools-cli         >= 0.4 && < 0.5
   hs-source-dirs:      exe

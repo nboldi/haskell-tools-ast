@@ -112,8 +112,10 @@ trfDecl = trfLocNoSema $ \case
                     <*> trfInstBody binds sigs typefam datafam
   InstD (DataFamInstD (DataFamInstDecl con pats (HsDataDefn nd _ _ _ cons derivs) _))
     -> AST.UDataInstDecl <$> trfDataKeyword nd
-                        <*> between AnnInstance AnnEqual (makeInstanceRuleTyVars con pats)
-                        <*> makeList " | " (after AnnEqual) (mapM trfConDecl cons)
+                        <*> (focusAfter AnnInstance . focusBeforeIfPresent AnnEqual . focusBeforeIfPresent AnnDeriving) 
+                              (makeInstanceRuleTyVars con pats)
+                                                       -- the location is needed when there is no = sign
+                        <*> makeListBefore " = " " | " (pure $ srcSpanStart $ foldLocs $ getLoc con : map getLoc (hsib_body pats)) (mapM trfConDecl cons)
                         <*> trfMaybe "" "" trfDerivings derivs
   InstD (TyFamInstD (TyFamInstDecl (L _ (TyFamEqn con pats rhs)) _))
     -> AST.UTypeInstDecl <$> between AnnInstance AnnEqual (makeInstanceRuleTyVars con pats) <*> trfType rhs
