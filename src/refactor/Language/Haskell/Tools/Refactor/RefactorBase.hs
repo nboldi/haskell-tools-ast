@@ -25,6 +25,7 @@ import qualified Name as GHC
 import qualified PrelNames as GHC
 import qualified TyCon as GHC
 import qualified TysWiredIn as GHC
+import Outputable
 
 import Control.Exception
 import Control.Monad.Reader
@@ -79,7 +80,7 @@ instance Show ErrorMessages where
 
 instance Exception RefactorException where
   displayException (SourceCodeProblem prob)
-    = "Source code problem: " ++ show prob
+    = "Source code problem: " ++ showSDocUnsafe (vcat (pprErrMsgBagWithLoc prob))
   displayException (IllegalExtensions exts) 
     = "The following extensions are not allowed: " ++ (concat $ intersperse ", " exts) ++ "."
   displayException (UnknownException ex) = "An unexpected problem appeared: " ++ ex ++ "."

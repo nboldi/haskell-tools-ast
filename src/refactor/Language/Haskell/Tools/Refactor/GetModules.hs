@@ -236,11 +236,11 @@ enableAllPackages mcs dfs = applyDependencies mcs allDeps dfs
 
 flagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
 -- the import pathes are already set globally
-flagsFromBuildInfo BuildInfo{ defaultExtensions, options } df
+flagsFromBuildInfo bi@BuildInfo{ options } df
   = do (df,_,_) <- parseDynamicFlags df (map (L noSrcSpan) $ concatMap snd options)
        return $ foldl (.) id (map (\case EnableExtension ext -> translateExtension ext
                                          _                   -> id                               
-                                  ) defaultExtensions)
+                                  ) (usedExtensions bi))
                           $ df
   where -- | Map the cabal extensions to the ones that GHC recognizes
         translateExtension OverlappingInstances = flip xopt_set GHC.OverlappingInstances

@@ -16,6 +16,7 @@ import Data.List.Split
 import Data.Maybe
 import System.Directory
 import System.IO
+import System.Exit
 
 import ErrUtils
 import GHC
@@ -56,13 +57,13 @@ refactorSession input output args = runGhc (Just libdir) $ handleSourceError pri
      workingDirsAndHtFlags <- lift $ useFlags args
      let (htFlags, workingDirs) = partition (\f -> head f == '-') workingDirsAndHtFlags
      if null workingDirs then liftIO $ hPutStrLn output usageMessage
-                         else do doRun <- initializeSession output workingDirs htFlags
-                                 when doRun $ runSession input output htFlags
+                         else do initializeSession output workingDirs htFlags
+                                 runSession input output htFlags
      
   where printSrcErrors err = do dfs <- getSessionDynFlags 
                                 liftIO $ printBagOfErrors dfs (srcErrorMessages err)
 
-        initializeSession :: Handle -> [FilePath] -> [String] -> CLIRefactorSession Bool
+        initializeSession :: Handle -> [FilePath] -> [String] -> CLIRefactorSession ()
         initializeSession output workingDirs flags = do
           liftIO $ hSetBuffering output NoBuffering
           liftIO $ hPutStrLn output "Compiling modules. This may take some time. Please wait."
@@ -79,9 +80,8 @@ refactorSession input output args = runGhc (Just libdir) $ handleSourceError pri
                 then "All modules loaded."
                 else "All modules loaded. Use 'SelectModule module-name' to select a module."
               when ("-dry-run" `elem` flags) $ modify (dryMode .= True)
-              return True
             Left err -> liftIO $ do hPutStrLn output (displayException err)
-                                    return False
+                                    exitFailure
 
         runSession :: Handle -> Handle -> [String] -> CLIRefactorSession ()
         runSession _ output flags | "-one-shot" `elem` flags
