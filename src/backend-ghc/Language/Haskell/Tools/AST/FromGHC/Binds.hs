@@ -137,9 +137,12 @@ trfTypeSig' _ = error "trfTypeSig': not a type sig"
 
 trfFixitySig :: TransformName n r => FixitySig n -> Trf (AST.UFixitySignature (Dom r) RangeStage)
 trfFixitySig (FixitySig names (Fixity _ prec dir)) 
-  = AST.UFixitySignature <$> transformDir dir
-                         <*> annLocNoSema (tokenLoc AnnVal) (pure $ AST.Precedence prec) 
-                         <*> (nonemptyAnnList . nub <$> mapM trfOperator names)
+  = do precLoc <- tokenLoc AnnVal
+       AST.UFixitySignature <$> transformDir dir
+                            <*> (if isGoodSrcSpan precLoc 
+                                   then makeJust <$> (annLocNoSema (return precLoc) $ pure $ AST.Precedence prec)
+                                   else nothing "" " " (return $ srcSpanStart $ getLoc $ head names))
+                            <*> (nonemptyAnnList . nub <$> mapM trfOperator names)
   where transformDir InfixL = directionChar (pure AST.AssocLeft)
         transformDir InfixR = directionChar (pure AST.AssocRight)
         transformDir InfixN = annLocNoSema (srcLocSpan . srcSpanEnd <$> tokenLoc AnnInfix) (pure AST.AssocNone)

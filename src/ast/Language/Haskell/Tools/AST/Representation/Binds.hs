@@ -61,7 +61,7 @@ data UTypeSignature dom stage
 -- | A fixity signature (@ infixl 5 +, - @).
 data UFixitySignature dom stage
   = UFixitySignature { _fixityAssoc :: Ann Assoc dom stage
-                     , _fixityPrecedence :: Ann Precedence dom stage
+                     , _fixityPrecedence :: AnnMaybeG Precedence dom stage
                      , _fixityOperators :: AnnListG UOperator dom stage
                      }
 
