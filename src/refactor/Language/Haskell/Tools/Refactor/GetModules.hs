@@ -202,7 +202,8 @@ instance ToModuleCollection Library where
 instance ToModuleCollection Executable where
   mkModuleCollKey pn exe = ExecutableMC (unPackageName pn) (exeName exe)
   getBuildInfo = buildInfo
-  getModuleNames = exeModules
+  getModuleNames e = {- fromString (toModuleName $ modulePath e) : -} exeModules e
+    where toModuleName = map (\case c | c `elem` pathSeparators -> '.'; c -> c) . dropExtension
 
 instance ToModuleCollection TestSuite where
   mkModuleCollKey pn test = TestSuiteMC (unPackageName pn) (testName test)
