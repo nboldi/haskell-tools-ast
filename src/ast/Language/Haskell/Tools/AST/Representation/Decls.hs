@@ -382,9 +382,7 @@ data UTopLevelPragma dom stage
                       , _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
                       , _inlineDef :: Ann UName dom stage
                       } -- ^ A pragma that marks a function for inlining to the compiler (@ {-# INLINE thenUs #-} @)
-  | UNoInlinePragma   { _pragmaConlike :: AnnMaybeG UConlikeAnnot dom stage
-                      , _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
-                      , _noInlineDef :: Ann UName dom stage
+  | UNoInlinePragma   { _noInlineDef :: Ann UName dom stage
                       } -- ^ A pragma that forbids a function from being inlined by the compiler (@ {-# NOINLINE f #-} @)
   | UInlinablePragma  { _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
                       , _inlinableDef :: Ann UName dom stage

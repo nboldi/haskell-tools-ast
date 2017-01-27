@@ -168,14 +168,16 @@ trfSig (PatSynSig id typ)
   = AST.UPatTypeSigDecl <$> annContNoSema (AST.UPatternTypeSignature <$> trfName id <*> trfType (hsib_body typ))
 trfSig (InlineSig name (InlinePragma _ Inlinable _ phase _)) 
   = AST.UPragmaDecl <$> annContNoSema (AST.UInlinablePragma <$> trfPhase (pure $ srcSpanStart $ getLoc name) phase <*> trfName name)
-trfSig (InlineSig name (InlinePragma src inl _ phase cl)) 
+trfSig (InlineSig name (InlinePragma src Inline _ phase cl)) 
   = do rng <- asks contRange
        let parts = map getLoc $ splitLocated (L rng src)
        -- TODO: Inlinable, EmptyInlineSpec
-       AST.UPragmaDecl <$> annContNoSema ((case inl of Inline -> AST.UInlinePragma; NoInline -> AST.UNoInlinePragma) 
-                                     <$> trfConlike parts cl 
-                                     <*> trfPhase (pure $ srcSpanStart (getLoc name)) phase 
-                                     <*> trfName name)
+       AST.UPragmaDecl <$> annContNoSema (pragma parts)
+  where pragma parts = AST.UInlinePragma <$> trfConlike parts cl 
+                                         <*> trfPhase (pure $ srcSpanStart (getLoc name)) phase 
+                                         <*> trfName name
+trfSig (InlineSig name (InlinePragma src NoInline _ phase cl)) 
+  = AST.UPragmaDecl <$> annContNoSema (AST.UNoInlinePragma <$> trfName name)
 trfSig (SpecSig name (map hsib_body -> types) (inl_act -> phase)) 
   = AST.UPragmaDecl <$> annContNoSema (AST.USpecializePragma <$> trfPhase (pure $ srcSpanStart (getLoc name)) phase 
                                        <*> trfName name 
@@ -491,8 +493,8 @@ trfPhase _ (ActiveAfter _ pn) = makeJust <$> annLocNoSema (combineSrcSpans <$> t
                                                           (AST.UPhaseControl <$> nothing "" "" (before AnnCloseS) <*> trfPhaseNum pn)
 trfPhase _ (ActiveBefore _ pn) = makeJust <$> annLocNoSema (combineSrcSpans <$> tokenLoc AnnOpenS <*> tokenLoc AnnCloseS)
                                                            (AST.UPhaseControl <$> (makeJust <$> annLocNoSema (tokenLoc AnnTilde) (pure AST.PhaseInvert)) <*> trfPhaseNum pn)
--- TODO
-trfPhase _ NeverActive = error "NeverActive pragmas not yet supported"
+trfPhase _ NeverActive = do range <- asks contRange 
+                            error $ "NeverActive pragmas should be checked earlier : " ++ show range
 
 trfPhaseNum ::  PhaseNum -> Trf (Ann AST.PhaseNumber (Dom r) RangeStage)
 trfPhaseNum i = annLocNoSema (tokenLoc AnnVal) $ pure (AST.PhaseNumber $ fromIntegral i) 

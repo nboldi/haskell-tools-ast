@@ -428,10 +428,8 @@ mkInlinePragma conlike phase name
       $ UInlinePragma (mkAnnMaybe (followedBy " " opt) conlike) (mkAnnMaybe (followedBy " " opt) phase) name
 
 -- | A pragma that forbids a function from being inlined by the compiler (@ {-\# NOINLINE f \#-} @)
-mkNoInlinePragma :: Maybe (ConlikeAnnot dom) -> Maybe (PhaseControl dom) -> Name dom -> TopLevelPragma dom
-mkNoInlinePragma conlike phase name 
-  = mkAnn ("{-# NOINLINE " <> child <> child <> child <> " #-}") 
-     $ UNoInlinePragma (mkAnnMaybe (followedBy " " opt) conlike) (mkAnnMaybe (followedBy " " opt) phase) name
+mkNoInlinePragma :: Name dom -> TopLevelPragma dom
+mkNoInlinePragma name = mkAnn ("{-# NOINLINE " <> child <> " #-}") $ UNoInlinePragma name
 
 -- | A pragma that marks a function that it may be inlined by the compiler (@ {-\# INLINABLE thenUs \#-} @)
 mkInlinablePragma :: Maybe (PhaseControl dom) -> Name dom -> TopLevelPragma dom

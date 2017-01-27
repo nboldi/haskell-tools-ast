@@ -386,8 +386,8 @@ pattern InlinePragma :: MaybeConlikeAnnot dom -> MaybePhaseControl dom -> Name d
 pattern InlinePragma conlike phase name <- Ann _ (UInlinePragma conlike phase name)
 
 -- | A pragma that forbids a function from being inlined by the compiler (@ {-\# NOINLINE f \#-} @)
-pattern NoInlinePragma :: MaybeConlikeAnnot dom -> MaybePhaseControl dom -> Name dom -> TopLevelPragma dom
-pattern NoInlinePragma conlike phase name <- Ann _ (UNoInlinePragma conlike phase name)
+pattern NoInlinePragma :: Name dom -> TopLevelPragma dom
+pattern NoInlinePragma name <- Ann _ (UNoInlinePragma name)
 
 -- | A pragma that marks a function that it may be inlined by the compiler (@ {-\# INLINABLE thenUs \#-} @)
 pattern InlinablePragma :: MaybePhaseControl dom -> Name dom -> TopLevelPragma dom
