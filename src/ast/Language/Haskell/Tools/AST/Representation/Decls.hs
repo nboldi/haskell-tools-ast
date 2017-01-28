@@ -181,6 +181,15 @@ data UInstBodyDecl dom stage
                           } -- ^ An associated data type implemented using GADT style
   | USpecializeInstance   { _specializeInstanceType :: Ann UType dom stage
                           } -- ^ Specialize instance pragma (no phase selection is allowed)
+  | UInlineInstance       { _instancePragmaConlike :: AnnMaybeG UConlikeAnnot dom stage
+                          , _instancePragmaPhase :: AnnMaybeG UPhaseControl dom stage
+                          , _instanceInlineDef :: Ann UName dom stage
+                          } -- ^ Inline pragma in a class instance 
+  | UInlinableInstance    { _instancePragmaPhase :: AnnMaybeG UPhaseControl dom stage
+                          , _instanceInlineDef :: Ann UName dom stage
+                          } -- ^ Inlineable pragma in a class instance 
+  | UNoInlineInstance     { _instanceInlineDef :: Ann UName dom stage
+                          } -- ^ Noinline pragma in a class instance 
   -- not supported yet
 -- | UInstBodyPatSyn       { _instBodyPatSyn :: Ann UPatternSynonym dom stage
   --                         } -- ^ A pattern synonym in a class instance
@@ -378,6 +387,7 @@ data UTopLevelPragma dom stage
   | UAnnPragma        { _annotationSubject :: Ann UAnnotationSubject dom stage
                       , _annotateExpr :: Ann UExpr dom stage
                       } -- ^ A pragma that annotates a definition with an arbitrary value (@ {-# ANN f 42 @)
+  -- TODO: extract pragmas that appear both in top-level and in instances (inline, inlinable, noinline)
   | UInlinePragma     { _pragmaConlike :: AnnMaybeG UConlikeAnnot dom stage
                       , _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
                       , _inlineDef :: Ann UName dom stage

@@ -123,7 +123,7 @@ trfDecl = trfLocNoSema $ \case
   ValD bind -> trfVal bind
   SigD sig -> trfSig sig
   DerivD (DerivDecl t overlap) -> AST.UDerivDecl <$> trfMaybeDefault " " "" trfOverlap (after AnnInstance) overlap <*> trfInstanceRule (hsib_body t)
-  -- TODO: INLINE, SPECIALIZE, MINIMAL, VECTORISE pragmas, Warnings, Annotations, rewrite rules, role annotations
+  -- TODO: Warnings, rewrite rules
   RuleD (HsRules _ rules) -> AST.UPragmaDecl <$> annContNoSema (AST.URulePragma <$> makeIndentedList (before AnnClose) (mapM trfRewriteRule rules))
   RoleAnnotD (RoleAnnotDecl name roles) -> AST.URoleDecl <$> trfQualifiedName name <*> makeList " " atTheEnd (mapM trfRole roles)
   DefD (DefaultDecl types) -> AST.UDefaultDecl . nonemptyAnnList <$> mapM trfType types
@@ -166,16 +166,15 @@ trfSig (ts @ (TypeSig {})) = AST.UTypeSigDecl <$> defineTypeVars (annContNoSema 
 trfSig (FixSig fs) = AST.UFixityDecl <$> (annContNoSema $ trfFixitySig fs)
 trfSig (PatSynSig id typ) 
   = AST.UPatTypeSigDecl <$> annContNoSema (AST.UPatternTypeSignature <$> trfName id <*> trfType (hsib_body typ))
-trfSig (InlineSig name (InlinePragma _ Inlinable _ phase _)) 
-  = AST.UPragmaDecl <$> annContNoSema (AST.UInlinablePragma <$> trfPhase (pure $ srcSpanStart $ getLoc name) phase <*> trfName name)
 trfSig (InlineSig name (InlinePragma src Inline _ phase cl)) 
   = do rng <- asks contRange
        let parts = map getLoc $ splitLocated (L rng src)
-       -- TODO: Inlinable, EmptyInlineSpec
        AST.UPragmaDecl <$> annContNoSema (pragma parts)
   where pragma parts = AST.UInlinePragma <$> trfConlike parts cl 
                                          <*> trfPhase (pure $ srcSpanStart (getLoc name)) phase 
                                          <*> trfName name
+trfSig (InlineSig name (InlinePragma _ Inlinable _ phase _)) 
+  = AST.UPragmaDecl <$> annContNoSema (AST.UInlinablePragma <$> trfPhase (pure $ srcSpanStart $ getLoc name) phase <*> trfName name)
 trfSig (InlineSig name (InlinePragma src NoInline _ phase cl)) 
   = AST.UPragmaDecl <$> annContNoSema (AST.UNoInlinePragma <$> trfName name)
 trfSig (SpecSig name (map hsib_body -> types) (inl_act -> phase)) 
@@ -381,6 +380,16 @@ trfClassInstSig = trfLocNoSema $ \case
   ClassOpSig _ names typ -> AST.UInstBodyTypeSig <$> (annContNoSema $ AST.UTypeSignature <$> define (makeNonemptyList ", " (mapM trfName names)) 
                                                 <*> trfType (hsib_body typ))
   SpecInstSig _ typ -> AST.USpecializeInstance <$> trfType (hsib_body typ)
+  InlineSig name (InlinePragma _ Inlinable _ phase _)
+    -> AST.UInlinableInstance <$> trfPhase (pure $ srcSpanStart $ getLoc name) phase <*> trfName name
+  InlineSig name (InlinePragma src NoInline _ _ cl)
+    -> AST.UNoInlineInstance <$> trfName name
+  InlineSig name (InlinePragma src Inline _ phase cl) -> 
+    do rng <- asks contRange
+       let parts = map getLoc $ splitLocated (L rng src)
+       AST.UInlineInstance <$> trfConlike parts cl 
+                           <*> trfPhase (pure $ srcSpanStart (getLoc name)) phase 
+                           <*> trfName name
   s -> error ("Illegal class instance signature: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
           
 trfInstTypeFam :: TransformName n r => Located (TyFamInstDecl n) -> Trf (Ann AST.UInstBodyDecl (Dom r) RangeStage)
