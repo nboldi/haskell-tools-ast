@@ -109,8 +109,8 @@ trfModuleHead :: TransformName n r => Maybe (Located ModuleName) -> Maybe (Locat
 trfModuleHead (Just mn) exports modPrag
   = makeJust <$> (annLocNoSema (tokensLoc [AnnModule, AnnWhere])
                                (AST.UModuleHead <$> trfModuleName mn 
-                                                <*> trfExportList (srcSpanEnd $ getLoc mn) exports
-                                                <*> trfModulePragma modPrag))
+                                                <*> trfModulePragma modPrag
+                                                <*> trfExportList (srcSpanEnd $ getLoc mn) exports))
 trfModuleHead _ Nothing _ = nothing "" "" moduleHeadPos
   where moduleHeadPos = after AnnClose >>= \case loc@(RealSrcLoc _) -> return loc
                                                  _ -> atTheStart
