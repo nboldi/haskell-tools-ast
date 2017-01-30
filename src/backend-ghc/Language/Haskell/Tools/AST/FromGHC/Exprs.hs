@@ -17,6 +17,7 @@ import GHC
 import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import PrelNames as GHC (negateName)
 import SrcLoc as GHC
+import OccName as GHC
 
 import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Binds (trfRhsGuard', trfWhereLocalBinds, trfLocalBinds)
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..), getFieldOccName)
@@ -56,6 +57,7 @@ createScopeInfo = do scope <- asks localsInScope
 
 trfExpr' :: TransformName n r => HsExpr n -> Trf (AST.UExpr (Dom r) RangeStage)
 trfExpr' (HsVar name) = AST.UVar <$> trfName name
+trfExpr' (HsUnboundVar name) = AST.UVar <$> trfNameText (occNameString $ unboundVarOcc name)
 trfExpr' (HsRecFld fld) = AST.UVar <$> (asks contRange >>= \l -> trfAmbiguousFieldName' l fld)
 trfExpr' (HsIPVar ip) = AST.UVar <$> trfImplicitName ip
 trfExpr' (HsOverLit (ol_val -> val)) = AST.ULit <$> annContNoSema (trfOverloadedLit val)
