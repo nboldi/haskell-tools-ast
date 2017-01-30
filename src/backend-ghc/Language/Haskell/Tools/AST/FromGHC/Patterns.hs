@@ -29,10 +29,11 @@ import qualified Language.Haskell.Tools.AST as AST
 trfPattern :: TransformName n r => Located (Pat n) -> Trf (Ann AST.UPattern (Dom r) RangeStage)
 -- field wildcards are not directly represented in GHC AST
 trfPattern (L l (ConPatIn name (RecCon (HsRecFields flds _)))) | any ((l ==) . getLoc) flds 
-  = do let (fromWC, notWC) = partition ((l ==) . getLoc) flds
-       normalFields <- mapM (trfLocNoSema trfPatternField') notWC
-       wildc <- annLocNoSema (tokenLoc AnnDotdot) (AST.UFieldWildcardPattern <$> annCont (createImplicitFldInfo (unLoc . (\(VarPat n) -> n) . unLoc) (map unLoc fromWC)) (pure AST.FldWildcard))
-       annLocNoSema (pure l) (AST.URecPat <$> trfName name <*> makeNonemptyList ", " (pure (normalFields ++ [wildc])))
+  = focusOn l $ do 
+      let (fromWC, notWC) = partition ((l ==) . getLoc) flds
+      normalFields <- mapM (trfLocNoSema trfPatternField') notWC
+      wildc <- annLocNoSema (tokenLoc AnnDotdot) (AST.UFieldWildcardPattern <$> annCont (createImplicitFldInfo (unLoc . (\(VarPat n) -> n) . unLoc) (map unLoc fromWC)) (pure AST.FldWildcard))
+      annLocNoSema (pure l) (AST.URecPat <$> trfName name <*> makeNonemptyList ", " (pure (normalFields ++ [wildc])))
 trfPattern p | otherwise = trfLocNoSema trfPattern' (correctPatternLoc p)
 
 -- | Locations for right-associative infix patterns are incorrect in GHC AST
