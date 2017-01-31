@@ -274,7 +274,8 @@ trfTypeEq = trfLocNoSema $ \(TyFamEqn name pats rhs)
                                      (AST.UTyApp <$> pure typ <*> trfType p)) base pats
                  
 trfFunDeps :: TransformName n r => [Located (FunDep (Located n))] -> Trf (AnnMaybeG AST.UFunDeps (Dom r) RangeStage)
-trfFunDeps [] = nothing "| " "" $ focusBeforeIfPresent AnnWhere atTheEnd
+trfFunDeps [] = do whereToken <- tokenLoc AnnWhere
+                   nothing "| " "" (if isGoodSrcSpan whereToken then pure $ srcSpanStart whereToken else atTheEnd)
 trfFunDeps fundeps = makeJust <$> annLocNoSema (combineSrcSpans (collectLocs fundeps) <$> tokenLoc AnnVbar) 
                                          (AST.UFunDeps <$> trfAnnList ", " trfFunDep' fundeps)
   
