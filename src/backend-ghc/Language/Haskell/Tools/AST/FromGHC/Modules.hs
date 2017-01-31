@@ -109,8 +109,8 @@ trfModuleHead :: TransformName n r => Maybe (Located ModuleName) -> Maybe (Locat
 trfModuleHead (Just mn) exports modPrag
   = makeJust <$> (annLocNoSema (tokensLoc [AnnModule, AnnWhere])
                                (AST.UModuleHead <$> trfModuleName mn 
-                                                <*> trfModulePragma modPrag
-                                                <*> trfExportList (srcSpanEnd $ getLoc mn) exports))
+                                                <*> trfModulePragma (srcSpanEnd $ getLoc mn) modPrag
+                                                <*> trfExportList (before AnnWhere) exports))
 trfModuleHead _ Nothing _ = nothing "" "" moduleHeadPos
   where moduleHeadPos = after AnnClose >>= \case loc@(RealSrcLoc _) -> return loc
                                                  _ -> atTheStart
@@ -131,18 +131,18 @@ trfLanguagePragma lstr@(L l _) = annLocNoSema (pure l) (AST.ULanguagePragma <$> 
 trfOptionsPragma :: Located String -> Trf (Ann AST.UFilePragma (Dom r) RangeStage)
 trfOptionsPragma (L l str) = annLocNoSema (pure l) (AST.UOptionsPragma <$> annContNoSema (pure $ AST.UStringNode str))
 
-trfModulePragma :: Maybe (Located WarningTxt) -> Trf (AnnMaybeG AST.UModulePragma (Dom r) RangeStage)
-trfModulePragma = trfMaybeDefault " " "" (trfLocNoSema $ \case WarningTxt _ txts -> AST.UModuleWarningPragma <$> trfAnnList " " trfText' txts
-                                                               DeprecatedTxt _ txts -> AST.UModuleDeprecatedPragma <$> trfAnnList " " trfText' txts) 
-                                  (before AnnWhere)
+trfModulePragma :: SrcLoc -> Maybe (Located WarningTxt) -> Trf (AnnMaybeG AST.UModulePragma (Dom r) RangeStage)
+trfModulePragma l = trfMaybeDefault " " "" (trfLocNoSema $ \case WarningTxt _ txts -> AST.UModuleWarningPragma <$> trfAnnList " " trfText' txts
+                                                                 DeprecatedTxt _ txts -> AST.UModuleDeprecatedPragma <$> trfAnnList " " trfText' txts) 
+                                    (pure l)
 
 trfText' :: StringLiteral -> Trf (AST.UStringNode (Dom r) RangeStage)
 trfText' = pure . AST.UStringNode . unpackFS . sl_fs
 
 
 
-trfExportList :: TransformName n r => SrcLoc -> Maybe (Located [LIE n]) -> Trf (AnnMaybeG AST.UExportSpecs (Dom r) RangeStage)
-trfExportList loc = trfMaybeDefault " " "" (trfLocNoSema trfExportList') (pure loc)
+trfExportList :: TransformName n r => Trf SrcLoc -> Maybe (Located [LIE n]) -> Trf (AnnMaybeG AST.UExportSpecs (Dom r) RangeStage)
+trfExportList loc = trfMaybeDefault "" " " (trfLocNoSema trfExportList') loc
 
 trfExportList' :: TransformName n r => [LIE n] -> Trf (AST.UExportSpecs (Dom r) RangeStage)
 trfExportList' exps = AST.UExportSpecs <$> (makeList ", " (after AnnOpenP) (orderDefs . catMaybes <$> (mapM trfExport exps)))
