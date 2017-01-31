@@ -482,8 +482,8 @@ trfRole = trfLocNoSema $ \case Just Nominal -> pure AST.UNominal
 trfRewriteRule :: TransformName n r => Located (RuleDecl n) -> Trf (Ann AST.URule (Dom r) RangeStage)
 trfRewriteRule = trfLocNoSema $ \(HsRule (L nameLoc (_, ruleName)) act bndrs left _ right _) ->
   AST.URule <$> trfFastString (L nameLoc ruleName) 
-            <*> trfPhase (before AnnForall) act
-            <*> makeNonemptyList " " (mapM trfRuleBndr bndrs)
+            <*> trfPhase (pure $ srcSpanEnd nameLoc) act
+            <*> makeListAfter " " " " (pure $ srcSpanStart $ getLoc left) (mapM trfRuleBndr bndrs)
             <*> trfExpr left
             <*> trfExpr right
 

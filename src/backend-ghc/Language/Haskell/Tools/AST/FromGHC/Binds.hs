@@ -167,7 +167,7 @@ trfInlinePragma name (InlinePragma src Inline _ phase cl)
                                          <*> trfName name
 
 trfPhase :: Trf SrcLoc -> Activation -> Trf (AnnMaybeG AST.UPhaseControl (Dom r) RangeStage)
-trfPhase l AlwaysActive = nothing "" " " l
+trfPhase l AlwaysActive = nothing " " "" l
 trfPhase _ (ActiveAfter _ pn) = makeJust <$> annLocNoSema (combineSrcSpans <$> tokenLoc AnnOpenS <*> tokenLoc AnnCloseS) 
                                                           (AST.UPhaseControl <$> nothing "" "" (before AnnCloseS) <*> trfPhaseNum pn)
 trfPhase _ (ActiveBefore _ pn) = makeJust <$> annLocNoSema (combineSrcSpans <$> tokenLoc AnnOpenS <*> tokenLoc AnnCloseS)

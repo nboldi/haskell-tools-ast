@@ -161,17 +161,20 @@ trfImports (filter (not . ideclImplicit . unLoc) -> imps)
                                                   <*> (srcLocSpan . srcSpanEnd <$> tokenLoc AnnWhere))
 trfImport :: TransformName n r => LImportDecl n -> Trf (Ann AST.UImportDecl (Dom r) RangeStage)
 trfImport (L l impDecl@(GHC.ImportDecl _ name pkg isSrc isSafe isQual _ declAs declHiding)) =
-  let -- default positions of optional parts of an import declaration
-      annBeforeQual = if isSrc then AnnClose else AnnImport
-      annBeforeSafe = if isQual then AnnQualified else annBeforeQual
-      annBeforePkg = if isSafe then AnnSafe else annBeforeSafe
-  in annLoc (createImportData impDecl) (pure l) $ AST.UImportDecl 
+  do safeTok <- tokenLoc AnnSafe
+
+     let -- default positions of optional parts of an import declaration
+         annBeforeQual = if isSrc then AnnClose else AnnImport
+         annBeforeSafe = if isQual then AnnQualified else annBeforeQual
+         annBeforePkg = if isGoodSrcSpan safeTok then AnnSafe else annBeforeSafe
+
+     annLoc (createImportData impDecl) (pure l) $ AST.UImportDecl 
        <$> (if isSrc then makeJust <$> annLocNoSema (tokensLoc [AnnOpen, AnnClose]) (pure AST.UImportSource)
                      else nothing " " "" (after AnnImport))
        <*> (if isQual then makeJust <$> (annLocNoSema (tokenLoc AnnQualified) (pure AST.UImportQualified)) 
                       else nothing " " "" (after annBeforeQual))
-       <*> (if isSafe then makeJust <$> (annLocNoSema (tokenLoc AnnSafe) (pure AST.UImportSafe)) 
-                      else nothing " " "" (after annBeforeSafe))
+       <*> (if isGoodSrcSpan safeTok then makeJust <$> (annLocNoSema (pure safeTok) (pure AST.UImportSafe)) 
+                                     else nothing " " "" (after annBeforeSafe))
        <*> maybe (nothing " " "" (after annBeforePkg)) 
                  (\str -> makeJust <$> (annLocNoSema (tokenLoc AnnPackageName) (pure (AST.UStringNode (unpackFS $ sl_fs str))))) pkg
        <*> trfModuleName name 
