@@ -206,8 +206,9 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
               origCont <- liftIO (StrictBS.unpack <$> StrictBS.readFile (getModSumOrig ms))
               let newCont = prettyPrint m
                   undo = createUndo 0 $ getGroupedDiff origCont newCont
-              liftIO $ withBinaryFile (getModSumOrig ms) WriteMode (`hPutStr` newCont)
-              return $ Right (n, getModSumOrig ms, UndoChanges undo)
+                  file = getModSumOrig ms
+              liftIO $ withBinaryFile file WriteMode (`hPutStr` newCont)
+              return $ Right (n, file, UndoChanges file undo)
             ModuleRemoved mod -> do
               Just (_,m) <- gets (lookupModInSCs (SourceFileKey NormalHs mod) . (^. refSessMCs))
               let modName = GHC.moduleName $ fromJust $ fmap semanticsModule (m ^? typedRecModule) <|> fmap semanticsModule (m ^? renamedRecModule)
@@ -225,7 +226,13 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
                liftIO $ case reloadRes of Left errs -> resp (either ErrorMessage (ErrorMessage . ("The result of the refactoring contains errors: " ++) . show) (getProblems errs))
                                           Right _ -> return ()
 
-data UndoRefactor = RemoveAdded FilePath | RestoreRemoved FilePath String | UndoChanges FileDiff
+data UndoRefactor = RemoveAdded { undoRemovePath :: FilePath }
+                  | RestoreRemoved { undoRestorePath :: FilePath
+                                   , undoRestoreContents :: String
+                                   }
+                  | UndoChanges { undoChangedPath :: FilePath
+                                , undoDiff :: FileDiff
+                                }
   deriving (Show, Generic)
 
 instance ToJSON UndoRefactor
