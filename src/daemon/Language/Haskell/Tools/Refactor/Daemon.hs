@@ -124,22 +124,21 @@ updateClient resp (AddPackages packagePathes) = do
     existingMCs <- gets (^. refSessMCs)
     let existing = map ms_mod $ (existingMCs ^? traversal & filtered isTheAdded & mcModules & traversal & modRecMS)
     needToReload <- (filter (\ms -> not $ ms_mod ms `elem` existing))
-                      <$> getReachableModules (\ms -> ms_mod ms `elem` existing)
+                      <$> getReachableModules (\_ -> return ()) (\ms -> ms_mod ms `elem` existing)
     modify $ refSessMCs .- filter (not . isTheAdded) -- remove the added package from the database
     forM_ existing $ \mn -> removeTarget (TargetModule (GHC.moduleName mn))
     modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existing) . ms_mod) (hsc_mod_graph s) })
     initializePackageDBIfNeeded
-    res <- loadPackagesFrom (return . getModSumOrig) packagePathes
+    res <- loadPackagesFrom (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]) >> return (getModSumOrig ms))
+                            (resp . LoadingModules . map getModSumOrig) packagePathes
     case res of
       Right (modules, ignoredMods) -> do
         mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
-        liftIO $ resp
-          $ if not (null ignoredMods)
-              then ErrorMessage
-                     $ "The following modules are ignored: "
-                         ++ concat (intersperse ", " ignoredMods)
-                         ++ ". Multiple modules with the same qualified name are not supported."
-              else LoadedModules modules
+        liftIO $ when (not $ null ignoredMods)
+                   $ resp $ ErrorMessage
+                              $ "The following modules are ignored: "
+                                   ++ concat (intersperse ", " ignoredMods)
+                                   ++ ". Multiple modules with the same qualified name are not supported."
       Left err -> liftIO $ resp $ either ErrorMessage CompilationProblem (getProblems err)
     return True
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
@@ -167,7 +166,8 @@ updateClient resp (ReLoad changed removed) =
      modify $ refSessMCs & traversal & mcModules
                 .- Map.filter (\m -> maybe True (not . (`elem` removed) . getModSumOrig) (m ^? modRecMS))
      modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` removedMods) . ms_mod) (hsc_mod_graph s) })
-     reloadRes <- reloadChangedModules (\ms -> resp (LoadedModules [getModSumOrig ms]))
+     reloadRes <- reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
+                                       (\mss -> resp (LoadingModules (map getModSumOrig mss)))
                                        (\ms -> getModSumOrig ms `elem` changed)
      liftIO $ case reloadRes of Left errs -> resp (either ErrorMessage CompilationProblem (getProblems errs))
                                 Right _ -> return ()
@@ -221,7 +221,8 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
               return $ Left $ RestoreRemoved file origCont
 
         reloadChanges changedMods
-          = do reloadRes <- reloadChangedModules (\ms -> resp (LoadedModules [getModSumOrig ms]))
+          = do reloadRes <- reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
+                                                 (\mss -> resp (LoadingModules (map getModSumOrig mss)))
                                                  (\ms -> modSumName ms `elem` changedMods)
                liftIO $ case reloadRes of Left errs -> resp (either ErrorMessage (ErrorMessage . ("The result of the refactoring contains errors: " ++) . show) (getProblems errs))
                                           Right _ -> return ()
@@ -289,7 +290,8 @@ data ResponseMsg
   | ErrorMessage { errorMsg :: String }
   | CompilationProblem { errorMarkers :: [(SrcSpan, String)] }
   | ModulesChanged { undoChanges :: [UndoRefactor] }
-  | LoadedModules { loadedModules :: [FilePath] }
+  | LoadedModules { loadedModules :: [(FilePath, String)] }
+  | LoadingModules { modulesToLoad :: [FilePath] }
   | Disconnected
   deriving (Show, Generic)
 

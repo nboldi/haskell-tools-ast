@@ -72,62 +72,78 @@ loadingTests :: [(String, [ClientMessage], [ResponseMsg])]
 loadingTests =
   [ ( "load-package"
     , [AddPackages [testRoot </> "has-cabal"]]
-    , [LoadedModules [testRoot </> "has-cabal" </> "A.hs"]] )
+    , [ LoadingModules [testRoot </> "has-cabal" </> "A.hs"]
+      , LoadedModules [(testRoot </> "has-cabal" </> "A.hs", "A")]] )
   , ( "no-cabal"
     , [AddPackages [testRoot </> "no-cabal"]]
-    , [LoadedModules [testRoot </> "no-cabal" </> "A.hs"]] )
+    , [ LoadingModules [testRoot </> "no-cabal" </> "A.hs"]
+      , LoadedModules [(testRoot </> "no-cabal" </> "A.hs", "A")]] )
   , ( "source-dir"
     , [AddPackages [testRoot </> "source-dir"]]
-    , [LoadedModules [testRoot </> "source-dir" </> "src" </> "A.hs"]] )
+    , [ LoadingModules [testRoot </> "source-dir" </> "src" </> "A.hs"]
+      , LoadedModules [(testRoot </> "source-dir" </> "src" </> "A.hs", "A")]] )
   , ( "source-dir-outside"
     , [AddPackages [testRoot </> "source-dir-outside"]]
-    , [LoadedModules [testRoot </> "source-dir-outside" </> ".." </> "src" </> "A.hs"]] )
+    , [ LoadingModules [testRoot </> "source-dir-outside" </> ".." </> "src" </> "A.hs"]
+      , LoadedModules [(testRoot </> "source-dir-outside" </> ".." </> "src" </> "A.hs", "A")]] )
   , ( "multi-packages"
     , [ AddPackages [ testRoot </> "multi-packages" </> "package1"
                     , testRoot </> "multi-packages" </> "package2" ]]
-    , [ LoadedModules [ testRoot </> "multi-packages" </> "package2" </> "B.hs"
-                      , testRoot </> "multi-packages" </> "package1" </> "A.hs"]] )
+    , [ LoadingModules [ testRoot </> "multi-packages" </> "package1" </> "A.hs"
+                       , testRoot </> "multi-packages" </> "package2" </> "B.hs" ]
+      , LoadedModules [ (testRoot </> "multi-packages" </> "package2" </> "B.hs", "B") ]
+      , LoadedModules [ (testRoot </> "multi-packages" </> "package1" </> "A.hs", "A") ] ] )
   , ( "multi-packages-flags"
     , [ AddPackages [ testRoot </> "multi-packages-flags" </> "package1"
                     , testRoot </> "multi-packages-flags" </> "package2" ]]
-    , [ LoadedModules [ testRoot </> "multi-packages-flags" </> "package2" </> "B.hs"
-                      , testRoot </> "multi-packages-flags" </> "package1" </> "A.hs"]] )
+    , [ LoadingModules [ testRoot </> "multi-packages-flags" </> "package1" </> "A.hs"
+                       , testRoot </> "multi-packages-flags" </> "package2" </> "B.hs" ]
+      , LoadedModules [ (testRoot </> "multi-packages-flags" </> "package2" </> "B.hs", "B") ]
+      , LoadedModules [ (testRoot </> "multi-packages-flags" </> "package1" </> "A.hs", "A") ] ] )
   , ( "multi-packages-dependent"
     , [ AddPackages [ testRoot </> "multi-packages-dependent" </> "package1"
                     , testRoot </> "multi-packages-dependent" </> "package2" ]]
-    , [ LoadedModules [ testRoot </> "multi-packages-dependent" </> "package1" </> "A.hs"
-                      , testRoot </> "multi-packages-dependent" </> "package2" </> "B.hs"]] )
+    , [ LoadingModules [ testRoot </> "multi-packages-dependent" </> "package1" </> "A.hs"
+                       , testRoot </> "multi-packages-dependent" </> "package2" </> "B.hs" ]
+      , LoadedModules [ (testRoot </> "multi-packages-dependent" </> "package1" </> "A.hs", "A") ]
+      , LoadedModules [ (testRoot </> "multi-packages-dependent" </> "package2" </> "B.hs", "B") ] ] )
   , ( "has-th"
     , [AddPackages [testRoot </> "has-th"]]
-    , [LoadedModules [testRoot </> "has-th" </> "TH.hs", testRoot </> "has-th" </> "A.hs"]] )
+    , [ LoadingModules [ testRoot </> "has-th" </> "A.hs",  testRoot </> "has-th" </> "TH.hs" ]
+      , LoadedModules [ (testRoot </> "has-th" </> "TH.hs", "TH") ]
+      , LoadedModules [ (testRoot </> "has-th" </> "A.hs", "A") ] ] )
   , ( "th-added-later"
     , [ AddPackages [testRoot </> "th-added-later" </> "package1"]
       , AddPackages [testRoot </> "th-added-later" </> "package2"]
       ]
-    , [ LoadedModules [testRoot </> "th-added-later" </> "package1" </> "A.hs"]
-      , LoadedModules [testRoot </> "th-added-later" </> "package2" </> "B.hs"]] )
+    , [ LoadingModules [ testRoot </> "th-added-later" </> "package1" </> "A.hs" ]
+      , LoadedModules [(testRoot </> "th-added-later" </> "package1" </> "A.hs", "A")]
+      , LoadingModules [ testRoot </> "th-added-later" </> "package1" </> "A.hs"
+                       , testRoot </> "th-added-later" </> "package2" </> "B.hs" ]
+      , LoadedModules [(testRoot </> "th-added-later" </> "package1" </> "A.hs", "A")]
+      , LoadedModules [(testRoot </> "th-added-later" </> "package2" </> "B.hs", "B")] ] )
   ]
 
 compProblemTests :: [(String, [Either (IO ()) ClientMessage], [ResponseMsg] -> Bool)]
 compProblemTests =
   [ ( "load-error"
     , [ Right $ AddPackages [testRoot </> "load-error"] ]
-    , \case [CompilationProblem {}] -> True; _ -> False)
+    , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
   , ( "source-error"
     , [ Right $ AddPackages [testRoot </> "source-error"] ]
-    , \case [CompilationProblem {}] -> True; _ -> False)
+    , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
   , ( "reload-error"
     , [ Right $ AddPackages [testRoot </> "empty"]
       , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\nimport No.Such.Module"
       , Right $ ReLoad [testRoot </> "empty" </> "A.hs"] []
       , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]
-    , \case [LoadedModules {}, CompilationProblem {}] -> True; _ -> False)
+    , \case [LoadingModules {}, LoadedModules {}, LoadingModules {}, CompilationProblem {}] -> True; _ -> False)
   , ( "reload-source-error"
     , [ Right $ AddPackages [testRoot </> "empty"]
       , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\naa = 3 + ()"
       , Right $ ReLoad [testRoot </> "empty" </> "A.hs"] []
       , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]
-    , \case [LoadedModules {}, CompilationProblem {}] -> True; _ -> False)
+    , \case [LoadingModules {}, LoadedModules {}, LoadingModules {}, CompilationProblem {}] -> True; _ -> False)
   ]
 
 sourceRoot = ".." </> ".." </> "src"
@@ -146,22 +162,23 @@ refactorTests testRoot =
     , [ AddPackages [ testRoot </> "simple-refactor" ++ testSuffix ]
       , PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" ++ testSuffix </> "A.hs") "3:1-3:2" ["y"]
       ]
-    , \case [ LoadedModules [ aPath ], ModulesChanged _, LoadedModules [ aPath' ]]
+    , \case [ LoadingModules{}, LoadedModules [ (aPath, _) ], ModulesChanged _, LoadingModules{}, LoadedModules [ (aPath', _) ]]
               -> aPath == testRoot </> "simple-refactor" ++ testSuffix </> "A.hs" && aPath == aPath'; _ -> False )
   , ( "hs-boots", testRoot </> "hs-boots"
     , [ AddPackages [ testRoot </> "hs-boots" ++ testSuffix ]
       , PerformRefactoring "RenameDefinition" (testRoot </> "hs-boots" ++ testSuffix </> "A.hs") "5:1-5:2" ["aa"]
       ]
-    , \case [ LoadedModules pathes, ModulesChanged _, LoadedModules [ path1 ]
-              , LoadedModules [ path2 ], LoadedModules [ path3 ], LoadedModules [ path4 ]
+    , \case [ LoadingModules{}, LoadedModules _, LoadedModules _, LoadedModules _, LoadedModules _, ModulesChanged _
+              , LoadingModules{}, LoadedModules [ (path1, _) ], LoadedModules [ (path2, _) ]
+              , LoadedModules [ (path3, _) ], LoadedModules [ (path4, _) ]
               ] -> let allPathes = map ((testRoot </> "hs-boots" ++ testSuffix) </>) ["A.hs","B.hs","A.hs-boot","B.hs-boot"]
-                    in sort allPathes == sort pathes && sort [path1,path2,path3,path4] == sort allPathes
+                    in sort [path1,path2,path3,path4] == sort allPathes
             _ -> False )
   , ( "remove-module", testRoot </> "simple-refactor"
     , [ AddPackages [ testRoot </> "simple-refactor" ++ testSuffix ]
       , PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" ++ testSuffix </> "A.hs") "1:8-1:9" ["AA"]
       ]
-    , \case [ LoadedModules [ aPath ], ModulesChanged _, LoadedModules [ aaPath ]]
+    , \case [ LoadingModules{},LoadedModules [ (aPath, _) ], ModulesChanged _, LoadingModules{},LoadedModules [ (aaPath, _) ]]
               -> aPath == testRoot </> "simple-refactor" ++ testSuffix </> "A.hs"
                    && aaPath == testRoot </> "simple-refactor" ++ testSuffix </> "AA.hs"
             _ -> False )
@@ -174,11 +191,13 @@ reloadingTests =
     , [ ReLoad [testRoot </> "reloading" ++ testSuffix </> "C.hs"] []
       , PerformRefactoring "RenameDefinition" (testRoot </> "reloading" ++ testSuffix </> "C.hs") "2:1-2:2" ["d"]
       ]
-    , \case [ LoadedModules pathes, LoadedModules [pathC], LoadedModules [pathB], LoadedModules [pathA]
-              , ModulesChanged _, LoadedModules [pathC'], LoadedModules [pathB'], LoadedModules [pathA']
+    , \case [ LoadingModules{}, LoadedModules [(pathC'',_)], LoadedModules [(pathB'',_)], LoadedModules [(pathA'',_)]
+              , LoadingModules{}, LoadedModules [(pathC,_)], LoadedModules [(pathB,_)], LoadedModules [(pathA,_)]
+              , ModulesChanged _, LoadingModules{},LoadedModules [(pathC',_)], LoadedModules [(pathB',_)], LoadedModules [(pathA',_)]
               ] -> let allPathes = map ((testRoot </> "reloading" ++ testSuffix) </>) ["C.hs","B.hs","A.hs"]
-                    in allPathes == pathes && [pathC,pathB,pathA] == allPathes
+                    in [pathC,pathB,pathA] == allPathes
                          && [pathC',pathB',pathA'] == allPathes
+                         && [pathC'',pathB'',pathA''] == allPathes
             _ -> False )
   , ( "reloading-package", testRoot </> "changing-cabal"
     , [ AddPackages [ testRoot </> "changing-cabal" ++ testSuffix ]]
@@ -186,10 +205,11 @@ reloadingTests =
     , [ AddPackages [testRoot </> "changing-cabal" ++ testSuffix]
       , PerformRefactoring "RenameDefinition" (testRoot </> "changing-cabal" ++ testSuffix </> "A.hs") "3:1-3:2" ["z"]
       ]
-    , \case [ LoadedModules [pathA], LoadedModules [pathA', pathB], ModulesChanged _
-              , LoadedModules [pathA''], LoadedModules [pathB']
+    , \case [ LoadingModules{}, LoadedModules [(pathA,_)], LoadingModules{}, LoadedModules [(pathA',_)]
+              , LoadedModules [(pathB',_)], ModulesChanged _
+              , LoadingModules{}, LoadedModules [(pathA'',_)], LoadedModules [(pathB'',_)]
               ] -> let [pA,pB] = map ((testRoot </> "changing-cabal" ++ testSuffix) </>) ["A.hs","B.hs"]
-                    in pA == pathA && pA == pathA' && pA == pathA'' && pB == pathB && pB == pathB'
+                    in pA == pathA && pA == pathA' && pA == pathA'' && pB == pathB' && pB == pathB''
             _ -> False )
   , ( "reloading-remove", testRoot </> "reloading", [ AddPackages [ testRoot </> "reloading" ++ testSuffix ]]
     , do removeFile (testRoot </> "reloading" ++ testSuffix </> "A.hs")
@@ -198,9 +218,10 @@ reloadingTests =
                [testRoot </> "reloading" ++ testSuffix </> "A.hs", testRoot </> "reloading" ++ testSuffix </> "B.hs"]
       , PerformRefactoring "RenameDefinition" (testRoot </> "reloading" ++ testSuffix </> "C.hs") "3:1-3:2" ["d"]
       ]
-    , \case [ LoadedModules pathes, LoadedModules [pathC], ModulesChanged _, LoadedModules [pathC'] ]
-              -> let allPathes@[pC,_,_] = map ((testRoot </> "reloading" ++ testSuffix) </>) ["C.hs","B.hs","A.hs"]
-                  in pathes == allPathes && pC == pathC && pC == pathC'
+    , \case [ LoadingModules{}, LoadedModules [(pathC,_)], LoadedModules [(pathB,_)], LoadedModules [(pathA,_)]
+              , LoadingModules{}, LoadedModules [(pathC',_)], ModulesChanged _, LoadingModules{}, LoadedModules [(pathC'',_)] ]
+              -> let [pC,pB,pA] = map ((testRoot </> "reloading" ++ testSuffix) </>) ["C.hs","B.hs","A.hs"]
+                  in pA == pathA && pB == pathB && pC == pathC && pC == pathC' && pC == pathC''
             _ -> False )
   , ( "remove-package", testRoot </> "multi-packages-dependent"
     , [ AddPackages [ testRoot </> "multi-packages-dependent" ++ testSuffix </> "package1"
@@ -210,9 +231,9 @@ reloadingTests =
       , PerformRefactoring "RenameDefinition" (testRoot </> "multi-packages-dependent" ++ testSuffix </> "package1" </> "A.hs")
                                               "3:1-3:2" ["d"]
       ]
-    , \case [ LoadedModules pathes, ModulesChanged _, LoadedModules [ pathA ] ]
-              -> let allPathes@[pA,_] = map ((testRoot </> "multi-packages-dependent" ++ testSuffix) </>) [ "package1" </> "A.hs", "package2" </> "B.hs"]
-                  in pathes == allPathes && pA == pathA
+    , \case [ LoadingModules{}, LoadedModules [(pathA',_)], LoadedModules [(pathB',_)], ModulesChanged _, LoadingModules{}, LoadedModules [(pathA,_)] ]
+              -> let [pA,pB] = map ((testRoot </> "multi-packages-dependent" ++ testSuffix) </>) [ "package1" </> "A.hs", "package2" </> "B.hs"]
+                  in pA == pathA && pA == pathA' && pB == pathB'
             _ -> False )
   ]
 
@@ -225,11 +246,13 @@ pkgDbTests
     , -} ( "cabal-sandbox"
       , withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
       , [SetPackageDB CabalSandboxDB, AddPackages [testRoot </> "cabal-sandbox"]]
-      , [LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]] )
+      , [ LoadingModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]
+        , LoadedModules [(testRoot </> "cabal-sandbox" </> "UseGroups.hs", "UseGroups")]] )
     , ( "cabal-sandbox-auto"
       , withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
       , [SetPackageDB AutoDB, AddPackages [testRoot </> "cabal-sandbox"]]
-      , [LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]] )
+      , [ LoadingModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]
+        , LoadedModules [(testRoot </> "cabal-sandbox" </> "UseGroups.hs", "UseGroups")]] )
     -- , ( "stack-auto"
     --   , withCurrentDirectory (testRoot </> "stack") initStack
     --   , [SetPackageDB AutoDB, AddPackages [testRoot </> "stack"]]
@@ -239,8 +262,10 @@ pkgDbTests
       , [ SetPackageDB AutoDB
         , AddPackages [testRoot </> "cabal-sandbox"]
         , ReLoad [testRoot </> "cabal-sandbox" </> "UseGroups.hs"] []]
-      , [ LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]
-        , LoadedModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"] ])
+      , [ LoadingModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]
+        , LoadedModules [(testRoot </> "cabal-sandbox" </> "UseGroups.hs", "UseGroups")]
+        , LoadingModules [testRoot </> "cabal-sandbox" </> "UseGroups.hs"]
+        , LoadedModules [(testRoot </> "cabal-sandbox" </> "UseGroups.hs", "UseGroups")] ])
     ]
   where initCabalSandbox = do
           sandboxExists <- doesDirectoryExist ".cabal-sandbox"
