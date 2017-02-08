@@ -1,12 +1,6 @@
 # haskell-tools
 
-The goal of this project is to create developer tools for the functional programming language Haskell. Currently this repository contains the **ht-refact** tool, a refactoring tool for Haskell. There are 5 implemented refactorings: 
-  - **Rename definition**: Can rename bindings, data types, constructors, fields, type variables, etc. Respects scoping.
-  - **Extract binding**: Extracts the selected expression as a local binding.
-  - **Inline binding**: Removes the selected binding and replaces the uses with binding's implementation.
-  - **Generate type signature**: Generates the type signature for a function. Useful for declaring the type if it is complex.
-  - **Organize imports**: Sorts the imports into alphabetical order and narrows the set of imported definitions to the ones that are really used.
-  - **Generate exports**: Generate an export list for the module that contains all definitions in it. Useful for narrowing the list of exported definitions to the ones that need to be public.
+The goal of this project is to create developer tools for the functional programming language Haskell. Currently this repository contains the **ht-refact** tool, a refactoring tool for Haskell. [Check out the refactorings!](documentation/refactorings.md)
 
 **[Check out our demo](http://haskelltools.org)**
 
@@ -22,7 +16,7 @@ The goal of this project is to create developer tools for the functional program
     - `stack setup`
     - `stack build`
   - *Alternative*: you have to cabal-install each package of the repository in the following order: `ast`, `ast-ghc`, `ast-trf`, `ast-gen`, `ast-ppr`, `refactor`.
-  
+
 ## Running the CLI
 
   - If you are using stack to build from source: `stack exec ht-refact -- [flags] package-roots`
@@ -30,7 +24,7 @@ The goal of this project is to create developer tools for the functional program
   - You can use [ghc flags](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html) to control how modules are loaded and checked.
   - By setting the `-one-shot`, `-module-name=<modulename>` and `-refactoring=<refactor-command>` flags, you can perform a refactoring without the interactive mode.
   - By using the `-dry-run` flag, the files will not be modified, the result will be printed on the output.
-  
+
 When the interactive session is started:
   - Select a module to refactor with `SelectModule modulename`
   - Use the refactorings:
