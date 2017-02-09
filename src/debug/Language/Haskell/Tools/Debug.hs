@@ -1,14 +1,19 @@
  {-# LANGUAGE StandaloneDeriving
             , DeriveGeneric
+            , LambdaCase
             #-}
 module Language.Haskell.Tools.Debug where
 
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.Maybe (Maybe(..), fromJust)
 import GHC.Generics (Generic(..))
+import System.FilePath
 
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
+import DynFlags
+import Language.Haskell.TH.LanguageExtensions
+import StringBuffer
 
 import Language.Haskell.Tools.AST (NodeInfo(..))
 import Language.Haskell.Tools.AST.FromGHC
@@ -23,7 +28,7 @@ import Language.Haskell.Tools.Transform
 
 -- | Should be only used for testing
 demoRefactor :: String -> String -> [String] -> String -> IO ()
-demoRefactor command workingDir args moduleName = 
+demoRefactor command workingDir args moduleName =
   runGhc (Just libdir) $ do
     initGhcFlags
     _ <- useFlags args
@@ -31,10 +36,10 @@ demoRefactor command workingDir args moduleName =
     modSum <- loadModule workingDir moduleName
     p <- parseModule modSum
     t <- typecheckModule p
-        
-    let annots = pm_annotations $ tm_parsed_module t
 
-    liftIO $ putStrLn $ show annots
+    let annots = pm_annotations $ tm_parsed_module t
+        hasCPP = Cpp `xopt` ms_hspp_opts modSum
+
     liftIO $ putStrLn "=========== parsed source:"
     liftIO $ putStrLn $ show (pm_parsed_source p)
     liftIO $ putStrLn "=========== renamed source:"
@@ -55,15 +60,18 @@ demoRefactor command workingDir args moduleName =
     let cutUp = cutUpRanges commented
     liftIO $ putStrLn $ srcInfoDebug cutUp
     liftIO $ putStrLn $ show $ getLocIndices cutUp
-    liftIO $ putStrLn $ show $ mapLocIndices (fromJust $ ms_hspp_buf $ pm_mod_summary p) (getLocIndices cutUp)
+
+    sourceOrigin <- if hasCPP then liftIO $ hGetStringBuffer (workingDir </> map (\case '.' -> pathSeparator; c -> c) moduleName <.> "hs")
+                              else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
+    liftIO $ putStrLn $ show $ mapLocIndices sourceOrigin (getLocIndices cutUp)
     liftIO $ putStrLn "=========== sourced:"
-    let sourced = rangeToSource (fromJust $ ms_hspp_buf $ pm_mod_summary p) cutUp
+    let sourced = (if hasCPP then fixCPPSpans else id) $ rangeToSource sourceOrigin cutUp
     liftIO $ putStrLn $ srcInfoDebug sourced
     liftIO $ putStrLn "=========== pretty printed:"
     let prettyPrinted = prettyPrint sourced
     liftIO $ putStrLn prettyPrinted
     transformed <- performCommand (readCommand command) ((SourceFileKey NormalHs moduleName), sourced) []
-    case transformed of 
+    case transformed of
       Right [ContentChanged (_, correctlyTransformed)] -> do
         liftIO $ putStrLn "=========== transformed AST:"
         liftIO $ putStrLn $ srcInfoDebug correctlyTransformed
@@ -77,6 +85,6 @@ demoRefactor command workingDir args moduleName =
         liftIO $ putStrLn "==========="
         liftIO $ putStrLn transformProblem
         liftIO $ putStrLn "==========="
-  
+
 deriving instance Generic SrcSpan
 deriving instance Generic (NodeInfo sema src)

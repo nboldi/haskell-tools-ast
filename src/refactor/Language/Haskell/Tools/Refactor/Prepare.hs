@@ -21,6 +21,7 @@ import qualified GHC (loadModule)
 import GHC.Paths ( libdir )
 import Packages
 import SrcLoc
+import StringBuffer
 
 import Control.Exception
 import Control.Monad
@@ -152,16 +153,15 @@ parseTyped :: ModSummary -> Ghc TypedModule
 parseTyped modSum = withAlteredDynFlags (return . normalizeFlags) $ do
   let hasStaticFlags = StaticPointers `xopt` ms_hspp_opts modSum
       hasCppExtension = Cpp `xopt` ms_hspp_opts modSum
-      hasUnicodeExtension = UnicodeSyntax `xopt` ms_hspp_opts modSum
       ms = if hasStaticFlags then forceAsmGen (modSumNormalizeFlags modSum) else (modSumNormalizeFlags modSum)
-  when (hasCppExtension || hasUnicodeExtension)
-    $ throw (IllegalExtensions (["CPP" | hasCppExtension] ++ ["UnicodeSyntax" | hasUnicodeExtension]))
   p <- parseModule ms
   tc <- typecheckModule p
   void $ GHC.loadModule tc -- when used with loadModule, the module will be loaded twice
   let annots = pm_annotations p
-      srcBuffer = fromJust $ ms_hspp_buf $ pm_mod_summary p
-  prepareAST srcBuffer . placeComments (getNormalComments $ snd annots)
+  srcBuffer <- if hasCppExtension
+                    then liftIO $ hGetStringBuffer (getModSumOrig ms)
+                    else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
+  (if hasCppExtension then fixCPPSpans else id) . prepareAST srcBuffer . placeComments (getNormalComments $ snd annots)
     <$> (addTypeInfos (typecheckedSource tc)
            =<< (do parseTrf <- runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms (pm_parsed_source p)
                    runTrf (fst annots) (getPragmaComments $ snd annots)

@@ -1,6 +1,6 @@
 -- | A module for preparing the representation of the AST for pretty printing.
 module Language.Haskell.Tools.Transform
-  ( prepareAST
+  ( prepareAST, fixCPPSpans
   -- comment handling
   , placeComments, getNormalComments, getPragmaComments
   -- generating source templates
@@ -19,6 +19,7 @@ import Language.Haskell.Tools.Transform.RangeTemplateToSourceTemplate (rangeToSo
 import Language.Haskell.Tools.Transform.RangeToRangeTemplate (cutUpRanges, fixRanges)
 import Language.Haskell.Tools.Transform.SourceTemplate
 import Language.Haskell.Tools.Transform.SourceTemplateHelpers
+import Language.Haskell.Tools.Transform.FixCPPSpans
 
 import Language.Haskell.Tools.AST
 import StringBuffer (StringBuffer)
