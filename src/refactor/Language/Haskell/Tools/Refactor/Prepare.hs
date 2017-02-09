@@ -161,7 +161,7 @@ parseTyped modSum = withAlteredDynFlags (return . normalizeFlags) $ do
   srcBuffer <- if hasCppExtension
                     then liftIO $ hGetStringBuffer (getModSumOrig ms)
                     else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
-  (if hasCppExtension then fixCPPSpans else id) . prepareAST srcBuffer . placeComments (getNormalComments $ snd annots)
+  (if hasCppExtension then prepareASTCpp else prepareAST) srcBuffer . placeComments (getNormalComments $ snd annots)
     <$> (addTypeInfos (typecheckedSource tc)
            =<< (do parseTrf <- runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms (pm_parsed_source p)
                    runTrf (fst annots) (getPragmaComments $ snd annots)

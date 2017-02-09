@@ -1,6 +1,6 @@
 -- | A module for preparing the representation of the AST for pretty printing.
 module Language.Haskell.Tools.Transform
-  ( prepareAST, fixCPPSpans
+  ( prepareAST, prepareASTCpp
   -- comment handling
   , placeComments, getNormalComments, getPragmaComments
   -- generating source templates
@@ -10,7 +10,7 @@ module Language.Haskell.Tools.Transform
   , sourceTemplateListRange, srcTmpListBefore, srcTmpListAfter, srcTmpDefaultSeparator, srcTmpIndented, srcTmpSeparators
   , sourceTemplateOptRange, srcTmpOptBefore, srcTmpOptAfter
   -- parts of the transformation, used for debugging purposes
-  , rangeToSource, fixRanges, cutUpRanges, getLocIndices, mapLocIndices
+  , rangeToSource, fixRanges, cutUpRanges, getLocIndices, mapLocIndices, fixMainRange, fixCPPSpans
   ) where
 
 import Language.Haskell.Tools.Transform.PlaceComments (getNormalComments, getPragmaComments, placeComments)
@@ -22,8 +22,19 @@ import Language.Haskell.Tools.Transform.SourceTemplateHelpers
 import Language.Haskell.Tools.Transform.FixCPPSpans
 
 import Language.Haskell.Tools.AST
-import StringBuffer (StringBuffer)
+import StringBuffer
+import SrcLoc
+import FastString
 
 -- | Prepares the AST for pretty printing
-prepareAST :: SourceInfoTraversal node => StringBuffer -> Ann node dom RangeStage -> Ann node dom SrcTemplateStage
+prepareAST :: StringBuffer -> Ann UModule dom RangeStage -> Ann UModule dom SrcTemplateStage
 prepareAST srcBuffer = rangeToSource srcBuffer . cutUpRanges . fixRanges
+
+prepareASTCpp :: StringBuffer -> Ann UModule dom RangeStage -> Ann UModule dom SrcTemplateStage
+prepareASTCpp srcBuffer = fixCPPSpans . rangeToSource srcBuffer . cutUpRanges . fixRanges . fixMainRange srcBuffer
+
+fixMainRange :: StringBuffer -> Ann UModule dom RangeStage -> Ann UModule dom RangeStage
+fixMainRange buffer mod = setRange (mkSrcSpan (srcSpanStart $ getRange mod) (RealSrcLoc (endPos startPos buffer))) mod
+  where startPos = mkRealSrcLoc (mkFastString "") 1 1
+        endPos pos buf | atEnd buf = pos
+        endPos pos buf = let (ch,buf') = nextChar buf in endPos (advanceSrcLoc pos ch) buf'

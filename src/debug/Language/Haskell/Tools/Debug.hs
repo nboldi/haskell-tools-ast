@@ -54,15 +54,15 @@ demoRefactor command workingDir args moduleName =
     transformed <- addTypeInfos (typecheckedSource t) =<< (runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModuleRename modSum parseTrf (fromJust $ tm_renamed_source t) (pm_parsed_source p))
     liftIO $ putStrLn $ srcInfoDebug transformed
     liftIO $ putStrLn "=========== ranges fixed:"
-    let commented = fixRanges $ placeComments (getNormalComments $ snd annots) transformed
+    sourceOrigin <- if hasCPP then liftIO $ hGetStringBuffer (workingDir </> map (\case '.' -> pathSeparator; c -> c) moduleName <.> "hs")
+                              else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
+    let commented = fixRanges $ placeComments (getNormalComments $ snd annots) $ fixMainRange sourceOrigin transformed
     liftIO $ putStrLn $ srcInfoDebug commented
     liftIO $ putStrLn "=========== cut up:"
     let cutUp = cutUpRanges commented
     liftIO $ putStrLn $ srcInfoDebug cutUp
     liftIO $ putStrLn $ show $ getLocIndices cutUp
 
-    sourceOrigin <- if hasCPP then liftIO $ hGetStringBuffer (workingDir </> map (\case '.' -> pathSeparator; c -> c) moduleName <.> "hs")
-                              else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
     liftIO $ putStrLn $ show $ mapLocIndices sourceOrigin (getLocIndices cutUp)
     liftIO $ putStrLn "=========== sourced:"
     let sourced = (if hasCPP then fixCPPSpans else id) $ rangeToSource sourceOrigin cutUp

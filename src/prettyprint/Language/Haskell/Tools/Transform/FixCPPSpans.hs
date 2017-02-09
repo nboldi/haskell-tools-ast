@@ -8,8 +8,6 @@ import Control.Reference
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.Transform.SourceTemplate
 
-import Debug.Trace
-
 fixCPPSpans :: Ann UModule dom SrcTemplateStage -> Ann UModule dom SrcTemplateStage
 -- the state will be used to pass the removed separators to the correct child
 fixCPPSpans = flip evalState [] . (sourceInfoTraverseDown (SourceInfoTrf trfElem trfList pure) (modify ([]:)) (modify tail))
