@@ -226,6 +226,7 @@ organizeImportTests =
   , "Refactor.OrganizeImports.MakeExplicit.ImportFour"
   , "Refactor.OrganizeImports.MakeExplicit.ImportFunHiddenClass"
   , "Refactor.OrganizeImports.MakeExplicit.ImportFunOutOfClass"
+  , "Refactor.OrganizeImports.MakeExplicit.Renamed"
   , "Refactor.OrganizeImports.InstanceCarry.ImportOrphan"
   , "Refactor.OrganizeImports.InstanceCarry.ImportNonOrphan"
   , "Refactor.OrganizeImports.NarrowQual"
