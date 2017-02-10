@@ -29,7 +29,6 @@ extra-source-files: examples/CppHs/Language/Preprocessor/*.hs
                   , examples/Project/multi-packages-same-module/package2/*.hs
                   , examples/Project/multi-packages-same-module/package2/*.cabal
                   , examples/Project/no-cabal/*.hs
-                  , examples/Project/illegal-extension/*.hs
                   , examples/Project/reloading/*.hs
                   , examples/Project/selection/*.hs
                   , examples/Project/source-dir/*.cabal
@@ -62,7 +61,7 @@ executable ht-refact
   hs-source-dirs:      exe
   main-is:             Main.hs
   default-language:    Haskell2010
-  
+
 executable ht-test-hackage
   build-depends:       base                      >= 4.9 && < 4.10
                      , directory                 >= 1.2 && < 1.4
@@ -70,7 +69,7 @@ executable ht-test-hackage
                      , split                     >= 0.2 && < 0.3
   hs-source-dirs:      test-hackage
   main-is:             Main.hs
-  default-language:    Haskell2010  
+  default-language:    Haskell2010
 
 executable ht-test-stackage
   build-depends:       base                      >= 4.9 && < 4.10
@@ -85,7 +84,7 @@ test-suite haskell-tools-cli-tests
   type:                exitcode-stdio-1.0
   ghc-options:         -with-rtsopts=-M2g -O2
   hs-source-dirs:      test
-  main-is:             Main.hs  
+  main-is:             Main.hs
   build-depends:       base                      >= 4.9 && < 4.10
                      , tasty                     >= 0.11 && < 0.12
                      , tasty-hunit               >= 0.9 && < 0.10
@@ -110,6 +109,4 @@ benchmark cli-benchmark
                      , bytestring                >= 0.10 && < 0.11
                      , split                     >= 0.2 && < 0.3
   hs-source-dirs:      benchmark
-  main-is:             Main.hs  
-
-
+  main-is:             Main.hs
