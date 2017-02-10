@@ -11,6 +11,7 @@ import GHC hiding (loadModule, ParsedModule)
 import DynFlags
 import GHC.Paths ( libdir )
 import Module as GHC
+import StringBuffer
 
 import Control.Reference
 import Control.Monad.IO.Class
@@ -88,7 +89,9 @@ functionalTests
 rootDir = "examples"
 
 languageTests =
-  [ "Decl.AmbiguousFields"
+  [ "CPP.JustEnabled"
+  , "CPP.ConditionalCode"
+  , "Decl.AmbiguousFields"
   , "Decl.AnnPragma"
   , "Decl.ClosedTypeFamily"
   , "Decl.CtorOp"
@@ -230,6 +233,7 @@ organizeImportTests =
   , "Refactor.OrganizeImports.StandaloneDeriving"
   , "Refactor.OrganizeImports.TemplateHaskell"
   , "Refactor.OrganizeImports.NarrowType"
+  , "CPP.ConditionalImport"
   ]
 
 generateSignatureTests =
@@ -526,9 +530,9 @@ checkCorrectlyPrinted workingDir moduleName
          actual' <- prettyPrint <$> parseRenamed parsed
          actual'' <- prettyPrint <$> parseTyped parsed
          return (actual, actual', actual'')
-       assertEqual "The original and the transformed source differ" expected actual
-       assertEqual "The original and the transformed source differ" expected actual'
-       assertEqual "The original and the transformed source differ" expected actual''
+       assertEqual "Parsed: The original and the transformed source differ" expected actual
+       assertEqual "Renamed: The original and the transformed source differ" expected actual'
+       assertEqual "Typechecked: The original and the transformed source differ" expected actual''
 
 performRefactors :: String -> String -> [String] -> String -> IO (Either String [(String, Maybe String)])
 performRefactors command workingDir flags target = do
@@ -557,27 +561,29 @@ type ParsedModule = Ann AST.UModule (Dom RdrName) SrcTemplateStage
 
 parseAST :: ModSummary -> Ghc ParsedModule
 parseAST modSum = do
-  let compExts = extensionFlags $ ms_hspp_opts modSum
-      hasStaticFlags = fromEnum StaticPointers `member` compExts
+  let hasStaticFlags = StaticPointers `xopt` ms_hspp_opts modSum
+      hasCppExtension = Cpp `xopt` ms_hspp_opts modSum
       ms = if hasStaticFlags then forceAsmGen modSum else modSum
   p <- parseModule ms
+  sourceOrigin <- if hasCppExtension then liftIO $ hGetStringBuffer (getModSumOrig ms)
+                                     else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
   let annots = pm_annotations p
-      srcBuffer = fromJust $ ms_hspp_buf $ pm_mod_summary p
-  prepareAST srcBuffer . placeComments (snd annots)
+  (if hasCppExtension then prepareASTCpp else prepareAST) sourceOrigin . placeComments (snd annots)
      <$> (runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms $ pm_parsed_source p)
 
 type RenamedModule = Ann AST.UModule (Dom GHC.Name) SrcTemplateStage
 
 parseRenamed :: ModSummary -> Ghc RenamedModule
 parseRenamed modSum = do
-  let compExts = extensionFlags $ ms_hspp_opts modSum
-      hasStaticFlags = fromEnum StaticPointers `member` compExts
+  let hasStaticFlags = StaticPointers `xopt` ms_hspp_opts modSum
+      hasCppExtension = Cpp `xopt` ms_hspp_opts modSum
       ms = if hasStaticFlags then forceAsmGen modSum else modSum
   p <- parseModule ms
+  sourceOrigin <- if hasCppExtension then liftIO $ hGetStringBuffer (getModSumOrig ms)
+                                     else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
   tc <- typecheckModule p
   let annots = pm_annotations p
-      srcBuffer = fromJust $ ms_hspp_buf $ pm_mod_summary p
-  prepareAST srcBuffer . placeComments (getNormalComments $ snd annots)
+  (if hasCppExtension then prepareASTCpp else prepareAST) sourceOrigin . placeComments (getNormalComments $ snd annots)
     <$> (do parseTrf <- runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms (pm_parsed_source p)
             runTrf (fst annots) (getPragmaComments $ snd annots)
               $ trfModuleRename ms parseTrf
