@@ -1,5 +1,5 @@
 -- | Utility functions for transforming the GHC AST representation into our own.
-{-# LANGUAGE TypeSynonymInstances 
+{-# LANGUAGE TypeSynonymInstances
            , FlexibleInstances
            , LambdaCase
            , ViewPatterns
@@ -45,10 +45,10 @@ import Language.Haskell.Tools.AST.FromGHC.SourceMap
 import Language.Haskell.Tools.AST.SemaInfoTypes as Sema
 
 createModuleInfo :: ModSummary -> Trf (Sema.ModuleInfo GHC.Name)
-createModuleInfo mod = do 
+createModuleInfo mod = do
   let prelude = xopt ImplicitPrelude $ ms_hspp_opts mod
   (_,preludeImports) <- if prelude then getImportedNames "Prelude" Nothing else return (ms_mod mod, [])
-  (insts, famInsts) <- if prelude then lift $ getOrphanAndFamInstances (Module baseUnitId (GHC.mkModuleName "Prelude")) 
+  (insts, famInsts) <- if prelude then lift $ getOrphanAndFamInstances (Module baseUnitId (GHC.mkModuleName "Prelude"))
                                   else return ([], [])
   return $ mkModuleInfo (ms_mod mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True) preludeImports insts famInsts
 
@@ -81,7 +81,7 @@ createImplicitFldInfo select flds = return (mkImplicitFieldInfo (map getLabelAnd
 
 -- | Adds semantic information to an impord declaration. See ImportInfo.
 createImportData :: (GHCName r, HsHasName n) => GHC.ImportDecl n -> Trf (ImportInfo r)
-createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) = 
+createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
   do (mod,importedNames) <- getImportedNames (GHC.moduleNameString $ unLoc name) (fmap (unpackFS . sl_fs) pkg)
      names <- liftGhc $ filterM (checkImportVisible declHiding) importedNames
      lookedUpNames <- liftGhc $ mapM (getFromNameUsing getTopLevelId) names
@@ -90,13 +90,13 @@ createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
      return $ mkImportInfo mod (catMaybes lookedUpImported) (catMaybes lookedUpNames) insts famInsts
 
 getOrphanAndFamInstances :: Module -> Ghc ([ClsInst], [FamInst])
-getOrphanAndFamInstances mod = do      
+getOrphanAndFamInstances mod = do
   env <- getSession
   eps <- liftIO (readIORef (hsc_EPS env))
   let ifc = lookupIfaceByModule (hsc_dflags env) (hsc_HPT env) (eps_PIT eps) mod
       hp = lookupHptByModule (hsc_HPT env) mod
       uses = catMaybes $ map getModule $ maybe [] (\ifc -> dep_orphs (mi_deps ifc) `union` dep_finsts (mi_deps ifc)) ifc
-      getModule mod = if moduleUnitId mod == mainUnitId 
+      getModule mod = if moduleUnitId mod == mainUnitId
                         then fmap Right $ lookupHptByModule (hsc_HPT env) mod
                         else fmap Left $ lookupIfaceByModule (hsc_dflags env) (hsc_HPT env) (eps_PIT eps) mod
       usedMods = lefts uses
@@ -117,8 +117,8 @@ getImportedNames name pkg = liftGhc $ do
   eps <- getSession >>= liftIO . readIORef . hsc_EPS
   mod <- findModule (mkModuleName name) (fmap mkFastString pkg)
   -- load exported names from interface file
-  let ifaceNames = concatMap availNames $ maybe [] mi_exports 
-                                        $ flip lookupModuleEnv mod 
+  let ifaceNames = concatMap availNames $ maybe [] mi_exports
+                                        $ flip lookupModuleEnv mod
                                         $ eps_PIT eps
   let homeExports = maybe [] (md_exports . hm_details) (lookupHptByModule hpt mod)
   mi <- getModuleInfo mod
@@ -136,20 +136,20 @@ ieSpecMatches (hsGetNames . HsSyn.ieName -> [n]) name
   | n == name = return True
   | isTyConName n
   = do entity <- lookupName n
-       return $ case entity of Just (ATyCon tc) 
-                                 | Just cls <- tyConClass_maybe tc 
+       return $ case entity of Just (ATyCon tc)
+                                 | Just cls <- tyConClass_maybe tc
                                      -> name `elem` map getName (classMethods cls)
-                                 | otherwise -> name `elem` concatMap (\dc -> getName dc : map flSelector (dataConFieldLabels dc)) 
+                                 | otherwise -> name `elem` concatMap (\dc -> getName dc : map flSelector (dataConFieldLabels dc))
                                                                       (tyConDataCons tc)
                                _             -> False
 ieSpecMatches _ _ = return False
 
 noSemaInfo :: src -> NodeInfo NoSemanticInfo src
 noSemaInfo = NodeInfo mkNoSemanticInfo
- 
+
 -- | Creates a place for a missing node with a default location
 nothing :: String -> String -> Trf SrcLoc -> Trf (AnnMaybeG e (Dom n) RangeStage)
-nothing bef aft pos = annNothing . noSemaInfo . OptionalPos bef aft <$> pos 
+nothing bef aft pos = annNothing . noSemaInfo . OptionalPos bef aft <$> pos
 
 emptyList :: String -> Trf SrcLoc -> Trf (AnnListG e (Dom n) RangeStage)
 emptyList sep ann = AnnListG <$> (noSemaInfo . ListPos "" "" sep False <$> ann) <*> pure []
@@ -159,11 +159,11 @@ makeList :: String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnLi
 makeList sep ann ls = AnnListG <$> (noSemaInfo . ListPos "" "" sep False <$> ann) <*> ls
 
 makeListBefore :: String -> String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeListBefore bef sep ann ls = do isEmpty <- null <$> ls 
+makeListBefore bef sep ann ls = do isEmpty <- null <$> ls
                                    AnnListG <$> (noSemaInfo . ListPos (if isEmpty then bef else "") "" sep False <$> ann) <*> ls
 
 makeListAfter :: String -> String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeListAfter aft sep ann ls = do isEmpty <- null <$> ls 
+makeListAfter aft sep ann ls = do isEmpty <- null <$> ls
                                   AnnListG <$> (noSemaInfo . ListPos "" (if isEmpty then aft else "") sep False <$> ann) <*> ls
 
 makeNonemptyList :: String -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
@@ -174,16 +174,16 @@ makeIndentedList :: Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnList
 makeIndentedList ann ls = AnnListG <$> (noSemaInfo . ListPos  "" "" "\n" True <$> ann) <*> ls
 
 makeIndentedListNewlineBefore :: Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeIndentedListNewlineBefore ann ls = do isEmpty <- null <$> ls 
+makeIndentedListNewlineBefore ann ls = do isEmpty <- null <$> ls
                                           AnnListG <$> (noSemaInfo . ListPos (if isEmpty then "\n" else "") "" "\n" True <$> ann) <*> ls
 
 makeIndentedListBefore :: String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeIndentedListBefore bef sp ls = do isEmpty <- null <$> ls 
+makeIndentedListBefore bef sp ls = do isEmpty <- null <$> ls
                                       AnnListG <$> (noSemaInfo . ListPos (if isEmpty then bef else "") "" "\n" True <$> sp) <*> ls
-  
+
 makeNonemptyIndentedList :: Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
 makeNonemptyIndentedList ls = AnnListG (noSemaInfo $ ListPos "" "" "\n" True noSrcLoc) <$> ls
-  
+
 -- | Transform a located part of the AST by automatically transforming the location.
 -- Sets the source range for transforming children.
 trfLoc :: (a -> Trf (b (Dom n) RangeStage)) -> Trf (SemanticInfo (Dom n) b) -> Located a -> Trf (Ann b (Dom n) RangeStage)
@@ -261,8 +261,8 @@ betweenIncluding firstTok lastTok trf
        end <- tokenLocBack lastTok
        if isGoodSrcSpan start && isGoodSrcSpan end
           then local (\s -> s { contRange = mkSrcSpan (srcSpanStart start) (srcSpanEnd end)}) trf
-          else do rng <- asks contRange 
-                  error $ "betweenIncluding: tokens not found in " ++ show rng ++ ": " 
+          else do rng <- asks contRange
+                  error $ "betweenIncluding: tokens not found in " ++ show rng ++ ": "
                             ++ show firstTok ++ " or " ++ show lastTok
 
 -- | Focuses the transformation to go between tokens if they are present
@@ -275,7 +275,7 @@ focusAfter firstTok trf
   = do firstToken <- tokenLoc firstTok
        if (isGoodSrcSpan firstToken)
           then local (\s -> s { contRange = mkSrcSpan (srcSpanEnd firstToken) (srcSpanEnd (contRange s))}) trf
-          else do rng <- asks contRange 
+          else do rng <- asks contRange
                   error $ "focusAfter: token not found in " ++ show rng ++ ": " ++ show firstTok
 
 focusAfterIfPresent :: AnnKeywordId -> Trf a -> Trf a
@@ -291,7 +291,7 @@ focusBefore lastTok trf
   = do lastToken <- tokenLocBack lastTok
        if (isGoodSrcSpan lastToken)
           then local (\s -> s { contRange = mkSrcSpan (srcSpanStart (contRange s)) (srcSpanStart lastToken)}) trf
-          else do rng <- asks contRange 
+          else do rng <- asks contRange
                   error $ "focusBefore: token not found in " ++ show rng ++ ": " ++ show lastTok
 
 focusBeforeIfPresent :: AnnKeywordId -> Trf a -> Trf a
@@ -304,7 +304,7 @@ focusBeforeIfPresent lastTok trf
 -- | Gets the position before the given token
 before :: AnnKeywordId -> Trf SrcLoc
 before tok = srcSpanStart <$> tokenLoc tok
-               
+
 -- | Gets the position after the given token
 after :: AnnKeywordId -> Trf SrcLoc
 after tok = srcSpanEnd <$> tokenLoc tok
@@ -316,14 +316,14 @@ annFrom kw sema = annLoc sema (combineSrcSpans <$> tokenLoc kw <*> asks (srcLocS
 annFromNoSema :: SemanticInfo (Dom n) e ~ NoSemanticInfo => AnnKeywordId -> Trf (e (Dom n) RangeStage) -> Trf (Ann e (Dom n) RangeStage)
 annFromNoSema kw = annFrom kw (pure mkNoSemanticInfo)
 
--- | Gets the position at the beginning of the focus       
+-- | Gets the position at the beginning of the focus
 atTheStart :: Trf SrcLoc
 atTheStart = asks (srcSpanStart . contRange)
-            
--- | Gets the position at the end of the focus      
+
+-- | Gets the position at the end of the focus
 atTheEnd :: Trf SrcLoc
 atTheEnd = asks (srcSpanEnd . contRange)
-                 
+
 -- | Searches for a token inside the focus and retrieves its location
 tokenLoc :: AnnKeywordId -> Trf SrcSpan
 tokenLoc keyw = fromMaybe noSrcSpan <$> (getKeywordInside keyw <$> asks contRange <*> asks srcMap)
@@ -336,7 +336,7 @@ tokenLocBack :: AnnKeywordId -> Trf SrcSpan
 tokenLocBack keyw = fromMaybe noSrcSpan <$> (getKeywordInsideBack keyw <$> asks contRange <*> asks srcMap)
 
 tokenBefore :: SrcLoc -> AnnKeywordId -> Trf SrcSpan
-tokenBefore loc keyw 
+tokenBefore loc keyw
   = fromMaybe noSrcSpan <$> (getKeywordInsideBack keyw <$> (mkSrcSpan <$> (asks (srcSpanStart . contRange)) <*> pure loc) <*> asks srcMap)
 
 allTokensAfter :: SrcLoc -> Trf [(SrcSpan, AnnKeywordId)]
@@ -346,16 +346,16 @@ allTokensAfter loc = getTokensAfter loc <$> asks srcMap
 tokensLoc :: [AnnKeywordId] -> Trf SrcSpan
 tokensLoc keys = asks contRange >>= tokensLoc' keys
   where tokensLoc' :: [AnnKeywordId] -> SrcSpan -> Trf SrcSpan
-        tokensLoc' (keyw:rest) r 
+        tokensLoc' (keyw:rest) r
           = do spanFirst <- tokenLoc keyw
                spanRest <- tokensLoc' rest (mkSrcSpan (srcSpanEnd spanFirst) (srcSpanEnd r))
-               return (combineSrcSpans spanFirst spanRest)                   
+               return (combineSrcSpans spanFirst spanRest)
         tokensLoc' [] _ = pure noSrcSpan
-        
+
 -- | Searches for a token and retrieves its location anywhere
 uniqueTokenAnywhere :: AnnKeywordId -> Trf SrcSpan
 uniqueTokenAnywhere keyw = fromMaybe noSrcSpan <$> (getKeywordAnywhere keyw <$> asks srcMap)
-        
+
 -- | Annotates the given element with the current focus as a location.
 annCont :: Trf (SemanticInfo (Dom n) e) -> Trf (e (Dom n) RangeStage) -> Trf (Ann e (Dom n) RangeStage)
 annCont sema = annLoc sema (asks contRange)
@@ -364,7 +364,7 @@ annContNoSema :: SemanticInfo (Dom n) e ~ NoSemanticInfo => Trf (e (Dom n) Range
 annContNoSema = annCont (pure mkNoSemanticInfo)
 
 -- | Annotates the element with the same annotation that is on the other element
-copyAnnot :: SemanticInfo (Dom n) a ~ SemanticInfo (Dom n) b 
+copyAnnot :: SemanticInfo (Dom n) a ~ SemanticInfo (Dom n) b
                => (Ann a (Dom n) RangeStage -> b (Dom n) RangeStage) -> Trf (Ann a (Dom n) RangeStage) -> Trf (Ann b (Dom n) RangeStage)
 copyAnnot f at = (\(Ann i a) -> Ann i (f (Ann i a))) <$> at
 
@@ -396,7 +396,7 @@ collectLocs = foldLocs . map getLoc
 
 -- | Rearrange definitions to appear in the order they are defined in the source file.
 orderDefs :: [Ann e (Dom n) RangeStage] -> [Ann e (Dom n) RangeStage]
-orderDefs = sortBy (compare `on` AST.ordSrcSpan . (^. AST.annotation & AST.sourceInfo & AST.nodeSpan))
+orderDefs = sortBy (compare `on` srcSpanStart . (^. AST.annotation & AST.sourceInfo & AST.nodeSpan))
 
 -- | Orders a list of elements to the order they are defined in the source file.
 orderAnnList :: AnnListG e (Dom n) RangeStage -> AnnListG e (Dom n) RangeStage
@@ -416,7 +416,7 @@ trfScopedSequence _ [] = pure []
 splitLocated :: Located String -> [Located String]
 splitLocated (L (RealSrcSpan l) str) = splitLocated' str (realSrcSpanStart l) Nothing
   where splitLocated' :: String -> RealSrcLoc -> Maybe (RealSrcLoc, String) -> [Located String]
-        splitLocated' (c:rest) currLoc (Just (startLoc, str)) | isSpace c 
+        splitLocated' (c:rest) currLoc (Just (startLoc, str)) | isSpace c
           = L (RealSrcSpan $ mkRealSrcSpan startLoc currLoc) (reverse str) : splitLocated' rest (advanceSrcLoc currLoc c) Nothing
         splitLocated' (c:rest) currLoc Nothing | isSpace c = splitLocated' rest (advanceSrcLoc currLoc c) Nothing
         splitLocated' (c:rest) currLoc (Just (startLoc, str)) = splitLocated' rest (advanceSrcLoc currLoc c) (Just (startLoc, c:str))
