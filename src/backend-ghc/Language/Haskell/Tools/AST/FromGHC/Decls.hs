@@ -355,8 +355,8 @@ trfInstBody binds sigs fams dats = do
     wh <- tokenLoc AnnWhere
     if isGoodSrcSpan wh then
       makeJust <$> annLocNoSema (combinedLoc <$> tokenLoc AnnWhere)
-                          (AST.UInstBody <$> (makeList "" (after AnnWhere)
-                                                         (orderDefs . concat <$> sequenceA allDefs)))
+                                (AST.UInstBody <$> (makeList "" (after AnnWhere)
+                                                      (orderDefs . concat <$> sequenceA allDefs)))
     else nothing " where " "" atTheEnd
   where combinedLoc wh = foldl combineSrcSpans wh allLocs
         allLocs = map getLoc sigs ++ map getLoc (bagToList binds) ++ map getLoc fams ++ map getLoc dats
@@ -387,7 +387,7 @@ trfInstDataFam = trfLocNoSema $ \case
          <*> annLocNoSema (pure $ collectLocs pats `combineSrcSpans` getLoc tc `combineSrcSpans` getLoc ctx)
                           (AST.UInstanceRule <$> nothing "" " . " atTheStart
                                              <*> trfCtx atTheStart ctx
-                                             <*> foldr (\t r -> annLocNoSema (combineSrcSpans (getLoc t) . getRange <$> r)
+                                             <*> foldl (\r t -> annLocNoSema (combineSrcSpans (getLoc t) . getRange <$> r)
                                                                              (AST.UInstanceHeadApp <$> r <*> (trfType t)))
                                                        (copyAnnot AST.UInstanceHeadCon (trfName tc)) pats)
          <*> trfAnnList "" trfConDecl' cons
