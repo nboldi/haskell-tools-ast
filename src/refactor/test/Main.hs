@@ -143,6 +143,7 @@ languageTests =
   , "Expr.Operator"
   , "Expr.ParenName"
   , "Expr.ParListComp"
+  , "Expr.PatternAndDo"
   , "Expr.RecordPuns"
   , "Expr.RecordWildcards"
   , "Expr.RecursiveDo"
