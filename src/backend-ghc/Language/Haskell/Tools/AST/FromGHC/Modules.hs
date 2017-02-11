@@ -210,10 +210,10 @@ trfIESpec' (IEVar n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n
 trfIESpec' (IEThingAbs n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (nothing "(" ")" atTheEnd))
 trfIESpec' (IEThingAll n)
   = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> subspec))
-  where subspec = betweenIncluding AnnOpenP AnnCloseP $ annContNoSema (pure AST.USubSpecAll)
+  where subspec = annLocNoSema (combineSrcSpans <$> tokenLocBack AnnOpenP <*> tokenLocBack AnnCloseP) (pure AST.USubSpecAll)
 trfIESpec' (IEThingWith n _ ls _)
   = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> subspec))
-  where subspec = betweenIncluding AnnOpenP AnnCloseP $ annContNoSema
+  where subspec = annLocNoSema (combineSrcSpans <$> tokenLocBack AnnOpenP <*> tokenLocBack AnnCloseP)
                     $ AST.USubSpecList <$> between AnnOpenP AnnCloseP (makeList ", " atTheStart (mapM trfName ls))
 trfIESpec' _ = pure Nothing
 
