@@ -10,7 +10,7 @@ import Language.Haskell.Tools.AST.ElementTypes
 -- * Declarations
 
 -- | A type synonym ( @type String = [Char]@ )
-pattern TypeDecl :: DeclHead dom -> Type dom -> Decl dom 
+pattern TypeDecl :: DeclHead dom -> Type dom -> Decl dom
 pattern TypeDecl dh typ <- Ann _ (UTypeDecl dh typ)
 
 -- | Standalone deriving declaration (@ deriving instance X T @)
@@ -39,7 +39,7 @@ pattern SpliceDecl sp <- Ann _ (USpliceDecl sp)
 
 -- * Data type definitions
 
--- | A data or newtype declaration. Empty data type declarations without 
+-- | A data or newtype declaration. Empty data type declarations without
 -- where keyword are always belong to DataDecl.
 pattern DataDecl :: DataOrNewtypeKeyword dom -> MaybeContext dom -> DeclHead dom -> ConDeclList dom -> MaybeDeriving dom -> Decl dom
 pattern DataDecl keyw ctx dh cons derivs <- Ann _ (UDataDecl keyw ctx dh cons derivs)
@@ -86,11 +86,11 @@ pattern DataKeyword <- Ann _ UDataKeyword
 pattern NewtypeKeyword :: DataOrNewtypeKeyword dom
 pattern NewtypeKeyword <- Ann _ UNewtypeKeyword
 
--- | A list of functional dependencies: @ | a -> b, c -> d @ separated by commas  
+-- | A list of functional dependencies: @ | a -> b, c -> d @ separated by commas
 pattern FunDeps :: FunDepList dom -> FunDeps dom
 pattern FunDeps fds <- Ann _ (UFunDeps fds)
 
--- | A functional dependency, given on the form @l1 ... ln -> r1 ... rn@      
+-- | A functional dependency, given on the form @l1 ... ln -> r1 ... rn@
 pattern FunDep :: NameList dom -> NameList dom -> FunDep dom
 pattern FunDep lhs rhs <- Ann _ (UFunDep lhs rhs)
 
@@ -191,7 +191,7 @@ pattern InstanceDataFamilyDef :: DataOrNewtypeKeyword dom -> InstanceRule dom ->
 pattern InstanceDataFamilyDef keyw instRule cons derivs  <- Ann _ (UInstBodyDataDecl keyw instRule cons derivs )
 
 -- | An associated data definition as a GADT (@ data A X where B :: Int -> A X @) in a class instance
-pattern InstanceDataFamilyGADTDef :: DataOrNewtypeKeyword dom -> InstanceRule dom -> MaybeKindConstraint dome -> AnnListG UGadtConDecl dom stage 
+pattern InstanceDataFamilyGADTDef :: DataOrNewtypeKeyword dom -> InstanceRule dom -> MaybeKindConstraint dome -> AnnListG UGadtConDecl dom stage
                                        -> MaybeDeriving dom -> InstBodyDecl dom
 pattern InstanceDataFamilyGADTDef keyw instRule kind cons derivs <- Ann _ (UInstBodyGadtDataDecl keyw instRule kind cons derivs)
 
@@ -215,33 +215,33 @@ pattern InfixInstanceHead typ n <- Ann _ (UInstanceHeadInfix typ n)
 pattern ParenInstanceHead :: InstanceHead dom -> InstanceHead dom
 pattern ParenInstanceHead ih <- Ann _ (UInstanceHeadParen ih)
 
--- | Type application as an instance head 
+-- | Type application as an instance head
 pattern AppInstanceHead :: InstanceHead dom -> Type dom -> InstanceHead dom
 pattern AppInstanceHead fun arg <- Ann _ (UInstanceHeadApp fun arg)
 
 -- | @OVERLAP@ pragma
-pattern EnableOverlap :: OverlapPragma dom     
-pattern EnableOverlap <- Ann _ UEnableOverlap 
+pattern EnableOverlap :: OverlapPragma dom
+pattern EnableOverlap <- Ann _ UEnableOverlap
 
 -- | @NO_OVERLAP@ pragma
-pattern DisableOverlap :: OverlapPragma dom    
-pattern DisableOverlap <- Ann _ UDisableOverlap 
+pattern DisableOverlap :: OverlapPragma dom
+pattern DisableOverlap <- Ann _ UDisableOverlap
 
 -- | @OVERLAPPABLE@ pragma
-pattern Overlappable :: OverlapPragma dom      
-pattern Overlappable <- Ann _ UOverlappable 
+pattern Overlappable :: OverlapPragma dom
+pattern Overlappable <- Ann _ UOverlappable
 
 -- | @OVERLAPPING@ pragma
-pattern Overlapping :: OverlapPragma dom       
-pattern Overlapping <- Ann _ UOverlapping 
+pattern Overlapping :: OverlapPragma dom
+pattern Overlapping <- Ann _ UOverlapping
 
 -- | @OVERLAPS@ pragma
-pattern Overlaps :: OverlapPragma dom          
-pattern Overlaps <- Ann _ UOverlaps 
+pattern Overlaps :: OverlapPragma dom
+pattern Overlaps <- Ann _ UOverlaps
 
 -- | @INCOHERENT@ pragma
-pattern IncoherentOverlap :: OverlapPragma dom 
-pattern IncoherentOverlap <- Ann _ UIncoherentOverlap 
+pattern IncoherentOverlap :: OverlapPragma dom
+pattern IncoherentOverlap <- Ann _ UIncoherentOverlap
 
 -- * Type roles
 
@@ -282,7 +282,7 @@ pattern CApi <- Ann _ UCApi
 
 -- | Specifies that the given foreign import is @unsafe@.
 pattern Unsafe :: Safety dom
-pattern Unsafe <- Ann _ UUnsafe 
+pattern Unsafe <- Ann _ UUnsafe
 
 -- * Pattern synonyms
 
@@ -399,7 +399,7 @@ pattern LinePragma line filename <- Ann _ (ULinePragma (Ann _ (LineNumber line))
 
 -- | A pragma that tells the compiler that a polymorph function should be optimized for a given type (@ {-\# SPECIALISE f :: Int -> b -> b \#-} @)
 pattern SpecializePragma :: MaybePhaseControl dom -> Name dom -> TypeList dom -> TopLevelPragma dom
-pattern SpecializePragma phase def specTypes <- Ann _ (USpecializePragma phase def specTypes)
+pattern SpecializePragma phase def specTypes <- Ann _ (USpecializeDecl (Ann _ (USpecializePragma phase def specTypes)))
 
 -- | Marks that the pragma should be applied from a given compile phase (@ [2] @)
 pattern PhaseControlFrom :: Integer -> PhaseControl dom

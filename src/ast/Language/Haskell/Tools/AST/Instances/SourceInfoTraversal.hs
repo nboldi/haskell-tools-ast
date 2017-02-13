@@ -106,6 +106,7 @@ deriveSourceInfoTraversal ''UAlt'
 deriveSourceInfoTraversal ''UCaseRhs'
 deriveSourceInfoTraversal ''UGuardedCaseRhs'
 deriveSourceInfoTraversal ''UInlinePragma
+deriveSourceInfoTraversal ''USpecializePragma
 
 -- ULiteral
 deriveSourceInfoTraversal ''ULiteral

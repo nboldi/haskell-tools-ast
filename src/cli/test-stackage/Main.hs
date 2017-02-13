@@ -54,7 +54,7 @@ testPackage pack = do
                         threadDelay 500000
                         renameDirectory pack testedDir
            , Left ("stack build --test --no-run-tests --bench --no-run-benchmarks > logs\\" ++ pack ++ "-build-log.txt 2>&1", BuildFailure)
-           , Left ("stack exec ht-refact -- -one-shot -refactoring=ProjectOrganizeImports tested-package +RTS -M6G -RTS > logs\\" ++ pack ++ "-refact-log.txt 2>&1", RefactError)
+           , Left ("stack exec ht-refact --stack-yaml=..\\stack.yaml -- -one-shot -refactoring=ProjectOrganizeImports tested-package +RTS -M6G -RTS > logs\\" ++ pack ++ "-refact-log.txt 2>&1", RefactError)
            , Left ("stack build > logs\\" ++ pack ++ "-reload-log.txt 2>&1", WrongCodeError)
            ]
   problem <- case res of

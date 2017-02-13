@@ -1,4 +1,4 @@
--- | Representation of Haskell AST definitions. These include definition of data types, classes, instances and so on. 
+-- | Representation of Haskell AST definitions. These include definition of data types, classes, instances and so on.
 -- The definition of value bindings are in the Binds module.
 module Language.Haskell.Tools.AST.Representation.Decls where
 
@@ -29,7 +29,7 @@ data UDecl dom stage
                           , _declHead :: Ann UDeclHead dom stage
                           , _declCons :: AnnListG UConDecl dom stage
                           , _declDeriving :: AnnMaybeG UDeriving dom stage
-                          } -- ^ A data or newtype declaration. Empty data type declarations without 
+                          } -- ^ A data or newtype declaration. Empty data type declarations without
                             -- where keyword are always belong to DataDecl.
   | UGDataDecl            { _declNewtype :: Ann UDataOrNewtypeKeyword dom stage
                           , _declCtx  :: AnnMaybeG UContext dom stage
@@ -112,18 +112,18 @@ data UDeclHead dom stage
 data UClassBody dom stage
   = UClassBody { _cbElements :: AnnListG UClassElement dom stage
                }
-                 
--- | Members of a class declaration       
+
+-- | Members of a class declaration
 data UClassElement dom stage
   = UClsSig     { _ceTypeSig :: Ann UTypeSignature dom stage
                 } -- ^ Signature: @ f :: A -> B @
   | UClsDef     { _ceBind :: Ann UValueBind dom stage
                 } -- ^ Default binding: @ f x = "aaa" @
   | UClsTypeFam { _ceTypeFam :: Ann UTypeFamily dom stage
-                } -- ^ Declaration of an associated type synonym: @ type T x :: * @ 
+                } -- ^ Declaration of an associated type synonym: @ type T x :: * @
   | UClsTypeDef { _ceHead :: Ann UDeclHead dom stage
                 , _ceKind :: Ann UType dom stage
-                } -- ^ Default choice for type synonym: @ type T x = TE @ or @ type instance T x = TE @ 
+                } -- ^ Default choice for type synonym: @ type T x = TE @ or @ type instance T x = TE @
   | UClsDefSig  { _ceName :: Ann UName dom stage
                 , _ceType :: Ann UType dom stage
                 } -- ^ Default signature (by using @DefaultSignatures@): @ default _enum :: (Generic a, GEnum (Rep a)) => [a] @
@@ -136,7 +136,7 @@ data UClassElement dom stage
   --               } -- ^ Pattern signature in a class declaration (by using @PatternSynonyms@)
 
 -- * Type class instances
-  
+
 -- | The instance declaration rule, which is, roughly, the part of the instance declaration before the where keyword.
 data UInstanceRule dom stage
   = UInstanceRule  { _irVars :: AnnMaybeG (AnnListG UTyVar) dom stage
@@ -185,11 +185,13 @@ data UInstBodyDecl dom stage
                           } -- ^ Specialize instance pragma (no phase selection is allowed)
   | UInlineInstance       { _instanceInline :: Ann UInlinePragma dom stage
                           } -- ^ Inline-like pragma in a class instance
+  | UInstanceSpecialize   { _specializeInstance :: Ann USpecializePragma dom stage
+                          } -- ^ Specialize pragma
   -- not supported yet
 -- | UInstBodyPatSyn       { _instBodyPatSyn :: Ann UPatternSynonym dom stage
   --                         } -- ^ A pattern synonym in a class instance
 
--- | Overlap pragmas. Can be applied to class declarations and class instance declarations.    
+-- | Overlap pragmas. Can be applied to class declarations and class instance declarations.
 data UOverlapPragma dom stage
   = UEnableOverlap     -- ^ @OVERLAP@ pragma
   | UDisableOverlap    -- ^ @NO_OVERLAP@ pragma
@@ -235,7 +237,7 @@ data UGadtConDecl dom stage
   = UGadtConDecl { _gadtConNames :: AnnListG UName dom stage
                  , _gadtConType :: Ann UGadtConType dom stage
                  }
-                   
+
 -- | The @data@ or the @newtype@ keyword to define ADTs.
 data UDataOrNewtypeKeyword dom stage
   = UDataKeyword
@@ -249,17 +251,17 @@ data UGadtConType dom stage
                     , _gadtConResultType :: Ann UType dom stage
                     }
 
--- | A list of functional dependencies: @ | a -> b, c -> d @ separated by commas  
+-- | A list of functional dependencies: @ | a -> b, c -> d @ separated by commas
 data UFunDeps dom stage
   = UFunDeps { _funDeps :: AnnListG UFunDep dom stage
-             } 
-         
--- | A functional dependency, given on the form @l1 ... ln -> r1 ... rn@         
+             }
+
+-- | A functional dependency, given on the form @l1 ... ln -> r1 ... rn@
 data UFunDep dom stage
   = UFunDep { _funDepLhs :: AnnListG UName dom stage
             , _funDepRhs :: AnnListG UName dom stage
             }
-  
+
 -- | A constructor declaration for a datatype
 data UConDecl dom stage
   = UConDecl      { _conDeclName :: Ann UName dom stage
@@ -272,13 +274,13 @@ data UConDecl dom stage
                   , _conDeclOp :: Ann UOperator dom stage
                   , _conDeclRhs :: Ann UType dom stage
                   } -- ^ Infix data constructor (@ t1 :+: t2 @)
-  
+
 -- | Field declaration (@ fld :: Int @)
 data UFieldDecl dom stage
   = UFieldDecl { _fieldNames :: AnnListG UName dom stage
                , _fieldType :: Ann UType dom stage
                }
-  
+
 -- | A deriving clause following a data type declaration. (@ deriving Show @ or @ deriving (Show, Eq) @)
 data UDeriving dom stage
   = UDerivingOne { _oneDerived :: Ann UInstanceHead dom stage }
@@ -290,7 +292,7 @@ data UDeriving dom stage
 data UPatternTypeSignature dom stage
   = UPatternTypeSignature { _patSigName :: Ann UName dom stage
                           , _patSigType :: Ann UType dom stage
-                          }   
+                          }
 
 -- | Pattern synonyms: @ pattern Arrow t1 t2 = App "->" [t1, t2] @
 data UPatternSynonym dom stage
@@ -325,7 +327,7 @@ data UPatSynWhere dom stage
   = UPatSynWhere { _patOpposite :: AnnListG UMatch dom stage }
 
 -- * Foreign imports
-  
+
 -- | Call conventions of foreign functions
 data UCallConv dom stage
   = UStdCall
@@ -372,7 +374,10 @@ data UTopLevelPragma dom stage
   | ULinePragma       { _pragmaLineNum :: Ann LineNumber dom stage
                       , _pragmaFileName :: AnnMaybeG UStringNode dom stage
                       } -- ^ A pragma for maintaining line numbers in generated sources (@ {-# LINE 123 "somefile" #-} @)
-  | USpecializePragma { _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
+  | USpecializeDecl   { _specializePragma :: Ann USpecializePragma dom stage }
+
+data USpecializePragma dom stage
+  = USpecializePragma { _pragmaPhase :: AnnMaybeG UPhaseControl dom stage
                       , _specializeDef :: Ann UName dom stage
                       , _specializeType :: AnnListG UType dom stage
                       } -- ^ A pragma that tells the compiler that a polymorph function should be optimized for a given type (@ {-# SPECIALISE f :: Int -> b -> b #-} @)
@@ -385,8 +390,8 @@ data URule dom stage
           , _ruleLhs :: Ann UExpr dom stage -- ^ The transformed expression
           , _ruleRhs :: Ann UExpr dom stage -- ^ The resulting expression
           }
- 
--- | Annotation allows you to connect an expression to any declaration. 
+
+-- | Annotation allows you to connect an expression to any declaration.
 data UAnnotationSubject dom stage
   = UNameAnnotation { _annotateName :: Ann UName dom stage
                     } -- ^ The definition with the given name is annotated
@@ -407,4 +412,4 @@ data UMinimalFormula dom stage
 
 -- | A line number for a line pragma.
 data LineNumber dom stage
-  = LineNumber { _lineNumber :: Int } 
+  = LineNumber { _lineNumber :: Int }

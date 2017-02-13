@@ -108,6 +108,7 @@ deriving instance (Domain dom, SourceInfo stage) => Data (UCmd dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (ULanguageExtension dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UMatchLhs dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UInlinePragma dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Data (USpecializePragma dom stage)
 
 -- ULiteral
 deriving instance (Domain dom, SourceInfo stage) => Data (ULiteral dom stage)

@@ -173,10 +173,15 @@ trfSig (PatSynSig id typ)
 trfSig (InlineSig name prag)
   = AST.UPragmaDecl <$> annContNoSema (AST.UInlinePragmaDecl <$> trfInlinePragma name prag)
 trfSig (SpecSig name (map hsib_body -> types) (inl_act -> phase))
-  = AST.UPragmaDecl <$> annContNoSema (AST.USpecializePragma <$> trfPhase (pure $ srcSpanStart (getLoc name)) phase
-                                       <*> trfName name
-                                       <*> (orderAnnList <$> trfAnnList ", " trfType' types))
+  = AST.UPragmaDecl <$> annContNoSema (AST.USpecializeDecl <$> trfSpecializePragma name types phase)
 trfSig s = error ("Illegal signature: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
+
+trfSpecializePragma :: TransformName n r
+                    => Located n -> [Located (HsType n)] -> Activation -> Trf (Ann AST.USpecializePragma (Dom r) RangeStage)
+trfSpecializePragma name types phase
+  = annContNoSema $ AST.USpecializePragma <$> trfPhase (pure $ srcSpanStart (getLoc name)) phase
+                                          <*> trfName name
+                                          <*> (orderAnnList <$> trfAnnList ", " trfType' types)
 
 trfConDecl :: TransformName n r => Located (ConDecl n) -> Trf (Ann AST.UConDecl (Dom r) RangeStage)
 trfConDecl = trfLocNoSema trfConDecl'
@@ -373,6 +378,7 @@ trfClassInstSig = trfLocNoSema $ \case
   ClassOpSig _ names typ -> AST.UInstBodyTypeSig <$> (annContNoSema $ AST.UTypeSignature <$> define (makeNonemptyList ", " (mapM trfName names))
                                                 <*> trfType (hsib_body typ))
   SpecInstSig _ typ -> AST.USpecializeInstance <$> trfType (hsib_body typ)
+  SpecSig name (map hsib_body -> tys) (inl_act -> phase) -> AST.UInstanceSpecialize <$> trfSpecializePragma name tys phase
   InlineSig name prag -> AST.UInlineInstance <$> trfInlinePragma name prag
   s -> error ("Illegal class instance signature: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
 

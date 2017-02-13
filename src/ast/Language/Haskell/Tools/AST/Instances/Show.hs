@@ -21,7 +21,7 @@ instance (Show (e dom stage)) => Show (Ann e dom stage) where
 
 instance (Show (e dom stage)) => Show (AnnMaybeG e dom stage) where
   show (AnnMaybeG _ e) = show e
-  
+
 instance (Show (e dom stage)) => Show (AnnListG e dom stage) where
   show (AnnListG _ e) = show e
 
@@ -111,6 +111,7 @@ deriving instance Show (UCmd dom stage)
 deriving instance Show (ULanguageExtension dom stage)
 deriving instance Show (UMatchLhs dom stage)
 deriving instance Show (UInlinePragma dom stage)
+deriving instance Show (USpecializePragma dom stage)
 
 
 -- ULiteral
