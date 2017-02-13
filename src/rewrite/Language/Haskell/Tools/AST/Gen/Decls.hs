@@ -454,13 +454,13 @@ mkSpecializePragma phase def specTypes
 -- | Marks that the pragma should be applied from a given compile phase (@ [2] @)
 mkPhaseControlFrom :: Integer -> PhaseControl dom
 mkPhaseControlFrom phaseNum
-  = mkAnn ("[" <> child <> child <> "]") $ UPhaseControl (mkAnnMaybe opt Nothing) (mkAnn child $ PhaseNumber phaseNum)
+  = mkAnn ("[" <> child <> child <> "]") $ UPhaseControl (mkAnnMaybe opt Nothing) (mkAnnMaybe opt $ Just $ mkAnn child $ PhaseNumber phaseNum)
 
 -- | Marks that the pragma should be applied until a given compile phase (@ [~2] @)
 mkPhaseControlUntil :: Integer -> PhaseControl dom
 mkPhaseControlUntil phaseNum
   = mkAnn ("[" <> child <> child <> "]") $ UPhaseControl (mkAnnMaybe opt $ Just $ mkAnn "~" PhaseInvert)
-                                                         (mkAnn child $ PhaseNumber phaseNum)
+                                                         (mkAnnMaybe opt $ Just $ mkAnn child $ PhaseNumber phaseNum)
 
 -- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
 mkRewriteRule :: String -> Maybe (PhaseControl dom) -> [TyVar dom] -> Expr dom -> Expr dom -> Rule dom

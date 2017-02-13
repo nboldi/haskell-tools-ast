@@ -403,11 +403,11 @@ pattern SpecializePragma phase def specTypes <- Ann _ (USpecializeDecl (Ann _ (U
 
 -- | Marks that the pragma should be applied from a given compile phase (@ [2] @)
 pattern PhaseControlFrom :: Integer -> PhaseControl dom
-pattern PhaseControlFrom phaseNum <- Ann _ (UPhaseControl AnnNothing (Ann _ (PhaseNumber phaseNum)))
+pattern PhaseControlFrom phaseNum <- Ann _ (UPhaseControl AnnNothing (AnnJust (Ann _ (PhaseNumber phaseNum))))
 
 -- | Marks that the pragma should be applied until a given compile phase (@ [~2] @)
 pattern PhaseControlUntil :: Integer -> PhaseControl dom
-pattern PhaseControlUntil phaseNum <- Ann _ (UPhaseControl (AnnJust _) (Ann _ (PhaseNumber phaseNum)))
+pattern PhaseControlUntil phaseNum <- Ann _ (UPhaseControl (AnnJust _) (AnnJust (Ann _ (PhaseNumber phaseNum))))
 
 -- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
 pattern RewriteRule :: String -> MaybePhaseControl dom -> TyVarList dom -> Expr dom -> Expr dom -> Rule dom
