@@ -117,6 +117,8 @@ data UClassBody dom stage
 data UClassElement dom stage
   = UClsSig     { _ceTypeSig :: Ann UTypeSignature dom stage
                 } -- ^ Signature: @ f :: A -> B @
+  | UClsFixity  { _clsFixity :: Ann UFixitySignature dom stage
+                } -- ^ Fixity signature in class: @ infixl 1 >>- @
   | UClsDef     { _ceBind :: Ann UValueBind dom stage
                 } -- ^ Default binding: @ f x = "aaa" @
   | UClsTypeFam { _ceTypeFam :: Ann UTypeFamily dom stage
@@ -361,10 +363,10 @@ data UTopLevelPragma dom stage
   = URulePragma       { _pragmaRule :: AnnListG URule dom stage
                       } -- ^ A pragma that introduces source rewrite rules (@ {-# RULES "map/map" [2]  forall f g xs. map f (map g xs) = map (f.g) xs #-} @)
   | UDeprPragma       { _pragmaObjects :: AnnListG UName dom stage
-                      , _pragmaMessage :: Ann UStringNode dom stage
+                      , _deprMessage :: AnnMaybeG UStringNode dom stage
                       } -- ^ A pragma that marks definitions as deprecated (@ {-# DEPRECATED f "f will be replaced by g" @)
   | UWarningPragma    { _pragmaObjects :: AnnListG UName dom stage
-                      , _pragmaMessage :: Ann UStringNode dom stage
+                      , _warnMessage :: Ann UStringNode dom stage
                       } -- ^ A pragma that marks definitions as deprecated (@ {-# WARNING unsafePerformIO "you should know what you are doing" @)
   | UAnnPragma        { _annotationSubject :: Ann UAnnotationSubject dom stage
                       , _annotateExpr :: Ann UExpr dom stage

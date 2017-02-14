@@ -410,12 +410,14 @@ mkRulePragma = mkAnn ("{-# RULES " <> child <> " #-}") . URulePragma . mkAnnList
 -- | A pragma that marks definitions as deprecated (@ {-\# DEPRECATED f "f will be replaced by g" \#-} @)
 mkDeprPragma :: [Name dom] -> String -> TopLevelPragma dom
 mkDeprPragma defs msg = mkAnn ("{-# DEPRECATED " <> child <> " " <> child <> " #-}")
-                          $ UDeprPragma (mkAnnList (separatedBy ", " list) defs) $ mkAnn ("\"" <> child <> "\"") $ UStringNode msg
+                          $ UDeprPragma (mkAnnList (separatedBy ", " list) defs)
+                             (mkAnnMaybe opt $ Just $ mkAnn ("\"" <> child <> "\"") $ UStringNode msg)
 
 -- | A pragma that marks definitions as deprecated (@ {-\# WARNING unsafePerformIO "you should know what you are doing" \#-} @)
 mkWarningPragma :: [Name dom] -> String -> TopLevelPragma dom
 mkWarningPragma defs msg = mkAnn ("{-# WARNING " <> child <> " " <> child <> " #-}")
-                             $ UWarningPragma (mkAnnList (separatedBy ", " list) defs) $ mkAnn ("\"" <> child <> "\"") $ UStringNode msg
+                             $ UWarningPragma (mkAnnList (separatedBy ", " list) defs)
+                                (mkAnn ("\"" <> child <> "\"") $ UStringNode msg)
 
 -- | A pragma that annotates a definition with an arbitrary value (@ {-\# ANN f 42 \#-} @)
 mkAnnPragma :: AnnotationSubject dom -> Expr dom -> TopLevelPragma dom

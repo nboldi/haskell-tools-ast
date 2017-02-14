@@ -123,7 +123,6 @@ trfDecl = trfLocNoSema $ \case
   ValD bind -> trfVal bind
   SigD sig -> trfSig sig
   DerivD (DerivDecl t overlap) -> AST.UDerivDecl <$> trfMaybeDefault " " "" trfOverlap (after AnnInstance) overlap <*> trfInstanceRule (hsib_body t)
-  -- TODO: Warnings, rewrite rules
   RuleD (HsRules _ rules) -> AST.UPragmaDecl <$> annContNoSema (AST.URulePragma <$> makeIndentedList (before AnnClose) (mapM trfRewriteRule rules))
   RoleAnnotD (RoleAnnotDecl name roles) -> AST.URoleDecl <$> trfQualifiedName name <*> makeList " " atTheEnd (mapM trfRole roles)
   DefD (DefaultDecl types) -> AST.UDefaultDecl . nonemptyAnnList <$> mapM trfType types
@@ -132,13 +131,18 @@ trfDecl = trfLocNoSema $ \case
   ForD (ForeignExport name (hsib_body -> typ) _ (CExport (L l (CExportStatic _ _ ccall)) _))
     -> AST.UForeignExport <$> annLocNoSema (pure l) (trfCallConv' ccall) <*> trfName name <*> trfType typ
   SpliceD (SpliceDecl (unLoc -> spl) _) -> AST.USpliceDecl <$> (annContNoSema $ trfSplice' spl)
+  WarningD (Warnings src [])
+    -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) (pure [])) <*> nothing " " "" (before AnnClose))
+  WarningD (Warnings src [L _ (Warning names (DeprecatedTxt _ []))])
+    -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) $ mapM trfName names) <*> nothing " " "" (before AnnClose))
   WarningD (Warnings src [L _ (Warning names (DeprecatedTxt _ [L l (StringLiteral _ fs)]))])
-    -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeNonemptyList " " $ mapM trfName names) <*> trfFastString (L l fs))
+    -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) $ mapM trfName names) <*> (makeJust <$> trfFastString (L l fs)))
   WarningD (Warnings src [L _ (Warning names (WarningTxt _ [L l (StringLiteral _ fs)]))])
     -> AST.UPragmaDecl <$> annContNoSema (AST.UWarningPragma <$> (makeNonemptyList " " $ mapM trfName names) <*> trfFastString (L l fs))
   AnnD (HsAnnotation stxt subject expr)
     -> AST.UPragmaDecl <$> annContNoSema (AST.UAnnPragma <$> trfAnnotationSubject stxt subject (srcSpanStart $ getLoc expr) <*> trfExpr expr)
-  d -> error ("Illegal declaration: " ++ showSDocUnsafe (ppr d) ++ " (ctor: " ++ show (toConstr d) ++ ")")
+  d -> do range <- asks contRange
+          error ("Illegal declaration: " ++ showSDocUnsafe (ppr d) ++ " (ctor: " ++ show (toConstr d) ++ ") at: " ++ show range)
 
 trfGADT :: TransformName n r => NewOrData -> Located n -> LHsQTyVars n -> Located (HsContext n)
                                  -> Maybe (Located (HsKind n)) -> [Located (ConDecl n)]
@@ -337,6 +341,7 @@ trfClassElemSig = trfLocNoSema $ \case
                                            <*> trfType (hsib_body typ))
   MinimalSig _ formula -> AST.UClsMinimal <$> trfMinimalFormula formula
   InlineSig name prag -> AST.UClsInline <$> trfInlinePragma name prag
+  FixSig fixity -> AST.UClsFixity <$> annContNoSema (trfFixitySig fixity)
   s -> error ("Illegal signature in class: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
 
 trfTypeFam :: TransformName n r => Located (FamilyDecl n) -> Trf (Ann AST.UTypeFamily (Dom r) RangeStage)

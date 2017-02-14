@@ -371,7 +371,7 @@ pattern RulePragma rules <- Ann _ (URulePragma rules)
 
 -- | A pragma that marks definitions as deprecated (@ {-\# DEPRECATED f "f will be replaced by g" \#-} @)
 pattern DeprPragma :: NameList dom -> String -> TopLevelPragma dom
-pattern DeprPragma defs msg <- Ann _ (UDeprPragma defs (Ann _ (UStringNode msg)))
+pattern DeprPragma defs msg <- Ann _ (UDeprPragma defs (AnnJust (Ann _ (UStringNode msg))))
 
 -- | A pragma that marks definitions as deprecated (@ {-\# WARNING unsafePerformIO "you should know what you are doing" \#-} @)
 pattern WarningPragma :: NameList dom -> String -> TopLevelPragma dom
