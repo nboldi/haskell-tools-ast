@@ -226,12 +226,16 @@ instance ToModuleCollection Benchmark where
 
 compileInContext :: ModuleCollection -> [ModuleCollection] -> DynFlags -> IO DynFlags
 compileInContext mc mcs dfs
-  = (\dfs' -> applyDependencies mcs (mc ^. mcDependencies) dfs')
+  = (\dfs' -> applyDependencies mcs (mc ^. mcDependencies) (selectEnabled dfs'))
        <$> (mc ^. mcFlagSetup $ dfs)
+  where selectEnabled = case mc ^. mcId of DirectoryMC{} -> id; _ -> onlyUseEnabled
 
 applyDependencies :: [ModuleCollection] -> [ModuleCollectionId] -> DynFlags -> DynFlags
 applyDependencies mcs ids dfs
-  = (GHC.setGeneralFlag' GHC.Opt_HideAllPackages dfs) { GHC.packageFlags = catMaybes $ map (dependencyToPkgFlag mcs) ids }
+  = dfs { GHC.packageFlags = catMaybes $ map (dependencyToPkgFlag mcs) ids }
+
+onlyUseEnabled :: DynFlags -> DynFlags
+onlyUseEnabled = GHC.setGeneralFlag' GHC.Opt_HideAllPackages
 
 dependencyToPkgFlag :: [ModuleCollection] -> ModuleCollectionId -> Maybe (GHC.PackageFlag)
 dependencyToPkgFlag mcs lib@(LibraryMC pkgName)
