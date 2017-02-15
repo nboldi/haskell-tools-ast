@@ -39,6 +39,7 @@ import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC.Decls (trfDecls, trfDeclsGroup)
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (HsHasName(..))
 import Language.Haskell.Tools.AST.FromGHC.Monad
+import Language.Haskell.Tools.AST.FromGHC.Exprs
 import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfName)
 import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (nameInfo, implicitNames, importedNames)
@@ -145,11 +146,6 @@ trfModulePragma :: SrcLoc -> Maybe (Located WarningTxt) -> Trf (AnnMaybeG AST.UM
 trfModulePragma l = trfMaybeDefault " " "" (trfLocNoSema $ \case WarningTxt _ txts -> AST.UModuleWarningPragma <$> trfAnnList " " trfText' txts
                                                                  DeprecatedTxt _ txts -> AST.UModuleDeprecatedPragma <$> trfAnnList " " trfText' txts)
                                     (pure l)
-
-trfText' :: StringLiteral -> Trf (AST.UStringNode (Dom r) RangeStage)
-trfText' = pure . AST.UStringNode . unpackFS . sl_fs
-
-
 
 trfExportList :: TransformName n r => Trf SrcLoc -> Maybe (Located [LIE n]) -> Trf (AnnMaybeG AST.UExportSpecs (Dom r) RangeStage)
 trfExportList loc = trfMaybeDefault "" " " (trfLocNoSema trfExportList') loc

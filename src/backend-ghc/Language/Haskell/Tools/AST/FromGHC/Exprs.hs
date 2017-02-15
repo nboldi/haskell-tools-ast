@@ -12,12 +12,13 @@ import Data.Data (toConstr)
 import Data.List (partition, find)
 import Data.Maybe (Maybe(..), isJust, fromMaybe)
 
-import BasicTypes as GHC (Boxity(..))
+import BasicTypes as GHC (Boxity(..), StringLiteral(..))
 import GHC
 import OccName as GHC (occNameString)
 import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import PrelNames as GHC (negateName)
 import SrcLoc as GHC
+import FastString
 
 import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Binds (trfRhsGuard', trfWhereLocalBinds, trfLocalBinds)
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..), getFieldOccName)
@@ -68,13 +69,17 @@ trfExpr' (HsLamCase _ (unLoc . mg_alts -> matches)) = AST.ULamCase <$> trfAnnLis
 trfExpr' (HsApp e1 e2) = AST.UApp <$> trfExpr e1 <*> trfExpr e2
 trfExpr' (OpApp e1 (unLoc -> HsVar op) _ e2)
   = AST.UInfixApp <$> trfExpr e1 <*> trfOperator op <*> trfExpr e2
-trfExpr' (NegApp e _) = AST.UPrefixApp <$> annLocNoSema loc (AST.UNormalOp <$> annLoc info loc (AST.nameFromList <$> trfNameStr "-"))
+trfExpr' (NegApp e _) = AST.UPrefixApp <$> annLocNoSema loc (AST.UNormalOp <$> annLoc info loc (AST.nameFromList <$> trfNameStr False "-"))
                                        <*> trfExpr e
   where loc = mkSrcSpan <$> atTheStart <*> (pure $ srcSpanStart (getLoc e))
         info = createNameInfo =<< (fromMaybe (error "minus operation is not found") <$> liftGhc negateOpName)
         negateOpName = getFromNameUsing (\n -> (\case Just (AnId id) -> Just id; _ -> Nothing) <$> lookupName n) negateName
 trfExpr' (HsPar (unLoc -> SectionL expr (unLoc -> HsVar op))) = AST.ULeftSection <$> trfExpr expr <*> trfOperator op
+trfExpr' (HsPar (unLoc -> SectionL expr (L nameLoc (HsRecFld op))))
+  = AST.ULeftSection <$> trfExpr expr <*> trfAmbiguousOperator' nameLoc op
 trfExpr' (HsPar (unLoc -> SectionR (unLoc -> HsVar op) expr)) = AST.URightSection <$> trfOperator op <*> trfExpr expr
+trfExpr' (HsPar (unLoc -> SectionR (L nameLoc (HsRecFld op)) expr))
+  = AST.URightSection <$> trfAmbiguousOperator' nameLoc op <*> trfExpr expr
 trfExpr' (HsPar expr) = AST.UParen <$> trfExpr expr
 trfExpr' (ExplicitTuple tupArgs box) | all tupArgPresent tupArgs
   = wrap <$> between (if box == Boxed then AnnOpenP else AnnOpen) (if box == Boxed then AnnCloseP else AnnClose)
@@ -138,7 +143,6 @@ trfExpr' (PArrSeq _ (FromTo from to))
   = AST.UParArrayEnum <$> trfExpr from <*> nothing "," "" (before AnnDotdot) <*> trfExpr to
 trfExpr' (PArrSeq _ (FromThenTo from step to))
   = AST.UParArrayEnum <$> trfExpr from <*> (makeJust <$> trfExpr step) <*> trfExpr to
--- TODO: SCC, CORE, GENERATED annotations
 trfExpr' (HsBracket brack) = AST.UBracketExpr <$> annContNoSema (trfBracket' brack)
 trfExpr' (HsSpliceE qq@(HsQuasiQuote {})) = AST.UQuasiQuoteExpr <$> annContNoSema (trfQuasiQuotation' qq)
 trfExpr' (HsSpliceE splice) = AST.USplice <$> annContNoSema (trfSplice' splice)
@@ -146,7 +150,14 @@ trfExpr' (HsRnBracketOut br _) = AST.UBracketExpr <$> annContNoSema (trfBracket'
 trfExpr' (HsProc pat cmdTop) = AST.UProc <$> trfPattern pat <*> trfCmdTop cmdTop
 trfExpr' (HsStatic expr) = AST.UStaticPtr <$> trfExpr expr
 trfExpr' (HsAppType expr typ) = AST.UExplTypeApp <$> trfExpr expr <*> trfType (hswc_body typ)
-trfExpr' t = error ("Illegal expression: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ")")
+trfExpr' (HsSCC _ lit expr) = AST.UExprPragma <$> annContNoSema (AST.USccPragma <$> annLocNoSema (tokenLoc AnnValStr) (trfText' lit))
+                                              <*> trfExpr expr
+trfExpr' (HsCoreAnn _ lit expr) = AST.UExprPragma <$> annContNoSema (AST.UCorePragma <$> annLocNoSema (tokenLoc AnnValStr) (trfText' lit))
+                                                  <*> trfExpr expr
+trfExpr' (HsTickPragma _ source _ expr) = AST.UExprPragma <$> annContNoSema (AST.UGeneratedPragma <$> (trfSourceRange source))
+                                                          <*> trfExpr expr
+trfExpr' t = do rng <- asks contRange
+                error ("Illegal expression: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ") at: " ++ show rng)
 
 trfFieldInits :: TransformName n r => HsRecFields n (LHsExpr n) -> Trf (AnnListG AST.UFieldUpdate (Dom r) RangeStage)
 trfFieldInits (HsRecFields fields dotdot)
@@ -223,3 +234,17 @@ trfCmd' (HsCmdDo (unLoc -> stmts) _) = AST.UDoCmd <$> makeNonemptyIndentedList (
 -- | TODO: implement
 trfCmd' (HsCmdLam {}) = error "trfCmd': cmd lambda not supported yet"
 trfCmd' (HsCmdWrap {}) = error "trfCmd': cmd wrap not supported yet"
+
+trfText' :: StringLiteral -> Trf (AST.UStringNode (Dom r) RangeStage)
+trfText' = pure . AST.UStringNode . unpackFS . sl_fs
+
+trfSourceRange :: (StringLiteral, (Int, Int), (Int, Int)) -> Trf (Ann AST.USourceRange (Dom r) RangeStage)
+trfSourceRange (fileName, (startRow, startCol), (endRow, endCol))
+  = do fnLoc <- tokenLoc AnnValStr
+       [srLoc, scLoc, erLoc, ecLoc] <- allTokenLoc AnnVal
+       annLocNoSema (pure (fnLoc `combineSrcSpans` ecLoc))
+         (AST.USourceRange <$> annLocNoSema (pure fnLoc) (trfText' fileName)
+                           <*> annLocNoSema (pure srLoc) (pure $ AST.Number $ fromIntegral startRow)
+                           <*> annLocNoSema (pure scLoc) (pure $ AST.Number $ fromIntegral startCol)
+                           <*> annLocNoSema (pure erLoc) (pure $ AST.Number $ fromIntegral endRow)
+                           <*> annLocNoSema (pure ecLoc) (pure $ AST.Number $ fromIntegral endCol))

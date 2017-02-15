@@ -14,7 +14,7 @@
 module Language.Haskell.Tools.AST.FromGHC.Names where
 
 import Control.Monad.Reader ((=<<), asks)
-import Data.Char (isDigit, isLetter)
+import Data.Char (isDigit, isLetter, isAlphaNum)
 
 import FastString as GHC (FastString, unpackFS)
 import HsSyn as GHC
@@ -54,15 +54,24 @@ trfAmbiguousFieldName (L l af) = trfAmbiguousFieldName' l af
 trfAmbiguousFieldName' :: forall n r . TransformName n r => SrcSpan -> AmbiguousFieldOcc n -> Trf (Ann AST.UName (Dom r) RangeStage)
 trfAmbiguousFieldName' l (Unambiguous (L _ rdr) pr) = annLocNoSema (pure l) $ trfName' (unpackPostRn @n rdr pr)
 -- no Id transformation is done, so we can basically ignore the postTC value
-trfAmbiguousFieldName' _ (Ambiguous (L l rdr) _) 
-  = annLocNoSema (pure l) 
-      $ AST.UNormalName 
-          <$> (annLoc (createAmbigousNameInfo rdr l) (pure l) $ AST.nameFromList <$> trfNameStr (rdrNameStr rdr))
+trfAmbiguousFieldName' _ (Ambiguous (L l rdr) _)
+  = annLocNoSema (pure l)
+      $ (if (isSymOcc (occName rdr)) then AST.UParenName else AST.UNormalName)
+          <$> (annLoc (createAmbigousNameInfo rdr l) (pure l) $ AST.nameFromList <$> trfNameStr (isSymOcc (occName rdr)) (rdrNameStr rdr))
+
+trfAmbiguousOperator' :: forall n r . TransformName n r => SrcSpan -> AmbiguousFieldOcc n -> Trf (Ann AST.UOperator (Dom r) RangeStage)
+trfAmbiguousOperator' l (Unambiguous (L _ rdr) pr) = annLocNoSema (pure l) $ trfOperator' (unpackPostRn @n rdr pr)
+-- no Id transformation is done, so we can basically ignore the postTC value
+trfAmbiguousFieldOperator' _ (Ambiguous (L l rdr) _)
+  = annLocNoSema (pure l)
+      $ (if (isSymOcc (occName rdr)) then AST.UNormalOp else AST.UBacktickOp)
+          <$> (annLoc (createAmbigousNameInfo rdr l) (pure l) $ AST.nameFromList <$> trfNameStr (not $ isSymOcc (occName rdr)) (rdrNameStr rdr))
+
 
 class (DataId n, Eq n, GHCName n) => TransformableName n where
   correctNameString :: n -> Trf String
   getDeclSplices :: Trf [Located (HsSplice n)]
-  fromGHCName :: GHC.Name -> n 
+  fromGHCName :: GHC.Name -> n
 
 instance TransformableName RdrName where
   correctNameString = pure . rdrNameStr
@@ -76,7 +85,7 @@ instance TransformableName GHC.Name where
 
 -- | This class allows us to use the same transformation code for multiple variants of the GHC AST.
 -- GHC UName annotated with 'name' can be transformed to our representation with semantic annotations of 'res'.
-class (TransformableName name, HsHasName name, TransformableName res, HsHasName res, GHCName res) 
+class (TransformableName name, HsHasName name, TransformableName res, HsHasName res, GHCName res)
         => TransformName name res where
   -- | Demote a given name
   transformName :: name -> res
@@ -89,30 +98,35 @@ instance {-# OVERLAPS #-} (TransformableName res, GHCName res, HsHasName res) =>
 
 trfNameText :: String -> Trf (Ann AST.UName (Dom r) RangeStage)
 trfNameText str
-  = annContNoSema (AST.UNormalName <$> annLoc (createImplicitNameInfo str) (asks contRange) (AST.nameFromList <$> trfNameStr str))
+  = annContNoSema (AST.UNormalName <$> annLoc (createImplicitNameInfo str) (asks contRange) (AST.nameFromList <$> trfNameStr (isOperatorStr str) str))
 
 trfImplicitName :: HsIPName -> Trf (Ann AST.UName (Dom r) RangeStage)
-trfImplicitName (HsIPName fs) 
-  = let nstr = unpackFS fs 
+trfImplicitName (HsIPName fs)
+  = let nstr = unpackFS fs
      in do rng <- asks contRange
            let rng' = mkSrcSpan (updateCol (+1) (srcSpanStart rng)) (srcSpanEnd rng)
-           annContNoSema (AST.UImplicitName <$> annLoc (createImplicitNameInfo nstr) (pure rng') (AST.nameFromList <$> trfNameStr nstr))
+           annContNoSema (AST.UImplicitName <$> annLoc (createImplicitNameInfo nstr) (pure rng')
+                                                  (AST.nameFromList <$> trfNameStr (isOperatorStr nstr) nstr))
+
+isOperatorStr :: String -> Bool
+isOperatorStr = any (not . isAlphaNum)
 
 trfQualifiedName :: TransformName n r => Located n -> Trf (Ann AST.UQualifiedName (Dom r) RangeStage)
 trfQualifiedName (L l n) = annLoc (createNameInfo (transformName n)) (pure l) (trfQualifiedName' n)
 
 trfQualifiedName' :: TransformName n r => n -> Trf (AST.UQualifiedName (Dom r) RangeStage)
-trfQualifiedName' n = AST.nameFromList <$> (trfNameStr =<< correctNameString n)
+trfQualifiedName' n = AST.nameFromList <$> (trfNameStr (isSymOcc (occName n)) =<< correctNameString n)
 
 -- | Creates a qualified name from a name string
-trfNameStr :: String -> Trf (AnnListG AST.UNamePart (Dom r) RangeStage)
-trfNameStr str = makeList "." atTheStart (trfNameStr' str <$> atTheStart)
+trfNameStr :: Bool -> String -> Trf (AnnListG AST.UNamePart (Dom r) RangeStage)
+trfNameStr isInParenOrBackticks str = makeList "." atTheStart (trfNameStr' str . correct <$> atTheStart)
+  where correct = if isInParenOrBackticks then updateCol (+1) else id
 
 trfNameStr' :: String -> SrcLoc -> [Ann AST.UNamePart (Dom r) RangeStage]
-trfNameStr' str srcLoc = fst $
+trfNameStr' str startLoc = fst $
   foldl (\(r,loc) np -> let nextLoc = advanceAllSrcLoc loc np
-                         in ( r ++ [Ann (noSemaInfo $ AST.NodeSpan (mkSrcSpan loc nextLoc)) (AST.UNamePart np)], advanceAllSrcLoc nextLoc "." ) ) 
-  ([], srcLoc) (nameParts str)
+                         in ( r ++ [Ann (noSemaInfo $ AST.NodeSpan (mkSrcSpan loc nextLoc)) (AST.UNamePart np)], advanceAllSrcLoc nextLoc "." ) )
+  ([], startLoc) (nameParts str)
   where -- | Move the source location according to a string
         advanceAllSrcLoc :: SrcLoc -> String -> SrcLoc
         advanceAllSrcLoc (RealSrcLoc rl) str = RealSrcLoc $ foldl advanceSrcLoc rl str
@@ -126,7 +140,7 @@ trfNameStr' str srcLoc = fst $
         nameParts' carry (c : rest) | isLetter c || isDigit c || c == '\'' || c == '_' || c == '#'
                                     = nameParts' (c:carry) rest
         nameParts' carry@(_:_) ('.' : rest) = reverse carry : nameParts rest
-        nameParts' "" rest = [rest] 
+        nameParts' "" rest = [rest]
         nameParts' carry [] = [reverse carry]
         nameParts' carry str = error $ "nameParts': " ++ show carry ++ " " ++ show str
 
