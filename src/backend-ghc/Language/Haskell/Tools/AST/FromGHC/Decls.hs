@@ -124,7 +124,7 @@ trfDecl = trfLocNoSema $ \case
   SigD sig -> trfSig sig
   DerivD (DerivDecl t overlap) -> AST.UDerivDecl <$> trfMaybeDefault " " "" trfOverlap (after AnnInstance) overlap <*> trfInstanceRule (hsib_body t)
   RuleD (HsRules _ rules) -> AST.UPragmaDecl <$> annContNoSema (AST.URulePragma <$> makeIndentedList (before AnnClose) (mapM trfRewriteRule rules))
-  RoleAnnotD (RoleAnnotDecl name roles) -> AST.URoleDecl <$> trfQualifiedName name <*> makeList " " atTheEnd (mapM trfRole roles)
+  RoleAnnotD (RoleAnnotDecl name roles) -> AST.URoleDecl <$> trfQualifiedName False name <*> makeList " " atTheEnd (mapM trfRole roles)
   DefD (DefaultDecl types) -> AST.UDefaultDecl . nonemptyAnnList <$> mapM trfType types
   ForD (ForeignImport name (hsib_body -> typ) _ (CImport ccall safe _ _ _))
     -> AST.UForeignImport <$> trfCallConv ccall <*> trfSafety (getLoc ccall) safe <*> define (trfName name) <*> trfType typ

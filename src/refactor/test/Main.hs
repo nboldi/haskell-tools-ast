@@ -163,6 +163,7 @@ languageTests =
   , "Pattern.ImplicitParams"
   , "Pattern.Infix"
   , "Pattern.NPlusK"
+  , "Pattern.OperatorPattern"
   , "Pattern.Record"
   , "Type.Bang"
   , "Type.Builtin"

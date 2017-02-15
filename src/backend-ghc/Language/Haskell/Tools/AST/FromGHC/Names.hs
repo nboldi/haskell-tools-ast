@@ -30,13 +30,15 @@ import Language.Haskell.Tools.AST.FromGHC.GHCUtils
 import Language.Haskell.Tools.AST.FromGHC.Monad (TrfInput(..), Trf, getOriginalName)
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
+import Debug.Trace
+
 trfOperator :: TransformName n r => Located n -> Trf (Ann AST.UOperator (Dom r) RangeStage)
 trfOperator = trfLocNoSema trfOperator'
 
 trfOperator' :: TransformName n r => n -> Trf (AST.UOperator (Dom r) RangeStage)
 trfOperator' n
-  | isSymOcc (occName n) = AST.UNormalOp <$> (annCont (createNameInfo (transformName n)) (trfQualifiedName' n))
-  | otherwise = AST.UBacktickOp <$> (annLoc (createNameInfo (transformName n)) loc (trfQualifiedName' n))
+  | isSymOcc (occName n) = AST.UNormalOp <$> (annCont (createNameInfo (transformName n)) (trfQualifiedName' True n))
+  | otherwise = AST.UBacktickOp <$> (annLoc (createNameInfo (transformName n)) loc (trfQualifiedName' True n))
      where loc = mkSrcSpan <$> (updateCol (+1) <$> atTheStart) <*> (updateCol (subtract 1) <$> atTheEnd)
 
 trfName :: TransformName n r => Located n -> Trf (Ann AST.UName (Dom r) RangeStage)
@@ -44,8 +46,8 @@ trfName = trfLocNoSema trfName'
 
 trfName' :: TransformName n r => n -> Trf (AST.UName (Dom r) RangeStage)
 trfName' n
-  | isSymOcc (occName n) = AST.UParenName <$> (annLoc (createNameInfo (transformName n)) loc (trfQualifiedName' n))
-  | otherwise = AST.UNormalName <$> (annCont (createNameInfo (transformName n)) (trfQualifiedName' n))
+  | isSymOcc (occName n) = AST.UParenName <$> (annLoc (createNameInfo (transformName n)) loc (trfQualifiedName' False n))
+  | otherwise = AST.UNormalName <$> (annCont (createNameInfo (transformName n)) (trfQualifiedName' False n))
      where loc = mkSrcSpan <$> (updateCol (+1) <$> atTheStart) <*> (updateCol (subtract 1) <$> atTheEnd)
 
 trfAmbiguousFieldName :: TransformName n r => Located (AmbiguousFieldOcc n) -> Trf (Ann AST.UName (Dom r) RangeStage)
@@ -111,11 +113,11 @@ trfImplicitName (HsIPName fs)
 isOperatorStr :: String -> Bool
 isOperatorStr = any (not . isAlphaNum)
 
-trfQualifiedName :: TransformName n r => Located n -> Trf (Ann AST.UQualifiedName (Dom r) RangeStage)
-trfQualifiedName (L l n) = annLoc (createNameInfo (transformName n)) (pure l) (trfQualifiedName' n)
+trfQualifiedName :: TransformName n r => Bool -> Located n -> Trf (Ann AST.UQualifiedName (Dom r) RangeStage)
+trfQualifiedName isOperator (L l n) = annLoc (createNameInfo (transformName n)) (pure l) (trfQualifiedName' isOperator n)
 
-trfQualifiedName' :: TransformName n r => n -> Trf (AST.UQualifiedName (Dom r) RangeStage)
-trfQualifiedName' n = AST.nameFromList <$> (trfNameStr (isSymOcc (occName n)) =<< correctNameString n)
+trfQualifiedName' :: TransformName n r => Bool -> n -> Trf (AST.UQualifiedName (Dom r) RangeStage)
+trfQualifiedName' isOperator n = AST.nameFromList <$> (trfNameStr (isOperator /= isSymOcc (occName n)) =<< correctNameString n)
 
 -- | Creates a qualified name from a name string
 trfNameStr :: Bool -> String -> Trf (AnnListG AST.UNamePart (Dom r) RangeStage)
