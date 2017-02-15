@@ -134,6 +134,7 @@ languageTests =
   , "Expr.DoNotation"
   , "Expr.GeneralizedListComp"
   , "Expr.EmptyCase"
+  , "Expr.FunSection"
   , "Expr.If"
   , "Expr.ImplicitParams"
   , "Expr.LambdaCase"
