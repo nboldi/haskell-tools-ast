@@ -223,12 +223,14 @@ instance ToModuleCollection Benchmark where
   getBuildInfo = benchmarkBuildInfo
   getModuleNames = benchmarkModules
 
+isDirectoryMC :: ModuleCollection -> Bool
+isDirectoryMC mc = case mc ^. mcId of DirectoryMC{} -> True; _ -> False
 
 compileInContext :: ModuleCollection -> [ModuleCollection] -> DynFlags -> IO DynFlags
 compileInContext mc mcs dfs
   = (\dfs' -> applyDependencies mcs (mc ^. mcDependencies) (selectEnabled dfs'))
        <$> (mc ^. mcFlagSetup $ dfs)
-  where selectEnabled = case mc ^. mcId of DirectoryMC{} -> id; _ -> onlyUseEnabled
+  where selectEnabled = if isDirectoryMC mc then id else onlyUseEnabled
 
 applyDependencies :: [ModuleCollection] -> [ModuleCollectionId] -> DynFlags -> DynFlags
 applyDependencies mcs ids dfs
@@ -245,8 +247,9 @@ dependencyToPkgFlag mcs lib@(LibraryMC pkgName)
 dependencyToPkgFlag _ _ = Nothing
 
 enableAllPackages :: [ModuleCollection] -> DynFlags -> DynFlags
-enableAllPackages mcs dfs = applyDependencies mcs allDeps dfs
+enableAllPackages mcs dfs = applyDependencies mcs allDeps (selectEnabled dfs)
   where allDeps = mcs ^? traversal & mcDependencies & traversal
+        selectEnabled = if any isDirectoryMC mcs then id else onlyUseEnabled
 
 flagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
 -- the import pathes are already set globally
