@@ -150,12 +150,12 @@ trfExpr' (HsRnBracketOut br _) = AST.UBracketExpr <$> annContNoSema (trfBracket'
 trfExpr' (HsProc pat cmdTop) = AST.UProc <$> trfPattern pat <*> trfCmdTop cmdTop
 trfExpr' (HsStatic expr) = AST.UStaticPtr <$> trfExpr expr
 trfExpr' (HsAppType expr typ) = AST.UExplTypeApp <$> trfExpr expr <*> trfType (hswc_body typ)
-trfExpr' (HsSCC _ lit expr) = AST.UExprPragma <$> annContNoSema (AST.USccPragma <$> annLocNoSema (tokenLoc AnnValStr) (trfText' lit))
-                                              <*> trfExpr expr
-trfExpr' (HsCoreAnn _ lit expr) = AST.UExprPragma <$> annContNoSema (AST.UCorePragma <$> annLocNoSema (tokenLoc AnnValStr) (trfText' lit))
-                                                  <*> trfExpr expr
-trfExpr' (HsTickPragma _ source _ expr) = AST.UExprPragma <$> annContNoSema (AST.UGeneratedPragma <$> (trfSourceRange source))
-                                                          <*> trfExpr expr
+trfExpr' (HsSCC _ lit expr) = AST.UExprPragma <$> between AnnOpen AnnClose pragma <*> trfExpr expr
+  where pragma = annContNoSema (AST.USccPragma <$> annLocNoSema (tokenLoc AnnValStr) (trfText' lit))
+trfExpr' (HsCoreAnn _ lit expr) = AST.UExprPragma <$> between AnnOpen AnnClose pragma <*> trfExpr expr
+  where pragma = annContNoSema (AST.UCorePragma <$> annLocNoSema (tokenLoc AnnValStr) (trfText' lit))
+trfExpr' (HsTickPragma _ source _ expr) = AST.UExprPragma <$> between AnnOpen AnnClose pragma <*> trfExpr expr
+  where pragma = annContNoSema (AST.UGeneratedPragma <$> (trfSourceRange source))
 trfExpr' t = do rng <- asks contRange
                 error ("Illegal expression: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ") at: " ++ show rng)
 
