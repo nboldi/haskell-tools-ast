@@ -19,7 +19,7 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Exprs (trfExpr)
 import Language.Haskell.Tools.AST.FromGHC.Literals (trfLiteral', trfOverloadedLit)
 import Language.Haskell.Tools.AST.FromGHC.Monad (Trf, define)
 import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfOperator, trfName)
-import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfSplice')
+import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfSplice)
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
@@ -28,8 +28,8 @@ import qualified Language.Haskell.Tools.AST as AST
 
 trfPattern :: TransformName n r => Located (Pat n) -> Trf (Ann AST.UPattern (Dom r) RangeStage)
 -- field wildcards are not directly represented in GHC AST
-trfPattern (L l (ConPatIn name (RecCon (HsRecFields flds _)))) | any ((l ==) . getLoc) flds 
-  = focusOn l $ do 
+trfPattern (L l (ConPatIn name (RecCon (HsRecFields flds _)))) | any ((l ==) . getLoc) flds
+  = focusOn l $ do
       let (fromWC, notWC) = partition ((l ==) . getLoc) flds
       normalFields <- mapM (trfLocNoSema trfPatternField') notWC
       wildc <- annLocNoSema (tokenLoc AnnDotdot) (AST.UFieldWildcardPattern <$> annCont (createImplicitFldInfo (unLoc . (\(VarPat n) -> n) . unLoc) (map unLoc fromWC)) (pure AST.FldWildcard))
@@ -57,7 +57,7 @@ trfPattern' (ConPatIn name (PrefixCon args)) = AST.UAppPat <$> trfName name <*> 
 trfPattern' (ConPatIn name (RecCon (HsRecFields flds _))) = AST.URecPat <$> trfName name <*> trfAnnList ", " trfPatternField' flds
 trfPattern' (ConPatIn name (InfixCon left right)) = AST.UInfixAppPat <$> trfPattern left <*> trfOperator name <*> trfPattern right
 trfPattern' (ViewPat expr pat _) = AST.UViewPat <$> trfExpr expr <*> trfPattern pat
-trfPattern' (SplicePat splice) = AST.USplicePat <$> annContNoSema (trfSplice' splice)
+trfPattern' (SplicePat splice) = AST.USplicePat <$> trfSplice splice
 trfPattern' (LitPat lit) = AST.ULitPat <$> annContNoSema (trfLiteral' lit)
 trfPattern' (SigPatIn pat (hswc_body . hsib_body -> typ)) = AST.UTypeSigPat <$> trfPattern pat <*> trfType typ
 trfPattern' (NPat (ol_val . unLoc -> lit) _ _ _) = AST.ULitPat <$> annContNoSema (trfOverloadedLit lit)

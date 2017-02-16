@@ -33,7 +33,7 @@ import Language.Haskell.Tools.AST.FromGHC.Kinds (trfKindSig, trfKindSig')
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Patterns (trfPattern)
-import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfSplice')
+import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfSplice)
 import Language.Haskell.Tools.AST.FromGHC.Types
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
@@ -143,7 +143,7 @@ trfDecl = trfLocNoSema $ \case
     -> AST.UForeignImport <$> trfCallConv ccall <*> trfSafety (getLoc ccall) safe <*> define (trfName name) <*> trfType typ
   ForD (ForeignExport name (hsib_body -> typ) _ (CExport (L l (CExportStatic _ _ ccall)) _))
     -> AST.UForeignExport <$> annLocNoSema (pure l) (trfCallConv' ccall) <*> trfName name <*> trfType typ
-  SpliceD (SpliceDecl (unLoc -> spl) _) -> AST.USpliceDecl <$> (annContNoSema $ trfSplice' spl)
+  SpliceD (SpliceDecl (unLoc -> spl) _) -> AST.USpliceDecl <$> trfSplice spl
   WarningD (Warnings src [])
     -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) (pure [])) <*> nothing " " "" (before AnnClose))
   WarningD (Warnings src [L _ (Warning names (DeprecatedTxt _ []))])

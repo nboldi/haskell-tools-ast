@@ -27,7 +27,7 @@ import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Patterns (trfPattern)
 import Language.Haskell.Tools.AST.FromGHC.Stmts
-import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfBracket', trfSplice', trfQuasiQuotation')
+import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfBracket', trfSplice, trfQuasiQuotation')
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)
 import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.SemaInfoTypes (ScopeInfo, mkScopeInfo)
@@ -48,8 +48,8 @@ trfExpr (L l cs@(HsCase expr (unLoc . mg_alts -> [])))
 trfExpr e = do exprSpls <- asks exprSplices
                let RealSrcSpan loce = getLoc e
                    contSplice = find (\sp -> case getSpliceLoc sp of (RealSrcSpan spLoc) -> spLoc `containsSpan` loce; _ -> False) exprSpls
-               case contSplice of Just sp -> case sp of HsQuasiQuote {} -> exprSpliceInserted sp (annCont createScopeInfo (AST.UQuasiQuoteExpr <$> annLocNoSema (pure $ getSpliceLoc sp) (trfQuasiQuotation' sp)))
-                                                        _               -> exprSpliceInserted sp (annCont createScopeInfo (AST.USplice <$> annLocNoSema (pure $ getSpliceLoc sp) (trfSplice' sp)))
+               case contSplice of Just sp -> case sp of HsQuasiQuote {} -> exprSpliceInserted sp (annLoc createScopeInfo (pure $ getSpliceLoc sp) (AST.UQuasiQuoteExpr <$> annLocNoSema (pure $ getSpliceLoc sp) (trfQuasiQuotation' sp)))
+                                                        _               -> exprSpliceInserted sp (annLoc createScopeInfo (pure $ getSpliceLoc sp) (AST.USplice <$> trfSplice sp))
                                   Nothing -> trfLoc trfExpr' createScopeInfo e
 
 createScopeInfo :: Trf ScopeInfo
@@ -145,7 +145,7 @@ trfExpr' (PArrSeq _ (FromThenTo from step to))
   = AST.UParArrayEnum <$> trfExpr from <*> (makeJust <$> trfExpr step) <*> trfExpr to
 trfExpr' (HsBracket brack) = AST.UBracketExpr <$> annContNoSema (trfBracket' brack)
 trfExpr' (HsSpliceE qq@(HsQuasiQuote {})) = AST.UQuasiQuoteExpr <$> annContNoSema (trfQuasiQuotation' qq)
-trfExpr' (HsSpliceE splice) = AST.USplice <$> annContNoSema (trfSplice' splice)
+trfExpr' (HsSpliceE splice) = AST.USplice <$> trfSplice splice
 trfExpr' (HsRnBracketOut br _) = AST.UBracketExpr <$> annContNoSema (trfBracket' br)
 trfExpr' (HsProc pat cmdTop) = AST.UProc <$> trfPattern pat <*> trfCmdTop cmdTop
 trfExpr' (HsStatic expr) = AST.UStaticPtr <$> trfExpr expr

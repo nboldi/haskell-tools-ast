@@ -83,7 +83,6 @@ loadSplices hsMod imports preludeImports group trf = do
     -- initialize reader environment
     env <- liftGhc getSession
 
-
     let locals = hsGetNames group
         createLocalGRE n | Just modName <- nameModule_maybe n
                          = [GRE n NoParent True [ImpSpec (ImpDeclSpec (moduleName modName) (moduleName modName) False noSrcSpan) ImpAll]]

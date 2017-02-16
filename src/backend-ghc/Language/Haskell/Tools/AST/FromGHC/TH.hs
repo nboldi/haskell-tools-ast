@@ -14,7 +14,7 @@ import SrcLoc as GHC
 import Language.Haskell.Tools.AST.FromGHC.Decls (trfDecls, trfDeclsGroup)
 import Language.Haskell.Tools.AST.FromGHC.Exprs (trfExpr, createScopeInfo)
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..))
-import Language.Haskell.Tools.AST.FromGHC.Monad (TrfInput(..), Trf)
+import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Patterns (trfPattern)
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)
@@ -34,8 +34,8 @@ trfQuasiQuotation' (HsQuasiQuote id _ l str)
         strLoc = mkSrcSpan (srcSpanStart l) (updateCol (subtract 2) (srcSpanEnd l))
 trfQuasiQuotation' _ = error "trfQuasiQuotation': splice received"
 
-trfSplice :: TransformName n r => Located (HsSplice n) -> Trf (Ann AST.USplice (Dom r) RangeStage)
-trfSplice = trfLocNoSema trfSplice'
+trfSplice :: TransformName n r => HsSplice n -> Trf (Ann AST.USplice (Dom r) RangeStage)
+trfSplice spls = annLocNoSema (pure $ getSpliceLoc spls) (trfSplice' spls)
 
 trfSplice' :: TransformName n r => HsSplice n -> Trf (AST.USplice (Dom r) RangeStage)
 trfSplice' = \case (HsTypedSplice _ expr) -> trfSpliceExpr expr
