@@ -78,7 +78,7 @@ trfDeclsGroup (HsGroup vals splices tycls insts derivs fixities defaults foreign
     removeContained (fst:snd:rest) | RealSrcSpan fstLoc <- getLoc fst
                                    , RealSrcSpan sndLoc <- getLoc snd
                                    , fstLoc `containsSpan` sndLoc
-      = fst : removeContained rest
+      = removeContained (fst:rest)
     removeContained (fst:rest) = fst : removeContained rest
     removeContained [] = []
 

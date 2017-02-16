@@ -1,7 +1,10 @@
 module Decl.ClassInfix where
 
-import Control.Monad
+import Control.Applicative
 
-class (MonadPlus m) => MonadLogic m where
-  (>>-)      :: m a -> (a -> m b) -> m b
-  infixl 1 >>-
+class Applicative f => MonoidApplicative f where
+   infixl 4 +<*>
+   (+<*>) :: f (a -> a) -> f a -> f a
+
+   infixl 5 ><
+   (><) :: Monoid a => f a -> f a -> f a

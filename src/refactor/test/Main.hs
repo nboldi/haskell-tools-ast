@@ -177,7 +177,6 @@ languageTests =
   , "Type.Unpack"
   , "Type.Wildcard"
   , "TH.Brackets"
-  , "TH.Logger"
   , "TH.QuasiQuote.Define"
   , "TH.QuasiQuote.Use"
   , "TH.Splice.Define"
