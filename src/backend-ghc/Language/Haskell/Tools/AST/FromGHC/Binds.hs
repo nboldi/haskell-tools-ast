@@ -12,8 +12,9 @@ import HsBinds as GHC
 import HsExpr as GHC
 import HsPat as GHC (LPat)
 import HsTypes as GHC (HsWildCardBndrs(..), HsImplicitBndrs(..))
-import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import SrcLoc as GHC
+import Outputable as GHC (Outputable(..), showSDocUnsafe)
+import Name as GHC (isSymOcc)
 
 import Control.Monad.Reader (Monad(..), mapM, asks, liftIO)
 import Data.Data (Data(..))
@@ -25,6 +26,7 @@ import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Patterns (trfPattern)
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)
 import Language.Haskell.Tools.AST.FromGHC.Utils
+import Language.Haskell.Tools.AST.FromGHC.GHCUtils
 
 import Language.Haskell.Tools.AST (Ann, AnnMaybeG, AnnListG, Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST
@@ -60,8 +62,10 @@ trfMatch' name (Match funid pats typ (GRHSs rhss (unLoc -> locBinds)))
 trfMatchLhs :: TransformName n r => n -> MatchFixity n -> [LPat n] -> Trf (Ann AST.UMatchLhs (Dom r) RangeStage)
 trfMatchLhs name fb pats
   = do implicitIdLoc <- mkSrcSpan <$> atTheStart <*> atTheStart
+       nonFunOpLoc <- tokenLoc AnnVal
        closeLoc <- srcSpanStart <$> (combineSrcSpans <$> tokenLoc AnnEqual <*> tokenLoc AnnVbar)
-       let (n, isInfix) = case fb of NonFunBindMatch -> (L implicitIdLoc name, False)
+       let (n, isInfix) = case fb of NonFunBindMatch -> if isSymOcc (occName name) then (L nonFunOpLoc name, True)
+                                                                                   else (L implicitIdLoc name, False)
                                      FunBindMatch n inf -> (n, inf)
        args <- mapM trfPattern pats
        annLocNoSema (mkSrcSpan <$> atTheStart <*> (pure closeLoc)) $

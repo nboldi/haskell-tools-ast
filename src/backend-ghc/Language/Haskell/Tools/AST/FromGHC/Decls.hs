@@ -63,11 +63,24 @@ trfDeclsGroup (HsGroup vals splices tycls insts derivs fixities defaults foreign
                         ++ (map (fmap AnnD) anns)
                         ++ (map (fmap RuleD) rules)
                         ++ (map (fmap VectD) vects)
-       let actualDefinitions = replaceSpliceDecls spls alldecls
-       addToCurrentScope actualDefinitions $ makeIndentedListNewlineBefore atTheEnd (orderDefs <$> ((++) <$> getDeclsToInsert <*> (mapM trfDecl actualDefinitions)))
+       let actualDefinitions = removeContained $ orderElems $ replaceSpliceDecls spls alldecls
+       addToCurrentScope actualDefinitions
+         $ makeIndentedListNewlineBefore atTheEnd
+            (orderDefs <$> ((++) <$> getDeclsToInsert <*> (mapM trfDecl actualDefinitions)))
   where
     replaceSpliceDecls :: [Located (HsSplice n)] -> [Located (HsDecl n)] -> [Located (HsDecl n)]
     replaceSpliceDecls splices decls = foldl mergeSplice decls splices
+
+    orderElems :: [Located a] -> [Located a]
+    orderElems = sortOn (srcSpanStart . getLoc)
+
+    removeContained :: [Located (HsDecl n)] -> [Located (HsDecl n)]
+    removeContained (fst:snd:rest) | RealSrcSpan fstLoc <- getLoc fst
+                                   , RealSrcSpan sndLoc <- getLoc snd
+                                   , fstLoc `containsSpan` sndLoc
+      = fst : removeContained rest
+    removeContained (fst:rest) = fst : removeContained rest
+    removeContained [] = []
 
     mergeSplice :: [Located (HsDecl n)] -> Located (HsSplice n) -> [Located (HsDecl n)]
     mergeSplice decls spl@(L spLoc@(RealSrcSpan rss) _)

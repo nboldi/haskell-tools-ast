@@ -40,6 +40,8 @@ demoRefactor command workingDir args moduleName =
     let annots = pm_annotations $ tm_parsed_module t
         hasCPP = Cpp `xopt` ms_hspp_opts modSum
 
+    liftIO $ putStrLn "=========== tokens:"
+    liftIO $ putStrLn $ show (fst annots)
     liftIO $ putStrLn "=========== parsed source:"
     liftIO $ putStrLn $ show (pm_parsed_source p)
     liftIO $ putStrLn "=========== renamed source:"

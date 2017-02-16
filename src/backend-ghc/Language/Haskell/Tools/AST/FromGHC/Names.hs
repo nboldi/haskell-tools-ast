@@ -15,6 +15,7 @@ module Language.Haskell.Tools.AST.FromGHC.Names where
 
 import Control.Monad.Reader ((=<<), asks)
 import Data.Char (isDigit, isLetter, isAlphaNum)
+import Data.List.Split
 
 import FastString as GHC (FastString, unpackFS)
 import HsSyn as GHC
@@ -63,7 +64,7 @@ trfAmbiguousOperator' l (Unambiguous (L _ rdr) pr) = annLocNoSema (pure l) $ trf
 trfAmbiguousFieldOperator' _ (Ambiguous (L l rdr) _)
   = annLocNoSema (pure l)
       $ (if (isSymOcc (occName rdr)) then AST.UNormalOp else AST.UBacktickOp)
-          <$> (annLoc (createAmbigousNameInfo rdr l) (pure l) $ AST.nameFromList <$> trfNameStr (not $ isSymOcc (occName rdr)) (rdrNameStr rdr))
+          <$> (annLoc (createAmbigousNameInfo rdr l) (pure l) $ AST.nameFromList <$> trfOperatorStr (not $ isSymOcc (occName rdr)) (rdrNameStr rdr))
 
 
 class (DataId n, Eq n, GHCName n) => TransformableName n where
@@ -120,34 +121,30 @@ trfQualifiedNameFocus isOperator n
        annLoc (createNameInfo (transformName n)) (pure rng') (trfQualifiedName' n)
 
 trfQualifiedName' :: TransformName n r => n -> Trf (AST.UQualifiedName (Dom r) RangeStage)
-trfQualifiedName' n = AST.nameFromList <$> (trfNameStr False =<< correctNameString n)
+trfQualifiedName' n = AST.nameFromList <$> ((if isSymOcc (occName n) then trfOperatorStr else trfNameStr) False =<< correctNameString n)
+
+trfOperatorStr :: Bool -> String -> Trf (AnnListG AST.UNamePart (Dom r) RangeStage)
+trfOperatorStr isInParen str = do rng <- correctSpan <$> asks contRange
+                                  makeList "." (pure $ srcSpanStart rng)
+                                               (pure [Ann (noSemaInfo $ AST.NodeSpan rng) (AST.UNamePart str)])
+  where correctSpan sp = if isInParen then mkSrcSpan (updateCol (+1) (srcSpanStart sp))
+                                                     (updateCol (subtract 1) (srcSpanEnd sp))
+                                      else sp
 
 -- | Creates a qualified name from a name string
 trfNameStr :: Bool -> String -> Trf (AnnListG AST.UNamePart (Dom r) RangeStage)
-trfNameStr isInParenOrBackticks str = makeList "." atTheStart (trfNameStr' str . correct <$> atTheStart)
-  where correct = if isInParenOrBackticks then updateCol (+1) else id
+trfNameStr isInBackticks str = makeList "." atTheStart (trfNameStr' str . correct <$> atTheStart)
+  where correct = if isInBackticks then updateCol (+1) else id
 
 trfNameStr' :: String -> SrcLoc -> [Ann AST.UNamePart (Dom r) RangeStage]
 trfNameStr' str startLoc = fst $
   foldl (\(r,loc) np -> let nextLoc = advanceAllSrcLoc loc np
                          in ( r ++ [Ann (noSemaInfo $ AST.NodeSpan (mkSrcSpan loc nextLoc)) (AST.UNamePart np)], advanceAllSrcLoc nextLoc "." ) )
-  ([], startLoc) (nameParts str)
+  ([], startLoc) (splitOn "." str)
   where -- | Move the source location according to a string
         advanceAllSrcLoc :: SrcLoc -> String -> SrcLoc
         advanceAllSrcLoc (RealSrcLoc rl) str = RealSrcLoc $ foldl advanceSrcLoc rl str
         advanceAllSrcLoc oth _ = oth
-
-        -- | Break up a name into parts, but take care for operators
-        nameParts :: String -> [String]
-        nameParts = nameParts' ""
-
-        nameParts' :: String -> String -> [String]
-        nameParts' carry (c : rest) | isLetter c || isDigit c || c == '\'' || c == '_' || c == '#'
-                                    = nameParts' (c:carry) rest
-        nameParts' carry@(_:_) ('.' : rest) = reverse carry : nameParts rest
-        nameParts' "" rest = [rest]
-        nameParts' carry [] = [reverse carry]
-        nameParts' carry str = error $ "nameParts': " ++ show carry ++ " " ++ show str
 
 trfFastString :: Located FastString -> Trf (Ann AST.UStringNode (Dom r) RangeStage)
 trfFastString = trfLocNoSema $ pure . AST.UStringNode . unpackFS
