@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 -- | Functions that convert the Template-Haskell-related elements of the GHC AST to corresponding elements in the Haskell-tools AST representation
 module Language.Haskell.Tools.AST.FromGHC.TH where
 
@@ -14,7 +15,7 @@ import Language.Haskell.Tools.AST.FromGHC.Decls (trfDecls, trfDeclsGroup)
 import Language.Haskell.Tools.AST.FromGHC.Exprs (trfExpr, createScopeInfo)
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..))
 import Language.Haskell.Tools.AST.FromGHC.Monad (TrfInput(..), Trf)
-import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfName')
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Patterns (trfPattern)
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)
 import Language.Haskell.Tools.AST.FromGHC.Utils
@@ -37,17 +38,21 @@ trfSplice :: TransformName n r => Located (HsSplice n) -> Trf (Ann AST.USplice (
 trfSplice = trfLocNoSema trfSplice'
 
 trfSplice' :: TransformName n r => HsSplice n -> Trf (AST.USplice (Dom r) RangeStage)
-trfSplice' (HsTypedSplice _ expr) = AST.UParenSplice <$> trfCorrectDollar expr
-trfSplice' (HsUntypedSplice _ expr) = AST.UParenSplice <$> trfCorrectDollar expr
-trfSplice' (HsQuasiQuote {}) = error "trfSplice': quasi quotation received"
+trfSplice' = \case (HsTypedSplice _ expr) -> trfSpliceExpr expr
+                   (HsUntypedSplice _ expr) -> trfSpliceExpr expr
+                   (HsQuasiQuote {}) -> error "trfSplice': quasi quotation received"
 
-trfCorrectDollar :: TransformName n r => Located (HsExpr n) -> Trf (Ann AST.UExpr (Dom r) RangeStage)
-trfCorrectDollar expr =
-  do isSplice <- allTokenLoc AnnThIdSplice
-     case isSplice of [] -> trfExpr expr
-                      _  -> let newSp = updateStart (updateCol (+1)) (getLoc expr)
-                             in case expr of L _ (HsVar (L _ varName)) -> trfExpr $ L newSp (HsVar (L newSp varName))
-                                             L _ exp                   -> trfExpr $ L newSp exp
+trfSpliceExpr :: TransformName n r => Located (HsExpr n) -> Trf (AST.USplice (Dom r) RangeStage)
+trfSpliceExpr expr =
+  do hasDollar <- allTokenLoc AnnThIdSplice
+     hasDoubleDollar <- allTokenLoc AnnThIdTySplice
+     let newSp = case (hasDollar, hasDoubleDollar) of
+                   ([], []) -> getLoc expr
+                   (_, []) -> updateStart (updateCol (+1)) (getLoc expr)
+                   ([], _) -> updateStart (updateCol (+2)) (getLoc expr)
+     case expr of L _ (HsVar (L _ varName)) -> AST.UIdSplice <$> trfName (L newSp varName)
+                  L _ (HsRecFld fldName) -> AST.UIdSplice <$> trfAmbiguousFieldName' newSp fldName
+                  expr -> AST.UParenSplice <$> trfExpr expr
 
 trfBracket' :: TransformName n r => HsBracket n -> Trf (AST.UBracket (Dom r) RangeStage)
 trfBracket' (ExpBr expr) = AST.UExprBracket <$> trfExpr expr
