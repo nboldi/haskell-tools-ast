@@ -19,7 +19,7 @@ import Data.List.Split
 
 import FastString as GHC (FastString, unpackFS)
 import HsSyn as GHC
-import Name as GHC (isSymOcc)
+import Name as GHC (isSymOcc, occNameString)
 import qualified Name as GHC (Name)
 import RdrName as GHC (RdrName)
 import SrcLoc as GHC
@@ -44,8 +44,10 @@ trfName = trfLocNoSema trfName'
 
 trfName' :: TransformName n r => n -> Trf (AST.UName (Dom r) RangeStage)
 trfName' n
-  | isSymOcc (occName n) = AST.UParenName <$> trfQualifiedNameFocus False n
+  | isSymOcc (occName n) = (if isSpecKind then AST.UNormalName else AST.UParenName) <$> trfQualifiedNameFocus isSpecKind n
   | otherwise = AST.UNormalName <$> trfQualifiedNameFocus False n
+  where -- special names that are operators, but appear in name context
+    isSpecKind = occNameString (occName n) `elem` ["*", "#", "?", "??"]
 
 trfAmbiguousFieldName :: TransformName n r => Located (AmbiguousFieldOcc n) -> Trf (Ann AST.UName (Dom r) RangeStage)
 trfAmbiguousFieldName (L l af) = trfAmbiguousFieldName' l af
