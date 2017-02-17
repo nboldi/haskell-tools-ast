@@ -208,12 +208,13 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
               let Just ms = mr ^? modRecMS
               let newCont = prettyPrint m
                   file = getModSumOrig ms
-              origCont <- liftIO $ withBinaryFile file ReadWriteMode $ \handle -> do
+              origCont <- liftIO $ withBinaryFile file ReadMode $ \handle -> do
                 hSetEncoding handle utf8
-                res <- StrictIO.hGetContents handle
-                hPutStr handle newCont
-                return res
+                StrictIO.hGetContents handle
               let undo = createUndo 0 $ getGroupedDiff origCont newCont
+              origCont <- liftIO $ withBinaryFile file WriteMode $ \handle -> do
+                hSetEncoding handle utf8
+                hPutStr handle newCont
               return $ Right (n, file, UndoChanges file undo)
             ModuleRemoved mod -> do
               Just (_,m) <- gets (lookupModInSCs (SourceFileKey NormalHs mod) . (^. refSessMCs))

@@ -196,7 +196,7 @@ mkInstanceHead :: Name dom -> InstanceHead dom
 mkInstanceHead = mkAnn child . UInstanceHeadCon
 
 -- | Infix application of the type/class name to the left operand as a part of the instance declaration
-mkInfixInstanceHead :: Type dom -> Name dom -> InstanceHead dom
+mkInfixInstanceHead :: Type dom -> Operator dom -> InstanceHead dom
 mkInfixInstanceHead typ n = mkAnn (child <> child) $ UInstanceHeadInfix typ n
 
 -- | Parenthesized instance head as a part of the instance declaration

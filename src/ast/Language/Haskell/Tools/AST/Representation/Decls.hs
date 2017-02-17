@@ -151,7 +151,7 @@ data UInstanceHead dom stage
   = UInstanceHeadCon   { _ihConName :: Ann UName dom stage
                        } -- ^ Type or class name
   | UInstanceHeadInfix { _ihLeftOp :: Ann UType dom stage
-                       , _ihOperator :: Ann UName dom stage
+                       , _ihOperator :: Ann UOperator dom stage
                        } -- ^ Infix application of the type/class name to the left operand
   | UInstanceHeadParen { _ihHead :: Ann UInstanceHead dom stage
                        } -- ^ Parenthesized instance head

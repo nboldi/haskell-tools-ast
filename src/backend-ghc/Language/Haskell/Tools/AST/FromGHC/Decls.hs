@@ -13,7 +13,7 @@ import Class as GHC (FunDep)
 import ForeignCall as GHC (Safety(..), CExportSpec(..), CCallConv(..))
 import qualified GHC
 import HsSyn as GHC
-import Name as GHC (Name, occNameString, nameOccName)
+import Name as GHC (Name, occNameString, nameOccName, isSymOcc)
 import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import RdrName as GHC (RdrName, rdrNameOcc)
 import SrcLoc as GHC
@@ -255,12 +255,21 @@ instanceHead :: Trf (Ann AST.UInstanceHead (Dom r) RangeStage) -> Trf (AST.UInst
 instanceHead hd = AST.UInstanceRule <$> (nothing "" " . " atTheStart) <*> (nothing " " "" atTheStart) <*> hd
 
 makeInstanceRuleTyVars :: TransformName n r => Located n -> HsImplicitBndrs n [LHsType n] -> Trf (Ann AST.UInstanceRule (Dom r) RangeStage)
-makeInstanceRuleTyVars n vars = annContNoSema
-  $ AST.UInstanceRule <$> nothing "" " . " atTheStart
-                      <*> nothing " " "" atTheStart
-                      <*> foldl (\c t -> annLocNoSema (pure $ combineSrcSpans (getLoc n) (getLoc t)) $ AST.UInstanceHeadApp <$> c <*> (trfType t))
-                                (copyAnnot AST.UInstanceHeadCon (trfName n))
-                                (hsib_body vars)
+makeInstanceRuleTyVars n vars | isSymOcc (occName (unLoc n))
+                              , leftOp:rest <- hsib_body vars
+  = annContNoSema
+      $ AST.UInstanceRule <$> nothing "" " . " atTheStart
+                          <*> nothing " " "" atTheStart
+                          <*> foldl foldTypeArgs
+                                    (annLocNoSema (pure $ combineSrcSpans (getLoc leftOp) (getLoc n))
+                                      (AST.UInstanceHeadInfix <$> trfType leftOp <*> trfOperator n)) rest
+  | otherwise
+  = annContNoSema
+      $ AST.UInstanceRule <$> nothing "" " . " atTheStart
+                          <*> nothing " " "" atTheStart
+                          <*> foldl foldTypeArgs (copyAnnot AST.UInstanceHeadCon (trfName n)) (hsib_body vars)
+  where foldTypeArgs base typ = annLocNoSema (pure $ combineSrcSpans (getLoc n) (getLoc typ)) $ AST.UInstanceHeadApp <$> base <*> (trfType typ)
+
 
 trfInstanceHead :: TransformName n r => Located (HsType n) -> Trf (Ann AST.UInstanceHead (Dom r) RangeStage)
 trfInstanceHead = trfLocNoSema trfInstanceHead'
@@ -273,7 +282,7 @@ trfInstanceHead' = trfInstanceHead'' . cleanHsType where
   trfInstanceHead'' (HsParTy typ) = AST.UInstanceHeadParen <$> trfInstanceHead typ
   trfInstanceHead'' (HsOpTy t1 op t2)
     = AST.UInstanceHeadApp <$> (annLocNoSema (pure $ combineSrcSpans (getLoc t1) (getLoc op))
-                                             (AST.UInstanceHeadInfix <$> trfType t1 <*> trfName op))
+                                             (AST.UInstanceHeadInfix <$> trfType t1 <*> trfOperator op))
                           <*> trfType t2
   trfInstanceHead'' t = error ("Illegal instance head: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ")")
 

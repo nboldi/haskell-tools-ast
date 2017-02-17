@@ -208,7 +208,7 @@ pattern InstanceHead :: Name dom -> InstanceHead dom
 pattern InstanceHead name <- Ann _ (UInstanceHeadCon name)
 
 -- | Infix application of the type/class name to the left operand as an instance head
-pattern InfixInstanceHead :: Type dom -> Name dom -> InstanceHead dom
+pattern InfixInstanceHead :: Type dom -> Operator dom -> InstanceHead dom
 pattern InfixInstanceHead typ n <- Ann _ (UInstanceHeadInfix typ n)
 
 -- | Parenthesized instance head
