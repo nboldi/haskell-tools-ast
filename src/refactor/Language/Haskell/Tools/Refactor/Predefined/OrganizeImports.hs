@@ -96,6 +96,9 @@ narrowImport noNarrowSubspecs exportedModules usedNames imp
   = return imp -- dont change an import if it is exported as-is (module export)
   | importIsExact imp
   = importSpec&annJust&importSpecList !~ narrowImportSpecs noNarrowSubspecs usedNames $ imp
+  | importIsHiding imp
+  = return imp -- a hiding import is not changed, because the wildcard importing of class and datatype
+               -- members could bring into scope the exact definition that was hidden 
   | otherwise
   = do namedThings <- mapM lookupName actuallyImported
        let -- to explicitely import pattern synonyms we need to enable an extension, and the user might not expect this
