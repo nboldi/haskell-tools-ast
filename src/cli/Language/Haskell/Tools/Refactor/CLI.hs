@@ -161,13 +161,17 @@ performSessionCommand output (RefactorCommand cmd)
               let Just otherMS = otherMR ^? modRecMS
               otherSrcDir <- liftIO $ getSourceDir otherMS
               let loc = srcDirFromRoot otherSrcDir n
-              liftIO $ withBinaryFile loc WriteMode (`hPutStr` prettyPrint m)
+              liftIO $ withBinaryFile loc WriteMode $ \handle -> do
+                hSetEncoding handle utf8
+                hPutStr handle (prettyPrint m)
               return (SourceFileKey NormalHs n)
             ContentChanged (n,m) -> do
               let modName = semanticsModule m
               ms <- getModSummary modName (isBootModule $ m ^. semantics)
               let file = fromJust $ ml_hs_file $ ms_location ms
-              liftIO $ withBinaryFile file WriteMode (`hPutStr` prettyPrint m)
+              liftIO $ withBinaryFile file WriteMode $ \handle -> do
+                hSetEncoding handle utf8
+                hPutStr handle (prettyPrint m)
               return n
             ModuleRemoved mod -> do
               Just (_,m) <- gets (lookupModInSCs (SourceFileKey NormalHs mod) . (^. refSessMCs))

@@ -47,6 +47,7 @@ library
                      , ghc                       >= 8.0 && < 8.1
                      , ghc-paths                 >= 0.1 && < 0.2
                      , references                >= 0.3 && < 0.4
+                     , strict                    >= 0.3 && < 0.4
                      , haskell-tools-ast         >= 0.5 && < 0.6
                      , haskell-tools-prettyprint >= 0.5 && < 0.6
                      , haskell-tools-refactor    >= 0.5 && < 0.6

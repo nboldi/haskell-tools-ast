@@ -30,6 +30,7 @@ import Network.Socket.ByteString.Lazy
 import System.Directory
 import System.Environment
 import System.IO
+import System.IO.Strict as StrictIO (hGetContents)
 import Data.Algorithm.Diff
 import Data.Either
 
@@ -197,17 +198,22 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
                          .- Map.insert (SourceFileKey NormalHs n) (ModuleNotLoaded False)
               otherSrcDir <- liftIO $ getSourceDir otherMS
               let loc = toFileName otherSrcDir n
-              liftIO $ withBinaryFile loc WriteMode (`hPutStr` prettyPrint m)
+              liftIO $ withBinaryFile loc WriteMode $ \handle -> do
+                hSetEncoding handle utf8
+                hPutStr handle (prettyPrint m)
               lift $ addTarget (Target (TargetModule (GHC.mkModuleName n)) True Nothing)
               return $ Right (SourceFileKey NormalHs n, loc, RemoveAdded loc)
             ContentChanged (n,m) -> do
               Just (_, mr) <- gets (lookupModInSCs n . (^. refSessMCs))
               let Just ms = mr ^? modRecMS
-              origCont <- liftIO (StrictBS.unpack <$> StrictBS.readFile (getModSumOrig ms))
               let newCont = prettyPrint m
-                  undo = createUndo 0 $ getGroupedDiff origCont newCont
                   file = getModSumOrig ms
-              liftIO $ withBinaryFile file WriteMode (`hPutStr` newCont)
+              origCont <- liftIO $ withBinaryFile file ReadWriteMode $ \handle -> do
+                hSetEncoding handle utf8
+                res <- StrictIO.hGetContents handle
+                hPutStr handle newCont
+                return res
+              let undo = createUndo 0 $ getGroupedDiff origCont newCont
               return $ Right (n, file, UndoChanges file undo)
             ModuleRemoved mod -> do
               Just (_,m) <- gets (lookupModInSCs (SourceFileKey NormalHs mod) . (^. refSessMCs))
