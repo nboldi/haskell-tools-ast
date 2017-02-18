@@ -40,7 +40,10 @@ makeCliTest (dirs, args, input, output) = let dir = joinPath $ longestCommonPref
 
 cliTests :: [([FilePath], [String], String, String)]
 cliTests
-  = [ ( [testRoot </> "Project" </> "source-dir"]
+  = [ ( [testRoot </> "Project" </> "cpp-opt"]
+      , ["-dry-run", "-one-shot", "-module-name=A"]
+      , "", oneShotPrefix ["A"] ++ "-module-name or -refactoring flag not specified correctly. Not doing any refactoring.\n")
+    , ( [testRoot </> "Project" </> "source-dir"]
       , ["-dry-run", "-one-shot", "-module-name=A", "-refactoring=\"GenerateSignature 3:1-3:1\""]
       , "", oneShotPrefix ["A"] ++ "### Module changed: A\n### new content:\nmodule A where\n\nx :: ()\nx = ()\n")
     , ( [testRoot </> "Project" </> "source-dir-outside"]

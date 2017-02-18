@@ -14,6 +14,8 @@ cabal-version:       >=1.10
 extra-source-files: examples/CppHs/Language/Preprocessor/*.hs
                   , examples/CppHs/Language/Preprocessor/Cpphs/*.hs
                   , bench-tests/*.txt
+                  , examples/Project/cpp-opt/*.hs
+                  , examples/Project/cpp-opt/*.cabal
                   , examples/Project/has-cabal/*.hs
                   , examples/Project/has-cabal/*.cabal
                   , examples/Project/multi-packages/package1/*.hs
