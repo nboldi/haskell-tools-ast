@@ -78,11 +78,11 @@ data UDecl dom stage
   | UForeignImport        { _declCallConv :: Ann UCallConv dom stage
                           , _declSafety :: AnnMaybeG USafety dom stage
                           , _declName :: Ann UName dom stage
-                          , _declType :: Ann UType dom stage
+                          , _declForeignType :: Ann UType dom stage
                           } -- ^ Foreign import (@ foreign import _foo :: Int -> IO Int @)
   | UForeignExport        { _declCallConv :: Ann UCallConv dom stage
                           , _declName :: Ann UName dom stage
-                          , _declType :: Ann UType dom stage
+                          , _declForeignType :: Ann UType dom stage
                           } -- ^ Foreign export (@ foreign export ccall _foo :: Int -> IO Int @)
   | UPragmaDecl           { _declPragma :: Ann UTopLevelPragma dom stage
                           } -- ^ Top-level pragmas

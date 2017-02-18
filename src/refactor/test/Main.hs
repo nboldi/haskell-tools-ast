@@ -221,6 +221,7 @@ organizeImportTests =
   , "Refactor.OrganizeImports.Removed"
   , "Refactor.OrganizeImports.ReorderGroups"
   , "Refactor.OrganizeImports.ReorderComment"
+  , "Refactor.OrganizeImports.KeepCtorOfMarshalled"
   , "Refactor.OrganizeImports.KeepHiding"
   , "Refactor.OrganizeImports.KeepPrelude"
   , "Refactor.OrganizeImports.KeepReexported"
