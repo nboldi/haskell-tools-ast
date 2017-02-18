@@ -3,11 +3,13 @@
            , LambdaCase
            , TemplateHaskell
            , FlexibleContexts
+           , TypeApplications
            #-}
 -- | Representation and operations for module collections (libraries, executables, ...) in the framework.
 module Language.Haskell.Tools.Refactor.GetModules where
 
 import Control.Reference
+import Control.Monad
 import Data.Function (on)
 import Data.List (intersperse, find, sortBy)
 import qualified Data.Map as Map
@@ -35,6 +37,8 @@ import RdrName as GHC (RdrName)
 import Language.Haskell.Tools.AST (Dom, IdDom)
 import Language.Haskell.Tools.Refactor.RefactorBase
 
+import Debug.Trace
+
 -- | The modules of a library, executable, test or benchmark. A package contains one or more module collection.
 data ModuleCollection
   = ModuleCollection { _mcId :: ModuleCollectionId
@@ -42,6 +46,7 @@ data ModuleCollection
                      , _mcSourceDirs :: [FilePath]
                      , _mcModules :: Map.Map SourceFileKey ModuleRecord
                      , _mcFlagSetup :: DynFlags -> IO DynFlags -- ^ Sets up the ghc environment for compiling the modules of this collection
+                     , _mcLoadFlagSetup :: DynFlags -> IO DynFlags -- ^ Sets up the ghc environment for dependency analysis
                      , _mcDependencies :: [ModuleCollectionId]
                      }
 
@@ -49,7 +54,7 @@ instance Eq ModuleCollection where
   (==) = (==) `on` _mcId
 
 instance Show ModuleCollection where
-  show (ModuleCollection id root srcDirs mods _ deps)
+  show (ModuleCollection id root srcDirs mods _ _ deps)
     = "ModuleCollection (" ++ show id ++ ") " ++ root ++ " " ++ show srcDirs ++ " (" ++ show mods ++ ") " ++ show deps
 
 -- | The state of a module.
@@ -151,7 +156,7 @@ getModules root
        case find (\p -> takeExtension p == ".cabal") files of
           Just cabalFile -> modulesFromCabalFile root cabalFile
           Nothing        -> do mods <- modulesFromDirectory root root
-                               return [ModuleCollection (DirectoryMC root) root [root] (Map.fromList $ map ((, ModuleNotLoaded False) . SourceFileKey NormalHs) mods) return []]
+                               return [ModuleCollection (DirectoryMC root) root [root] (Map.fromList $ map ((, ModuleNotLoaded False) . SourceFileKey NormalHs) mods) return return []]
 
 -- | Load the module giving a directory. All modules loaded from the folder and subfolders.
 modulesFromDirectory :: FilePath -> FilePath -> IO [String]
@@ -189,6 +194,7 @@ modulesFromCabalFile root cabal = getModules . setupFlags <$> readPackageDescrip
                                 (map (normalise . (root </>)) $ hsSourceDirs bi)
                                 (Map.fromList $ map ((, ModuleNotLoaded False) . SourceFileKey NormalHs . moduleName) (getModuleNames tmc))
                                 (flagsFromBuildInfo bi)
+                                (loadFlagsFromBuildInfo bi)
                                 (map (\(Dependency pkgName _) -> LibraryMC (unPackageName pkgName)) (targetBuildDepends bi))
                   else Nothing
 
@@ -246,19 +252,27 @@ dependencyToPkgFlag mcs lib@(LibraryMC pkgName)
       else Nothing
 dependencyToPkgFlag _ _ = Nothing
 
-enableAllPackages :: [ModuleCollection] -> DynFlags -> DynFlags
-enableAllPackages mcs dfs = applyDependencies mcs allDeps (selectEnabled dfs)
+setupLoadFlags :: [ModuleCollection] -> DynFlags -> IO DynFlags
+setupLoadFlags mcs dfs = applyDependencies mcs allDeps . selectEnabled <$> useSavedFlags dfs
   where allDeps = mcs ^? traversal & mcDependencies & traversal
         selectEnabled = if any isDirectoryMC mcs then id else onlyUseEnabled
+        useSavedFlags = foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup)
+
+loadFlagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
+loadFlagsFromBuildInfo BuildInfo{ cppOptions } df
+  = do (df',unused,warnings) <- parseDynamicFlags df (map (L noSrcSpan) $ cppOptions)
+       mapM_ putStrLn (map unLoc warnings ++ map (("Flag is not used: " ++) . unLoc) unused)
+       return df'
 
 flagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
 -- the import pathes are already set globally
 flagsFromBuildInfo bi@BuildInfo{ options } df
-  = do (df,_,_) <- parseDynamicFlags df (map (L noSrcSpan) $ concatMap snd options)
+  = do (df',unused,warnings) <- parseDynamicFlags df (map (L noSrcSpan) $ concatMap snd options)
+       mapM_ putStrLn (map unLoc warnings ++ map (("Flag is not used: " ++) . unLoc) unused)
        return $ foldl (.) id (map (\case EnableExtension ext -> translateExtension ext
                                          _                   -> id
                                   ) (usedExtensions bi))
-                          $ df
+                          $ df'
   where -- | Map the cabal extensions to the ones that GHC recognizes
         translateExtension AllowAmbiguousTypes = flip xopt_set GHC.AllowAmbiguousTypes
         translateExtension ApplicativeDo = flip xopt_set GHC.ApplicativeDo

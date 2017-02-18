@@ -44,6 +44,9 @@ import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfName)
 import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (nameInfo, implicitNames, importedNames)
 
+import Debug.Trace
+import DynFlags as GHC (opt_P)
+
 trfModule :: ModSummary -> Located (HsModule RdrName) -> Trf (Ann AST.UModule (Dom RdrName) RangeStage)
 trfModule mod = trfLocCorrect (createModuleInfo mod) (\sr -> combineSrcSpans sr <$> (uniqueTokenAnywhere AnnEofPos)) $
                   \(HsModule name exports imports decls deprec _) ->

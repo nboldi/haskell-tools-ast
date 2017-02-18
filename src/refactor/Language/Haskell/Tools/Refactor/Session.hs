@@ -55,7 +55,7 @@ loadPackagesFrom report loadCallback packages =
      let (ignored, modNames) = extractDuplicates $ map (^. sfkModuleName) $ concat $ map Map.keys $ modColls ^? traversal & mcModules
          alreadyExistingMods = concatMap (map (^. sfkModuleName) . Map.keys . (^. mcModules)) (allModColls List.\\ modColls)
      lift $ mapM_ addTarget $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) modNames
-     handleErrors $ withAlteredDynFlags (return . enableAllPackages allModColls) $ do
+     handleErrors $ withAlteredDynFlags (liftIO . setupLoadFlags allModColls) $ do
        modsForColls <- lift $ depanal [] True
        liftIO $ loadCallback modsForColls
        let modsToParse = flattenSCCs $ topSortModuleGraph False modsForColls Nothing
@@ -111,7 +111,7 @@ reloadChangedModules report loadCallback isChanged = handleErrors $ do
 getReachableModules :: IsRefactSessionState st => ([ModSummary] -> IO ()) -> (ModSummary -> Bool) -> StateT st Ghc [ModSummary]
 getReachableModules loadCallback selected = do
   allModColls <- gets (^. refSessMCs)
-  withAlteredDynFlags (return . enableAllPackages allModColls) $ do
+  withAlteredDynFlags (liftIO . setupLoadFlags allModColls) $ do
     allMods <- lift $ depanal [] True
     liftIO $ loadCallback (filter selected allMods)
     let (allModsGraph, lookup) = moduleGraphNodes False allMods
