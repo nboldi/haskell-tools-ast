@@ -152,6 +152,7 @@ languageTests =
   , "Expr.RecordWildcards"
   , "Expr.RecursiveDo"
   , "Expr.Sections"
+  , "Expr.SemicolonDo"
   , "Expr.StaticPtr"
   , "Expr.TupleSections"
   , "Module.Simple"
@@ -306,6 +307,7 @@ renameDefinitionTests =
   , ("Refactor.RenameDefinition.RoleAnnotation", "4:11-4:12", "AA")
   , ("Refactor.RenameDefinition.TypeBracket", "6:6-6:7", "B")
   , ("Refactor.RenameDefinition.ValBracket", "8:11-8:12", "B")
+  , ("Refactor.RenameDefinition.FunnyDo", "3:1-3:2", "aaa")
   ]
 
 wrongRenameDefinitionTests =

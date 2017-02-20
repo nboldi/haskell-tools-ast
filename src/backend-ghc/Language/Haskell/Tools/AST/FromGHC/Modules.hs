@@ -164,7 +164,7 @@ trfExport = trfMaybeLocNoSema $ \case
 trfImports :: TransformName n r => [LImportDecl n] -> Trf (AnnListG AST.UImportDecl (Dom r) RangeStage)
 trfImports (filter (not . ideclImplicit . unLoc) -> imps)
   = AnnListG <$> importDefaultLoc <*> mapM trfImport imps
-  where importDefaultLoc = noSemaInfo . AST.ListPos (if List.null imps then "\n" else "") "" "\n" True . srcSpanEnd
+  where importDefaultLoc = noSemaInfo . AST.ListPos (if List.null imps then "\n" else "") "" "\n" (replicate (List.length imps) True) . srcSpanEnd
                              <$> (combineSrcSpans <$> asks (srcLocSpan . srcSpanStart . contRange)
                                                   <*> (srcLocSpan . srcSpanEnd <$> tokenLoc AnnWhere))
 trfImport :: TransformName n r => LImportDecl n -> Trf (Ann AST.UImportDecl (Dom r) RangeStage)

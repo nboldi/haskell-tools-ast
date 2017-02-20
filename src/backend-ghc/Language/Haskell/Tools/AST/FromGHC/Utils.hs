@@ -152,37 +152,45 @@ nothing :: String -> String -> Trf SrcLoc -> Trf (AnnMaybeG e (Dom n) RangeStage
 nothing bef aft pos = annNothing . noSemaInfo . OptionalPos bef aft <$> pos
 
 emptyList :: String -> Trf SrcLoc -> Trf (AnnListG e (Dom n) RangeStage)
-emptyList sep ann = AnnListG <$> (noSemaInfo . ListPos "" "" sep False <$> ann) <*> pure []
+emptyList sep ann = AnnListG <$> (noSemaInfo . ListPos "" "" sep [] <$> ann) <*> pure []
 
 -- | Creates a place for a list of nodes with a default place if the list is empty.
 makeList :: String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeList sep ann ls = AnnListG <$> (noSemaInfo . ListPos "" "" sep False <$> ann) <*> ls
+makeList sep ann ls = AnnListG <$> (noSemaInfo . ListPos "" "" sep [] <$> ann) <*> ls
 
 makeListBefore :: String -> String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
 makeListBefore bef sep ann ls = do isEmpty <- null <$> ls
-                                   AnnListG <$> (noSemaInfo . ListPos (if isEmpty then bef else "") "" sep False <$> ann) <*> ls
+                                   AnnListG <$> (noSemaInfo . ListPos (if isEmpty then bef else "") "" sep [] <$> ann) <*> ls
 
 makeListAfter :: String -> String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
 makeListAfter aft sep ann ls = do isEmpty <- null <$> ls
-                                  AnnListG <$> (noSemaInfo . ListPos "" (if isEmpty then aft else "") sep False <$> ann) <*> ls
+                                  AnnListG <$> (noSemaInfo . ListPos "" (if isEmpty then aft else "") sep [] <$> ann) <*> ls
 
 makeNonemptyList :: String -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeNonemptyList sep ls = AnnListG (noSemaInfo $ ListPos "" "" sep False noSrcLoc) <$> ls
+makeNonemptyList sep ls = AnnListG (noSemaInfo $ ListPos "" "" sep [] noSrcLoc) <$> ls
 
 -- | Creates a place for an indented list of nodes with a default place if the list is empty.
 makeIndentedList :: Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeIndentedList ann ls = AnnListG <$> (noSemaInfo . ListPos  "" "" "\n" True <$> ann) <*> ls
+makeIndentedList ann ls = do
+  elems <- ls
+  AnnListG <$> (noSemaInfo . ListPos  "" "" "\n" (replicate (length elems) True) <$> ann) <*> pure elems
 
 makeIndentedListNewlineBefore :: Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeIndentedListNewlineBefore ann ls = do isEmpty <- null <$> ls
-                                          AnnListG <$> (noSemaInfo . ListPos (if isEmpty then "\n" else "") "" "\n" True <$> ann) <*> ls
+makeIndentedListNewlineBefore ann ls = do elems <- ls
+                                          AnnListG <$> (noSemaInfo . ListPos (if null elems then "\n" else "") "" "\n" (replicate (length elems) True) <$> ann) <*> pure elems
 
 makeIndentedListBefore :: String -> Trf SrcLoc -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeIndentedListBefore bef sp ls = do isEmpty <- null <$> ls
-                                      AnnListG <$> (noSemaInfo . ListPos (if isEmpty then bef else "") "" "\n" True <$> sp) <*> ls
+makeIndentedListBefore bef sp ls = do elems <- ls
+                                      AnnListG <$> (noSemaInfo . ListPos (if null elems then bef else "") "" "\n" (replicate (length elems) True) <$> sp) <*> pure elems
 
 makeNonemptyIndentedList :: Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
-makeNonemptyIndentedList ls = AnnListG (noSemaInfo $ ListPos "" "" "\n" True noSrcLoc) <$> ls
+makeNonemptyIndentedList ls = do elems <- ls
+                                 AnnListG (noSemaInfo $ ListPos "" "" "\n" (replicate (length elems) True) noSrcLoc) <$> pure elems
+
+makeNonemptyManuallyIndentedList :: Trf [Bool] -> Trf [Ann e (Dom n) RangeStage] -> Trf (AnnListG e (Dom n) RangeStage)
+makeNonemptyManuallyIndentedList indented ls
+  = do ind <- indented
+       AnnListG (noSemaInfo $ ListPos "" "" "\n" ind noSrcLoc) <$> ls
 
 -- | Transform a located part of the AST by automatically transforming the location.
 -- Sets the source range for transforming children.
@@ -226,7 +234,7 @@ trfAnnList' sep f ls = makeList sep (pure $ noSrcLoc) (mapM f ls)
 
 -- | Creates a place for a list of nodes that cannot be empty.
 nonemptyAnnList :: [Ann e (Dom n) RangeStage] -> AnnListG e (Dom n) RangeStage
-nonemptyAnnList = AnnListG (noSemaInfo $ ListPos "" "" "" False noSrcLoc)
+nonemptyAnnList = AnnListG (noSemaInfo $ ListPos "" "" "" [] noSrcLoc)
 
 -- | Creates an optional node from an existing element
 makeJust :: Ann e (Dom n) RangeStage -> AnnMaybeG e (Dom n) RangeStage
