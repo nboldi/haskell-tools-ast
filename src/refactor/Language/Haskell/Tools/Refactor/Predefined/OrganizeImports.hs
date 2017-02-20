@@ -4,6 +4,7 @@
            , TypeFamilies
            , ConstraintKinds
            , TupleSections
+           , TypeApplications
            #-}
 module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports (organizeImports, OrganizeImportsDomain, projectOrganizeImports) where
 
@@ -60,7 +61,7 @@ organizeImports mod
 
         -- Checks if the module uses foreign import/export that requires marshalling. In this case no
         -- subspecifiers could be narrowed because constructors might be needed.
-        hasMarshalling = isJust (mod ^? modDecl & annList & declForeignType)
+        hasMarshalling = not $ null @[] (mod ^? modDecl & annList & declForeignType)
 
 -- | Sorts the imports in alphabetical order
 sortImports :: forall dom . ImportDeclList dom -> ImportDeclList dom
