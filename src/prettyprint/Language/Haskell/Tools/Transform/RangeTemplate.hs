@@ -22,7 +22,7 @@ instance SourceInfo RngTemplateStage where
                                                      , _rngTmpListBefore :: String -- ^ Text that should be put before the first element if the list becomes populated
                                                      , _rngTmpListAfter :: String -- ^ Text that should be put after the last element if the list becomes populated
                                                      , _rngTmpDefaultSeparator :: String -- ^ The default separator if the list were empty
-                                                     , _rngTmpIndented :: [Bool] -- ^ True for elements that are aligned to the first element of the list
+                                                     , _rngTmpIndented :: Maybe [Bool] -- ^ False for elements that should be not aligned
                                                      , _rngTmpSeparators :: [RealSrcSpan] -- ^ The actual separators that were found in the source code
                                                      }
     deriving Data
@@ -51,7 +51,7 @@ rngTmpListAfter = lens _rngTmpListAfter (\v s -> s { _rngTmpListAfter = v })
 rngTmpDefaultSeparator :: Simple Lens (ListInfo RngTemplateStage) String
 rngTmpDefaultSeparator = lens _rngTmpDefaultSeparator (\v s -> s { _rngTmpDefaultSeparator = v })
 
-rngTmpIndented :: Simple Lens (ListInfo RngTemplateStage) [Bool]
+rngTmpIndented :: Simple Lens (ListInfo RngTemplateStage) (Maybe [Bool])
 rngTmpIndented = lens _rngTmpIndented (\v s -> s { _rngTmpIndented = v })
 
 rngTmpSeparators :: Simple Lens (ListInfo RngTemplateStage) [RealSrcSpan]

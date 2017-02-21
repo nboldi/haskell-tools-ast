@@ -182,7 +182,7 @@ instance SourceInfo RangeStage where
   data ListInfo RangeStage = ListPos  { _listBefore :: String
                                       , _listAfter :: String
                                       , _listDefaultSep :: String
-                                      , _listIndented :: [Bool]
+                                      , _listIndented :: Maybe [Bool]
                                       , _listPos :: SrcLoc
                                       }
     deriving (Data)
@@ -207,7 +207,7 @@ instance SourceInfo NormRangeStage where
   data ListInfo NormRangeStage = NormListInfo { _normListBefore :: String
                                               , _normListAfter :: String
                                               , _normListDefaultSep :: String
-                                              , _normListIndented :: [Bool]
+                                              , _normListIndented :: Maybe [Bool]
                                               , _normListSpan :: SrcSpan
                                               }
     deriving (Data)

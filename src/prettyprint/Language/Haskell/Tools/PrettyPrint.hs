@@ -19,6 +19,7 @@ import Data.Foldable (Foldable(..), concat)
 import Data.List as List
 import Data.List.Split (splitOn)
 import Data.Sequence hiding (null, replicate)
+import Debug.Trace
 
 -- | Pretty prints an AST by using source templates stored as node info
 prettyPrint :: (SourceInfoTraversal node) => node dom SrcTemplateStage -> String
@@ -53,7 +54,7 @@ printRose' parent (RoseTree (RoseList (SourceTemplateList rng bef aft defSep ind
          actRng <- get
          let min = minInd `max` getPosByRelative parent relInd
          putString slide min bef
-           >+< (if not (null indented) then printListWithSepsIndented indented else printListWithSeps) actRng slide min actualSeps children
+           >+< (maybe printListWithSeps printListWithSepsIndented indented) actRng slide min actualSeps children
            >+< putString slide min aft
   where actualSeps = case seps of [] -> repeat defSep
                                   _  -> seps ++ repeat (last seps)
@@ -119,7 +120,8 @@ printListWithSepsIndented indentedChildren parent slide minInd seps children
                    putString 0 min $ shortened ++ replicate (srcLocCol base - currCol) ' '
            putCorrectSep _ slide minInd s = putString slide minInd s
        printListWithSeps' putCorrectSep 0 parent slide minInd seps children
-  where isIndented i = case List.drop i indentedChildren of True:_ -> True; _ -> False
+  where -- the ith separator is before the ith element
+        isIndented i = case List.drop i indentedChildren of False:_ -> False; _ -> True
 
 printListWithSeps' :: (Int -> Int -> Int -> String -> PPState (Seq Char)) -> Int -> RealSrcLoc -> Int -> Int -> [String] -> [RoseTree SrcTemplateStage] -> PPState (Seq Char)
 printListWithSeps' _ _ _ _ _ _ [] = return empty

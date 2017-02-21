@@ -27,7 +27,7 @@ instance SourceInfo SrcTemplateStage where
                               , _srcTmpListBefore :: String -- ^ Text that should be put before the first element if the list becomes populated
                               , _srcTmpListAfter :: String -- ^ Text that should be put after the last element if the list becomes populated
                               , _srcTmpDefaultSeparator :: String -- ^ The default separator if the list were empty
-                              , _srcTmpIndented :: [Bool] -- ^ True for elements that are aligned to the first element of the list
+                              , _srcTmpIndented :: Maybe [Bool] -- ^ False for elements that should be not aligned
                               , _srcTmpSeparators :: [String] -- ^ The actual separators that were found in the source code
                               , _srcTmpListMinInd :: Int -- ^ Minimum indentation for the element
                               , _srcTmpListRelPos :: Maybe Int -- ^ Relative indentation for newly created elements
@@ -70,7 +70,7 @@ srcTmpListAfter = lens _srcTmpListAfter (\v s -> s { _srcTmpListAfter = v })
 srcTmpDefaultSeparator :: Simple Lens (ListInfo SrcTemplateStage) String
 srcTmpDefaultSeparator = lens _srcTmpDefaultSeparator (\v s -> s { _srcTmpDefaultSeparator = v })
 
-srcTmpIndented :: Simple Lens (ListInfo SrcTemplateStage) [Bool]
+srcTmpIndented :: Simple Lens (ListInfo SrcTemplateStage) (Maybe [Bool])
 srcTmpIndented = lens _srcTmpIndented (\v s -> s { _srcTmpIndented = v })
 
 srcTmpSeparators :: Simple Lens (ListInfo SrcTemplateStage) [String]

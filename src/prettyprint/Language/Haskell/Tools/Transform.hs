@@ -7,7 +7,7 @@ module Language.Haskell.Tools.Transform
   , child, opt, list, after, followedBy, relativeIndented, minimumIndented, separatedBy, indented, (<>)
   -- references on source templates
   , sourceTemplateNodeRange, sourceTemplateNodeElems
-  , sourceTemplateListRange, srcTmpListBefore, srcTmpListAfter, srcTmpDefaultSeparator, srcTmpIndented, srcTmpSeparators
+  , sourceTemplateListRange, srcTmpListBefore, srcTmpListAfter, srcTmpDefaultSeparator, srcTmpIndented, srcTmpSeparators, srcTmpIndented
   , sourceTemplateOptRange, srcTmpOptBefore, srcTmpOptAfter
   -- parts of the transformation, used for debugging purposes
   , rangeToSource, fixRanges, cutUpRanges, getLocIndices, mapLocIndices, fixMainRange, fixCPPSpans

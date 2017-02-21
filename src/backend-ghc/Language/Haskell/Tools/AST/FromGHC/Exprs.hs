@@ -112,12 +112,12 @@ trfExpr' (HsIf _ expr thenE elseE) = AST.UIf <$> trfExpr expr <*> trfExpr thenE 
 trfExpr' (HsMultiIf _ parts) = AST.UMultiIf <$> trfAnnList "" trfGuardedCaseRhs' parts
 trfExpr' (HsLet (unLoc -> binds) expr) = addToScope binds (AST.ULet <$> trfLocalBinds binds <*> trfExpr expr)
 trfExpr' (HsDo DoExpr (unLoc -> stmts) _) = AST.UDo <$> annLocNoSema (tokenLoc AnnDo) (pure AST.UDoKeyword)
-                                                    <*> makeNonemptyManuallyIndentedList (indentedElements stmts) (trfScopedSequence trfDoStmt stmts)
+                                                    <*> makeNonemptyIndentedList (trfScopedSequence trfDoStmt stmts)
 trfExpr' (HsDo MDoExpr (unLoc -> [unLoc -> RecStmt { recS_stmts = stmts }, lastStmt]) _)
   = AST.UDo <$> annLocNoSema (tokenLoc AnnMdo) (pure AST.UMDoKeyword)
-            <*> addToScope stmts (makeNonemptyManuallyIndentedList (indentedElements stmts) (mapM trfDoStmt (stmts ++ [lastStmt])))
+            <*> addToScope stmts (makeNonemptyIndentedList (mapM trfDoStmt (stmts ++ [lastStmt])))
 trfExpr' (HsDo MDoExpr (unLoc -> stmts) _) = AST.UDo <$> annLocNoSema (tokenLoc AnnMdo) (pure AST.UMDoKeyword)
-                                                     <*> addToScope stmts (makeNonemptyManuallyIndentedList (indentedElements stmts) (mapM trfDoStmt stmts))
+                                                     <*> addToScope stmts (makeNonemptyIndentedList (mapM trfDoStmt stmts))
 trfExpr' (HsDo ListComp (unLoc -> stmts) _)
   = AST.UListComp <$> trfExpr (getLastStmt stmts) <*> trfListCompStmts stmts
 trfExpr' (HsDo MonadComp (unLoc -> stmts) _)
@@ -160,16 +160,6 @@ trfExpr' (HsTickPragma _ source _ expr) = AST.UExprPragma <$> pragma <*> trfExpr
                     focusOn pragLoc $ annContNoSema (AST.UGeneratedPragma <$> (trfSourceRange source))
 trfExpr' t = do rng <- asks contRange
                 error ("Illegal expression: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ") at: " ++ show rng)
-
--- | Get the statements where there is no ; before
-indentedElements :: [Located a] -> Trf [Bool]
-indentedElements [] = return []
-indentedElements (fst:rest) = indentedElements' (srcSpanEnd $ getLoc fst) rest
-  where indentedElements' lastEnd (elem:rest)
-          = let sepRange = mkSrcSpan lastEnd (srcSpanStart $ getLoc elem)
-             in (:) <$> (not . isGoodSrcSpan <$> focusOn sepRange (tokenLoc AnnSemi))
-                    <*> indentedElements' (srcSpanEnd $ getLoc elem) rest
-        indentedElements' _ [] = return []
 
 trfFieldInits :: TransformName n r => HsRecFields n (LHsExpr n) -> Trf (AnnListG AST.UFieldUpdate (Dom r) RangeStage)
 trfFieldInits (HsRecFields fields dotdot)
