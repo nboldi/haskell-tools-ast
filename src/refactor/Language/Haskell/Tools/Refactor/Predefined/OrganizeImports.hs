@@ -40,14 +40,14 @@ projectOrganizeImports mod mods
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
-  = do ms <- lift $ GHC.getModSummary (GHC.moduleName $ semanticsModule mod)
-       let noNarrowingImports
-             = xopt TemplateHaskell (GHC.ms_hspp_opts ms) -- no narrowing if TH is present (we don't know what will be used)
-                || (xopt FlexibleInstances (GHC.ms_hspp_opts ms) && noNarrowingSubspecs) -- arbitrary ctors might be needed when using imported data families
-           noNarrowingSubspecs = xopt GHC.StandaloneDeriving (GHC.ms_hspp_opts ms) || hasMarshalling
+  = do let dfs = semanticsDynFlags mod
+           noNarrowingImports
+             = xopt TemplateHaskell dfs -- no narrowing if TH is present (we don't know what will be used)
+                || xopt QuasiQuotes dfs -- no narrowing if TH quotes are present (we don't know what will be used)
+                || (xopt FlexibleInstances dfs && noNarrowingSubspecs) -- arbitrary ctors might be needed when using imported data families
+           noNarrowingSubspecs = xopt GHC.StandaloneDeriving dfs || hasMarshalling
        if noNarrowingImports
-         then -- don't change the imports for template haskell modules
-              -- (we don't know what definitions the generated code will use)
+         then -- we don't know what definitions the generated code will use
               return $ modImports .- sortImports $ mod
          else modImports !~ narrowImports noNarrowingSubspecs exportedModules usedNames prelInstances prelFamInsts . sortImports $ mod
   where prelInstances = semanticsPrelOrphanInsts mod

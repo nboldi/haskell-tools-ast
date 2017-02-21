@@ -52,7 +52,7 @@ createModuleInfo mod = do
   (_,preludeImports) <- if prelude then getImportedNames "Prelude" Nothing else return (ms_mod mod, [])
   (insts, famInsts) <- if prelude then lift $ getOrphanAndFamInstances (Module baseUnitId (GHC.mkModuleName "Prelude"))
                                   else return ([], [])
-  return $ mkModuleInfo (ms_mod mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True) preludeImports insts famInsts
+  return $ mkModuleInfo (ms_mod mod) (ms_hspp_opts mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True) preludeImports insts famInsts
 
 -- | Creates a semantic information for a name
 createNameInfo :: n -> Trf (NameInfo n)

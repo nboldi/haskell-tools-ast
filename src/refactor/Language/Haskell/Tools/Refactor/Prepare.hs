@@ -41,6 +41,7 @@ import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Transform
 
+
 -- | A quick function to try the refactorings
 tryRefactor :: (RealSrcSpan -> Refactoring IdDom) -> String -> String -> IO ()
 tryRefactor refact moduleName span
