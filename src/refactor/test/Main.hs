@@ -217,6 +217,7 @@ organizeImportTests =
   , "Refactor.OrganizeImports.Reorder"
   , "Refactor.OrganizeImports.Ctor"
   , "Refactor.OrganizeImports.Class"
+  , "Refactor.OrganizeImports.Fields"
   , "Refactor.OrganizeImports.Operator"
   , "Refactor.OrganizeImports.SameName"
   , "Refactor.OrganizeImports.Removed"

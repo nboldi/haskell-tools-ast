@@ -32,6 +32,7 @@ import RnEnv as GHC (mkUnboundNameRdr)
 import RnExpr as GHC (rnLExpr)
 import SrcLoc as GHC
 import TcRnMonad as GHC
+import FieldLabel as GHC
 
 import Language.Haskell.Tools.AST (Ann(..), AnnMaybeG, AnnListG(..), Dom, RangeStage
                                   , sourceInfo, semantics, annotation, nodeSpan)
@@ -40,7 +41,7 @@ import Language.Haskell.Tools.AST.FromGHC.Decls (trfDecls, trfDeclsGroup)
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (HsHasName(..))
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Exprs
-import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfName)
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (nameInfo, implicitNames, importedNames)
 
@@ -209,10 +210,10 @@ trfIESpec' (IEThingAbs n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfN
 trfIESpec' (IEThingAll n)
   = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> subspec))
   where subspec = annLocNoSema (combineSrcSpans <$> tokenLocBack AnnOpenP <*> tokenLocBack AnnCloseP) (pure AST.USubSpecAll)
-trfIESpec' (IEThingWith n _ ls _)
+trfIESpec' (IEThingWith n _ ls flds)
   = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> subspec))
   where subspec = annLocNoSema (combineSrcSpans <$> tokenLocBack AnnOpenP <*> tokenLocBack AnnCloseP)
-                    $ AST.USubSpecList <$> between AnnOpenP AnnCloseP (makeList ", " atTheStart (mapM trfName ls))
+                    $ AST.USubSpecList <$> between AnnOpenP AnnCloseP (orderAnnList <$> makeList ", " atTheStart ((++) <$> mapM trfName ls <*> mapM trfName (map (fmap flSelector) flds)))
 trfIESpec' _ = pure Nothing
 
 trfImportModifier :: Trf (AnnMaybeG AST.UImportModifier (Dom r) RangeStage)
