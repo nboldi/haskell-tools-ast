@@ -68,7 +68,7 @@ trfType' = trfType'' . cleanHsType where
   trfType'' t = error ("Illegal type: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ")")
 
 trfBindings :: TransformName n r => [Located (HsTyVarBndr n)] -> Trf (AnnListG AST.UTyVar (Dom r) RangeStage)
-trfBindings vars = trfAnnList "\n" trfTyVar' vars
+trfBindings vars = trfAnnList " " trfTyVar' vars
 
 trfTyVar :: TransformName n r => Located (HsTyVarBndr n) -> Trf (Ann AST.UTyVar (Dom r) RangeStage)
 trfTyVar = trfLocNoSema trfTyVar'

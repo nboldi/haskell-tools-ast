@@ -58,15 +58,15 @@ pattern GadtRecordConDecl names fields typ <- Ann _ (UGadtConDecl names (Ann _ (
 
 -- | Ordinary data constructor (@ C t1 t2 @)
 pattern ConDecl :: Name dom -> TypeList dom -> ConDecl dom
-pattern ConDecl name args <- Ann _ (UConDecl name args)
+pattern ConDecl name args <- Ann _ (UConDecl _ _ name args)
 
 -- | Creates a record data constructor (@ Point { x :: Double, y :: Double } @)
 pattern RecordConDecl :: Name dom -> FieldDeclList dom -> ConDecl dom
-pattern RecordConDecl name fields <- Ann _ (URecordDecl name fields)
+pattern RecordConDecl name fields <- Ann _ (URecordDecl _ _ name fields)
 
 -- | Infix data constructor (@ t1 :+: t2 @)
 pattern InfixConDecl :: Type dom -> Operator dom -> Type dom -> ConDecl dom
-pattern InfixConDecl lhs op rhs <- Ann _ (UInfixConDecl lhs op rhs)
+pattern InfixConDecl lhs op rhs <- Ann _ (UInfixConDecl _ _ lhs op rhs)
 
 -- | Field declaration (@ fld :: Int @)
 pattern FieldDecl :: NameList dom -> Type dom -> FieldDecl dom

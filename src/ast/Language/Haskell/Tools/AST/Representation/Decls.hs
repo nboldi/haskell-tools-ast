@@ -266,13 +266,19 @@ data UFunDep dom stage
 
 -- | A constructor declaration for a datatype
 data UConDecl dom stage
-  = UConDecl      { _conDeclName :: Ann UName dom stage
+  = UConDecl      { _conTypeArgs :: AnnListG UTyVar dom stage
+                  , _conTypeCtx :: AnnMaybeG UContext dom stage
+                  , _conDeclName :: Ann UName dom stage
                   , _conDeclArgs :: AnnListG UType dom stage
                   } -- ^ Ordinary data constructor (@ C t1 t2 @)
-  | URecordDecl   { _conDeclName :: Ann UName dom stage
+  | URecordDecl   { _conTypeArgs :: AnnListG UTyVar dom stage
+                  , _conTypeCtx :: AnnMaybeG UContext dom stage
+                  , _conDeclName :: Ann UName dom stage
                   , _conDeclFields :: AnnListG UFieldDecl dom stage
                   } -- ^ Record data constructor (@ C { _n1 :: t1, _n2 :: t2 } @)
-  | UInfixConDecl { _conDeclLhs :: Ann UType dom stage
+  | UInfixConDecl { _conTypeArgs :: AnnListG UTyVar dom stage
+                  , _conTypeCtx :: AnnMaybeG UContext dom stage
+                  , _conDeclLhs :: Ann UType dom stage
                   , _conDeclOp :: Ann UOperator dom stage
                   , _conDeclRhs :: Ann UType dom stage
                   } -- ^ Infix data constructor (@ t1 :+: t2 @)

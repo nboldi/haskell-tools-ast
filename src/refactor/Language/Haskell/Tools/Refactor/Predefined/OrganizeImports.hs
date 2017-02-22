@@ -33,6 +33,9 @@ import Data.Maybe (Maybe(..), maybe, catMaybes)
 
 import Language.Haskell.Tools.Refactor as AST
 
+import Outputable
+import Debug.Trace
+
 type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom, HasModuleInfo dom )
 
 projectOrganizeImports :: forall dom . OrganizeImportsDomain dom => Refactoring dom
@@ -41,16 +44,22 @@ projectOrganizeImports mod mods
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
-  = do let dfs = semanticsDynFlags mod
+  = --trace ("###" ++ (showSDocUnsafe $ ppr $ map (\i -> (semanticsModule mod, semanticsImportedModule i, semanticsImported i, semanticsAvailable i)) (mod ^? modImports & annList))) $
+    do usedTyThings <- catMaybes <$> mapM lookupName usedNames
+       let dfs = semanticsDynFlags mod
            noNarrowingImports
              = xopt TemplateHaskell dfs -- no narrowing if TH is present (we don't know what will be used)
                 || xopt QuasiQuotes dfs -- no narrowing if TH quotes are present (we don't know what will be used)
                 || (xopt FlexibleInstances dfs && noNarrowingSubspecs) -- arbitrary ctors might be needed when using imported data families
-           noNarrowingSubspecs = xopt GHC.StandaloneDeriving dfs || hasMarshalling
+           noNarrowingSubspecs
+             = -- both standalone deriving and FFI marshalling can cause constructors to be used in the generated code
+               xopt GHC.StandaloneDeriving dfs || hasMarshalling
+                   -- while pattern synonyms are not handled correctly, we disable subspec narrowing to be safe
+                || patternSynonymAreUsed usedTyThings
        if noNarrowingImports
          then -- we don't know what definitions the generated code will use
               return $ modImports .- sortImports $ mod
-         else modImports !~ narrowImports noNarrowingSubspecs exportedModules (addFromString dfs usedNames) prelInstances prelFamInsts . sortImports $ mod
+         else modImports !~ narrowImports noNarrowingSubspecs exportedModules (addFromString dfs usedNames) exportedNames prelInstances prelFamInsts . sortImports $ mod
   where prelInstances = semanticsPrelOrphanInsts mod
         prelFamInsts = semanticsPrelFamInsts mod
         addFromString dfs = if xopt OverloadedStrings dfs then (GHC.fromStringName :) else id
@@ -63,9 +72,19 @@ organizeImports mod
         exportedModules = "Prelude" : (mod ^? modHead & annJust & mhExports & annJust
                                                 & espExports & annList & exportModuleName & moduleNameString)
 
+        -- Exported definitions must be kept imported
+        exports = mod ^? modHead & annJust & mhExports & annJust & espExports & annList & exportDecl
+        exportedNames = catMaybes $ map getExported exports
+        getExported e = fmap (,hasChild) name
+          where name = semanticsName (e ^. ieName & simpleName)
+                hasChild = (case e ^? ieSubspec & annJust of Just SubAll -> True; _ -> False)
+                             || not (null @[] (e ^? ieSubspec & annJust & essList & annList))
+
         -- Checks if the module uses foreign import/export that requires marshalling. In this case no
         -- subspecifiers could be narrowed because constructors might be needed.
         hasMarshalling = not $ null @[] (mod ^? modDecl & annList & declForeignType)
+
+        patternSynonymAreUsed tts = any (\case AConLike (PatSynCon _) -> True; _ -> False) tts
 
 -- | Sorts the imports in alphabetical order
 sortImports :: forall dom . ImportDeclList dom -> ImportDeclList dom
@@ -90,21 +109,21 @@ sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null) (concatMap (\
 
 -- | Modify an import to only import  names that are used.
 narrowImports :: forall dom . OrganizeImportsDomain dom
-              => Bool -> [String] -> [GHC.Name] -> [ClsInst] -> [FamInst] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
-narrowImports noNarrowSubspecs exportedModules usedNames prelInsts prelFamInsts imps
-  = annListElems & traversal !~ narrowImport noNarrowSubspecs exportedModules usedNames
+              => Bool -> [String] -> [GHC.Name] -> [(GHC.Name, Bool)] -> [ClsInst] -> [FamInst] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
+narrowImports noNarrowSubspecs exportedModules usedNames exportedNames prelInsts prelFamInsts imps
+  = annListElems & traversal !~ narrowImport noNarrowSubspecs exportedModules usedNames exportedNames
       $ filterListIndexed (\i _ -> neededImps !! i) imps
-  where neededImps = neededImports exportedModules usedNames prelInsts prelFamInsts (imps ^. annListElems)
+  where neededImps = neededImports exportedModules (usedNames ++ map fst exportedNames) prelInsts prelFamInsts (imps ^. annListElems)
 
 -- | Reduces the number of definitions used from an import
 narrowImport :: OrganizeImportsDomain dom
-             => Bool -> [String] -> [GHC.Name] -> ImportDecl dom -> LocalRefactor dom (ImportDecl dom)
-narrowImport noNarrowSubspecs exportedModules usedNames imp
+             => Bool -> [String] -> [GHC.Name] -> [(GHC.Name, Bool)] -> ImportDecl dom -> LocalRefactor dom (ImportDecl dom)
+narrowImport noNarrowSubspecs exportedModules usedNames exportedNames imp
   | (imp ^. importModule & moduleNameString) `elem` exportedModules
       || maybe False (`elem` exportedModules) (imp ^? importAs & annJust & importRename & moduleNameString)
   = return imp -- dont change an import if it is exported as-is (module export)
   | importIsExact imp
-  = importSpec&annJust&importSpecList !~ narrowImportSpecs noNarrowSubspecs usedNames $ imp
+  = importSpec&annJust&importSpecList !~ narrowImportSpecs noNarrowSubspecs usedNames exportedNames $ imp
   | importIsHiding imp
   = return imp -- a hiding import is not changed, because the wildcard importing of class and datatype
                -- members could bring into scope the exact definition that was hidden
@@ -112,7 +131,8 @@ narrowImport noNarrowSubspecs exportedModules usedNames imp
   = do namedThings <- mapM lookupName actuallyImported
        let -- to explicitely import pattern synonyms we need to enable an extension, and the user might not expect this
            hasPatSyn = any (\case Just (AConLike (PatSynCon _)) -> True; _ -> False) namedThings
-           groups = groupThings noNarrowSubspecs (semanticsImported imp) (catMaybes namedThings)
+           groups = groupThings noNarrowSubspecs (semanticsImported imp)
+                      (filter ((`elem` semanticsImported imp) . fst) exportedNames) (catMaybes namedThings)
        return $ if not hasPatSyn && length groups < 4
          then importSpec .- replaceWithJust (createImportSpec groups) $ imp
          else imp
@@ -120,9 +140,9 @@ narrowImport noNarrowSubspecs exportedModules usedNames imp
 
 -- | Group things as importable definitions. The second member of the pair will be true, when there is a sub-name
 -- that should be imported apart from the name of the importable definition.
-groupThings :: Bool -> [GHC.Name] -> [TyThing] -> [(GHC.Name, Bool)]
-groupThings noNarrowSubspecs importable
-  = map last . groupBy ((==) `on` fst) . sort . map createImportFromTyThing
+groupThings :: Bool -> [GHC.Name] -> [(GHC.Name, Bool)] -> [TyThing] -> [(GHC.Name, Bool)]
+groupThings noNarrowSubspecs importable exported
+  = map last . groupBy ((==) `on` fst) . sort . (exported ++) . map createImportFromTyThing
   where createImportFromTyThing :: TyThing -> (GHC.Name, Bool)
         createImportFromTyThing tt | Just td <- getTopDef tt
           = if (td `elem` importable) then (td, True)
@@ -168,29 +188,25 @@ neededImports exportedModules usedNames prelInsts prelFamInsts imps = neededImpo
 
 -- | Narrows the import specification (explicitely imported elements)
 narrowImportSpecs :: forall dom . OrganizeImportsDomain dom
-                  => Bool -> [GHC.Name] -> IESpecList dom -> LocalRefactor dom (IESpecList dom)
-narrowImportSpecs noNarrowSubspecs usedNames
-  = (if noNarrowSubspecs then return else (annList !~ narrowSpecSubspec usedNames))
+                  => Bool -> [GHC.Name] -> [(GHC.Name, Bool)] -> IESpecList dom -> LocalRefactor dom (IESpecList dom)
+narrowImportSpecs noNarrowSubspecs usedNames exportedNames
+  = (if noNarrowSubspecs then return else return . (annList .- narrowImportSubspecs neededNames exportedNames))
        >=> return . filterList isNeededSpec
-  where narrowSpecSubspec :: [GHC.Name] -> IESpec dom -> LocalRefactor dom (IESpec dom)
-        narrowSpecSubspec usedNames spec
-          = do let Just specName = semanticsName =<< (spec ^? ieName&simpleName)
-               Just tt <- GHC.lookupName (getName specName)
-               let subspecsInScope = case tt of ATyCon tc | not (isClassTyCon tc)
-                                                  -> (map getName (tyConDataCons tc) ++ map flSelector (tyConFieldLabels tc)) `intersect` usedNames
-                                                _ -> usedNames
-               ieSubspec !- narrowImportSubspecs subspecsInScope $ spec
+  where neededNames = usedNames ++ map fst exportedNames
 
         isNeededSpec :: IESpec dom -> Bool
         isNeededSpec ie =
-          -- if the name is used, it is needed
-          fmap getName (semanticsName =<< (ie ^? ieName&simpleName)) `elem` map Just usedNames
+          (semanticsName (ie ^. ieName&simpleName)) `elem` map Just neededNames
           -- if the name is not used, but some of its constructors are used, it is needed
             || ((ie ^? ieSubspec&annJust&essList&annList) /= [])
+            -- its a bit hard to decide if there is an element inside (for example bundled pattern synonyms)
             || (case ie ^? ieSubspec&annJust of Just SubAll -> True; _ -> False)
 
 -- | Reduces the number of definitions imported from a sub-specifier.
-narrowImportSubspecs :: OrganizeImportsDomain dom => [GHC.Name] -> MaybeSubSpec dom -> MaybeSubSpec dom
-narrowImportSubspecs [] = replaceWithNothing
-narrowImportSubspecs usedNames
-  = annJust & essList .- filterList (\n -> fmap getName (semanticsName =<< (n ^? simpleName)) `elem` map Just usedNames)
+narrowImportSubspecs :: OrganizeImportsDomain dom => [GHC.Name] -> [(GHC.Name, Bool)] -> IESpec dom -> IESpec dom
+narrowImportSubspecs neededNames exportedNames ss | noNarrowingForThis = ss
+  | otherwise
+  = ieSubspec & annJust & essList .- filterList (\n -> (semanticsName (n ^. simpleName)) `elem` map Just neededNames) $ ss
+  where noNarrowingForThis = case semanticsName (ss ^. ieName&simpleName) of
+                               Just name -> lookup name exportedNames == Just True
+                               _ -> False

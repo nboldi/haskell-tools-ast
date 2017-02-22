@@ -204,13 +204,21 @@ trfConDecl :: TransformName n r => Located (ConDecl n) -> Trf (Ann AST.UConDecl 
 trfConDecl = trfLocNoSema trfConDecl'
 
 trfConDecl' :: TransformName n r => ConDecl n -> Trf (AST.UConDecl (Dom r) RangeStage)
-trfConDecl' (ConDeclH98 { con_name = name, con_details = PrefixCon args })
-  = AST.UConDecl <$> define (trfName name) <*> makeList " " atTheEnd (mapM trfType args)
-trfConDecl' (ConDeclH98 { con_name = name, con_details = RecCon (unLoc -> flds) })
-  = AST.URecordDecl <$> define (trfName name) <*> (between AnnOpenC AnnCloseC $ trfAnnList ", " trfFieldDecl' flds)
-trfConDecl' (ConDeclH98 { con_name = name, con_details = InfixCon t1 t2 })
-  = AST.UInfixConDecl <$> trfType t1 <*> define (trfOperator name) <*> trfType t2
+trfConDecl' (ConDeclH98 { con_name = name, con_qvars = tyVars, con_cxt = ctx, con_details = PrefixCon args })
+  = AST.UConDecl <$> trfConTyVars tyVars <*> trfConCtx ctx <*> define (trfName name) <*> makeList " " atTheEnd (mapM trfType args)
+trfConDecl' (ConDeclH98 { con_name = name, con_qvars = tyVars, con_cxt = ctx, con_details = RecCon (unLoc -> flds) })
+  = AST.URecordDecl <$> trfConTyVars tyVars <*> trfConCtx ctx <*> define (trfName name) <*> (between AnnOpenC AnnCloseC $ trfAnnList ", " trfFieldDecl' flds)
+trfConDecl' (ConDeclH98 { con_name = name, con_qvars = tyVars, con_cxt = ctx, con_details = InfixCon t1 t2 })
+  = AST.UInfixConDecl <$> trfConTyVars tyVars <*> trfConCtx ctx <*> trfType t1 <*> define (trfOperator name) <*> trfType t2
 trfConDecl' (ConDeclGADT {}) = error "trfConDecl': GADT con received"
+
+trfConTyVars :: TransformName n r => Maybe (LHsQTyVars n) -> Trf (AnnListG AST.UTyVar (Dom r) RangeStage)
+trfConTyVars Nothing = makeListAfter "." " " atTheStart (return [])
+trfConTyVars (Just vars) = trfBindings $ hsq_explicit vars
+
+trfConCtx :: TransformName n r => Maybe (LHsContext n) -> Trf (AnnMaybeG AST.UContext (Dom r) RangeStage)
+trfConCtx Nothing = nothing "" " => " atTheStart
+trfConCtx (Just ctx) = trfCtx atTheStart ctx
 
 trfGADTConDecl :: TransformName n r => Located (ConDecl n) -> Trf (Ann AST.UGadtConDecl (Dom r) RangeStage)
 trfGADTConDecl = trfLocNoSema $ \(ConDeclGADT { con_names = names, con_type = hsib_body -> typ })

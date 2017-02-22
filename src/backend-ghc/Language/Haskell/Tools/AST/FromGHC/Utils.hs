@@ -44,8 +44,6 @@ import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.SourceMap
 import Language.Haskell.Tools.AST.SemaInfoTypes as Sema
 
-import Debug.Trace
-
 createModuleInfo :: ModSummary -> Trf (Sema.ModuleInfo GHC.Name)
 createModuleInfo mod = do
   let prelude = xopt ImplicitPrelude $ ms_hspp_opts mod
@@ -134,9 +132,9 @@ checkImportVisible (Just (isHiding, specs)) name
 checkImportVisible _ _ = return True
 
 ieSpecMatches :: (HsHasName name, GhcMonad m) => IE name -> GHC.Name -> m Bool
-ieSpecMatches (hsGetNames . HsSyn.ieName -> [n]) name
-  | n == name = return True
-  | isTyConName n
+ieSpecMatches (concatMap hsGetNames . HsSyn.ieNames -> ls) name
+  | name `elem` ls = return True
+ieSpecMatches ie@(IEThingAll ln) name | [n] <- hsGetNames (HsSyn.ieName ie), isTyConName n
   = do entity <- lookupName n
        return $ case entity of Just (ATyCon tc)
                                  | Just cls <- tyConClass_maybe tc

@@ -8,7 +8,7 @@ module Language.Haskell.Tools.AST.Gen.Decls where
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.ElementTypes
-import Language.Haskell.Tools.AST.Gen.Utils (mkAnn, mkAnnList, mkAnnMaybe)
+import Language.Haskell.Tools.AST.Gen.Utils
 import Language.Haskell.Tools.Transform
 
 -- | Creates a type synonym ( @type String = [Char]@ )
@@ -72,16 +72,16 @@ mkGadtRecordConDecl names flds typ
 
 -- | Creates an ordinary data constructor (@ C t1 t2 @)
 mkConDecl :: Name dom -> [Type dom] -> ConDecl dom
-mkConDecl name args = mkAnn (child <> child) $ UConDecl name (mkAnnList (after " " $ separatedBy " " $ list) args)
+mkConDecl name args = mkAnn (child <> child) $ UConDecl emptyList noth name (mkAnnList (after " " $ separatedBy " " $ list) args)
 
 -- | Creates a record data constructor (@ Point { x :: Double, y :: Double } @)
 mkRecordConDecl :: Name dom -> [FieldDecl dom] -> ConDecl dom
 mkRecordConDecl name fields
-  = mkAnn (child <> " { " <> child <> " }") $ URecordDecl name (mkAnnList (separatedBy ", " list) fields)
+  = mkAnn (child <> " { " <> child <> " }") $ URecordDecl emptyList noth name (mkAnnList (separatedBy ", " list) fields)
 
 -- | Creates an infix data constructor (@ t1 :+: t2 @)
 mkInfixConDecl :: Type dom -> Operator dom -> Type dom -> ConDecl dom
-mkInfixConDecl lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ UInfixConDecl lhs op rhs
+mkInfixConDecl lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ UInfixConDecl emptyList noth lhs op rhs
 
 -- | Creates a field declaration (@ fld :: Int @) for a constructor
 mkFieldDecl :: [Name dom] -> Type dom -> FieldDecl dom
