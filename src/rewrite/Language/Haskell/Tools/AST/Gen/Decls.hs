@@ -72,16 +72,16 @@ mkGadtRecordConDecl names flds typ
 
 -- | Creates an ordinary data constructor (@ C t1 t2 @)
 mkConDecl :: Name dom -> [Type dom] -> ConDecl dom
-mkConDecl name args = mkAnn (child <> child) $ UConDecl emptyList noth name (mkAnnList (after " " $ separatedBy " " $ list) args)
+mkConDecl name args = mkAnn (child <> child <> child <> child) $ UConDecl emptyList noth name (mkAnnList (after " " $ separatedBy " " $ list) args)
 
 -- | Creates a record data constructor (@ Point { x :: Double, y :: Double } @)
 mkRecordConDecl :: Name dom -> [FieldDecl dom] -> ConDecl dom
 mkRecordConDecl name fields
-  = mkAnn (child <> " { " <> child <> " }") $ URecordDecl emptyList noth name (mkAnnList (separatedBy ", " list) fields)
+  = mkAnn (child <> child <> child <> " { " <> child <> " }") $ URecordDecl emptyList noth name (mkAnnList (separatedBy ", " list) fields)
 
 -- | Creates an infix data constructor (@ t1 :+: t2 @)
 mkInfixConDecl :: Type dom -> Operator dom -> Type dom -> ConDecl dom
-mkInfixConDecl lhs op rhs = mkAnn (child <> " " <> child <> " " <> child) $ UInfixConDecl emptyList noth lhs op rhs
+mkInfixConDecl lhs op rhs = mkAnn (child <> child <> child <> " " <> child <> " " <> child) $ UInfixConDecl emptyList noth lhs op rhs
 
 -- | Creates a field declaration (@ fld :: Int @) for a constructor
 mkFieldDecl :: [Name dom] -> Type dom -> FieldDecl dom
