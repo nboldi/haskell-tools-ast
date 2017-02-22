@@ -15,6 +15,7 @@ import FamInstEnv (FamInst(..))
 import GHC (TyThing(..), lookupName)
 import qualified GHC
 import Id
+import qualified PrelNames as GHC
 import IdInfo (RecSelParent(..))
 import InstEnv (ClsInst(..))
 import Language.Haskell.TH.LanguageExtensions as GHC (Extension(..))
@@ -49,9 +50,10 @@ organizeImports mod
        if noNarrowingImports
          then -- we don't know what definitions the generated code will use
               return $ modImports .- sortImports $ mod
-         else modImports !~ narrowImports noNarrowingSubspecs exportedModules usedNames prelInstances prelFamInsts . sortImports $ mod
+         else modImports !~ narrowImports noNarrowingSubspecs exportedModules (addFromString dfs usedNames) prelInstances prelFamInsts . sortImports $ mod
   where prelInstances = semanticsPrelOrphanInsts mod
         prelFamInsts = semanticsPrelFamInsts mod
+        addFromString dfs = if xopt OverloadedStrings dfs then (GHC.fromStringName :) else id
         usedNames = map getName $ catMaybes $ map semanticsName
                         -- obviously we don't want the names in the imports to be considered, but both from
                         -- the declarations (used), both from the module head (re-exported) will count as usage
