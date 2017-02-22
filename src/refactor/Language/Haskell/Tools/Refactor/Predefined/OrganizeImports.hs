@@ -20,7 +20,8 @@ import IdInfo (RecSelParent(..))
 import InstEnv (ClsInst(..))
 import Language.Haskell.TH.LanguageExtensions as GHC (Extension(..))
 import Name (NamedThing(..))
-import TyCon (tyConFieldLabels, tyConDataCons, isClassTyCon)
+import TyCon
+import OccName (occName, isSymOcc)
 
 import Control.Applicative ((<$>), Alternative(..))
 import Control.Monad
@@ -129,14 +130,17 @@ narrowImport noNarrowSubspecs exportedModules usedNames exportedNames imp
                -- members could bring into scope the exact definition that was hidden
   | otherwise
   = do namedThings <- mapM lookupName actuallyImported
-       let -- to explicitely import pattern synonyms we need to enable an extension, and the user might not expect this
-           hasPatSyn = any (\case Just (AConLike (PatSynCon _)) -> True; _ -> False) namedThings
+       let -- to explicitely import pattern synonyms or type operators we need to enable an extension, and the user might not expect this
+           hasRiskyDef = any isRiskyDef namedThings
            groups = groupThings noNarrowSubspecs (semanticsImported imp)
                       (filter ((`elem` semanticsImported imp) . fst) exportedNames) (catMaybes namedThings)
-       return $ if not hasPatSyn && length groups < 4
+       return $ if not hasRiskyDef && length groups < 4
          then importSpec .- replaceWithJust (createImportSpec groups) $ imp
          else imp
   where actuallyImported = semanticsImported imp `intersect` usedNames
+        isRiskyDef (Just (AConLike (PatSynCon _))) = True
+        isRiskyDef (Just (ATyCon tc)) = isSymOcc (occName (tyConName tc))
+        isRiskyDef _ = False
 
 -- | Group things as importable definitions. The second member of the pair will be true, when there is a sub-name
 -- that should be imported apart from the name of the importable definition.
@@ -144,21 +148,23 @@ groupThings :: Bool -> [GHC.Name] -> [(GHC.Name, Bool)] -> [TyThing] -> [(GHC.Na
 groupThings noNarrowSubspecs importable exported
   = map last . groupBy ((==) `on` fst) . sort . (exported ++) . map createImportFromTyThing
   where createImportFromTyThing :: TyThing -> (GHC.Name, Bool)
-        createImportFromTyThing tt | Just td <- getTopDef tt
-          = if (td `elem` importable) then (td, True)
-                                      else (getName tt, False)
+        createImportFromTyThing tt | Just (td, isDataType) <- getTopDef tt
+          = if (td `elem` importable || isDataType) then (td, True)
+                                                    else (getName tt, False)
         createImportFromTyThing tt@(ATyCon {}) = (getName tt, noNarrowSubspecs)
         createImportFromTyThing tt = (getName tt, False)
 
--- | Gets the importable definition for a (looked up) name. For example a class function is only importable
--- in a class, so it gets the name of the class.
-getTopDef :: TyThing -> Maybe GHC.Name
+-- | Gets the importable definition for a (looked up) name. The bool flag tells if it is from
+-- a data type.
+getTopDef :: TyThing -> Maybe (GHC.Name, Bool)
 getTopDef (AnId id) | isRecordSelector id
-  = Just $ case recordSelectorTyCon id of RecSelData tc -> getName tc
-                                          RecSelPatSyn ps -> getName ps
-getTopDef (AnId id) = fmap (getName . dataConTyCon) (isDataConWorkId_maybe id <|> isDataConId_maybe id)
-                        <|> fmap getName (isClassOpId_maybe id)
-getTopDef (AConLike (RealDataCon dc)) = Just (getName $ dataConTyCon dc)
+  = case recordSelectorTyCon id of RecSelData tc -> Just (getName tc, True)
+                                   RecSelPatSyn ps -> Just (getName ps, False)
+getTopDef (AnId id)
+  | Just n <- fmap (getName . dataConTyCon) (isDataConWorkId_maybe id <|> isDataConId_maybe id)
+  = Just (n, True)
+getTopDef (AnId id) = fmap ((,False) . getName) (isClassOpId_maybe id)
+getTopDef (AConLike (RealDataCon dc)) = Just (getName $ dataConTyCon dc, True)
 getTopDef (AConLike (PatSynCon _)) = error "getTopDef: should not be called with pattern synonyms"
 getTopDef (ATyCon _) = Nothing
 
