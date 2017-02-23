@@ -9,7 +9,7 @@
 module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports (organizeImports, OrganizeImportsDomain, projectOrganizeImports) where
 
 import ConLike (ConLike(..))
-import DataCon (FieldLbl(..), dataConTyCon)
+import DataCon
 import DynFlags (xopt)
 import FamInstEnv (FamInst(..))
 import GHC (TyThing(..), lookupName)
@@ -21,7 +21,7 @@ import InstEnv (ClsInst(..))
 import Language.Haskell.TH.LanguageExtensions as GHC (Extension(..))
 import Name (NamedThing(..))
 import TyCon
-import OccName (occName, isSymOcc)
+import OccName
 
 import Control.Applicative ((<$>), Alternative(..))
 import Control.Monad
@@ -34,9 +34,6 @@ import Data.Maybe (Maybe(..), maybe, catMaybes)
 
 import Language.Haskell.Tools.Refactor as AST
 
-import Outputable
-import Debug.Trace
-
 type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom, HasModuleInfo dom )
 
 projectOrganizeImports :: forall dom . OrganizeImportsDomain dom => Refactoring dom
@@ -45,8 +42,7 @@ projectOrganizeImports mod mods
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod
-  = --trace ("###" ++ (showSDocUnsafe $ ppr $ map (\i -> (semanticsModule mod, semanticsImportedModule i, semanticsImported i, semanticsAvailable i)) (mod ^? modImports & annList))) $
-    do usedTyThings <- catMaybes <$> mapM lookupName usedNames
+  = do usedTyThings <- catMaybes <$> mapM lookupName usedNames
        let dfs = semanticsDynFlags mod
            noNarrowingImports
              = xopt TemplateHaskell dfs -- no narrowing if TH is present (we don't know what will be used)
@@ -85,6 +81,8 @@ organizeImports mod
         -- subspecifiers could be narrowed because constructors might be needed.
         hasMarshalling = not $ null @[] (mod ^? modDecl & annList & declForeignType)
 
+        -- Can this name be part of the source code?
+        -- isSourceName n = ':' `notElem` occNameString (occName n)
         patternSynonymAreUsed tts = any (\case AConLike (PatSynCon _) -> True; _ -> False) tts
 
 -- | Sorts the imports in alphabetical order
@@ -164,7 +162,10 @@ getTopDef (AnId id)
   | Just n <- fmap (getName . dataConTyCon) (isDataConWorkId_maybe id <|> isDataConId_maybe id)
   = Just (n, True)
 getTopDef (AnId id) = fmap ((,False) . getName) (isClassOpId_maybe id)
-getTopDef (AConLike (RealDataCon dc)) = Just (getName $ dataConTyCon dc, True)
+getTopDef (AConLike (RealDataCon dc))
+  = case tyConFamInst_maybe (dataConTyCon dc) of
+      Just (dataFam, _) -> Just (getName dataFam, True)
+      _                 -> Just (getName $ dataConTyCon dc, True)
 getTopDef (AConLike (PatSynCon _)) = error "getTopDef: should not be called with pattern synonyms"
 getTopDef (ATyCon _) = Nothing
 
