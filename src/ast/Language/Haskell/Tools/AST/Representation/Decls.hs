@@ -237,6 +237,8 @@ data UTypeEqn dom stage
 -- | GADT constructor declaration (@ D1 :: { val :: Int } -> T String @)
 data UGadtConDecl dom stage
   = UGadtConDecl { _gadtConNames :: AnnListG UName dom stage
+                 , _gadtConTypeArgs :: AnnListG UTyVar dom stage
+                 , _gadtConTypeCtx :: AnnMaybeG UContext dom stage
                  , _gadtConType :: Ann UGadtConType dom stage
                  }
 

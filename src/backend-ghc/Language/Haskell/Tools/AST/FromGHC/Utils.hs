@@ -29,7 +29,9 @@ import Language.Haskell.TH.LanguageExtensions (Extension(..))
 import Module as GHC
 import Name
 import SrcLoc
+import Outputable
 
+import Data.Data
 import Control.Monad.Reader
 import Control.Reference ((^.), (&))
 import Data.Char (isSpace)
@@ -431,3 +433,8 @@ splitLocated (L (RealSrcSpan l) str) = splitLocated' str (realSrcSpanStart l) No
         splitLocated' [] currLoc (Just (startLoc, str)) = [L (RealSrcSpan $ mkRealSrcSpan startLoc currLoc) (reverse str)]
         splitLocated' [] _ Nothing = []
 splitLocated _ = error "splitLocated: unhelpful span given"
+
+-- | Report errors when cannot convert a type of element
+unhandledElement :: (Data a, Outputable a) => String -> a -> Trf b
+unhandledElement label e = do rng <- asks contRange
+                              error ("Illegal " ++ label ++ ": " ++ showSDocUnsafe (ppr e) ++ " (ctor: " ++ show (toConstr e) ++ ") at: " ++ show rng)

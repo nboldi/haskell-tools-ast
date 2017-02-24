@@ -40,9 +40,9 @@ trfType' :: TransformName n r => HsType n -> Trf (AST.UType (Dom r) RangeStage)
 trfType' = trfType'' . cleanHsType where
   trfType'' (HsForAllTy [] typ) = trfType' (unLoc typ)
   trfType'' (HsForAllTy bndrs typ) = AST.UTyForall <$> defineTypeVars (trfBindings bndrs)
-                                                  <*> addToScope bndrs (trfType typ)
+                                                   <*> addToScope bndrs (trfType typ)
   trfType'' (HsQualTy ctx typ) = AST.UTyCtx <$> (fromJust . (^. annMaybe) <$> trfCtx atTheStart ctx)
-                                           <*> trfType typ
+                                            <*> trfType typ
   trfType'' (HsTyVar name) = AST.UTyVar <$> transformingPossibleVar name (trfName name)
   trfType'' (HsAppsTy apps) | Just (head, args) <- getAppsTyHead_maybe apps
     = foldl (\core t -> AST.UTyApp <$> annLocNoSema (pure $ getLoc head `combineSrcSpans` getLoc t) core <*> trfType t) (trfType' (unLoc head)) args
@@ -65,7 +65,7 @@ trfType' = trfType'' . cleanHsType where
   trfType'' pt@(HsExplicitTupleTy {}) = AST.UTyPromoted <$> annContNoSema (trfPromoted' trfType' pt)
   trfType'' pt@(HsTyLit {}) = AST.UTyPromoted <$> annContNoSema (trfPromoted' trfType' pt)
   trfType'' (HsWildCardTy _) = pure AST.UTyWildcard -- TODO: named wildcards
-  trfType'' t = error ("Illegal type: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ")")
+  trfType'' t = unhandledElement "type" t
 
 trfBindings :: TransformName n r => [Located (HsTyVarBndr n)] -> Trf (AnnListG AST.UTyVar (Dom r) RangeStage)
 trfBindings vars = trfAnnList " " trfTyVar' vars
@@ -103,7 +103,7 @@ trfAssertion' (cleanHsType -> t) = case cleanHsType base of
    HsEqTy t1 t2 -> AST.UInfixAssert <$> trfType t1 <*> annLocNoSema (tokenLoc AnnTilde) (trfOperator' typeEq) <*> trfType t2
    HsIParamTy name t -> do loc <- tokenLoc AnnVal
                            AST.UImplicitAssert <$> define (focusOn loc (trfImplicitName name)) <*> trfType t
-   t -> error ("Illegal trf assertion: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ")")
+   t -> unhandledElement "assertion" t
   where (args, _, base) = getArgs t
 
         getArgs :: HsType n -> ([LHsType n], Maybe SrcSpan, HsType n)

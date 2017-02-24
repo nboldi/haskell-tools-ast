@@ -160,8 +160,7 @@ trfExpr' (HsCoreAnn _ lit expr) = AST.UExprPragma <$> pragma <*> trfExpr expr
 trfExpr' (HsTickPragma _ source _ expr) = AST.UExprPragma <$> pragma <*> trfExpr expr
   where pragma = do pragLoc <- tokensLoc [AnnOpen, AnnClose]
                     focusOn pragLoc $ annContNoSema (AST.UGeneratedPragma <$> (trfSourceRange source))
-trfExpr' t = do rng <- asks contRange
-                error ("Illegal expression: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ") at: " ++ show rng)
+trfExpr' t = unhandledElement "expression" t
 
 trfFieldInits :: TransformName n r => HsRecFields n (LHsExpr n) -> Trf (AnnListG AST.UFieldUpdate (Dom r) RangeStage)
 trfFieldInits (HsRecFields fields dotdot)

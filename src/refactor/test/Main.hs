@@ -103,6 +103,7 @@ languageTests =
   , "Decl.FunctionalDeps"
   , "Decl.FunGuards"
   , "Decl.GADT"
+  , "Decl.GadtConWithCtx"
   , "Decl.InfixInstances"
   , "Decl.InfixPatSyn"
   , "Decl.InjectiveTypeFamily"

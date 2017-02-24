@@ -154,8 +154,7 @@ trfDecl = trfLocNoSema $ \case
     -> AST.UPragmaDecl <$> annContNoSema (AST.UWarningPragma <$> (makeNonemptyList " " $ mapM trfName names) <*> trfFastString (L l fs))
   AnnD (HsAnnotation stxt subject expr)
     -> AST.UPragmaDecl <$> annContNoSema (AST.UAnnPragma <$> trfAnnotationSubject stxt subject (srcSpanStart $ getLoc expr) <*> trfExpr expr)
-  d -> do range <- asks contRange
-          error ("Illegal declaration: " ++ showSDocUnsafe (ppr d) ++ " (ctor: " ++ show (toConstr d) ++ ") at: " ++ show range)
+  d -> unhandledElement "declaration" d
 
 trfGADT :: TransformName n r => NewOrData -> Located n -> LHsQTyVars n -> Located (HsContext n)
                                  -> Maybe (Located (HsKind n)) -> [Located (ConDecl n)]
@@ -191,7 +190,7 @@ trfSig (InlineSig name prag)
   = AST.UPragmaDecl <$> annContNoSema (AST.UInlinePragmaDecl <$> trfInlinePragma name prag)
 trfSig (SpecSig name (map hsib_body -> types) (inl_act -> phase))
   = AST.UPragmaDecl <$> annContNoSema (AST.USpecializeDecl <$> trfSpecializePragma name types phase)
-trfSig s = error ("Illegal signature: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
+trfSig s = unhandledElement "signature" s
 
 trfSpecializePragma :: TransformName n r
                     => Located n -> [Located (HsType n)] -> Activation -> Trf (Ann AST.USpecializePragma (Dom r) RangeStage)
@@ -222,14 +221,24 @@ trfConCtx (Just ctx) = trfCtx atTheStart ctx
 
 trfGADTConDecl :: TransformName n r => Located (ConDecl n) -> Trf (Ann AST.UGadtConDecl (Dom r) RangeStage)
 trfGADTConDecl = trfLocNoSema $ \(ConDeclGADT { con_names = names, con_type = hsib_body -> typ })
-  -> AST.UGadtConDecl <$> define (trfAnnList ", " trfName' names)
-                     <*> trfGadtConType typ
+  -> let nameLoc = collectLocs names
+         typLoc = getLoc typ
+         (vars, ctx, t) = getTypeVarsAndCtx typ
+      in AST.UGadtConDecl <$> define (trfAnnList ", " trfName' names)
+                          <*> focusOn (mkSrcSpan (srcSpanEnd nameLoc) (srcSpanStart typLoc)) (trfBindings vars)
+                          <*> updateFocus (return . updateEnd (\_ -> srcSpanStart typLoc)) (focusAfterIfPresent AnnDot (trfCtx atTheStart ctx))
+                          <*> trfGadtConType t
+  where getTypeVarsAndCtx :: LHsType n -> ([LHsTyVarBndr n], LHsContext n, LHsType n)
+        getTypeVarsAndCtx (L _ (HsForAllTy [] typ)) = getTypeVarsAndCtx typ
+        getTypeVarsAndCtx (L _ (HsForAllTy bndrs typ)) = let (_,ctx,t) = getTypeVarsAndCtx typ in (bndrs, ctx, t)
+        getTypeVarsAndCtx (L _ (HsQualTy ctx typ)) = let (vars,_,t) = getTypeVarsAndCtx typ in (vars, ctx, t)
+        getTypeVarsAndCtx t = ([], L noSrcSpan [], t)
 
 trfGadtConType :: TransformName n r => Located (HsType n) -> Trf (Ann AST.UGadtConType (Dom r) RangeStage)
 trfGadtConType = trfLocNoSema $ \case
   HsFunTy (cleanHsType . unLoc -> HsRecTy flds) resType
     -> AST.UGadtRecordType <$> between AnnOpenC AnnCloseC (trfAnnList ", " trfFieldDecl' flds)
-                          <*> trfType resType
+                           <*> trfType resType
   typ -> AST.UGadtNormalType <$> annContNoSema (trfType' typ)
 
 trfFieldDecl :: TransformName n r => Located (ConDeclField n) -> Trf (Ann AST.UFieldDecl (Dom r) RangeStage)
@@ -292,7 +301,7 @@ trfInstanceHead' = trfInstanceHead'' . cleanHsType where
     = AST.UInstanceHeadApp <$> (annLocNoSema (pure $ combineSrcSpans (getLoc t1) (getLoc op))
                                              (AST.UInstanceHeadInfix <$> trfType t1 <*> trfOperator op))
                           <*> trfType t2
-  trfInstanceHead'' t = error ("Illegal instance head: " ++ showSDocUnsafe (ppr t) ++ " (ctor: " ++ show (toConstr t) ++ ")")
+  trfInstanceHead'' t = unhandledElement "instance head" t
 
 trfTypeEqs :: TransformName n r => Maybe [Located (TyFamInstEqn n)] -> Trf (AnnListG AST.UTypeEqn (Dom r) RangeStage)
 trfTypeEqs Nothing = makeList "\n" (after AnnWhere) (pure [])
@@ -372,7 +381,7 @@ trfClassElemSig = trfLocNoSema $ \case
   MinimalSig _ formula -> AST.UClsMinimal <$> trfMinimalFormula formula
   InlineSig name prag -> AST.UClsInline <$> trfInlinePragma name prag
   FixSig fixity -> AST.UClsFixity <$> annContNoSema (trfFixitySig fixity)
-  s -> error ("Illegal signature in class: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
+  s -> unhandledElement "signature in class" s
 
 trfTypeFam :: TransformName n r => Located (FamilyDecl n) -> Trf (Ann AST.UTypeFamily (Dom r) RangeStage)
 trfTypeFam = trfLocNoSema trfTypeFam'
@@ -415,7 +424,7 @@ trfClassInstSig = trfLocNoSema $ \case
   SpecInstSig _ typ -> AST.USpecializeInstance <$> trfType (hsib_body typ)
   SpecSig name (map hsib_body -> tys) (inl_act -> phase) -> AST.UInstanceSpecialize <$> trfSpecializePragma name tys phase
   InlineSig name prag -> AST.UInlineInstance <$> trfInlinePragma name prag
-  s -> error ("Illegal class instance signature: " ++ showSDocUnsafe (ppr s) ++ " (ctor: " ++ show (toConstr s) ++ ")")
+  s -> unhandledElement "class instance signature" s
 
 trfInstTypeFam :: TransformName n r => Located (TyFamInstDecl n) -> Trf (Ann AST.UInstBodyDecl (Dom r) RangeStage)
 trfInstTypeFam (unLoc -> TyFamInstDecl eqn _) = copyAnnot AST.UInstBodyTypeDecl (trfTypeEq eqn)

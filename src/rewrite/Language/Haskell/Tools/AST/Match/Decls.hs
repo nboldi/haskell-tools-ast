@@ -50,11 +50,11 @@ pattern GADTDataDecl keyw ctx dh kind cons derivs  <- Ann _ (UGDataDecl keyw ctx
 
 -- | GADT constructor declaration (@ D1 :: Int -> T String @)
 pattern GadtConDecl :: NameList dom -> Type dom -> GadtConDecl dom
-pattern GadtConDecl names typ <- Ann _ (UGadtConDecl names (Ann _ (UGadtNormalType typ)))
+pattern GadtConDecl names typ <- Ann _ (UGadtConDecl names _ _ (Ann _ (UGadtNormalType typ)))
 
 -- | GADT constructor declaration with record syntax (@ D1 :: { val :: Int } -> T String @)
 pattern GadtRecordConDecl :: NameList dom -> FieldDeclList dom -> Type dom -> GadtConDecl dom
-pattern GadtRecordConDecl names fields typ <- Ann _ (UGadtConDecl names (Ann _ (UGadtRecordType fields typ)))
+pattern GadtRecordConDecl names fields typ <- Ann _ (UGadtConDecl names _ _ (Ann _ (UGadtRecordType fields typ)))
 
 -- | Ordinary data constructor (@ C t1 t2 @)
 pattern ConDecl :: Name dom -> TypeList dom -> ConDecl dom

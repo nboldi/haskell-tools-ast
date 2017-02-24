@@ -60,13 +60,14 @@ mkGADTDataDecl keyw ctx dh kind cons derivs
 
 -- | Creates a GADT constructor declaration (@ D1 :: Int -> T String @)
 mkGadtConDecl :: [Name dom] -> Type dom -> GadtConDecl dom
-mkGadtConDecl names typ = mkAnn (child <> " :: " <> child) $ UGadtConDecl (mkAnnList (separatedBy ", " list) names)
-                                                               (mkAnn child $ UGadtNormalType typ)
+mkGadtConDecl names typ
+  = mkAnn (child <> " :: " <> child <> child <> child)
+      $ UGadtConDecl (mkAnnList (separatedBy ", " list) names) emptyList noth (mkAnn child $ UGadtNormalType typ)
 
 -- | Creates a GADT constructor declaration with record syntax (@ D1 :: { val :: Int } -> T String @)
 mkGadtRecordConDecl :: [Name dom] -> [FieldDecl dom] -> Type dom -> GadtConDecl dom
 mkGadtRecordConDecl names flds typ
-  = mkAnn (child <> " :: " <> child) $ UGadtConDecl (mkAnnList (separatedBy ", " list) names)
+  = mkAnn (child <> " :: " <> child <> child <> child) $ UGadtConDecl (mkAnnList (separatedBy ", " list) names) emptyList noth
       $ mkAnn (child <> " -> " <> child)
       $ UGadtRecordType (mkAnnList (after "{ " $ separatedBy ", " $ followedBy " }" list) flds) typ
 
