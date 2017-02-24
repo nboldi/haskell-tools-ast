@@ -80,6 +80,7 @@ deriving instance (Domain dom, SourceInfo stage) => Data (UFieldUpdate dom stage
 deriving instance (Domain dom, SourceInfo stage) => Data (UBracket dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UTopLevelPragma dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (URule dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Data (URuleVar dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UAnnotationSubject dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UMinimalFormula dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UExprPragma dom stage)

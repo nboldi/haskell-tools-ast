@@ -396,10 +396,18 @@ data USpecializePragma dom stage
 data URule dom stage
   = URule { _ruleName :: Ann UStringNode dom stage -- ^ User name of the rule
           , _rulePhase :: AnnMaybeG UPhaseControl dom stage -- ^ The compilation phases in which the rule can be applied
-          , _ruleBounded :: AnnListG UTyVar dom stage -- ^ Variables bound in the rule
+          , _ruleBounded :: AnnListG URuleVar dom stage -- ^ Variables bound in the rule
           , _ruleLhs :: Ann UExpr dom stage -- ^ The transformed expression
           , _ruleRhs :: Ann UExpr dom stage -- ^ The resulting expression
           }
+
+-- | A variable for a rewrite rule. With or without type signature.
+data URuleVar dom stage
+  = URuleVar { _ruleVarName :: Ann UName dom stage
+             } -- ^ A simple rule variable
+  | USigRuleVar { _ruleVarName :: Ann UName dom stage
+                , _ruleVarType :: Ann UType dom stage
+                } -- ^ A rule variable with signature
 
 -- | Annotation allows you to connect an expression to any declaration.
 data UAnnotationSubject dom stage

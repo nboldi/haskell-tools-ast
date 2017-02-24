@@ -466,11 +466,14 @@ mkPhaseControlUntil phaseNum
                                                          (mkAnnMaybe opt $ Just $ mkAnn child $ PhaseNumber phaseNum)
 
 -- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
-mkRewriteRule :: String -> Maybe (PhaseControl dom) -> [TyVar dom] -> Expr dom -> Expr dom -> Rule dom
+mkRewriteRule :: String -> Maybe (PhaseControl dom) -> [RuleVar dom] -> Expr dom -> Expr dom -> Rule dom
 mkRewriteRule name phase vars lhs rhs
   = mkAnn (child <> " " <> child <> child <> child <> " = " <> child)
       $ URule (mkAnn ("\"" <> child <> "\"") $ UStringNode name) (mkAnnMaybe (followedBy " " opt) phase)
-              (mkAnnList (after "forall " $ separatedBy " " $ followedBy ". " list) vars) lhs rhs
+              (mkAnnList (after "forall " $ separatedBy " " $ followedBy ". " list) (vars)) lhs rhs
+
+mkRuleVar :: Name dom -> RuleVar dom
+mkRuleVar name = mkAnn child (URuleVar name)
 
 -- | The definition with the given name is annotated
 mkNameAnnotation :: Name dom -> AnnotationSubject dom

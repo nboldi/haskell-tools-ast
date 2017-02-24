@@ -410,7 +410,7 @@ pattern PhaseControlUntil :: Integer -> PhaseControl dom
 pattern PhaseControlUntil phaseNum <- Ann _ (UPhaseControl (AnnJust _) (AnnJust (Ann _ (PhaseNumber phaseNum))))
 
 -- | A rewrite rule (@ "map/map" forall f g xs. map f (map g xs) = map (f.g) xs @)
-pattern RewriteRule :: String -> MaybePhaseControl dom -> TyVarList dom -> Expr dom -> Expr dom -> Rule dom
+pattern RewriteRule :: String -> MaybePhaseControl dom -> RuleVarList dom -> Expr dom -> Expr dom -> Rule dom
 pattern RewriteRule name phase vars lhs rhs <- Ann _ (URule (Ann _ (UStringNode name)) phase vars lhs rhs)
 
 -- | The definition with the given name is annotated

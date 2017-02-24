@@ -76,6 +76,7 @@ deriveSemanticTraversal ''UFieldUpdate
 deriveSemanticTraversal ''UBracket
 deriveSemanticTraversal ''UTopLevelPragma
 deriveSemanticTraversal ''URule
+deriveSemanticTraversal ''URuleVar
 deriveSemanticTraversal ''UAnnotationSubject
 deriveSemanticTraversal ''UMinimalFormula
 deriveSemanticTraversal ''UExprPragma

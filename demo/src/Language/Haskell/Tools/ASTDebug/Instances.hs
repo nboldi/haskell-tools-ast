@@ -103,6 +103,7 @@ instance (Domain dom, SourceInfo st) => ASTDebug UFieldUpdate dom st
 instance (Domain dom, SourceInfo st) => ASTDebug UBracket dom st
 instance (Domain dom, SourceInfo st) => ASTDebug UTopLevelPragma dom st
 instance (Domain dom, SourceInfo st) => ASTDebug URule dom st
+instance (Domain dom, SourceInfo st) => ASTDebug URuleVar dom st
 instance (Domain dom, SourceInfo st) => ASTDebug UAnnotationSubject dom st
 instance (Domain dom, SourceInfo st) => ASTDebug UMinimalFormula dom st
 instance (Domain dom, SourceInfo st) => ASTDebug UExprPragma dom st

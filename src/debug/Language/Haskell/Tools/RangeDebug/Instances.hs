@@ -85,6 +85,7 @@ instance (SourceInfo st, Domain dom) => TreeDebug UFieldUpdate dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UBracket dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UTopLevelPragma dom st
 instance (SourceInfo st, Domain dom) => TreeDebug URule dom st
+instance (SourceInfo st, Domain dom) => TreeDebug URuleVar dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UAnnotationSubject dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UMinimalFormula dom st
 instance (SourceInfo st, Domain dom) => TreeDebug UExprPragma dom st
