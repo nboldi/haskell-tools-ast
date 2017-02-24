@@ -46,12 +46,14 @@ instance IsRefactSessionState RefactorSessionState where
   initSession = RefactorSessionState []
 
 -- | Load packages from the given directories. Loads modules, performs the given callback action, warns for duplicate modules.
-loadPackagesFrom :: IsRefactSessionState st => (ModSummary -> IO a) -> ([ModSummary] -> IO ()) -> [FilePath] -> StateT st Ghc (Either RefactorException ([a], [String]))
-loadPackagesFrom report loadCallback packages =
+loadPackagesFrom :: IsRefactSessionState st => (ModSummary -> IO a) -> ([ModSummary] -> IO ()) -> (st -> FilePath -> IO [FilePath]) -> [FilePath] -> StateT st Ghc (Either RefactorException ([a], [String]))
+loadPackagesFrom report loadCallback additionalSrcDirs packages =
   do modColls <- liftIO $ getAllModules packages
      modify $ refSessMCs .- (++ modColls)
      allModColls <- gets (^. refSessMCs)
-     lift $ useDirs (modColls ^? traversal & mcSourceDirs & traversal)
+     st <- get
+     moreSrcDirs <- liftIO $ mapM (additionalSrcDirs st) packages
+     lift $ useDirs ((modColls ^? traversal & mcSourceDirs & traversal) ++ concat moreSrcDirs)
      let (ignored, modNames) = extractDuplicates $ map (^. sfkModuleName) $ concat $ map Map.keys $ modColls ^? traversal & mcModules
          alreadyExistingMods = concatMap (map (^. sfkModuleName) . Map.keys . (^. mcModules)) (allModColls List.\\ modColls)
      lift $ mapM_ addTarget $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) modNames

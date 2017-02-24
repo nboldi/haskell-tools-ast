@@ -131,7 +131,7 @@ updateClient resp (AddPackages packagePathes) = do
     modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existing) . ms_mod) (hsc_mod_graph s) })
     initializePackageDBIfNeeded
     res <- loadPackagesFrom (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]) >> return (getModSumOrig ms))
-                            (resp . LoadingModules . map getModSumOrig) packagePathes
+                            (resp . LoadingModules . map getModSumOrig) (\st fp -> maybeToList <$> detectAutogen fp (st ^. packageDB)) packagePathes
     case res of
       Right (modules, ignoredMods) -> do
         mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
