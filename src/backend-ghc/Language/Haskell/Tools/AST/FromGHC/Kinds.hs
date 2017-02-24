@@ -20,7 +20,7 @@ import Language.Haskell.Tools.AST (Ann, AnnMaybeG, Dom, RangeStage, HasNoSemanti
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..), cleanHsType)
 import Language.Haskell.Tools.AST.FromGHC.Monad (TrfInput(..), Trf, transformingPossibleVar)
-import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfName)
+import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
 
@@ -44,8 +44,10 @@ trfKind' = trfKind'' . cleanHsType where
   trfKind'' (HsParTy kind) = AST.UParenKind <$> trfKind kind
   trfKind'' (HsFunTy k1 k2) = AST.UFunKind <$> trfKind k1 <*> trfKind k2
   trfKind'' (HsAppTy k1 k2) = AST.UAppKind <$> trfKind k1 <*> trfKind k2
+  trfKind'' (HsOpTy k1 op k2) = AST.UInfixAppKind <$> trfKind k1 <*> trfOperator op <*> trfKind k2
   trfKind'' (HsTyVar kv) = transformingPossibleVar kv (AST.UVarKind <$> trfName kv)
   trfKind'' (HsListTy kind) = AST.UListKind <$> trfKind kind
+  trfKind'' (HsTupleTy _ kinds) = AST.UTupleKind <$> makeList ", " atTheStart (mapM trfKind kinds)
   trfKind'' (HsAppsTy [unLoc -> HsAppPrefix t]) = trfKind' (unLoc t)
   trfKind'' (HsAppsTy [unLoc -> HsAppInfix n]) = AST.UVarKind <$> trfName n
   trfKind'' pt@(HsExplicitListTy {}) = AST.UPromotedKind <$> annContNoSema (trfPromoted' trfKind' pt)
