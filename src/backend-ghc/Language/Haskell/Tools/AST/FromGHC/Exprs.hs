@@ -69,6 +69,8 @@ trfExpr' (HsLamCase _ (unLoc . mg_alts -> matches)) = AST.ULamCase <$> trfAnnLis
 trfExpr' (HsApp e1 e2) = AST.UApp <$> trfExpr e1 <*> trfExpr e2
 trfExpr' (OpApp e1 (unLoc -> HsVar op) _ e2)
   = AST.UInfixApp <$> trfExpr e1 <*> trfOperator op <*> trfExpr e2
+trfExpr' (OpApp e1 (L nameLoc (HsRecFld fld)) _ e2)
+  = AST.UInfixApp <$> trfExpr e1 <*> trfAmbiguousOperator' nameLoc fld <*> trfExpr e2
 trfExpr' (NegApp e _) = AST.UPrefixApp <$> annLocNoSema loc (AST.UNormalOp <$> annLoc info loc (AST.nameFromList <$> trfOperatorStr False "-"))
                                        <*> trfExpr e
   where loc = mkSrcSpan <$> atTheStart <*> (pure $ srcSpanStart (getLoc e))
