@@ -18,6 +18,7 @@ import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import RdrName as GHC (RdrName, rdrNameOcc)
 import SrcLoc as GHC
 import TyCon as GHC (Role(..))
+import FastString
 
 import Control.Monad.Reader
 import Control.Reference ((.-), (!~), biplateRef)
@@ -145,13 +146,14 @@ trfDecl = trfLocNoSema $ \case
     -> AST.UForeignExport <$> annLocNoSema (pure l) (trfCallConv' ccall) <*> trfName name <*> trfType typ
   SpliceD (SpliceDecl (unLoc -> spl) _) -> AST.USpliceDecl <$> trfSplice spl
   WarningD (Warnings src [])
-    -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) (pure [])) <*> nothing " " "" (before AnnClose))
-  WarningD (Warnings src [L _ (Warning names (DeprecatedTxt _ []))])
-    -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) $ mapM trfName names) <*> nothing " " "" (before AnnClose))
-  WarningD (Warnings src [L _ (Warning names (DeprecatedTxt _ [L l (StringLiteral _ fs)]))])
-    -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) $ mapM trfName names) <*> (makeJust <$> trfFastString (L l fs)))
-  WarningD (Warnings src [L _ (Warning names (WarningTxt _ [L l (StringLiteral _ fs)]))])
-    -> AST.UPragmaDecl <$> annContNoSema (AST.UWarningPragma <$> (makeNonemptyList " " $ mapM trfName names) <*> trfFastString (L l fs))
+    -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) (pure []))
+                                                          <*> makeList ", " (before AnnClose) (pure []))
+  WarningD (Warnings src [L _ (Warning names (DeprecatedTxt _ stringLits))])
+    -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) $ mapM trfName names)
+                                                          <*> makeList ", " (before AnnClose) (mapM (\(L l (StringLiteral _ fs)) -> trfFastString (L l fs)) stringLits))
+  WarningD (Warnings src [L _ (Warning names (WarningTxt _ stringLits))])
+    -> AST.UPragmaDecl <$> annContNoSema (AST.UWarningPragma <$> (makeNonemptyList " " $ mapM trfName names)
+                                                             <*> makeList ", " (before AnnClose) (mapM (\(L l (StringLiteral _ fs)) -> trfFastString (L l fs)) stringLits))
   AnnD (HsAnnotation stxt subject expr)
     -> AST.UPragmaDecl <$> annContNoSema (AST.UAnnPragma <$> trfAnnotationSubject stxt subject (srcSpanStart $ getLoc expr) <*> trfExpr expr)
   d -> unhandledElement "declaration" d

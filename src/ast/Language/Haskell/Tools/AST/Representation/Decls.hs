@@ -371,10 +371,10 @@ data UTopLevelPragma dom stage
   = URulePragma       { _pragmaRule :: AnnListG URule dom stage
                       } -- ^ A pragma that introduces source rewrite rules (@ {-# RULES "map/map" [2]  forall f g xs. map f (map g xs) = map (f.g) xs #-} @)
   | UDeprPragma       { _pragmaObjects :: AnnListG UName dom stage
-                      , _deprMessage :: AnnMaybeG UStringNode dom stage
+                      , _deprMessage :: AnnListG UStringNode dom stage
                       } -- ^ A pragma that marks definitions as deprecated (@ {-# DEPRECATED f "f will be replaced by g" @)
   | UWarningPragma    { _pragmaObjects :: AnnListG UName dom stage
-                      , _warnMessage :: Ann UStringNode dom stage
+                      , _warnMessage :: AnnListG UStringNode dom stage
                       } -- ^ A pragma that marks definitions as deprecated (@ {-# WARNING unsafePerformIO "you should know what you are doing" @)
   | UAnnPragma        { _annotationSubject :: Ann UAnnotationSubject dom stage
                       , _annotateExpr :: Ann UExpr dom stage
