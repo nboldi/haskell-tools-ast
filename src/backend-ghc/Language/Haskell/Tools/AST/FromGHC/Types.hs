@@ -98,6 +98,8 @@ trfAssertion' (cleanHsType -> HsParTy t)
   = trfAssertion' (unLoc t)
 trfAssertion' (cleanHsType -> HsOpTy left op right)
   = AST.UInfixAssert <$> trfType left <*> trfOperator op <*> trfType right
+trfAssertion' (cleanHsType -> HsWildCardTy _)
+  = pure AST.UWildcardAssert
 trfAssertion' (cleanHsType -> t) = case cleanHsType base of
    HsTyVar name -> AST.UClassAssert <$> trfName name <*> trfAnnList " " trfType' args
    HsEqTy t1 t2 -> AST.UInfixAssert <$> trfType t1 <*> annLocNoSema (tokenLoc AnnTilde) (trfOperator' typeEq) <*> trfType t2
