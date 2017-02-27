@@ -11,7 +11,7 @@ module Language.Haskell.Tools.Refactor.GetModules where
 import Control.Reference
 import Control.Monad
 import Data.Function (on)
-import Data.List (intersperse, find, sortBy)
+import Data.List
 import qualified Data.Map as Map
 import Data.Maybe
 import Distribution.Compiler
@@ -240,7 +240,7 @@ compileInContext mc mcs dfs
 
 applyDependencies :: [ModuleCollection] -> [ModuleCollectionId] -> DynFlags -> DynFlags
 applyDependencies mcs ids dfs
-  = dfs { GHC.packageFlags = catMaybes $ map (dependencyToPkgFlag mcs) ids }
+  = dfs { GHC.packageFlags = GHC.packageFlags dfs ++ (catMaybes $ map (dependencyToPkgFlag mcs) ids) }
 
 onlyUseEnabled :: DynFlags -> DynFlags
 onlyUseEnabled = GHC.setGeneralFlag' GHC.Opt_HideAllPackages
@@ -255,8 +255,13 @@ dependencyToPkgFlag _ _ = Nothing
 setupLoadFlags :: [ModuleCollection] -> DynFlags -> IO DynFlags
 setupLoadFlags mcs dfs = applyDependencies mcs allDeps . selectEnabled <$> useSavedFlags dfs
   where allDeps = mcs ^? traversal & mcDependencies & traversal
-        selectEnabled = if any isDirectoryMC mcs then id else onlyUseEnabled
+        selectEnabled = if any (\(mc,rest) -> isDirectoryMC mc && isIndependentMc mc rest) (breaks mcs) then id else onlyUseEnabled
         useSavedFlags = foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup)
+        isIndependentMc mc rest = not $ any (`isPrefixOf` (mc ^. mcRoot)) (map (^. mcRoot) rest)
+
+breaks :: [a] -> [(a,[a])]
+breaks [] = []
+breaks (e:rest) = (e,rest) : map (\(x,ls) -> (x,e:ls)) (breaks rest)
 
 loadFlagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
 loadFlagsFromBuildInfo BuildInfo{ cppOptions } df
