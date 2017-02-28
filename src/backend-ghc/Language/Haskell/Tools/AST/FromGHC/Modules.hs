@@ -19,7 +19,7 @@ import Data.Maybe
 import Data.Function (on)
 
 import BasicTypes as GHC (WarningTxt(..), StringLiteral(..))
-import DynFlags as GHC (xopt_set)
+import DynFlags as GHC
 import ErrUtils as GHC (pprErrMsgBagWithLoc)
 import FastString as GHC (unpackFS)
 import GHC
@@ -33,6 +33,7 @@ import RnExpr as GHC (rnLExpr)
 import SrcLoc as GHC
 import TcRnMonad as GHC
 import FieldLabel as GHC
+import HscMain as GHC
 
 import Language.Haskell.Tools.AST (Ann(..), AnnMaybeG, AnnListG(..), Dom, RangeStage
                                   , sourceInfo, semantics, annotation, nodeSpan)
@@ -44,9 +45,6 @@ import Language.Haskell.Tools.AST.FromGHC.Exprs
 import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (nameInfo, implicitNames, importedNames)
-
-import Debug.Trace
-import DynFlags as GHC (opt_P)
 
 trfModule :: ModSummary -> Located (HsModule RdrName) -> Trf (Ann AST.UModule (Dom RdrName) RangeStage)
 trfModule mod = trfLocCorrect (createModuleInfo mod) (\sr -> combineSrcSpans sr <$> (uniqueTokenAnywhere AnnEofPos)) $
@@ -72,36 +70,29 @@ trfModuleRename mod rangeMod (gr,imports,exps,_) hsMod
           transformedImports <- orderAnnList <$> (trfImports imports)
 
           addToScope (concat @[] (transformedImports ^? AST.annList&semantics&importedNames) ++ preludeImports)
-            $ loadSplices hsMod transformedImports preludeImports gr $ setOriginalNames originalNames . setDeclsToInsert roleAnnots
+            $ loadSplices mod hsMod transformedImports preludeImports gr $ setOriginalNames originalNames . setDeclsToInsert roleAnnots
               $ AST.UModule <$> trfFilePragmas
                             <*> trfModuleHead name (case (exports, exps) of (Just (L l _), Just ie) -> Just (L l ie)
                                                                             _                       -> Nothing) deprec
                             <*> return transformedImports
                             <*> trfDeclsGroup gr
 
-loadSplices :: HsModule RdrName -> AnnListG AST.UImportDecl (Dom GHC.Name) RangeStage -> [GHC.Name] -> HsGroup Name -> Trf a -> Trf a
-loadSplices hsMod imports preludeImports group trf = do
+loadSplices :: ModSummary -> HsModule RdrName -> AnnListG AST.UImportDecl (Dom GHC.Name) RangeStage -> [GHC.Name] -> HsGroup Name -> Trf a -> Trf a
+loadSplices modSum hsMod imports preludeImports group trf = do
     let declSpls = map (\(SpliceDecl sp _) -> sp) $ hsMod ^? biplateRef :: [Located (HsSplice RdrName)]
         exprSpls = catMaybes $ map (\case HsSpliceE sp -> Just sp; _ -> Nothing) $ hsMod ^? biplateRef :: [HsSplice RdrName]
         typeSpls = catMaybes $ map (\case HsSpliceTy sp _ -> Just sp; _ -> Nothing) $ hsMod ^? biplateRef :: [HsSplice RdrName]
     -- initialize reader environment
-    env <- liftGhc getSession
-
+    env <- liftGhc $ setSessionDynFlags (ms_hspp_opts modSum) >> getSession
+    importEnv <- liftIO $ hscRnImportDecls env (hsmodImports hsMod)
     let locals = hsGetNames group
         createLocalGRE n | Just modName <- nameModule_maybe n
                          = [GRE n NoParent True [ImpSpec (ImpDeclSpec (moduleName modName) (moduleName modName) False noSrcSpan) ImpAll]]
                          | otherwise = []
-        createImportedRecords imp
-          = map (\n -> (n, (GHC.occName n, createImportGRE imp n))) (imp ^. semantics&importedNames)
-        createImportGRE imp n = [GRE n NoParent True [ImpSpec (ImpDeclSpec importMod importAs isQualified noSrcSpan) ImpAll]]
-          where importMod = GHC.mkModuleName $ imp ^. AST.importModule&AST.moduleNameString
-                importAs = maybe importMod GHC.mkModuleName $ imp ^? AST.importAs&AST.annJust&AST.importRename&AST.moduleNameString
-                isQualified = isJust $ imp ^? AST.importQualified&AST.annJust
         readEnv = mkOccEnv $ map (foldl1 (\e1 e2 -> (fst e1, snd e1 ++ snd e2)) . map snd) $ groupBy ((==) `on` fst) $ sortOn fst
-                   $ (map (\n -> (n, (GHC.occName n, createLocalGRE n))) (locals ++ preludeImports) ++ concatMap @[] createImportedRecords (imports ^? AST.annList))
-    -- liftIO $ putStrLn $ showSDocUnsafe $ ppr readEnv
+                   $ (map (\n -> (n, (GHC.occName n, createLocalGRE n))) (locals ++ preludeImports))
     tcdSplices <- liftIO $ runTcInteractive env { hsc_dflags = xopt_set (hsc_dflags env) TemplateHaskellQuotes }
-      $ updGblEnv (\gbl -> gbl { tcg_rdr_env = readEnv })
+      $ updGblEnv (\gbl -> gbl { tcg_rdr_env = plusOccEnv readEnv importEnv })
       $ (,,) <$> mapM tcHsSplice declSpls <*> mapM tcHsSplice' typeSpls <*> mapM tcHsSplice' exprSpls
     let (declSplices, typeSplices, exprSplices)
           = fromMaybe (error $ "Splice expression could not be typechecked: "

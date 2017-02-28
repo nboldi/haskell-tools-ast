@@ -341,7 +341,7 @@ impliedXFlags
     , (GHC.Strict, turnOn, GHC.StrictData)
   ]
 
-        -- * Mapping of Cabal haskell extensions to their GHC counterpart
+-- * Mapping of Cabal haskell extensions to their GHC counterpart
 
 -- | Map the cabal extensions to the ones that GHC recognizes
 translateExtension AllowAmbiguousTypes = setExtensionFlag' GHC.AllowAmbiguousTypes
