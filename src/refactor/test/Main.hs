@@ -167,6 +167,7 @@ languageTests =
   , "Pattern.Constructor"
   , "Pattern.ImplicitParams"
   , "Pattern.Infix"
+  , "Pattern.NestedWildcard"
   , "Pattern.NPlusK"
   , "Pattern.OperatorPattern"
   , "Pattern.Record"
