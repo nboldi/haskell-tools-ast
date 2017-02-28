@@ -268,10 +268,12 @@ loadFlagsFromBuildInfo bi@BuildInfo{ cppOptions } df
   = do (df',unused,warnings) <- parseDynamicFlags df (map (L noSrcSpan) $ cppOptions)
        mapM_ putStrLn (map unLoc warnings ++ map (("Flag is not used: " ++) . unLoc) unused)
        return (setupLoadExtensions df')
-  where setupLoadExtensions = foldl (.) id (map translateExtension loadExtensions)
+  where setupLoadExtensions = foldl (.) id (map setExtensionFlag' $ catMaybes $ map translateExtension loadExtensions)
         loadExtensions = [PatternSynonyms | patternSynonymsNeeded] ++ [ExplicitNamespaces | explicitNamespacesNeeded]
+                           ++ [PackageImports | packageImportsNeeded]
         explicitNamespacesNeeded = not $ null $ map EnableExtension [ExplicitNamespaces, TypeFamilies, TypeOperators] `intersect` usedExtensions bi
         patternSynonymsNeeded = EnableExtension PatternSynonyms `elem` usedExtensions bi
+        packageImportsNeeded = EnableExtension PackageImports `elem` usedExtensions bi
 
 flagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
 -- the import pathes are already set globally
@@ -279,8 +281,8 @@ flagsFromBuildInfo bi@BuildInfo{ options } df
   = do (df',unused,warnings) <- parseDynamicFlags df (map (L noSrcSpan) $ concatMap snd options)
        mapM_ putStrLn (map unLoc warnings ++ map (("Flag is not used: " ++) . unLoc) unused)
        return $ (flip lang_set (toGhcLang =<< defaultLanguage bi))
-         $ foldl (.) id (map (\case EnableExtension ext -> translateExtension ext
-                                    _                   -> id
+         $ foldl (.) id (map (\case EnableExtension ext -> setEnabled True ext
+                                    DisableExtension ext -> setEnabled False ext
                         ) (usedExtensions bi ++ map EnableExtension (languageDefault (defaultLanguage bi))))
          $ df'
   where toGhcLang Cabal.Haskell98 = Just GHC.Haskell98
@@ -295,6 +297,11 @@ flagsFromBuildInfo bi@BuildInfo{ options } df
         languageDefault _
           = [ DatatypeContexts, ImplicitPrelude, MonomorphismRestriction
             , NondecreasingIndentation, NPlusKPatterns, TraditionalRecordSyntax ]
+
+        setEnabled enable ext
+          = case translateExtension ext of
+              Just e -> (if enable then setExtensionFlag' else unSetExtensionFlag') e
+              Nothing -> id
 
 -- * Not imported from DynFlags.hs, so I copied it here
 setExtensionFlag', unSetExtensionFlag' :: GHC.Extension -> DynFlags -> DynFlags
@@ -344,123 +351,123 @@ impliedXFlags
 -- * Mapping of Cabal haskell extensions to their GHC counterpart
 
 -- | Map the cabal extensions to the ones that GHC recognizes
-translateExtension AllowAmbiguousTypes = setExtensionFlag' GHC.AllowAmbiguousTypes
-translateExtension ApplicativeDo = setExtensionFlag' GHC.ApplicativeDo
-translateExtension Arrows = setExtensionFlag' GHC.Arrows
-translateExtension AutoDeriveTypeable = setExtensionFlag' GHC.AutoDeriveTypeable
-translateExtension BangPatterns = setExtensionFlag' GHC.BangPatterns
-translateExtension BinaryLiterals = setExtensionFlag' GHC.BinaryLiterals
-translateExtension CApiFFI = setExtensionFlag' GHC.CApiFFI
-translateExtension ConstrainedClassMethods = setExtensionFlag' GHC.ConstrainedClassMethods
-translateExtension ConstraintKinds = setExtensionFlag' GHC.ConstraintKinds
-translateExtension CPP = setExtensionFlag' GHC.Cpp
-translateExtension DataKinds = setExtensionFlag' GHC.DataKinds
-translateExtension DatatypeContexts = setExtensionFlag' GHC.DatatypeContexts
-translateExtension DefaultSignatures = setExtensionFlag' GHC.DefaultSignatures
-translateExtension DeriveAnyClass = setExtensionFlag' GHC.DeriveAnyClass
-translateExtension DeriveDataTypeable = setExtensionFlag' GHC.DeriveDataTypeable
-translateExtension DeriveFoldable = setExtensionFlag' GHC.DeriveFoldable
-translateExtension DeriveFunctor = setExtensionFlag' GHC.DeriveFunctor
-translateExtension DeriveGeneric = setExtensionFlag' GHC.DeriveGeneric
-translateExtension DeriveLift = setExtensionFlag' GHC.DeriveLift
-translateExtension DeriveTraversable = setExtensionFlag' GHC.DeriveTraversable
-translateExtension DisambiguateRecordFields = setExtensionFlag' GHC.DisambiguateRecordFields
-translateExtension DoAndIfThenElse = setExtensionFlag' GHC.DoAndIfThenElse
-translateExtension DoRec = setExtensionFlag' GHC.RecursiveDo
-translateExtension DuplicateRecordFields = setExtensionFlag' GHC.DuplicateRecordFields
-translateExtension EmptyCase = setExtensionFlag' GHC.EmptyCase
-translateExtension EmptyDataDecls = setExtensionFlag' GHC.EmptyDataDecls
-translateExtension ExistentialQuantification = setExtensionFlag' GHC.ExistentialQuantification
-translateExtension ExplicitForAll = setExtensionFlag' GHC.ExplicitForAll
-translateExtension ExplicitNamespaces = setExtensionFlag' GHC.ExplicitNamespaces
-translateExtension ExtendedDefaultRules = setExtensionFlag' GHC.ExtendedDefaultRules
-translateExtension FlexibleContexts = setExtensionFlag' GHC.FlexibleContexts
-translateExtension FlexibleInstances = setExtensionFlag' GHC.FlexibleInstances
-translateExtension ForeignFunctionInterface = setExtensionFlag' GHC.ForeignFunctionInterface
-translateExtension FunctionalDependencies = setExtensionFlag' GHC.FunctionalDependencies
-translateExtension GADTs = setExtensionFlag' GHC.GADTs
-translateExtension GADTSyntax = setExtensionFlag' GHC.GADTSyntax
-translateExtension GeneralizedNewtypeDeriving = setExtensionFlag' GHC.GeneralizedNewtypeDeriving
-translateExtension GHCForeignImportPrim = setExtensionFlag' GHC.GHCForeignImportPrim
-translateExtension ImplicitParams = setExtensionFlag' GHC.ImplicitParams
-translateExtension ImplicitPrelude = setExtensionFlag' GHC.ImplicitPrelude
-translateExtension ImpredicativeTypes = setExtensionFlag' GHC.ImpredicativeTypes
-translateExtension IncoherentInstances = setExtensionFlag' GHC.IncoherentInstances
-translateExtension InstanceSigs = setExtensionFlag' GHC.InstanceSigs
-translateExtension InterruptibleFFI = setExtensionFlag' GHC.InterruptibleFFI
-translateExtension JavaScriptFFI = setExtensionFlag' GHC.JavaScriptFFI
-translateExtension KindSignatures = setExtensionFlag' GHC.KindSignatures
-translateExtension LambdaCase = setExtensionFlag' GHC.LambdaCase
-translateExtension LiberalTypeSynonyms = setExtensionFlag' GHC.LiberalTypeSynonyms
-translateExtension MagicHash = setExtensionFlag' GHC.MagicHash
-translateExtension MonadComprehensions = setExtensionFlag' GHC.MonadComprehensions
-translateExtension MonadFailDesugaring = setExtensionFlag' GHC.MonadFailDesugaring
-translateExtension MonoLocalBinds = setExtensionFlag' GHC.MonoLocalBinds
-translateExtension MonomorphismRestriction = setExtensionFlag' GHC.MonomorphismRestriction
-translateExtension MonoPatBinds = setExtensionFlag' GHC.MonoPatBinds
-translateExtension MultiParamTypeClasses = setExtensionFlag' GHC.MultiParamTypeClasses
-translateExtension MultiWayIf = setExtensionFlag' GHC.MultiWayIf
-translateExtension NamedFieldPuns = setExtensionFlag' GHC.RecordPuns
-translateExtension NamedWildCards = setExtensionFlag' GHC.NamedWildCards
-translateExtension NegativeLiterals = setExtensionFlag' GHC.NegativeLiterals
-translateExtension NondecreasingIndentation = setExtensionFlag' GHC.NondecreasingIndentation
-translateExtension NPlusKPatterns = setExtensionFlag' GHC.NPlusKPatterns
-translateExtension NullaryTypeClasses = setExtensionFlag' GHC.NullaryTypeClasses
-translateExtension NumDecimals = setExtensionFlag' GHC.NumDecimals
-translateExtension OverlappingInstances = setExtensionFlag' GHC.OverlappingInstances
-translateExtension OverloadedLabels = setExtensionFlag' GHC.OverloadedLabels
-translateExtension OverloadedLists = setExtensionFlag' GHC.OverloadedLists
-translateExtension OverloadedStrings = setExtensionFlag' GHC.OverloadedStrings
-translateExtension PackageImports = setExtensionFlag' GHC.PackageImports
-translateExtension ParallelArrays = setExtensionFlag' GHC.ParallelArrays
-translateExtension ParallelListComp = setExtensionFlag' GHC.ParallelListComp
-translateExtension PartialTypeSignatures = setExtensionFlag' GHC.PartialTypeSignatures
-translateExtension PatternGuards = setExtensionFlag' GHC.PatternGuards
-translateExtension PatternSignatures = setExtensionFlag' GHC.PatternSynonyms
-translateExtension PatternSynonyms = setExtensionFlag' GHC.PatternSynonyms
-translateExtension PolyKinds = setExtensionFlag' GHC.PolyKinds
-translateExtension PostfixOperators = setExtensionFlag' GHC.PostfixOperators
-translateExtension QuasiQuotes = setExtensionFlag' GHC.QuasiQuotes
-translateExtension RankNTypes = setExtensionFlag' GHC.RankNTypes
-translateExtension RebindableSyntax = setExtensionFlag' GHC.RebindableSyntax
-translateExtension RecordPuns = setExtensionFlag' GHC.RecordPuns
-translateExtension RecordWildCards = setExtensionFlag' GHC.RecordWildCards
-translateExtension RecursiveDo = setExtensionFlag' GHC.RecursiveDo
-translateExtension RelaxedPolyRec = setExtensionFlag' GHC.RelaxedPolyRec
-translateExtension RestrictedTypeSynonyms = flip xopt_unset GHC.LiberalTypeSynonyms
-translateExtension RoleAnnotations = setExtensionFlag' GHC.RoleAnnotations
-translateExtension ScopedTypeVariables = setExtensionFlag' GHC.ScopedTypeVariables
-translateExtension StandaloneDeriving = setExtensionFlag' GHC.StandaloneDeriving
-translateExtension StaticPointers = setExtensionFlag' GHC.StaticPointers
-translateExtension Strict = setExtensionFlag' GHC.Strict
-translateExtension StrictData = setExtensionFlag' GHC.StrictData
-translateExtension TemplateHaskell = setExtensionFlag' GHC.TemplateHaskell
-translateExtension TemplateHaskellQuotes = setExtensionFlag' GHC.TemplateHaskellQuotes
-translateExtension TraditionalRecordSyntax = setExtensionFlag' GHC.TraditionalRecordSyntax
-translateExtension TransformListComp = setExtensionFlag' GHC.TransformListComp
-translateExtension TupleSections = setExtensionFlag' GHC.TupleSections
-translateExtension TypeApplications = setExtensionFlag' GHC.TypeApplications
-translateExtension TypeFamilies = setExtensionFlag' GHC.TypeFamilies
-translateExtension TypeInType = setExtensionFlag' GHC.TypeInType
-translateExtension TypeOperators = setExtensionFlag' GHC.TypeOperators
-translateExtension TypeSynonymInstances = setExtensionFlag' GHC.TypeSynonymInstances
-translateExtension UnboxedTuples = setExtensionFlag' GHC.UnboxedTuples
-translateExtension UndecidableInstances = setExtensionFlag' GHC.UndecidableInstances
-translateExtension UndecidableSuperClasses = setExtensionFlag' GHC.UndecidableSuperClasses
-translateExtension UnicodeSyntax = setExtensionFlag' GHC.UnicodeSyntax
-translateExtension UnliftedFFITypes = setExtensionFlag' GHC.UnliftedFFITypes
-translateExtension ViewPatterns = setExtensionFlag' GHC.ViewPatterns
+translateExtension AllowAmbiguousTypes = Just GHC.AllowAmbiguousTypes
+translateExtension ApplicativeDo = Just GHC.ApplicativeDo
+translateExtension Arrows = Just GHC.Arrows
+translateExtension AutoDeriveTypeable = Just GHC.AutoDeriveTypeable
+translateExtension BangPatterns = Just GHC.BangPatterns
+translateExtension BinaryLiterals = Just GHC.BinaryLiterals
+translateExtension CApiFFI = Just GHC.CApiFFI
+translateExtension ConstrainedClassMethods = Just GHC.ConstrainedClassMethods
+translateExtension ConstraintKinds = Just GHC.ConstraintKinds
+translateExtension CPP = Just GHC.Cpp
+translateExtension DataKinds = Just GHC.DataKinds
+translateExtension DatatypeContexts = Just GHC.DatatypeContexts
+translateExtension DefaultSignatures = Just GHC.DefaultSignatures
+translateExtension DeriveAnyClass = Just GHC.DeriveAnyClass
+translateExtension DeriveDataTypeable = Just GHC.DeriveDataTypeable
+translateExtension DeriveFoldable = Just GHC.DeriveFoldable
+translateExtension DeriveFunctor = Just GHC.DeriveFunctor
+translateExtension DeriveGeneric = Just GHC.DeriveGeneric
+translateExtension DeriveLift = Just GHC.DeriveLift
+translateExtension DeriveTraversable = Just GHC.DeriveTraversable
+translateExtension DisambiguateRecordFields = Just GHC.DisambiguateRecordFields
+translateExtension DoAndIfThenElse = Just GHC.DoAndIfThenElse
+translateExtension DoRec = Just GHC.RecursiveDo
+translateExtension DuplicateRecordFields = Just GHC.DuplicateRecordFields
+translateExtension EmptyCase = Just GHC.EmptyCase
+translateExtension EmptyDataDecls = Just GHC.EmptyDataDecls
+translateExtension ExistentialQuantification = Just GHC.ExistentialQuantification
+translateExtension ExplicitForAll = Just GHC.ExplicitForAll
+translateExtension ExplicitNamespaces = Just GHC.ExplicitNamespaces
+translateExtension ExtendedDefaultRules = Just GHC.ExtendedDefaultRules
+translateExtension FlexibleContexts = Just GHC.FlexibleContexts
+translateExtension FlexibleInstances = Just GHC.FlexibleInstances
+translateExtension ForeignFunctionInterface = Just GHC.ForeignFunctionInterface
+translateExtension FunctionalDependencies = Just GHC.FunctionalDependencies
+translateExtension GADTs = Just GHC.GADTs
+translateExtension GADTSyntax = Just GHC.GADTSyntax
+translateExtension GeneralizedNewtypeDeriving = Just GHC.GeneralizedNewtypeDeriving
+translateExtension GHCForeignImportPrim = Just GHC.GHCForeignImportPrim
+translateExtension ImplicitParams = Just GHC.ImplicitParams
+translateExtension ImplicitPrelude = Just GHC.ImplicitPrelude
+translateExtension ImpredicativeTypes = Just GHC.ImpredicativeTypes
+translateExtension IncoherentInstances = Just GHC.IncoherentInstances
+translateExtension InstanceSigs = Just GHC.InstanceSigs
+translateExtension InterruptibleFFI = Just GHC.InterruptibleFFI
+translateExtension JavaScriptFFI = Just GHC.JavaScriptFFI
+translateExtension KindSignatures = Just GHC.KindSignatures
+translateExtension LambdaCase = Just GHC.LambdaCase
+translateExtension LiberalTypeSynonyms = Just GHC.LiberalTypeSynonyms
+translateExtension MagicHash = Just GHC.MagicHash
+translateExtension MonadComprehensions = Just GHC.MonadComprehensions
+translateExtension MonadFailDesugaring = Just GHC.MonadFailDesugaring
+translateExtension MonoLocalBinds = Just GHC.MonoLocalBinds
+translateExtension MonomorphismRestriction = Just GHC.MonomorphismRestriction
+translateExtension MonoPatBinds = Just GHC.MonoPatBinds
+translateExtension MultiParamTypeClasses = Just GHC.MultiParamTypeClasses
+translateExtension MultiWayIf = Just GHC.MultiWayIf
+translateExtension NamedFieldPuns = Just GHC.RecordPuns
+translateExtension NamedWildCards = Just GHC.NamedWildCards
+translateExtension NegativeLiterals = Just GHC.NegativeLiterals
+translateExtension NondecreasingIndentation = Just GHC.NondecreasingIndentation
+translateExtension NPlusKPatterns = Just GHC.NPlusKPatterns
+translateExtension NullaryTypeClasses = Just GHC.NullaryTypeClasses
+translateExtension NumDecimals = Just GHC.NumDecimals
+translateExtension OverlappingInstances = Just GHC.OverlappingInstances
+translateExtension OverloadedLabels = Just GHC.OverloadedLabels
+translateExtension OverloadedLists = Just GHC.OverloadedLists
+translateExtension OverloadedStrings = Just GHC.OverloadedStrings
+translateExtension PackageImports = Just GHC.PackageImports
+translateExtension ParallelArrays = Just GHC.ParallelArrays
+translateExtension ParallelListComp = Just GHC.ParallelListComp
+translateExtension PartialTypeSignatures = Just GHC.PartialTypeSignatures
+translateExtension PatternGuards = Just GHC.PatternGuards
+translateExtension PatternSignatures = Just GHC.PatternSynonyms
+translateExtension PatternSynonyms = Just GHC.PatternSynonyms
+translateExtension PolyKinds = Just GHC.PolyKinds
+translateExtension PostfixOperators = Just GHC.PostfixOperators
+translateExtension QuasiQuotes = Just GHC.QuasiQuotes
+translateExtension RankNTypes = Just GHC.RankNTypes
+translateExtension RebindableSyntax = Just GHC.RebindableSyntax
+translateExtension RecordPuns = Just GHC.RecordPuns
+translateExtension RecordWildCards = Just GHC.RecordWildCards
+translateExtension RecursiveDo = Just GHC.RecursiveDo
+translateExtension RelaxedPolyRec = Just GHC.RelaxedPolyRec
+translateExtension RestrictedTypeSynonyms = Nothing -- flip xopt_unset GHC.LiberalTypeSynonyms
+translateExtension RoleAnnotations = Just GHC.RoleAnnotations
+translateExtension ScopedTypeVariables = Just GHC.ScopedTypeVariables
+translateExtension StandaloneDeriving = Just GHC.StandaloneDeriving
+translateExtension StaticPointers = Just GHC.StaticPointers
+translateExtension Strict = Just GHC.Strict
+translateExtension StrictData = Just GHC.StrictData
+translateExtension TemplateHaskell = Just GHC.TemplateHaskell
+translateExtension TemplateHaskellQuotes = Just GHC.TemplateHaskellQuotes
+translateExtension TraditionalRecordSyntax = Just GHC.TraditionalRecordSyntax
+translateExtension TransformListComp = Just GHC.TransformListComp
+translateExtension TupleSections = Just GHC.TupleSections
+translateExtension TypeApplications = Just GHC.TypeApplications
+translateExtension TypeFamilies = Just GHC.TypeFamilies
+translateExtension TypeInType = Just GHC.TypeInType
+translateExtension TypeOperators = Just GHC.TypeOperators
+translateExtension TypeSynonymInstances = Just GHC.TypeSynonymInstances
+translateExtension UnboxedTuples = Just GHC.UnboxedTuples
+translateExtension UndecidableInstances = Just GHC.UndecidableInstances
+translateExtension UndecidableSuperClasses = Just GHC.UndecidableSuperClasses
+translateExtension UnicodeSyntax = Just GHC.UnicodeSyntax
+translateExtension UnliftedFFITypes = Just GHC.UnliftedFFITypes
+translateExtension ViewPatterns = Just GHC.ViewPatterns
 
-translateExtension Safe = \df -> df { GHC.safeHaskell = GHC.Sf_Safe }
-translateExtension SafeImports = \df -> df { GHC.safeHaskell = GHC.Sf_Safe }
-translateExtension Trustworthy = \df -> df { GHC.safeHaskell = GHC.Sf_Trustworthy }
-translateExtension Unsafe = \df -> df { GHC.safeHaskell = GHC.Sf_Unsafe }
+translateExtension Safe = Nothing -- \df -> df { GHC.safeHaskell = GHC.Sf_Safe }
+translateExtension SafeImports = Nothing -- \df -> df { GHC.safeHaskell = GHC.Sf_Safe }
+translateExtension Trustworthy = Nothing -- \df -> df { GHC.safeHaskell = GHC.Sf_Trustworthy }
+translateExtension Unsafe = Nothing -- \df -> df { GHC.safeHaskell = GHC.Sf_Unsafe }
 
-translateExtension Rank2Types = setExtensionFlag' GHC.RankNTypes
-translateExtension PolymorphicComponents = setExtensionFlag' GHC.RankNTypes
-translateExtension Generics = id -- it does nothing, deprecated extension
-translateExtension NewQualifiedOperators = id -- it does nothing, deprecated extension
-translateExtension ExtensibleRecords = id -- not in GHC
-translateExtension XmlSyntax = id -- not in GHC
-translateExtension HereDocuments = id -- not in GHC
-translateExtension RegularPatterns = id -- not in GHC
+translateExtension Rank2Types = Just GHC.RankNTypes
+translateExtension PolymorphicComponents = Just GHC.RankNTypes
+translateExtension Generics = Nothing -- it does nothing, deprecated extension
+translateExtension NewQualifiedOperators = Nothing -- it does nothing, deprecated extension
+translateExtension ExtensibleRecords = Nothing -- not in GHC
+translateExtension XmlSyntax = Nothing -- not in GHC
+translateExtension HereDocuments = Nothing -- not in GHC
+translateExtension RegularPatterns = Nothing -- not in GHC
