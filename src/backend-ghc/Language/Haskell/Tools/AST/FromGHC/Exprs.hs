@@ -153,10 +153,10 @@ trfExpr' (HsStatic expr) = AST.UStaticPtr <$> trfExpr expr
 trfExpr' (HsAppType expr typ) = AST.UExplTypeApp <$> trfExpr expr <*> trfType (hswc_body typ)
 trfExpr' (HsSCC _ lit expr) = AST.UExprPragma <$> pragma <*> trfExpr expr
   where pragma = do pragLoc <- tokensLoc [AnnOpen, AnnClose]
-                    focusOn pragLoc $ annContNoSema (AST.USccPragma <$> annLocNoSema (tokenLoc AnnValStr) (trfText' lit))
+                    focusOn pragLoc $ annContNoSema (AST.USccPragma <$> annLocNoSema (mappend <$> tokenLoc AnnValStr <*> tokenLocBack AnnVal) (trfText' lit))
 trfExpr' (HsCoreAnn _ lit expr) = AST.UExprPragma <$> pragma <*> trfExpr expr
   where pragma = do pragLoc <- tokensLoc [AnnOpen, AnnClose]
-                    focusOn pragLoc $ annContNoSema (AST.UCorePragma <$> annLocNoSema (tokenLoc AnnValStr) (trfText' lit))
+                    focusOn pragLoc $ annContNoSema (AST.UCorePragma <$> annLocNoSema (mappend <$> tokenLoc AnnValStr <*> tokenLocBack AnnVal) (trfText' lit))
 trfExpr' (HsTickPragma _ source _ expr) = AST.UExprPragma <$> pragma <*> trfExpr expr
   where pragma = do pragLoc <- tokensLoc [AnnOpen, AnnClose]
                     focusOn pragLoc $ annContNoSema (AST.UGeneratedPragma <$> (trfSourceRange source))

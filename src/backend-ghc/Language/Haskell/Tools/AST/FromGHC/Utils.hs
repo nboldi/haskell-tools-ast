@@ -438,3 +438,8 @@ splitLocated _ = error "splitLocated: unhelpful span given"
 unhandledElement :: (Data a, Outputable a) => String -> a -> Trf b
 unhandledElement label e = do rng <- asks contRange
                               error ("Illegal " ++ label ++ ": " ++ showSDocUnsafe (ppr e) ++ " (ctor: " ++ show (toConstr e) ++ ") at: " ++ show rng)
+
+instance Monoid SrcSpan where
+  span1@(RealSrcSpan _) `mappend` span2 = span1
+  span1 `mappend` span2 = span2
+  mempty = noSrcSpan
