@@ -268,7 +268,8 @@ trfInstanceRule' (HsQualTy ctx typ) = AST.UInstanceRule <$> nothing "" " . " atT
 trfInstanceRule' (HsParTy typ) = instanceHead $ annContNoSema (AST.UInstanceHeadParen <$> trfInstanceHead typ)
 trfInstanceRule' (HsTyVar tv) = instanceHead $ annContNoSema (AST.UInstanceHeadCon <$> trfName tv)
 trfInstanceRule' (HsAppTy t1 t2) = instanceHead $ annContNoSema (AST.UInstanceHeadApp <$> trfInstanceHead t1 <*> trfType t2)
-trfInstanceRule' t = error (showSDocUnsafe $ ppr t)
+trfInstanceRule' (HsOpTy t1 op t2) = instanceHead $ annContNoSema (AST.UInstanceHeadApp <$> annLocNoSema (pure $ getLoc t1 `combineSrcSpans` getLoc op) (AST.UInstanceHeadInfix <$> trfType t1 <*> trfOperator op) <*> trfType t2)
+trfInstanceRule' t = unhandledElement "instance rule" t
 
 instanceHead :: Trf (Ann AST.UInstanceHead (Dom r) RangeStage) -> Trf (AST.UInstanceRule (Dom r) RangeStage)
 instanceHead hd = AST.UInstanceRule <$> (nothing "" " . " atTheStart) <*> (nothing " " "" atTheStart) <*> hd
