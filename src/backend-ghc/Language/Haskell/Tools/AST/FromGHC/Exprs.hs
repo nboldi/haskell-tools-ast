@@ -10,7 +10,7 @@ module Language.Haskell.Tools.AST.FromGHC.Exprs where
 import Control.Monad.Reader
 import Data.Data (toConstr)
 import Data.List (partition, find)
-import Data.Maybe (Maybe(..), isJust, fromMaybe)
+import Data.Maybe (Maybe(..), isJust, fromMaybe, catMaybes)
 
 import BasicTypes as GHC (Boxity(..), StringLiteral(..))
 import GHC
@@ -97,10 +97,16 @@ trfExpr' (ExplicitTuple tupArgs box)
           = annLocNoSema (pure l) (AST.Present <$> (annCont createScopeInfo (trfExpr' (unLoc e))))
         trfTupSecElem (Missing _, l) = annLocNoSema (pure l) (pure AST.Missing)
 
+        existingArgs :: [SrcSpan]
+        existingArgs = catMaybes $ map (\case Present p -> Just (getLoc p); _ -> Nothing) $ map unLoc tupArgs
+
         elemLocs :: Trf [SrcSpan]
         elemLocs = do r <- asks contRange
                       commaLocs <- allTokenLoc AnnComma
-                      return $ foldl breakUp [r] commaLocs
+                      return $ foldl breakUp [r] (filter freeComma commaLocs)
+          where freeComma (RealSrcSpan s) = not $ any (\case RealSrcSpan e -> e `containsSpan` s; _ -> False) existingArgs
+                freeComma _ = False
+
         breakUp :: [SrcSpan] -> SrcSpan -> [SrcSpan]
         breakUp cont sep = concatMap (breakUpOne sep) cont
 
