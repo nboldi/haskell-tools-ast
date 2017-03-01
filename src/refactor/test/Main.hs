@@ -585,7 +585,7 @@ parseAST modSum = do
   sourceOrigin <- if hasCppExtension then liftIO $ hGetStringBuffer (getModSumOrig ms)
                                      else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
   let annots = pm_annotations p
-  (if hasCppExtension then prepareASTCpp else prepareAST) sourceOrigin . placeComments (snd annots)
+  (if hasCppExtension then prepareASTCpp else prepareAST) sourceOrigin . placeComments (fst annots) (getNormalComments $ snd annots)
      <$> (runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms $ pm_parsed_source p)
 
 type RenamedModule = Ann AST.UModule (Dom GHC.Name) SrcTemplateStage
@@ -600,7 +600,7 @@ parseRenamed modSum = do
                                      else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
   tc <- typecheckModule p
   let annots = pm_annotations p
-  (if hasCppExtension then prepareASTCpp else prepareAST) sourceOrigin . placeComments (getNormalComments $ snd annots)
+  (if hasCppExtension then prepareASTCpp else prepareAST) sourceOrigin . placeComments (fst annots) (getNormalComments $ snd annots)
     <$> (do parseTrf <- runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms (pm_parsed_source p)
             runTrf (fst annots) (getPragmaComments $ snd annots)
               $ trfModuleRename ms parseTrf

@@ -58,7 +58,7 @@ demoRefactor command workingDir args moduleName =
     liftIO $ putStrLn "=========== ranges fixed:"
     sourceOrigin <- if hasCPP then liftIO $ hGetStringBuffer (workingDir </> map (\case '.' -> pathSeparator; c -> c) moduleName <.> "hs")
                               else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
-    let commented = fixRanges $ placeComments (getNormalComments $ snd annots) $ fixMainRange sourceOrigin transformed
+    let commented = fixRanges $ placeComments (fst annots) (getNormalComments $ snd annots) $ fixMainRange sourceOrigin transformed
     liftIO $ putStrLn $ srcInfoDebug commented
     liftIO $ putStrLn "=========== cut up:"
     let cutUp = cutUpRanges commented
