@@ -99,6 +99,7 @@ languageTests =
   , "Decl.DataFamily"
   , "Decl.DataType"
   , "Decl.DataTypeDerivings"
+  , "Decl.DefaultDecl"
   , "Decl.FunBind"
   , "Decl.FunctionalDeps"
   , "Decl.FunGuards"
