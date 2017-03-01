@@ -159,7 +159,7 @@ applicableComments tokens start end = filter applicableComment
 
         noTokenBetween start end
           = case Set.lookupGE (srcLocSpan start) tokens of
-              Just tok -> {- trace ("### foundToken: " ++ show tok ++ " between " ++ show start ++ " and " ++ show end ++ ": " ++ show (srcSpanStart tok > end)) $ -} srcSpanStart tok >= end
+              Just tok -> srcSpanStart tok >= end
               Nothing -> True
 
 -- * GHC mistakenly parses -- ^ and -- | comments as simple line comments.
