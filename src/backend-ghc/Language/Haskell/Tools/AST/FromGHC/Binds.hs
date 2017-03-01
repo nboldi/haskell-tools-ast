@@ -90,14 +90,14 @@ trfRhsGuard = trfLocNoSema trfRhsGuard'
 trfRhsGuard' :: TransformName n r => Stmt n (LHsExpr n) -> Trf (AST.URhsGuard (Dom r) RangeStage)
 trfRhsGuard' (BindStmt pat body _ _ _) = AST.UGuardBind <$> trfPattern pat <*> trfExpr body
 trfRhsGuard' (BodyStmt body _ _ _) = AST.UGuardCheck <$> trfExpr body
-trfRhsGuard' (LetStmt (unLoc -> binds)) = AST.UGuardLet <$> trfLocalBinds binds
+trfRhsGuard' (LetStmt (unLoc -> binds)) = AST.UGuardLet <$> trfLocalBinds AnnLet binds
 trfRhsGuard' d = unhandledElement "guard" d
 
 trfWhereLocalBinds :: TransformName n r => SrcSpan -> HsLocalBinds n -> Trf (AnnMaybeG AST.ULocalBinds (Dom r) RangeStage)
 trfWhereLocalBinds _ EmptyLocalBinds = nothing "" "" atTheEnd
 trfWhereLocalBinds bef binds
   = makeJust <$> annLocNoSema (combineSrcSpans (srcLocSpan (srcSpanEnd bef) `combineSrcSpans` getBindLocs binds) <$> tokenLocBack AnnWhere)
-                              (AST.ULocalBinds <$> addToScope binds (trfLocalBinds binds))
+                              (AST.ULocalBinds <$> addToScope binds (trfLocalBinds AnnWhere binds))
 
 getBindLocs :: HsLocalBinds n -> SrcSpan
 getBindLocs (HsValBinds (ValBindsIn binds sigs)) = foldLocs $ map getLoc (bagToList binds) ++ map getLoc sigs
@@ -105,20 +105,18 @@ getBindLocs (HsValBinds (ValBindsOut binds sigs)) = foldLocs $ map getLoc (conca
 getBindLocs (HsIPBinds (IPBinds binds _)) = foldLocs $ map getLoc binds
 getBindLocs EmptyLocalBinds = noSrcSpan
 
-trfLocalBinds :: TransformName n r => HsLocalBinds n -> Trf (AnnListG AST.ULocalBind (Dom r) RangeStage)
-trfLocalBinds (HsValBinds (ValBindsIn binds sigs))
-  = makeIndentedListBefore " " (after AnnWhere)
+trfLocalBinds :: TransformName n r => AnnKeywordId -> HsLocalBinds n -> Trf (AnnListG AST.ULocalBind (Dom r) RangeStage)
+trfLocalBinds token (HsValBinds (ValBindsIn binds sigs))
+  = makeIndentedListBefore " " (after token)
       (orderDefs <$> ((++) <$> mapM (copyAnnot AST.ULocalValBind . trfBind) (bagToList binds)
                            <*> mapM trfLocalSig sigs))
-trfLocalBinds (HsValBinds (ValBindsOut binds sigs))
-  = makeIndentedListBefore " " (after AnnWhere)
+trfLocalBinds token (HsValBinds (ValBindsOut binds sigs))
+  = makeIndentedListBefore " " (after token)
       (orderDefs <$> ((++) <$> (concat <$> mapM (mapM (copyAnnot AST.ULocalValBind . trfBind) . bagToList . snd) binds)
                            <*> mapM trfLocalSig sigs))
-trfLocalBinds (HsIPBinds (IPBinds binds _))
-  = makeIndentedListBefore " " (after AnnWhere) (mapM trfIpBind binds)
-trfLocalBinds EmptyLocalBinds
-  -- TODO: implement
-  = error "trfLocalBinds: EmptyLocalBinds not supported yet"
+trfLocalBinds token (HsIPBinds (IPBinds binds _))
+  = makeIndentedListBefore " " (after token) (mapM trfIpBind binds)
+trfLocalBinds _ b = unhandledElement "local binds" b
 
 trfIpBind :: TransformName n r => Located (IPBind n) -> Trf (Ann AST.ULocalBind (Dom r) RangeStage)
 trfIpBind = trfLocNoSema $ \case
