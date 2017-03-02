@@ -12,6 +12,7 @@ import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import SrcLoc as GHC
 import TyCon as GHC (TyCon(..))
 import TysWiredIn (heqTyCon)
+import HsExpr
 
 import Control.Applicative (Applicative(..), (<$>), Alternative(..))
 import Control.Monad.Reader.Class (asks)
@@ -25,7 +26,7 @@ import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..), cleanHsType)
 import Language.Haskell.Tools.AST.FromGHC.Kinds (trfKindSig, trfKind, trfPromoted')
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Names
-import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfSplice)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
 trfType :: TransformName n r => Located (HsType n) -> Trf (Ann AST.UType (Dom r) RangeStage)
@@ -56,6 +57,7 @@ trfType' = trfType'' . cleanHsType where
   trfType'' (HsOpTy t1 op t2) = AST.UTyInfix <$> trfType t1 <*> trfOperator op <*> trfType t2
   trfType'' (HsParTy typ) = AST.UTyParen <$> trfType typ
   trfType'' (HsKindSig typ kind) = AST.UTyKinded <$> trfType typ <*> trfKind kind
+  trfType'' (HsSpliceTy qq@(HsQuasiQuote {}) _) = AST.UTyQuasiQuote <$> annContNoSema (trfQuasiQuotation' qq)
   trfType'' (HsSpliceTy splice _) = AST.UTySplice <$> trfSplice splice
   trfType'' (HsBangTy (HsSrcBang _ SrcUnpack _) typ) = AST.UTyUnpack <$> trfType typ
   trfType'' (HsBangTy (HsSrcBang _ SrcNoUnpack _) typ) = AST.UTyNoUnpack <$> trfType typ

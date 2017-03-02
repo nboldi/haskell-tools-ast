@@ -14,12 +14,13 @@ import HsPat as GHC
 import HsTypes as GHC (HsWildCardBndrs(..), HsImplicitBndrs(..), HsConDetails(..))
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (getFieldOccName)
 import SrcLoc as GHC
+import HsExpr
 
 import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Exprs (trfExpr)
 import Language.Haskell.Tools.AST.FromGHC.Literals (trfLiteral', trfOverloadedLit)
 import Language.Haskell.Tools.AST.FromGHC.Monad (Trf, define)
 import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfOperator, trfName)
-import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfSplice)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
@@ -57,6 +58,7 @@ trfPattern' (ConPatIn name (PrefixCon args)) = AST.UAppPat <$> trfName name <*> 
 trfPattern' (ConPatIn name (RecCon (HsRecFields flds _))) = AST.URecPat <$> trfName name <*> trfAnnList ", " trfPatternField' flds
 trfPattern' (ConPatIn name (InfixCon left right)) = AST.UInfixAppPat <$> trfPattern left <*> trfOperator name <*> trfPattern right
 trfPattern' (ViewPat expr pat _) = AST.UViewPat <$> trfExpr expr <*> trfPattern pat
+trfPattern' (SplicePat qq@(HsQuasiQuote {})) = AST.UQuasiQuotePat <$> annContNoSema (trfQuasiQuotation' qq)
 trfPattern' (SplicePat splice) = AST.USplicePat <$> trfSplice splice
 trfPattern' (LitPat lit) = AST.ULitPat <$> annContNoSema (trfLiteral' lit)
 trfPattern' (SigPatIn pat (hswc_body . hsib_body -> typ)) = AST.UTypeSigPat <$> trfPattern pat <*> trfType typ

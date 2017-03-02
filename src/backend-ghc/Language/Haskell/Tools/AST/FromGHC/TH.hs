@@ -32,15 +32,15 @@ trfQuasiQuotation' (HsQuasiQuote id _ l str)
         quoterLoc = do rng <- asks contRange
                        return $ mkSrcSpan (updateCol (+1) (srcSpanStart rng)) (updateCol (subtract 1) (srcSpanStart l))
         strLoc = mkSrcSpan (srcSpanStart l) (updateCol (subtract 2) (srcSpanEnd l))
-trfQuasiQuotation' _ = error "trfQuasiQuotation': splice received"
+trfQuasiQuotation' qq = unhandledElement "quasi quotation" qq
 
 trfSplice :: TransformName n r => HsSplice n -> Trf (Ann AST.USplice (Dom r) RangeStage)
 trfSplice spls = annLocNoSema (pure $ getSpliceLoc spls) (trfSplice' spls)
 
 trfSplice' :: TransformName n r => HsSplice n -> Trf (AST.USplice (Dom r) RangeStage)
-trfSplice' = \case (HsTypedSplice _ expr) -> trfSpliceExpr expr
-                   (HsUntypedSplice _ expr) -> trfSpliceExpr expr
-                   (HsQuasiQuote {}) -> error "trfSplice': quasi quotation received"
+trfSplice' (HsTypedSplice _ expr) = trfSpliceExpr expr
+trfSplice' (HsUntypedSplice _ expr) = trfSpliceExpr expr
+trfSplice' s = unhandledElement "splice" s
 
 trfSpliceExpr :: TransformName n r => Located (HsExpr n) -> Trf (AST.USplice (Dom r) RangeStage)
 trfSpliceExpr expr =
