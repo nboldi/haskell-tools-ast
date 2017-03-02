@@ -103,7 +103,16 @@ instance (GHCName n, HsHasName n) => HsHasName (HsDecl n) where
   hsGetNames (TyClD tycl) = hsGetNames tycl
   hsGetNames (ValD vald) = hsGetNames vald
   hsGetNames (ForD ford) = hsGetNames ford
+  hsGetNames (InstD inst) = hsGetNames inst
   hsGetNames _ = []
+
+instance (GHCName n, HsHasName n) => HsHasName (InstDecl n) where
+  hsGetNames (ClsInstD clsInst) = hsGetNames (cid_datafam_insts clsInst)
+  hsGetNames (DataFamInstD dataFamInst) = hsGetNames dataFamInst
+  hsGetNames _ = []
+
+instance (GHCName n, HsHasName n) => HsHasName (DataFamInstDecl n) where
+  hsGetNames dfid = hsGetNames (dfid_defn dfid)
 
 instance (GHCName n, HsHasName n) => HsHasName (TyClGroup n) where
   hsGetNames (TyClGroup tycls _) = hsGetNames tycls
@@ -190,7 +199,7 @@ instance HsHasName n => HsHasName (Pat n) where
   hsGetNames _ = []
 
 instance (GHCName n, HsHasName n) => HsHasName (HsGroup n) where
-  hsGetNames (HsGroup vals _ clds _ _ _ _ foreigns _ _ _ _ _) = hsGetNames vals ++ hsGetNames clds ++ hsGetNames foreigns
+  hsGetNames (HsGroup vals _ clds insts _ _ _ foreigns _ _ _ _ _) = hsGetNames vals ++ hsGetNames clds ++ hsGetNames insts ++ hsGetNames foreigns
 
 -- | Get the original form of a name
 rdrNameStr :: RdrName -> String
