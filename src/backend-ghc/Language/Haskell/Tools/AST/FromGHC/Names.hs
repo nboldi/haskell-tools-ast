@@ -69,20 +69,17 @@ trfAmbiguousFieldOperator' _ (Ambiguous (L l rdr) _)
           <$> (annLoc (createAmbigousNameInfo rdr l) (pure l) $ AST.nameFromList <$> trfOperatorStr (not $ isSymOcc (occName rdr)) (rdrNameStr rdr))
 
 
-class (DataId n, Eq n, GHCName n) => TransformableName n where
+class (DataId n, Eq n, GHCName n, FromGHCName n) => TransformableName n where
   correctNameString :: n -> Trf String
   getDeclSplices :: Trf [Located (HsSplice n)]
-  fromGHCName :: GHC.Name -> n
 
 instance TransformableName RdrName where
   correctNameString = pure . rdrNameStr
   getDeclSplices = pure []
-  fromGHCName = rdrName
 
 instance TransformableName GHC.Name where
   correctNameString n = getOriginalName (rdrName n)
   getDeclSplices = asks declSplices
-  fromGHCName = id
 
 -- | This class allows us to use the same transformation code for multiple variants of the GHC AST.
 -- GHC UName annotated with 'name' can be transformed to our representation with semantic annotations of 'res'.
