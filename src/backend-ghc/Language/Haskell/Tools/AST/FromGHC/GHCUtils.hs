@@ -208,19 +208,20 @@ instance FromGHCName GHC.Name where
 
 -- | Tries to simplify the type that has HsAppsTy before renaming. Does not always provide the correct form.
 -- Treats each operator as if they are of equivalent precedence and always left-associative.
-cleanHsType :: forall n . (Eq n, FromGHCName n, OutputableBndr n) => HsType n -> HsType n
+cleanHsType :: forall n . (OutputableBndr n) => HsType n -> HsType n
 -- for some reason * is considered infix
 cleanHsType (HsAppsTy apps) = unLoc $ guessType apps
   where guessType :: OutputableBndr n => [LHsAppType n] -> LHsType n
         guessType (L l (HsAppInfix n) : rest) -- must be a prefix actually
           = guessType' (L l (HsTyVar n)) rest
         guessType (L _ (HsAppPrefix t) : rest) = guessType' t rest
-        guessType [] = error "guessType: empty"
+        guessType [] = error $ "guessType: empty: " ++ showSDocUnsafe (ppr apps)
 
         guessType' :: LHsType n -> [LHsAppType n] -> LHsType n
-        guessType' fun (L l (HsAppInfix n) : rest)
-          | unLoc n `elem` actuallyPrefix = guessType' (hsAppTy fun (L l (HsTyVar n))) rest
         guessType' fun (L l (HsAppPrefix t) : rest) = guessType' (hsAppTy fun t) rest
+        guessType' fun (L l (HsAppInfix n) : rest)
+          -- TODO: find a better check
+          | showSDocUnsafe (ppr n) == "*" = guessType' (hsAppTy fun (L l (HsTyVar n))) rest
         guessType' left (L l (HsAppInfix n) : right) = hsOpTy left n (guessType right)
         guessType' t [] = t
 
@@ -229,9 +230,6 @@ cleanHsType (HsAppsTy apps) = unLoc $ guessType apps
 
         hsOpTy :: LHsType n -> Located n -> LHsType n -> LHsType n
         hsOpTy t1 n t2 = L (getLoc t1 `combineSrcSpans` getLoc t2) $ HsOpTy t1 n t2
-
-        actuallyPrefix :: [n]
-        actuallyPrefix = map fromGHCName [starKindTyConName]
 cleanHsType t = t
 
 mergeFixityDefs :: [Located (FixitySig n)] -> [Located (FixitySig n)]
