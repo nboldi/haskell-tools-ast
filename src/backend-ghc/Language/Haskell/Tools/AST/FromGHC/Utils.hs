@@ -351,6 +351,11 @@ tokenBefore loc keyw
 allTokensAfter :: SrcLoc -> Trf [(SrcSpan, AnnKeywordId)]
 allTokensAfter loc = getTokensAfter loc <$> asks srcMap
 
+tokensAfter :: AnnKeywordId -> Trf [SrcSpan]
+tokensAfter keyw
+  = map fst . filter ((==keyw) . snd) <$> (asks (srcSpanEnd . contRange) >>= allTokensAfter)
+
+
 -- | Searches for tokens in the given order inside the parent element and returns their combined location
 tokensLoc :: [AnnKeywordId] -> Trf SrcSpan
 tokensLoc keys = asks contRange >>= tokensLoc' keys

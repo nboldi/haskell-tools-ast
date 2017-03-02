@@ -307,8 +307,10 @@ trfInstanceHead' = trfInstanceHead'' . cleanHsType where
   trfInstanceHead'' t = unhandledElement "instance head" t
 
 trfTypeEqs :: TransformName n r => Maybe [Located (TyFamInstEqn n)] -> Trf (AnnListG AST.UTypeEqn (Dom r) RangeStage)
-trfTypeEqs Nothing = makeList "\n" (after AnnWhere) (pure [])
-trfTypeEqs (Just eqs) = makeNonemptyList "\n" (mapM trfTypeEq eqs)
+trfTypeEqs eqs =
+  do toks <- tokensAfter AnnWhere
+     case toks of [] -> error "trfTypeEqs: no where found after closed type family"
+                  loc:_ -> makeList "\n" (pure $ srcSpanStart loc) (mapM trfTypeEq (fromMaybe [] eqs))
 
 trfTypeEq :: TransformName n r => Located (TyFamInstEqn n) -> Trf (Ann AST.UTypeEqn (Dom r) RangeStage)
 trfTypeEq = trfLocNoSema $ \(TyFamEqn name pats rhs)
