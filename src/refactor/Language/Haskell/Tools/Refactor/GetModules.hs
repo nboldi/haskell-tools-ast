@@ -270,11 +270,12 @@ loadFlagsFromBuildInfo bi@BuildInfo{ cppOptions } df
        return (setupLoadExtensions df')
   where setupLoadExtensions = foldl (.) id (map setExtensionFlag' $ catMaybes $ map translateExtension loadExtensions)
         loadExtensions = [PatternSynonyms | patternSynonymsNeeded] ++ [ExplicitNamespaces | explicitNamespacesNeeded]
-                           ++ [PackageImports | packageImportsNeeded] ++ [CPP | cppNeeded]
+                           ++ [PackageImports | packageImportsNeeded] ++ [CPP | cppNeeded] ++ [MagicHash | magicHashNeeded]
         explicitNamespacesNeeded = not $ null $ map EnableExtension [ExplicitNamespaces, TypeFamilies, TypeOperators] `intersect` usedExtensions bi
         patternSynonymsNeeded = EnableExtension PatternSynonyms `elem` usedExtensions bi
         packageImportsNeeded = EnableExtension PackageImports `elem` usedExtensions bi
         cppNeeded = EnableExtension CPP `elem` usedExtensions bi
+        magicHashNeeded = EnableExtension MagicHash `elem` usedExtensions bi
 
 flagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
 -- the import pathes are already set globally
