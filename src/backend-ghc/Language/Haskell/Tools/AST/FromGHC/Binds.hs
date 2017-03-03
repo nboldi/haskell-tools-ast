@@ -68,7 +68,7 @@ trfMatchLhs name fb pats
        closeLoc <- srcSpanStart <$> (combineSrcSpans <$> tokenLoc AnnEqual <*> tokenLoc AnnVbar)
        args <- mapM trfPattern pats
        let (n, isInfix) = case fb of NonFunBindMatch -> let token = if isSymOcc (occName name) && isGoodSrcSpan infixLoc then infixLoc else implicitIdLoc
-                                                         in (L token name, srcSpanStart token >= srcSpanEnd (getLoc (pats !! 0)))
+                                                         in (L token name, length pats > 0 && srcSpanStart token >= srcSpanEnd (getLoc (pats !! 0)))
                                      FunBindMatch n inf -> (n, inf)
        annLocNoSema (mkSrcSpan <$> atTheStart <*> (pure closeLoc)) $
          case (args, isInfix) of
@@ -183,5 +183,8 @@ trfPhaseNum ::  PhaseNum -> Trf (Ann AST.PhaseNumber (Dom r) RangeStage)
 trfPhaseNum i = annLocNoSema (tokenLoc AnnVal) $ pure (AST.PhaseNumber $ fromIntegral i)
 
 trfConlike :: [SrcSpan] -> RuleMatchInfo -> Trf (AnnMaybeG AST.UConlikeAnnot (Dom r) RangeStage)
-trfConlike parts ConLike = makeJust <$> annLocNoSema (pure $ parts !! 2) (pure AST.UConlikeAnnot)
-trfConlike parts FunLike = nothing " " "" (pure $ srcSpanEnd $ parts !! 1)
+trfConlike parts ConLike | length parts > 2
+  = makeJust <$> annLocNoSema (pure $ parts !! 2) (pure AST.UConlikeAnnot)
+  | otherwise = error $ "trfConlike: expected 3 parts, got: " ++ show parts
+trfConlike (_:inlTok:_) FunLike = nothing " " "" (pure $ srcSpanEnd inlTok)
+trfConlike (combTok:_) FunLike = nothing " " "" (pure $ srcSpanEnd combTok)
