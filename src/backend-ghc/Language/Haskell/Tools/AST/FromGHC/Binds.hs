@@ -62,12 +62,14 @@ trfMatch' name (Match funid pats typ (GRHSs rhss (unLoc -> locBinds)))
 trfMatchLhs :: TransformName n r => n -> MatchFixity n -> [LPat n] -> Trf (Ann AST.UMatchLhs (Dom r) RangeStage)
 trfMatchLhs name fb pats
   = do implicitIdLoc <- mkSrcSpan <$> atTheStart <*> atTheStart
+       parenOpLoc <- tokensLoc [AnnOpenP, AnnVal, AnnCloseP]
        nonFunOpLoc <- tokenLoc AnnVal
+       let infixLoc = parenOpLoc `mappend` nonFunOpLoc
        closeLoc <- srcSpanStart <$> (combineSrcSpans <$> tokenLoc AnnEqual <*> tokenLoc AnnVbar)
-       let (n, isInfix) = case fb of NonFunBindMatch -> if isSymOcc (occName name) then (L nonFunOpLoc name, True)
-                                                                                   else (L implicitIdLoc name, False)
-                                     FunBindMatch n inf -> (n, inf)
        args <- mapM trfPattern pats
+       let (n, isInfix) = case fb of NonFunBindMatch -> let token = if isSymOcc (occName name) && isGoodSrcSpan infixLoc then infixLoc else implicitIdLoc
+                                                         in (L token name, srcSpanStart token >= srcSpanEnd (getLoc (pats !! 0)))
+                                     FunBindMatch n inf -> (n, inf)
        annLocNoSema (mkSrcSpan <$> atTheStart <*> (pure closeLoc)) $
          case (args, isInfix) of
             (left:right:rest, True) -> AST.UInfixLhs left <$> define (trfOperator n) <*> pure right <*> makeList " " (pure closeLoc) (pure rest)
