@@ -53,9 +53,11 @@ detectAutogen root DefaultDB = ifExists (root </> "dist" </> "build" </> "autoge
 detectAutogen root (ExplicitDB _) = ifExists (root </> "dist" </> "build" </> "autogen")
 detectAutogen root CabalSandboxDB = ifExists (root </> "dist" </> "build" </> "autogen")
 detectAutogen root StackDB = do
-  contents <- listDirectory (root </> ".stack-work" </> "dist")
-  dirs <- filterM doesDirectoryExist contents
-  existing <- mapM (ifExists . (</> "build" </> "autogen")) dirs
+  distExists <- doesDirectoryExist (root </> ".stack-work" </> "dist")
+  existing <- if distExists then (do
+    contents <- listDirectory (root </> ".stack-work" </> "dist")
+    dirs <- filterM doesDirectoryExist contents
+    mapM (ifExists . (</> "build" </> "autogen")) dirs) else return []
   return (choose existing)
 
 
