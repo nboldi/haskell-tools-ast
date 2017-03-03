@@ -86,9 +86,7 @@ loadSplices modSum hsMod imports preludeImports group trf = do
     env <- liftGhc $ setSessionDynFlags (ms_hspp_opts modSum) >> getSession
     importEnv <- liftIO $ hscRnImportDecls env (hsmodImports hsMod)
     let locals = hsGetNames group
-        createLocalGRE n | Just modName <- nameModule_maybe n
-                         = [GRE n NoParent True [ImpSpec (ImpDeclSpec (moduleName modName) (moduleName modName) False noSrcSpan) ImpAll]]
-                         | otherwise = []
+        createLocalGRE n = [GRE n NoParent True []]
         readEnv = mkOccEnv $ map (foldl1 (\e1 e2 -> (fst e1, snd e1 ++ snd e2)) . map snd) $ groupBy ((==) `on` fst) $ sortOn fst
                    $ (map (\n -> (n, (GHC.occName n, createLocalGRE n))) (locals ++ preludeImports))
     tcdSplices <- liftIO $ runTcInteractive env { hsc_dflags = xopt_set (hsc_dflags env) TemplateHaskellQuotes }
