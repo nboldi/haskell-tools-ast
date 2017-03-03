@@ -164,6 +164,7 @@ languageTests =
   , "Module.NamespaceExport"
   , "Module.Import"
   , "Module.ImportOp"
+  , "Module.LangPragmas"
   , "Module.PatternImport"
   , "Pattern.Backtick"
   , "Pattern.Constructor"

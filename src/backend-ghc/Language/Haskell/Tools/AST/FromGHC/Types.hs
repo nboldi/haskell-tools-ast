@@ -42,6 +42,7 @@ trfType' = trfType'' . cleanHsType where
   trfType'' (HsForAllTy [] typ) = trfType' (unLoc typ)
   trfType'' (HsForAllTy bndrs typ) = AST.UTyForall <$> defineTypeVars (trfBindings bndrs)
                                                    <*> addToScope bndrs (trfType typ)
+  trfType'' (HsQualTy (L _ []) typ) = trfType' (unLoc typ)
   trfType'' (HsQualTy ctx typ) = AST.UTyCtx <$> (fromJust . (^. annMaybe) <$> trfCtx atTheStart ctx)
                                             <*> trfType typ
   trfType'' (HsTyVar name) = AST.UTyVar <$> transformingPossibleVar name (trfName name)

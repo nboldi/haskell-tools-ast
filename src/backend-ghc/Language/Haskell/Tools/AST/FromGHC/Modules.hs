@@ -129,7 +129,11 @@ trfLanguagePragma :: Located String -> Trf (Ann AST.UFilePragma (Dom r) RangeSta
 trfLanguagePragma lstr@(L l _) = annLocNoSema (pure l) (AST.ULanguagePragma <$> makeList ", " (pure $ srcSpanStart $ getLoc $ last pragmaElems)
                                                                                               (mapM (trfLocNoSema (pure . AST.ULanguageExtension)) extensions))
   where pragmaElems = splitLocated lstr
-        extensions = init $ drop 2 pragmaElems
+        extensions = filter ((\sp -> srcSpanStart sp /= srcSpanEnd sp) . getLoc)
+                       $ map (removeEnd . removeLang . removeStart) pragmaElems
+        removeStart pr@(L l txt) = if "{-#" `isPrefixOf` txt then L (updateStart (updateCol (+3)) l) (drop 3 txt) else pr
+        removeLang pr@(L l txt) = if "LANGUAGE" `isPrefixOf` txt then L (updateStart (updateCol (+8)) l) (drop 8 txt) else pr
+        removeEnd pr@(L l txt) = if "#-}" `isSuffixOf` txt then L (updateEnd (updateCol (subtract 3)) l) (reverse $ drop 3 $ reverse $ txt) else pr
 
 trfOptionsPragma :: Located String -> Trf (Ann AST.UFilePragma (Dom r) RangeStage)
 trfOptionsPragma (L l str) = annLocNoSema (pure l) (AST.UOptionsPragma <$> annContNoSema (pure $ AST.UStringNode str))
