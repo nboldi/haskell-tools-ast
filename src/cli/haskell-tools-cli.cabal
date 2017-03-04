@@ -39,7 +39,6 @@ extra-source-files: examples/CppHs/Language/Preprocessor/*.hs
                   , examples/Project/src/*.hs
 
 library
-  ghc-options:         -O2
   build-depends:       base                      >= 4.9 && < 4.10
                      , containers                >= 0.5 && < 0.6
                      , mtl                       >= 2.2 && < 2.3
@@ -58,7 +57,7 @@ library
 
 
 executable ht-refact
-  ghc-options:         -O2 -rtsopts
+  ghc-options:         -rtsopts
   build-depends:       base                      >= 4.9 && < 4.10
                      , haskell-tools-cli         >= 0.5 && < 0.6
   hs-source-dirs:      exe
@@ -85,7 +84,7 @@ executable ht-test-stackage
 
 test-suite haskell-tools-cli-tests
   type:                exitcode-stdio-1.0
-  ghc-options:         -with-rtsopts=-M2g -O2
+  ghc-options:         -with-rtsopts=-M2g
   hs-source-dirs:      test
   main-is:             Main.hs
   build-depends:       base                      >= 4.9 && < 4.10
@@ -100,7 +99,7 @@ test-suite haskell-tools-cli-tests
 
 benchmark cli-benchmark
   type:                exitcode-stdio-1.0
-  ghc-options:         -with-rtsopts=-M2g -O2
+  ghc-options:         -with-rtsopts=-M2g
   build-depends:       base                      >= 4.9 && < 4.10
                      , haskell-tools-cli         >= 0.5 && < 0.6
                      , criterion                 >= 1.1 && < 1.2
