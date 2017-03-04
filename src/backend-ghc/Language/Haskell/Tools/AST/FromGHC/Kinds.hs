@@ -20,6 +20,7 @@ import Language.Haskell.Tools.AST (Ann, AnnMaybeG, Dom, RangeStage, HasNoSemanti
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..), cleanHsType)
 import Language.Haskell.Tools.AST.FromGHC.Monad (TrfInput(..), Trf, transformingPossibleVar)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Types
 import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
@@ -53,7 +54,7 @@ trfKind' = trfKind'' . cleanHsType where
   trfKind'' pt@(HsExplicitListTy {}) = AST.UPromotedKind <$> annContNoSema (trfPromoted' trfKind' pt)
   trfKind'' pt@(HsExplicitTupleTy {}) = AST.UPromotedKind <$> annContNoSema (trfPromoted' trfKind' pt)
   trfKind'' pt@(HsTyLit {}) = AST.UPromotedKind <$> annContNoSema (trfPromoted' trfKind' pt)
-  trfKind'' k = unhandledElement "kind" k
+  trfKind'' t = AST.UTypeKind <$> annContNoSema (trfType' t)
 
 trfPromoted' :: (TransformName n r, HasNoSemanticInfo (Dom r) a)
                   => (HsType n -> Trf (a (Dom r) RangeStage)) -> HsType n -> Trf (AST.UPromoted a (Dom r) RangeStage)

@@ -42,6 +42,8 @@ import Language.Haskell.Tools.AST (Ann, AnnMaybeG, AnnListG, getRange, Dom, Rang
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (nameInfo)
 
+import Debug.Trace
+
 trfDecls :: TransformName n r => [LHsDecl n] -> Trf (AnnListG AST.UDecl (Dom r) RangeStage)
 -- TODO: filter documentation comments
 trfDecls decls = addToCurrentScope decls $ makeIndentedListNewlineBefore atTheEnd (mapM trfDecl decls)
@@ -275,8 +277,10 @@ instanceHead :: Trf (Ann AST.UInstanceHead (Dom r) RangeStage) -> Trf (AST.UInst
 instanceHead hd = AST.UInstanceRule <$> (nothing "" " . " atTheStart) <*> (nothing " " "" atTheStart) <*> hd
 
 makeInstanceRuleTyVars :: TransformName n r => Located n -> HsImplicitBndrs n [LHsType n] -> Trf (Ann AST.UInstanceRule (Dom r) RangeStage)
-makeInstanceRuleTyVars n vars | isSymOcc (occName (unLoc n))
-                              , leftOp:rest <- hsib_body vars
+makeInstanceRuleTyVars n vars
+  | isSymOcc (occName (unLoc n))
+  , leftOp:rest <- hsib_body vars
+  , srcSpanStart (getLoc n) > srcSpanEnd (getLoc leftOp)
   = annContNoSema
       $ AST.UInstanceRule <$> nothing "" " . " atTheStart
                           <*> nothing " " "" atTheStart

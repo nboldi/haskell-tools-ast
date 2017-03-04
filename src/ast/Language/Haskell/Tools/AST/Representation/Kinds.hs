@@ -2,6 +2,7 @@
 module Language.Haskell.Tools.AST.Representation.Kinds where
 
 import Language.Haskell.Tools.AST.Ann (Ann, AnnListG)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Types
 import Language.Haskell.Tools.AST.Representation.Names
 
 -- | Kind constraint (@ :: * -> * @)
@@ -33,6 +34,8 @@ data UKind dom stage
                   } -- ^ A tuple kind (@ (Symbol, *) @)
   | UPromotedKind { _kindPromoted :: Ann (UPromoted UKind) dom stage
                   } -- ^ A promoted kind (@ '(k1,k2,k3) @)
+  | UTypeKind     { _kindType :: Ann UType dom stage
+                  } -- ^ A type on the kind level with @TypeInType@
 
 data UPromoted t dom stage
   = UPromotedInt    { _promotedIntValue :: Integer
