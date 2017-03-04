@@ -9,19 +9,16 @@ import FastString as GHC (unpackFS)
 import HsTypes as GHC
 import Name as GHC (occNameString, nameOccName, isWiredInName)
 import OccName as GHC (occNameString)
-import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import RdrName as GHC (RdrName(..))
 import SrcLoc as GHC
 
-import Control.Monad.Reader (Monad(..), asks)
-import Data.Data (toConstr)
-
+import Control.Monad.Reader (Monad(..))
 import Language.Haskell.Tools.AST (Ann, AnnMaybeG, Dom, RangeStage, HasNoSemanticInfo)
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..), cleanHsType)
 import Language.Haskell.Tools.AST.FromGHC.Monad (TrfInput(..), Trf, transformingPossibleVar)
-import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Types
-import Language.Haskell.Tools.AST.FromGHC.Names
+import Language.Haskell.Tools.AST.FromGHC.Names (TransformName, trfOperator, trfName)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Types (trfType')
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
 

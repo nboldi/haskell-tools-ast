@@ -20,6 +20,7 @@ module Language.Haskell.Tools.AST.SemaInfoTypes
   ) where
 
 import BasicTypes as GHC
+import DynFlags as GHC
 import FamInstEnv as GHC
 import Id as GHC
 import InstEnv as GHC
@@ -28,7 +29,6 @@ import Name as GHC
 import Outputable as GHC
 import RdrName as GHC
 import SrcLoc as GHC
-import DynFlags as GHC
 
 import Data.Data
 import Data.List

@@ -28,13 +28,13 @@ import InstEnv as GHC (ClsInst(..), instanceDFunId, instEnvElts)
 import Language.Haskell.TH.LanguageExtensions (Extension(..))
 import Module as GHC
 import Name
+import Outputable (Outputable(..), showSDocUnsafe)
 import SrcLoc
-import Outputable
 
-import Data.Data
 import Control.Monad.Reader
 import Control.Reference ((^.), (&))
 import Data.Char (isSpace)
+import Data.Data (Data(..))
 import Data.Either (Either(..), rights, lefts)
 import Data.Function hiding ((&))
 import Data.IORef (readIORef)

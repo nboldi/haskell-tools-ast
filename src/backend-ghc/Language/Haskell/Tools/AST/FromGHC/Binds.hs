@@ -12,21 +12,19 @@ import HsBinds as GHC
 import HsExpr as GHC
 import HsPat as GHC (LPat)
 import HsTypes as GHC (HsWildCardBndrs(..), HsImplicitBndrs(..))
-import SrcLoc as GHC
-import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import Name as GHC (isSymOcc)
+import SrcLoc as GHC
 
-import Control.Monad.Reader (Monad(..), mapM, asks, liftIO)
-import Data.Data (Data(..))
+import Control.Monad.Reader (Monad(..), mapM, asks)
 import Data.List
 
 import Language.Haskell.Tools.AST.FromGHC.Exprs (trfExpr)
+import Language.Haskell.Tools.AST.FromGHC.GHCUtils (occName)
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Patterns (trfPattern)
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)
 import Language.Haskell.Tools.AST.FromGHC.Utils
-import Language.Haskell.Tools.AST.FromGHC.GHCUtils
 
 import Language.Haskell.Tools.AST (Ann, AnnMaybeG, AnnListG, Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST

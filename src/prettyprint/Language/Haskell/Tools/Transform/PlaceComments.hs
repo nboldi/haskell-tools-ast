@@ -6,8 +6,8 @@
 -- normalizing transformation should be performed that expands parents to contain their children.
 module Language.Haskell.Tools.Transform.PlaceComments where
 
-import Control.Monad.State
 import Control.Monad.Reader
+import Control.Monad.State
 import Control.Monad.Writer
 import Control.Reference hiding (element)
 import Data.Char (isSpace, isAlphaNum)
@@ -17,12 +17,10 @@ import Data.Maybe
 import qualified Data.Set as Set
 import Data.Set (Set)
 
-import ApiAnnotation
+import ApiAnnotation (ApiAnnKey, AnnotationComment(..))
 import SrcLoc
 
 import Language.Haskell.Tools.AST
-
-import Debug.Trace
 
 getNormalComments :: Map SrcSpan [Located AnnotationComment] -> Map.Map SrcSpan [Located AnnotationComment]
 getNormalComments = Map.map (filter (not . isPragma . unLoc))

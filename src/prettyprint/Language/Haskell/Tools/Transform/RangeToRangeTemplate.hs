@@ -11,7 +11,7 @@ import Language.Haskell.Tools.AST
 import Control.Monad.State
 import Control.Reference ((^.))
 import Data.List
-import Data.Maybe (Maybe(..), maybe, mapMaybe)
+import Data.Maybe (Maybe(..), mapMaybe)
 
 import FastString as GHC (unpackFS)
 import SrcLoc

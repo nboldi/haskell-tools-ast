@@ -14,8 +14,8 @@
 module Language.Haskell.Tools.AST.FromGHC.Names where
 
 import Control.Monad.Reader ((=<<), asks)
-import Data.Char (isDigit, isLetter, isAlphaNum)
-import Data.List.Split
+import Data.Char (isAlphaNum)
+import Data.List.Split (splitOn)
 
 import FastString as GHC (FastString, unpackFS)
 import HsSyn as GHC

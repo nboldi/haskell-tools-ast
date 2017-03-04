@@ -18,11 +18,9 @@ import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import RdrName as GHC (RdrName, rdrNameOcc)
 import SrcLoc as GHC
 import TyCon as GHC (Role(..))
-import FastString
 
 import Control.Monad.Reader
 import Control.Reference ((.-), (!~), biplateRef)
-import Data.Data (toConstr)
 import Data.Generics.Uniplate.Data ()
 import Data.List
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -41,8 +39,6 @@ import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST (Ann, AnnMaybeG, AnnListG, getRange, Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (nameInfo)
-
-import Debug.Trace
 
 trfDecls :: TransformName n r => [LHsDecl n] -> Trf (AnnListG AST.UDecl (Dom r) RangeStage)
 -- TODO: filter documentation comments

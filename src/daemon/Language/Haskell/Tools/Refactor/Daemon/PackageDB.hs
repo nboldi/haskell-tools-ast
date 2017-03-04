@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Language.Haskell.Tools.Refactor.Daemon.PackageDB where
 
+import Control.Applicative (Applicative(..), (<$>), Alternative(..))
+import Control.Monad
 import Data.Aeson (FromJSON(..))
 import Data.Char (isSpace)
 import Data.List
-import Control.Applicative
-import Control.Monad
 import GHC.Generics (Generic(..))
 import System.Directory
 import System.FilePath (FilePath, (</>))

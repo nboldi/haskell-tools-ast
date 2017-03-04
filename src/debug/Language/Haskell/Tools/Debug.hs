@@ -7,13 +7,13 @@ module Language.Haskell.Tools.Debug where
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.Maybe (Maybe(..), fromJust)
 import GHC.Generics (Generic(..))
-import System.FilePath
+import System.FilePath (pathSeparator, (</>), (<.>))
 
+import DynFlags (xopt)
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
-import DynFlags
-import Language.Haskell.TH.LanguageExtensions
-import StringBuffer
+import Language.Haskell.TH.LanguageExtensions (Extension(..))
+import StringBuffer (hGetStringBuffer)
 
 import Language.Haskell.Tools.AST (NodeInfo(..))
 import Language.Haskell.Tools.AST.FromGHC

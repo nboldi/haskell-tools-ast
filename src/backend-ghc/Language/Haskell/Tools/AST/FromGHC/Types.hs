@@ -6,18 +6,16 @@
 module Language.Haskell.Tools.AST.FromGHC.Types where
 
 import ApiAnnotation as GHC (AnnKeywordId(..))
+import HsExpr (HsSplice(..))
 import HsTypes as GHC
 import Id (mkVanillaGlobal)
-import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import SrcLoc as GHC
 import TyCon as GHC (TyCon(..))
 import TysWiredIn (heqTyCon)
-import HsExpr
 
 import Control.Applicative (Applicative(..), (<$>), Alternative(..))
 import Control.Monad.Reader.Class (asks)
 import Control.Reference ((^.))
-import Data.Data (Data(..), toConstr)
 import Data.List (find)
 import Data.Maybe (Maybe(..), fromJust)
 
@@ -26,7 +24,7 @@ import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..), cleanHsType)
 import Language.Haskell.Tools.AST.FromGHC.Kinds (trfKindSig, trfKind, trfPromoted')
 import Language.Haskell.Tools.AST.FromGHC.Monad
 import Language.Haskell.Tools.AST.FromGHC.Names
-import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH
+import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfSplice, trfQuasiQuotation')
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
 trfType :: TransformName n r => Located (HsType n) -> Trf (Ann AST.UType (Dom r) RangeStage)

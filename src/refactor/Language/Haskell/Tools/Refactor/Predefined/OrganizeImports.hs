@@ -9,23 +9,22 @@
 module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports (organizeImports, OrganizeImportsDomain, projectOrganizeImports) where
 
 import ConLike (ConLike(..))
-import DataCon
+import DataCon (dataConTyCon)
 import DynFlags (xopt)
 import FamInstEnv (FamInst(..))
 import GHC (TyThing(..), lookupName)
 import qualified GHC
 import Id
-import qualified PrelNames as GHC
 import IdInfo (RecSelParent(..))
 import InstEnv (ClsInst(..))
 import Language.Haskell.TH.LanguageExtensions as GHC (Extension(..))
 import Name (NamedThing(..))
-import TyCon
-import OccName
+import OccName (HasOccName(..), isSymOcc)
+import qualified PrelNames as GHC (fromStringName)
+import TyCon (TyCon(..), tyConFamInst_maybe)
 
 import Control.Applicative ((<$>), Alternative(..))
 import Control.Monad
-import Control.Monad.Trans (MonadTrans(..))
 import Control.Reference hiding (element)
 import Data.Function hiding ((&))
 import Data.Generics.Uniplate.Data (universeBi)

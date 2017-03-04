@@ -7,14 +7,11 @@ import Control.Monad.Reader (asks)
 import ApiAnnotation as GHC (AnnKeywordId(..))
 import FastString as GHC (unpackFS)
 import HsExpr as GHC (HsSplice(..), HsExpr(..), HsBracket(..))
-import OccName as GHC (occNameString)
-import RdrName as GHC (rdrNameOcc)
 import SrcLoc as GHC
 
 import Language.Haskell.Tools.AST.FromGHC.Decls (trfDecls, trfDeclsGroup)
 import Language.Haskell.Tools.AST.FromGHC.Exprs (trfExpr, createScopeInfo)
-import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..))
-import Language.Haskell.Tools.AST.FromGHC.Monad
+import Language.Haskell.Tools.AST.FromGHC.Monad (TrfInput(..), Trf, getSpliceLoc)
 import Language.Haskell.Tools.AST.FromGHC.Names
 import Language.Haskell.Tools.AST.FromGHC.Patterns (trfPattern)
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)

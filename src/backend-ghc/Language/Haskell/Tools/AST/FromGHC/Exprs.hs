@@ -8,17 +8,15 @@
 module Language.Haskell.Tools.AST.FromGHC.Exprs where
 
 import Control.Monad.Reader
-import Data.Data (toConstr)
 import Data.List (partition, find)
 import Data.Maybe (Maybe(..), isJust, fromMaybe, catMaybes)
 
 import BasicTypes as GHC (Boxity(..), StringLiteral(..))
+import FastString (unpackFS)
 import GHC
 import OccName as GHC (occNameString)
-import Outputable as GHC (Outputable(..), showSDocUnsafe)
 import PrelNames as GHC (negateName)
 import SrcLoc as GHC
-import FastString
 
 import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Binds (trfRhsGuard', trfWhereLocalBinds, trfLocalBinds)
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (GHCName(..), getFieldOccName)

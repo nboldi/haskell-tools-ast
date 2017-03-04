@@ -12,37 +12,37 @@ module Language.Haskell.Tools.AST.FromGHC.Modules where
 
 import Control.Monad.Reader
 import Control.Reference hiding (element)
+import Data.Function (on)
 import Data.Generics.Uniplate.Data ()
 import Data.List as List
 import Data.Map as Map (fromList, lookup)
 import Data.Maybe
-import Data.Function (on)
 
 import BasicTypes as GHC (WarningTxt(..), StringLiteral(..))
-import DynFlags as GHC
+import DynFlags as GHC (xopt_set)
 import ErrUtils as GHC (pprErrMsgBagWithLoc)
 import FastString as GHC (unpackFS)
+import FieldLabel as GHC (FieldLbl(..))
 import GHC
+import HscMain as GHC (hscRnImportDecls)
 import HscTypes as GHC (WarningTxt(..), ModSummary, HscEnv(..))
 import Language.Haskell.TH.LanguageExtensions (Extension(..))
 import Name as GHC hiding (varName)
 import Outputable as GHC (vcat, showSDocUnsafe, (<+>))
-import RdrName as GHC
+import RdrName as GHC (RdrName, Parent(..), GlobalRdrElt(..))
 import RnEnv as GHC (mkUnboundNameRdr)
 import RnExpr as GHC (rnLExpr)
 import SrcLoc as GHC
 import TcRnMonad as GHC
-import FieldLabel as GHC
-import HscMain as GHC
 
 import Language.Haskell.Tools.AST (Ann(..), AnnMaybeG, AnnListG(..), Dom, RangeStage
                                   , sourceInfo, semantics, annotation, nodeSpan)
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC.Decls (trfDecls, trfDeclsGroup)
+import Language.Haskell.Tools.AST.FromGHC.Exprs (trfText')
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (HsHasName(..))
 import Language.Haskell.Tools.AST.FromGHC.Monad
-import Language.Haskell.Tools.AST.FromGHC.Exprs
-import Language.Haskell.Tools.AST.FromGHC.Names
+import Language.Haskell.Tools.AST.FromGHC.Names (TransformName, trfName)
 import Language.Haskell.Tools.AST.FromGHC.Utils
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (nameInfo, implicitNames, importedNames)
 

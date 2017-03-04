@@ -15,10 +15,12 @@ import Control.Monad.State
 import Control.Reference
 import qualified Data.Aeson as A ((.=))
 import Data.Aeson hiding ((.=))
+import Data.Algorithm.Diff
+import qualified Data.ByteString.Char8 as StrictBS
 import Data.ByteString.Lazy.Char8 (ByteString)
 import Data.ByteString.Lazy.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 as BS
-import qualified Data.ByteString.Char8 as StrictBS
+import Data.Either
 import Data.IORef
 import Data.List hiding (insert)
 import qualified Data.Map as Map
@@ -31,8 +33,6 @@ import System.Directory
 import System.Environment
 import System.IO
 import System.IO.Strict as StrictIO (hGetContents)
-import Data.Algorithm.Diff
-import Data.Either
 
 import Bag
 import DynFlags

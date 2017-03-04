@@ -21,9 +21,6 @@ import PatSyn (patSynSig)
 import RdrName (RdrName, rdrNameOcc, nameRdrName)
 import SrcLoc
 import Type (TyThing(..), mkFunTys)
-import TysWiredIn
-
-import Debug.Trace
 
 class OutputableBndr name => GHCName name where
   rdrName :: name -> RdrName

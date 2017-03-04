@@ -8,8 +8,8 @@
 -- | Representation and operations for module collections (libraries, executables, ...) in the framework.
 module Language.Haskell.Tools.Refactor.GetModules where
 
-import Control.Reference
 import Control.Monad
+import Control.Reference
 import Data.Function (on)
 import Data.List
 import qualified Data.Map as Map

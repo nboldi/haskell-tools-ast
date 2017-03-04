@@ -9,18 +9,18 @@ module Language.Haskell.Tools.AST.FromGHC.Patterns where
 import ApiAnnotation as GHC (AnnKeywordId(..))
 import BasicTypes as GHC (Boxity(..))
 import Data.List
+import HsExpr (HsSplice(..))
 import HsLit as GHC (HsOverLit(..))
 import HsPat as GHC
 import HsTypes as GHC (HsWildCardBndrs(..), HsImplicitBndrs(..), HsConDetails(..))
 import Language.Haskell.Tools.AST.FromGHC.GHCUtils (getFieldOccName)
 import SrcLoc as GHC
-import HsExpr
 
 import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.Exprs (trfExpr)
 import Language.Haskell.Tools.AST.FromGHC.Literals (trfLiteral', trfOverloadedLit)
 import Language.Haskell.Tools.AST.FromGHC.Monad (Trf, define)
 import Language.Haskell.Tools.AST.FromGHC.Names (TransformName(..), trfOperator, trfName)
-import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH
+import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH (trfSplice, trfQuasiQuotation')
 import Language.Haskell.Tools.AST.FromGHC.Types (trfType)
 import Language.Haskell.Tools.AST.FromGHC.Utils
 

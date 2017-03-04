@@ -2,8 +2,8 @@
 module Language.Haskell.Tools.AST.Representation.Kinds where
 
 import Language.Haskell.Tools.AST.Ann (Ann, AnnListG)
-import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Types
-import Language.Haskell.Tools.AST.Representation.Names
+import Language.Haskell.Tools.AST.Representation.Names (UName, UOperator)
+import {-# SOURCE #-} Language.Haskell.Tools.AST.Representation.Types (UType)
 
 -- | Kind constraint (@ :: * -> * @)
 data UKindConstraint dom stage

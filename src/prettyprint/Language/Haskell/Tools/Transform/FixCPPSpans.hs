@@ -1,13 +1,12 @@
 {-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 module Language.Haskell.Tools.Transform.FixCPPSpans where
 
-import qualified Data.Text as Txt
 import Control.Monad.State
 import Control.Reference
+import qualified Data.Text as Txt
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Transform.SourceTemplate
-import Debug.Trace
+import Language.Haskell.Tools.Transform.SourceTemplate (SourceTemplateElem(..), sourceTemplateNodeElems, srcTmpSeparators)
 
 fixCPPSpans :: Ann UModule dom SrcTemplateStage -> Ann UModule dom SrcTemplateStage
 -- the state will be used to pass the removed separators to the correct child

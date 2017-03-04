@@ -8,13 +8,13 @@ module Language.Haskell.Tools.Transform.RangeTemplateToSourceTemplate where
 import Control.Monad.State
 import Control.Reference ((^.), _1)
 import Data.Map as Map
+import Data.Ord (Ord(..), Ordering(..))
 import Data.Set as Set
-import Data.Ord
+import FastString (mkFastString)
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.Transform.RangeTemplate
 import Language.Haskell.Tools.Transform.SourceTemplate
 import SrcLoc
-import FastString
 import StringBuffer (StringBuffer, nextChar, atEnd)
 
 rangeToSource :: SourceInfoTraversal node => StringBuffer -> Ann node dom RngTemplateStage
