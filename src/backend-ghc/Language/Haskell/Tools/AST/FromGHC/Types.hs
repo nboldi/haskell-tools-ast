@@ -30,12 +30,13 @@ import {-# SOURCE #-} Language.Haskell.Tools.AST.FromGHC.TH
 import Language.Haskell.Tools.AST.FromGHC.Utils
 
 trfType :: TransformName n r => Located (HsType n) -> Trf (Ann AST.UType (Dom r) RangeStage)
-trfType typ = do othSplices <- asks typeSplices
-                 let RealSrcSpan loce = getLoc typ
-                     contSplice = find (\sp -> case getSpliceLoc sp of (RealSrcSpan spLoc) -> spLoc `containsSpan` loce; _ -> False) othSplices
-                 case contSplice of Just sp -> let loc = pure $ getSpliceLoc sp
-                                                in typeSpliceInserted sp (annLocNoSema loc (AST.UTySplice <$> trfSplice sp))
-                                    Nothing -> trfLocNoSema trfType' typ
+trfType typ | RealSrcSpan loce <- getLoc typ
+  = do othSplices <- asks typeSplices
+       let contSplice = find (\sp -> case getSpliceLoc sp of (RealSrcSpan spLoc) -> spLoc `containsSpan` loce; _ -> False) othSplices
+       case contSplice of Just sp -> let loc = pure $ getSpliceLoc sp
+                                      in typeSpliceInserted sp (annLocNoSema loc (AST.UTySplice <$> trfSplice sp))
+                          Nothing -> trfLocNoSema trfType' typ
+  | otherwise = trfLocNoSema trfType' typ
 
 trfType' :: TransformName n r => HsType n -> Trf (AST.UType (Dom r) RangeStage)
 trfType' = trfType'' . cleanHsType where

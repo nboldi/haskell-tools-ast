@@ -45,12 +45,13 @@ trfExpr (L l cs@(HsCase expr (unLoc . mg_alts -> [])))
                           ((endSpan, AnnOf) : _) -> realSpan `combineSrcSpans` endSpan
                           _ -> error "trfExpr: case without 'of' '{' or '}' token"
        annLoc createScopeInfo (pure actualSpan) (trfExpr' cs)
-trfExpr e = do exprSpls <- asks exprSplices
-               let RealSrcSpan loce = getLoc e
-                   contSplice = find (\sp -> case getSpliceLoc sp of (RealSrcSpan spLoc) -> spLoc `containsSpan` loce; _ -> False) exprSpls
-               case contSplice of Just sp -> case sp of HsQuasiQuote {} -> exprSpliceInserted sp (annLoc createScopeInfo (pure $ getSpliceLoc sp) (AST.UQuasiQuoteExpr <$> annLocNoSema (pure $ getSpliceLoc sp) (trfQuasiQuotation' sp)))
-                                                        _               -> exprSpliceInserted sp (annLoc createScopeInfo (pure $ getSpliceLoc sp) (AST.USplice <$> trfSplice sp))
-                                  Nothing -> trfLoc trfExpr' createScopeInfo e
+trfExpr e | RealSrcSpan loce <- getLoc e
+  = do exprSpls <- asks exprSplices
+       let contSplice = find (\sp -> case getSpliceLoc sp of (RealSrcSpan spLoc) -> spLoc `containsSpan` loce; _ -> False) exprSpls
+       case contSplice of Just sp -> case sp of HsQuasiQuote {} -> exprSpliceInserted sp (annLoc createScopeInfo (pure $ getSpliceLoc sp) (AST.UQuasiQuoteExpr <$> annLocNoSema (pure $ getSpliceLoc sp) (trfQuasiQuotation' sp)))
+                                                _               -> exprSpliceInserted sp (annLoc createScopeInfo (pure $ getSpliceLoc sp) (AST.USplice <$> trfSplice sp))
+                          Nothing -> trfLoc trfExpr' createScopeInfo e
+  | otherwise = trfLoc trfExpr' createScopeInfo e
 
 createScopeInfo :: Trf ScopeInfo
 createScopeInfo = do scope <- asks localsInScope
