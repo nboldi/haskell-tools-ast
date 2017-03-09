@@ -1,16 +1,19 @@
 # Haskell Tools
 
- - The goal of this project is to create developer tools for the functional programming language Haskell. Currently this repository contains the **ht-refact** tool, a refactoring tool for Haskell. [Check out the refactorings!](documentation/refactorings.md)
+The goal of this project is to create developer tools for the functional programming language Haskell. Currently this project is about refactoring Haskell programs. We have a couple of refactorings working, with support for using them in your editor, or programmatically from command line.
+
+ - Available in Atom soon. [Check it out](https://github.com/nboldi/haskell-tools-atom).
 
  - We have a live online demo that you can try here: [Demo](http://haskelltools.org)
 
  - The package is available from hackage and stackage: [Installation instructions](documentation/installation.md)
 
  - User manuals
-   - ht-daemon: An executable to integrate with editors. Provides refactoring and developer tools.
+   - Use in editor: [Atom](https://github.com/nboldi/haskell-tools-atom/documentation/user-manual.md), Sublime (Coming soon...)
+   - [Refactorings](documentation/refactorings.md): The detailed description of the refactorings supported by Haskell-tools Refactor.
    - [ht-refact](documentation/ht-refact.md): A command-line refactorer
    - [haskell-tools-demo](documentation/haskell-tools-demo.md): An interactive demo for Haskell Tools.
 
- - [Contribute to the project](https://github.com/haskell-tools/haskell-tools/wiki/Contribute)
-
  - [Known issues and limitations](documentation/limitations.md)
+
+ - [Contribute to the project](documentation/contribute.md)
