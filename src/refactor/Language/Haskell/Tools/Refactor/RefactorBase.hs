@@ -273,7 +273,7 @@ classifyName n = liftGhc (lookupName n) >>= return . \case
 
 -- | Checks if a given name is a valid module name
 validModuleName :: String -> Maybe String
-validModuleName s = foldl mappend mempty (nameValid Ctor) (splitOn "." s)
+validModuleName s = foldl mappend mempty $ map (nameValid Ctor) (splitOn "." s)
 
 -- | Check if a given name is valid for a given kind of definition
 nameValid :: NameClass -> String -> Maybe String
