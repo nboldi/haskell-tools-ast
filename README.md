@@ -9,7 +9,7 @@ The goal of this project is to create developer tools for the functional program
  - The package is available from hackage and stackage: [Installation instructions](documentation/installation.md)
 
  - User manuals
-   - Use in editor: [Atom](https://github.com/nboldi/haskell-tools-atom/documentation/user-manual.md), Sublime (Coming soon...)
+   - Use in editor: [Atom](https://github.com/nboldi/haskell-tools-atom/blob/master/documentation/user-manual.md), Sublime (Coming soon...)
    - [Refactorings](documentation/refactorings.md): The detailed description of the refactorings supported by Haskell-tools Refactor.
    - [ht-refact](documentation/ht-refact.md): A command-line refactorer
    - [haskell-tools-demo](documentation/haskell-tools-demo.md): An interactive demo for Haskell Tools.
