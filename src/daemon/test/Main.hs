@@ -35,8 +35,9 @@ main :: IO ()
 main = do unsetEnv "GHC_PACKAGE_PATH"
           portCounter <- newMVar pORT_NUM_START
           tr <- canonicalizePath testRoot
-          isStackRun <- isJust <$> lookupEnv "STACK_EXE"
-          defaultMain (allTests isStackRun tr portCounter)
+          hasStack <- isJust <$> findExecutable "stack"
+          hasCabal <- isJust <$> findExecutable "cabal"
+          defaultMain (allTests (hasStack && hasCabal) tr portCounter)
 
 allTests :: Bool -> FilePath -> MVar Int -> TestTree
 allTests isSource testRoot portCounter
