@@ -43,7 +43,7 @@ allTests :: Bool -> FilePath -> MVar Int -> TestTree
 allTests isSource testRoot portCounter
   = localOption (mkTimeout ({- 10s -} 1000 * 1000 * 10))
       $ testGroup "daemon-tests"
-          [ testGroup "simple-tests"
+          [ {- testGroup "simple-tests"
               $ map (makeDaemonTest portCounter) simpleTests
           , testGroup "loading-tests"
               $ map (makeDaemonTest portCounter) loadingTests
@@ -51,14 +51,14 @@ allTests isSource testRoot portCounter
               $ map (makeRefactorTest portCounter) (refactorTests testRoot)
           , testGroup "reload-tests"
               $ map (makeReloadTest portCounter) reloadingTests
-          , testGroup "compilation-problem-tests"
+          , -} testGroup "compilation-problem-tests"
               $ map (makeCompProblemTest portCounter) compProblemTests
           -- if not a stack build, we cannot guarantee that stack is on the path
-          , if isSource
-             then testGroup "pkg-db-tests" $ map (makePkgDbTest portCounter) pkgDbTests
-             else testCase "IGNORED pkg-db-tests" (return ())
-          -- cannot execute this when the source is not present
-          , if isSource then selfLoadingTest portCounter else testCase "IGNORED self-load" (return ())
+          -- , if isSource
+          --    then testGroup "pkg-db-tests" $ map (makePkgDbTest portCounter) pkgDbTests
+          --    else testCase "IGNORED pkg-db-tests" (return ())
+          -- -- cannot execute this when the source is not present
+          -- , if isSource then selfLoadingTest portCounter else testCase "IGNORED self-load" (return ())
           ]
 
 testSuffix = "_test"
@@ -134,8 +134,7 @@ compProblemTests =
     , [ Right $ AddPackages [testRoot </> "source-error"] ]
     , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
   , ( "reload-error"
-    , [ Left $ readFile (testRoot </> "empty" </> "A.hs") >>= putStrLn
-      , Right $ AddPackages [testRoot </> "empty"]
+    , [ Right $ AddPackages [testRoot </> "empty"]
       , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\nimport No.Such.Module"
       , Right $ ReLoad [] [testRoot </> "empty" </> "A.hs"] []
       , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]
