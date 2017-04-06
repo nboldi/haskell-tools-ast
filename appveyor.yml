@@ -12,6 +12,9 @@ environment:
   global:
     STACK_ROOT: "c:\\sr"
 
+cache:
+  - c:\\sr -> stack.yaml
+
 test_script:
 - stack setup > nul
 # The ugly echo "" hack is to avoid complaints about 0 being an invalid file
