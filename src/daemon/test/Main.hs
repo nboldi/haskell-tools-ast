@@ -51,9 +51,8 @@ allTests isSource testRoot portCounter
               $ map (makeRefactorTest portCounter) (refactorTests testRoot)
           , testGroup "reload-tests"
               $ map (makeReloadTest portCounter) reloadingTests
-          , localOption (mkTimeout ({- 120s -} 1000 * 1000 * 120))
-              $ testGroup "compilation-problem-tests"
-                $ map (makeCompProblemTest portCounter) compProblemTests
+          , testGroup "compilation-problem-tests"
+              $ map (makeCompProblemTest portCounter) compProblemTests
           -- if not a stack build, we cannot guarantee that stack is on the path
           , if isSource
              then testGroup "pkg-db-tests" $ map (makePkgDbTest portCounter) pkgDbTests
