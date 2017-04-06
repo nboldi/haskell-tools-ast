@@ -12,9 +12,6 @@ environment:
   global:
     STACK_ROOT: "c:\\sr"
 
-cache:
-  - c:\\sr -> stack.yaml
-
 test_script:
 - echo "" | stack --no-terminal --install-ghc build --test --no-run-tests
 # - echo "" | stack --no-terminal test --coverage haskell-tools-rewrite
