@@ -47,7 +47,7 @@ allTests isSource testRoot portCounter
               $ map (makeDaemonTest portCounter) simpleTests
           , testGroup "loading-tests"
               $ map (makeDaemonTest portCounter) loadingTests
-          , testGroup "refactor-tests"
+          , testGroup "refactor-tests" 
               $ map (makeRefactorTest portCounter) (refactorTests testRoot)
           , testGroup "reload-tests"
               $ map (makeReloadTest portCounter) reloadingTests
