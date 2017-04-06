@@ -41,7 +41,7 @@ main = do unsetEnv "GHC_PACKAGE_PATH"
 
 allTests :: Bool -> FilePath -> MVar Int -> TestTree
 allTests isSource testRoot portCounter
-  = localOption (mkTimeout ({- 10s -} 1000 * 1000 * 10))
+  = localOption (mkTimeout ({- 10s -} 1000 * 1000 * 30))
       $ testGroup "daemon-tests"
           [ testGroup "simple-tests"
               $ map (makeDaemonTest portCounter) simpleTests
