@@ -134,7 +134,8 @@ compProblemTests =
     , [ Right $ AddPackages [testRoot </> "source-error"] ]
     , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
   , ( "reload-error"
-    , [ Right $ AddPackages [testRoot </> "empty"]
+    , [ Left $ readFile (testRoot </> "empty" </> "A.hs") >>= putStrLn
+      , Right $ AddPackages [testRoot </> "empty"]
       , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\nimport No.Such.Module"
       , Right $ ReLoad [] [testRoot </> "empty" </> "A.hs"] []
       , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]

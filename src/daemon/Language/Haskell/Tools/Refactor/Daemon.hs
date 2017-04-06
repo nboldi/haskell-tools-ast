@@ -221,7 +221,6 @@ updateClient resp (PerformRefactoring refact modPath selection args) = do
 addPackages :: (ResponseMsg -> IO ()) -> [FilePath] -> StateT DaemonSessionState Ghc ()
 addPackages resp [] = return ()
 addPackages resp packagePathes = do
-  liftIO $ putStrLn "addPackages: begin"
   nonExisting <- filterM ((return . not) <=< liftIO . doesDirectoryExist) packagePathes
   if (not (null nonExisting))
     then liftIO $ resp $ ErrorMessage $ "The following packages are not found: " ++ concat (intersperse ", " nonExisting)
@@ -247,7 +246,6 @@ addPackages resp packagePathes = do
                                      ++ concat (intersperse ", " ignoredMods)
                                      ++ ". Multiple modules with the same qualified name are not supported."
         Left err -> liftIO $ resp $ either ErrorMessage CompilationProblem (getProblems err)
-  liftIO $ putStrLn "addPackages: end"
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
         initializePackageDBIfNeeded = do
           pkgDBAlreadySet <- gets (^. packageDBSet)
