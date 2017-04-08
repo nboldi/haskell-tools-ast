@@ -129,6 +129,8 @@ updateClient _ (RemovePackages packagePathes) = do
     lift $ deregisterDirs (mcs ^? traversal & filtered isRemoved & mcSourceDirs & traversal)
     modify $ refSessMCs .- filter (not . isRemoved)
     modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existing) . ms_mod) (hsc_mod_graph s) })
+    mcs <- gets (^. refSessMCs)
+    when (null mcs) $ modify (packageDBSet .= False)  
     return True
   where isRemoved mc = (mc ^. mcRoot) `elem` packagePathes
 
@@ -235,26 +237,34 @@ addPackages resp packagePathes = do
       forM_ existing $ \mn -> removeTarget (TargetModule (GHC.moduleName mn))
       modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existing) . ms_mod) (hsc_mod_graph s) })
       -- load new modules
-      initializePackageDBIfNeeded
-      res <- loadPackagesFrom (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]) >> return (getModSumOrig ms))
-                              (resp . LoadingModules . map getModSumOrig) (\st fp -> maybeToList <$> detectAutogen fp (st ^. packageDB)) packagePathes
-      case res of
-        Right (modules, ignoredMods) -> do
-          mapM_ (reloadModule (\_ -> return ())) (either (const []) id needToReload) -- don't report consequent reloads (not expected)
-          liftIO $ when (not $ null ignoredMods)
-                     $ resp $ ErrorMessage
-                                $ "The following modules are ignored: "
-                                     ++ concat (intersperse ", " ignoredMods)
-                                     ++ ". Multiple modules with the same qualified name are not supported."
-        Left err -> liftIO $ resp $ either ErrorMessage CompilationProblem (getProblems err)
+      pkgDBok <- initializePackageDBIfNeeded
+      if pkgDBok then do
+        res <- loadPackagesFrom (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]) >> return (getModSumOrig ms))
+                                (resp . LoadingModules . map getModSumOrig) (\st fp -> maybeToList <$> detectAutogen fp (st ^. packageDB)) packagePathes
+        case res of
+          Right (modules, ignoredMods) -> do
+            mapM_ (reloadModule (\_ -> return ())) (either (const []) id needToReload) -- don't report consequent reloads (not expected)
+            liftIO $ when (not $ null ignoredMods)
+                       $ resp $ ErrorMessage
+                                  $ "The following modules are ignored: "
+                                       ++ concat (intersperse ", " ignoredMods)
+                                       ++ ". Multiple modules with the same qualified name are not supported."
+          Left err -> liftIO $ resp $ either ErrorMessage CompilationProblem (getProblems err)
+      else liftIO $ resp $ ErrorMessage $ "Attempted to load two packages with different package DB. "
+                                            ++ "Stack, cabal-sandbox and normal packages cannot be combined"
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
         initializePackageDBIfNeeded = do
           pkgDBAlreadySet <- gets (^. packageDBSet)
-          when (not pkgDBAlreadySet) $ do
-            pkgDB <- gets (^. packageDB)
-            pkgDBLocs <- liftIO $ packageDBLocs pkgDB packagePathes
+          pkgDB <- gets (^. packageDB)
+          if pkgDBAlreadySet then do
+            pkgDBLocs <- gets (^. packageDBLocs)
+            newPkgDBLocs <- liftIO $ getPackageDBLocs pkgDB packagePathes
+            return (pkgDBLocs == newPkgDBLocs)
+          else do
+            pkgDBLocs <- liftIO $ getPackageDBLocs pkgDB packagePathes
             usePackageDB pkgDBLocs
-            modify (packageDBSet .= True)
+            modify ((packageDBSet .= True) . (packageDBLocs .= pkgDBLocs))
+            return True
 
 
 data UndoRefactor = RemoveAdded { undoRemovePath :: FilePath }
