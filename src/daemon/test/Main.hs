@@ -372,7 +372,7 @@ communicateWithDaemon port msgs = withSocketsDo $ do
 readSockResponsesUntil :: Socket -> ResponseMsg -> BS.ByteString -> IO [ResponseMsg]
 readSockResponsesUntil sock rsp bs
   = do resp <- recv sock 2048
-       -- putStrLn $ "###" ++ BS.unpack resp
+       putStrLn $ "###" ++ BS.unpack resp
        let fullBS = bs `BS.append` resp
        if BS.null resp
          then return []
