@@ -83,7 +83,9 @@ clientLoop :: Bool -> Socket -> IO ()
 clientLoop isSilent sock
   = do when (not isSilent) $ putStrLn $ "Starting client loop"
        (conn,_) <- accept sock
+       putStrLn "accepted"
        ghcSess <- initGhcSession
+       putStrLn "ghc session inited"
        state <- newMVar initSession
        putStrLn "starting server loop"
        serverLoop isSilent ghcSess state conn
