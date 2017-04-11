@@ -4,6 +4,7 @@
            , LambdaCase
            , TemplateHaskell
            , FlexibleContexts
+           , MultiWayIf
            #-}
 module Language.Haskell.Tools.Refactor.Daemon where
 
@@ -130,7 +131,7 @@ updateClient _ (RemovePackages packagePathes) = do
     modify $ refSessMCs .- filter (not . isRemoved)
     modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existing) . ms_mod) (hsc_mod_graph s) })
     mcs <- gets (^. refSessMCs)
-    when (null mcs) $ modify (packageDBSet .= False)  
+    when (null mcs) $ modify (packageDBSet .= False)
     return True
   where isRemoved mc = (mc ^. mcRoot) `elem` packagePathes
 
@@ -256,15 +257,19 @@ addPackages resp packagePathes = do
         initializePackageDBIfNeeded = do
           pkgDBAlreadySet <- gets (^. packageDBSet)
           pkgDB <- gets (^. packageDB)
-          if pkgDBAlreadySet then do
-            pkgDBLocs <- gets (^. packageDBLocs)
-            newPkgDBLocs <- liftIO $ getPackageDBLocs pkgDB packagePathes
-            return (pkgDBLocs == newPkgDBLocs)
-          else do
-            pkgDBLocs <- liftIO $ getPackageDBLocs pkgDB packagePathes
-            usePackageDB pkgDBLocs
-            modify ((packageDBSet .= True) . (packageDBLocs .= pkgDBLocs))
-            return True
+          locs <- liftIO $ mapM (packageDBLoc pkgDB) packagePathes
+          case locs of
+            firstLoc:rest ->
+              if | not (all (== firstLoc) rest)
+                     -> return False
+                 | pkgDBAlreadySet -> do
+                     pkgDBLocs <- gets (^. packageDBLocs)
+                     return (pkgDBLocs == firstLoc)
+                 | otherwise -> do
+                     usePackageDB firstLoc
+                     modify ((packageDBSet .= True) . (packageDBLocs .= firstLoc))
+                     return True
+            [] -> return True
 
 
 data UndoRefactor = RemoveAdded { undoRemovePath :: FilePath }

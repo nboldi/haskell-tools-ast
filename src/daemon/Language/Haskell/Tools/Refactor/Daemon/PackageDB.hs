@@ -20,9 +20,6 @@ data PackageDB = AutoDB
 
 instance FromJSON PackageDB
 
-getPackageDBLocs :: PackageDB -> [FilePath] -> IO [FilePath]
-getPackageDBLocs pack = fmap concat . mapM (packageDBLoc pack)
-
 packageDBLoc :: PackageDB -> FilePath -> IO [FilePath]
 packageDBLoc AutoDB path = (++) <$> packageDBLoc StackDB path <*> packageDBLoc CabalSandboxDB path
 packageDBLoc DefaultDB _ = return []
