@@ -62,7 +62,7 @@ runDaemonCLI = getArgs >>= runDaemon
 
 runDaemon :: [String] -> IO ()
 runDaemon args = withSocketsDo $
-    do putStrLn "starting daemon"
+    do putStrLn "+starting daemon"
        let finalArgs = args ++ drop (length args) defaultArgs
            isSilent = read (finalArgs !! 1)
        hSetBuffering stdout LineBuffering
@@ -72,8 +72,8 @@ runDaemon args = withSocketsDo $
        setSocketOption sock ReuseAddr 1
        when (not isSilent) $ putStrLn $ "Listening on port " ++ finalArgs !! 0
        bind sock (SockAddrInet (read (finalArgs !! 0)) iNADDR_ANY)
-       listen sock 4
-       putStrLn "starting client loop"
+       listen sock 1
+       putStrLn "+starting client loop"
        clientLoop isSilent sock
 
 defaultArgs :: [String]
@@ -82,12 +82,13 @@ defaultArgs = ["4123", "True"]
 clientLoop :: Bool -> Socket -> IO ()
 clientLoop isSilent sock
   = do when (not isSilent) $ putStrLn $ "Starting client loop"
+       putStrLn "+accepting"
        (conn,_) <- accept sock
-       putStrLn "accepted"
+       putStrLn "+accepted"
        ghcSess <- initGhcSession
-       putStrLn "ghc session inited"
+       putStrLn "+ghc session inited"
        state <- newMVar initSession
-       putStrLn "starting server loop"
+       putStrLn "+starting server loop"
        serverLoop isSilent ghcSess state conn
        sessionData <- readMVar state
        when (not (sessionData ^. exiting))
@@ -99,7 +100,7 @@ serverLoop isSilent ghcSess state sock =
        when (not $ BS.null msg) $ do -- null on TCP means closed connection
          when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
          let msgs = BS.split '\n' msg
-         putStrLn "responding"
+         putStrLn "+responding"
          continue <- forM msgs $ \msg -> respondTo ghcSess state (sendAll sock . (`BS.snoc` '\n')) msg
          sessionData <- readMVar state
          when (not (sessionData ^. exiting) && all (== True) continue)

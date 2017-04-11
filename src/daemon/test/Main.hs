@@ -339,19 +339,22 @@ makeCompProblemTest port (label, actions, validator) = testCase label $ do
 
 communicateWithDaemon :: MVar Int -> [Either (IO ()) ClientMessage] -> IO [ResponseMsg]
 communicateWithDaemon port msgs = withSocketsDo $ do
-    putStrLn "communicateWithDaemon"
+    putStrLn "-communicateWithDaemon"
     portNum <- retryConnect port
+    putStrLn "-server started"
     addrInfo <- getAddrInfo Nothing (Just "127.0.0.1") (Just (show portNum))
     let serverAddr = head addrInfo
+    putStrLn "-creating socket"
     sock <- socket (addrFamily serverAddr) Stream defaultProtocol
+    putStrLn "-waitToConnect"
     waitToConnect sock (addrAddress serverAddr)
-    putStrLn "server started"
+    putStrLn "-ready to communicate"
     intermedRes <- sequence (map (either (\io -> do sendAll sock (encode KeepAlive)
                                                     r <- readSockResponsesUntil sock KeepAliveResponse BS.empty
                                                     io
                                                     return r)
                                  ((>> return []) . sendAll sock . (`BS.snoc` '\n') . encode)) msgs)
-    putStrLn "messages sent"
+    putStrLn "-messages sent"
     sendAll sock $ encode Disconnect
     resps <- readSockResponsesUntil sock Disconnected BS.empty
     sendAll sock $ encode Stop
@@ -359,7 +362,8 @@ communicateWithDaemon port msgs = withSocketsDo $ do
     return (concat intermedRes ++ resps)
   where waitToConnect sock addr
           = connect sock addr `catch` \(e :: SomeException) -> waitToConnect sock addr
-        retryConnect port = do portNum <- readMVar port
+        retryConnect port = do putStrLn "-retryConnect"
+                               portNum <- readMVar port
                                forkIO $ runDaemon [show portNum, "True"]
                                return portNum
           `catch` \(e :: SomeException) -> do putStrLn ("exception caught: `" ++ show e ++ "` trying with a new port")
@@ -372,7 +376,7 @@ communicateWithDaemon port msgs = withSocketsDo $ do
 readSockResponsesUntil :: Socket -> ResponseMsg -> BS.ByteString -> IO [ResponseMsg]
 readSockResponsesUntil sock rsp bs
   = do resp <- recv sock 2048
-       putStrLn $ "###" ++ BS.unpack resp
+       putStrLn $ "-###" ++ BS.unpack resp
        let fullBS = bs `BS.append` resp
        if BS.null resp
          then return []
