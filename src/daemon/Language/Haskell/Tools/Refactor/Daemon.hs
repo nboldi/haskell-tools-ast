@@ -62,7 +62,8 @@ runDaemonCLI = getArgs >>= runDaemon
 
 runDaemon :: [String] -> IO ()
 runDaemon args = withSocketsDo $
-    do let finalArgs = args ++ drop (length args) defaultArgs
+    do putStrLn "starting daemon"
+       let finalArgs = args ++ drop (length args) defaultArgs
            isSilent = read (finalArgs !! 1)
        hSetBuffering stdout LineBuffering
        hSetBuffering stderr LineBuffering
@@ -72,6 +73,7 @@ runDaemon args = withSocketsDo $
        when (not isSilent) $ putStrLn $ "Listening on port " ++ finalArgs !! 0
        bind sock (SockAddrInet (read (finalArgs !! 0)) iNADDR_ANY)
        listen sock 1
+       putStrLn "starting client loop"
        clientLoop isSilent sock
 
 defaultArgs :: [String]
@@ -83,6 +85,7 @@ clientLoop isSilent sock
        (conn,_) <- accept sock
        ghcSess <- initGhcSession
        state <- newMVar initSession
+       putStrLn "starting server loop"
        serverLoop isSilent ghcSess state conn
        sessionData <- readMVar state
        when (not (sessionData ^. exiting))
@@ -94,6 +97,7 @@ serverLoop isSilent ghcSess state sock =
        when (not $ BS.null msg) $ do -- null on TCP means closed connection
          when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
          let msgs = BS.split '\n' msg
+         putStrLn "responding"
          continue <- forM msgs $ \msg -> respondTo ghcSess state (sendAll sock . (`BS.snoc` '\n')) msg
          sessionData <- readMVar state
          when (not (sessionData ^. exiting) && all (== True) continue)
@@ -120,6 +124,7 @@ updateClient resp KeepAlive = liftIO (resp KeepAliveResponse) >> return True
 updateClient resp Disconnect = liftIO (resp Disconnected) >> return False
 updateClient _ (SetPackageDB pkgDB) = modify (packageDB .= pkgDB) >> return True
 updateClient resp (AddPackages packagePathes) = do
+    liftIO $ putStrLn "add packages"
     addPackages resp packagePathes
     return True
 updateClient _ (RemovePackages packagePathes) = do
