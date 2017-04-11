@@ -58,9 +58,11 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
      handleErrors $ withAlteredDynFlags (liftIO . setupLoadFlags allModColls) $ do
        modsForColls <- lift $ depanal [] True
        let modsToParse = flattenSCCs $ topSortModuleGraph False modsForColls Nothing
-           actuallyCompiled = filter (not . (`elem` alreadyExistingMods) . modSumName) modsToParse
+           actuallyCompiled = filter (\ms -> modSumName ms `notElem` alreadyExistingMods) modsToParse
        liftIO $ loadCallback actuallyCompiled
+       liftIO $ putStrLn "before checkEvaluatedMods"
        void $ checkEvaluatedMods report modsToParse
+       liftIO $ putStrLn "after checkEvaluatedMods"
        mods <- mapM (loadModule report) actuallyCompiled
        return (mods, ignored)
 
