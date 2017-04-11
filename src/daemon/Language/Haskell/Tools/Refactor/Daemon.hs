@@ -98,7 +98,7 @@ serverLoop :: Bool -> Session -> MVar DaemonSessionState -> Socket -> IO ()
 serverLoop isSilent ghcSess state sock =
     do msg <- recv sock 2048
        when (not $ BS.null msg) $ do -- null on TCP means closed connection
-         when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
+         putStrLn $ "message received: " ++ show (unpack msg)
          let msgs = BS.split '\n' msg
          putStrLn "+responding"
          continue <- forM msgs $ \msg -> respondTo ghcSess state (sendAll sock . (`BS.snoc` '\n')) msg
