@@ -35,8 +35,9 @@ main :: IO ()
 main = do unsetEnv "GHC_PACKAGE_PATH"
           portCounter <- newMVar pORT_NUM_START
           tr <- canonicalizePath testRoot
-          isStackRun <- isJust <$> lookupEnv "STACK_EXE"
-          defaultMain (allTests isStackRun tr portCounter)
+          hasStack <- isJust <$> findExecutable "stack"
+          hasCabal <- isJust <$> findExecutable "cabal"
+          defaultMain (allTests (hasStack && hasCabal) tr portCounter)
 
 allTests :: Bool -> FilePath -> MVar Int -> TestTree
 allTests isSource testRoot portCounter
@@ -133,7 +134,8 @@ compProblemTests =
     , [ Right $ AddPackages [testRoot </> "source-error"] ]
     , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
   , ( "reload-error"
-    , [ Right $ AddPackages [testRoot </> "empty"]
+    , [ Left $ readFile (testRoot </> "empty" </> "A.hs") >>= putStrLn
+      , Right $ AddPackages [testRoot </> "empty"]
       , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\nimport No.Such.Module"
       , Right $ ReLoad [] [testRoot </> "empty" </> "A.hs"] []
       , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]

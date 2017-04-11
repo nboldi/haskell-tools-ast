@@ -1,0 +1,24 @@
+build: off
+
+before_test:
+# http://help.appveyor.com/discussions/problems/6312-curl-command-not-found
+- set PATH=C:\Program Files\Git\mingw64\bin;%PATH%
+
+- curl -sS -ostack.zip -L --insecure http://www.stackage.org/stack/windows-i386
+- 7z x stack.zip stack.exe
+
+clone_folder: "c:\\stack"
+environment:
+  global:
+    STACK_ROOT: "c:\\sr"
+
+cache:
+  - c:\\sr -> stack.yaml
+
+test_script:
+- echo "" | stack --no-terminal --install-ghc build --test --no-run-tests
+# - echo "" | stack --no-terminal test --coverage haskell-tools-rewrite
+# - echo "" | stack --no-terminal test --coverage haskell-tools-refactor
+# - echo "" | stack --no-terminal test --coverage haskell-tools-cli
+- echo "" | stack --no-terminal test --coverage haskell-tools-daemon
+# - echo "" | stack --no-terminal test --coverage haskell-tools-demo
