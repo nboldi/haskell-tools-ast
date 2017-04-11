@@ -72,7 +72,7 @@ runDaemon args = withSocketsDo $
        setSocketOption sock ReuseAddr 1
        when (not isSilent) $ putStrLn $ "Listening on port " ++ finalArgs !! 0
        bind sock (SockAddrInet (read (finalArgs !! 0)) iNADDR_ANY)
-       listen sock 1
+       listen sock 4
        putStrLn "starting client loop"
        clientLoop isSilent sock
 
