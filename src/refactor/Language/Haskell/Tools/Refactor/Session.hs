@@ -48,7 +48,8 @@ instance IsRefactSessionState RefactorSessionState where
 -- | Load packages from the given directories. Loads modules, performs the given callback action, warns for duplicate modules.
 loadPackagesFrom :: IsRefactSessionState st => (ModSummary -> IO a) -> ([ModSummary] -> IO ()) -> (st -> FilePath -> IO [FilePath]) -> [FilePath] -> StateT st Ghc (Either RefactorException ([a], [String]))
 loadPackagesFrom report loadCallback additionalSrcDirs packages =
-  do modColls <- liftIO $ getAllModules packages
+  do liftIO $ putStrLn "loadPackagesFrom"
+     modColls <- liftIO $ getAllModules packages
      modify $ refSessMCs .- (++ modColls)
      allModColls <- gets (^. refSessMCs)
      st <- get
@@ -58,11 +59,15 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
          alreadyExistingMods = concatMap (map (^. sfkModuleName) . Map.keys . (^. mcModules)) (allModColls List.\\ modColls)
      lift $ mapM_ addTarget $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) modNames
      handleErrors $ withAlteredDynFlags (liftIO . setupLoadFlags allModColls) $ do
+       liftIO $ putStrLn "before depanal"
        modsForColls <- lift $ depanal [] True
+       liftIO $ putStrLn "after depanal"
        liftIO $ loadCallback modsForColls
        let modsToParse = flattenSCCs $ topSortModuleGraph False modsForColls Nothing
            actuallyCompiled = filter (not . (`elem` alreadyExistingMods) . modSumName) modsToParse
+       liftIO $ putStrLn "before checkEvaluatedMods"
        void $ checkEvaluatedMods report modsToParse
+       liftIO $ putStrLn "after checkEvaluatedMods"
        mods <- mapM (loadModule report) actuallyCompiled
        return (mods, ignored)
 
