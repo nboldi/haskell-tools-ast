@@ -339,16 +339,19 @@ makeCompProblemTest port (label, actions, validator) = testCase label $ do
 
 communicateWithDaemon :: MVar Int -> [Either (IO ()) ClientMessage] -> IO [ResponseMsg]
 communicateWithDaemon port msgs = withSocketsDo $ do
+    putStrLn "communicateWithDaemon"
     portNum <- retryConnect port
     addrInfo <- getAddrInfo Nothing (Just "127.0.0.1") (Just (show portNum))
     let serverAddr = head addrInfo
     sock <- socket (addrFamily serverAddr) Stream defaultProtocol
     waitToConnect sock (addrAddress serverAddr)
+    putStrLn "server started"
     intermedRes <- sequence (map (either (\io -> do sendAll sock (encode KeepAlive)
                                                     r <- readSockResponsesUntil sock KeepAliveResponse BS.empty
                                                     io
                                                     return r)
                                  ((>> return []) . sendAll sock . (`BS.snoc` '\n') . encode)) msgs)
+    putStrLn "messages sent"
     sendAll sock $ encode Disconnect
     resps <- readSockResponsesUntil sock Disconnected BS.empty
     sendAll sock $ encode Stop
