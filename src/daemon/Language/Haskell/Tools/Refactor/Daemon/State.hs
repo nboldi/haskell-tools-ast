@@ -11,6 +11,7 @@ data DaemonSessionState
                        , _packageDB :: PackageDB
                        , _packageDBSet :: Bool
                        , _packageDBSetExplicitely :: Bool
+                       , _packageDBLocs :: [FilePath]
                        , _exiting :: Bool
                        }
 
@@ -18,4 +19,4 @@ makeReferences ''DaemonSessionState
 
 instance IsRefactSessionState DaemonSessionState where
   refSessMCs = refactorSession & refSessMCs
-  initSession = DaemonSessionState initSession AutoDB False False False
+  initSession = DaemonSessionState initSession AutoDB False False [] False

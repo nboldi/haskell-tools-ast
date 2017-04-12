@@ -27,8 +27,6 @@ import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.RefactorBase
 
-import Debug.Trace
-
 -- | The state common for refactoring tools, carrying the state of modules.
 data RefactorSessionState
   = RefactorSessionState { __refSessMCs :: [ModuleCollection]
@@ -59,10 +57,10 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
      lift $ mapM_ addTarget $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) modNames
      handleErrors $ withAlteredDynFlags (liftIO . setupLoadFlags allModColls) $ do
        modsForColls <- lift $ depanal [] True
-       liftIO $ loadCallback modsForColls
        let modsToParse = flattenSCCs $ topSortModuleGraph False modsForColls Nothing
-           actuallyCompiled = filter (not . (`elem` alreadyExistingMods) . modSumName) modsToParse
-       void $ checkEvaluatedMods report modsToParse
+           actuallyCompiled = filter (\ms -> modSumName ms `notElem` alreadyExistingMods) modsToParse
+       liftIO $ loadCallback actuallyCompiled
+       void $ checkEvaluatedMods (\_ -> return ()) modsToParse
        mods <- mapM (loadModule report) actuallyCompiled
        return (mods, ignored)
 
@@ -115,12 +113,12 @@ getReachableModules loadCallback selected = do
   allModColls <- gets (^. refSessMCs)
   withAlteredDynFlags (liftIO . setupLoadFlags allModColls) $ do
     allMods <- lift $ depanal [] True
-    liftIO $ loadCallback (filter selected allMods)
     let (allModsGraph, lookup) = moduleGraphNodes False allMods
         changedMods = catMaybes $ map (\ms -> lookup (ms_hsc_src ms) (moduleName $ ms_mod ms))
                         $ filter selected allMods
         recompMods = map (ms_mod . getModFromNode) $ reachablesG (transposeG allModsGraph) changedMods
         sortedMods = reverse $ topologicalSortG allModsGraph
+    liftIO $ loadCallback (map getModFromNode sortedMods)
     return $ filter ((`elem` recompMods) . ms_mod) $ map getModFromNode sortedMods
 
 -- | Reload a given module. Perform a callback.
@@ -128,7 +126,7 @@ reloadModule :: IsRefactSessionState st => (ModSummary -> IO a) -> ModSummary ->
 reloadModule report ms = do
   mcs <- gets (^. refSessMCs)
   let modName = modSumName ms
-      codeGen = hasGeneratedCode (keyFromMS ms) mcs
+      codeGen = needsGeneratedCode (keyFromMS ms) mcs
   case lookupModuleColl modName mcs of
     Just mc -> do
       let dfs = ms_hspp_opts ms
@@ -150,7 +148,9 @@ checkEvaluatedMods report mods = do
   where reloadIfNeeded ms mcs
           = let key = keyFromMS ms
               in if not (hasGeneratedCode key mcs)
-                   then do modify $ refSessMCs .- codeGeneratedFor key
+                   then do md <- gets (^. refSessMCs)
+                           modify $ refSessMCs .- codeGeneratedFor key
+                           md <- gets (^. refSessMCs)
                            if (isAlreadyLoaded key mcs) then
                                -- The module is already loaded but code is not generated. Need to reload.
                                Just <$> lift (codeGenForModule report (codeGeneratedFor key mcs) ms)

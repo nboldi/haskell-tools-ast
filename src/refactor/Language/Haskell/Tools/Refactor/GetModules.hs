@@ -104,7 +104,10 @@ makeReferences ''ModuleRecord
 
 instance Show ModuleRecord where
   show (ModuleNotLoaded code) = "ModuleNotLoaded " ++ show code
-  show mr = GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS
+  show mr@(ModuleParsed {}) = "ModuleParsed (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
+  show mr@(ModuleRenamed {}) = "ModuleRenamed (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
+  show mr@(ModuleTypeChecked {}) = "ModuleTypeChecked (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
+  show mr@(ModuleCodeGenerated {}) = "ModuleCodeGenerated (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
 
 -- | Find the module collection where the given module is.
 lookupModuleColl :: String -> [ModuleCollection] -> Maybe (ModuleCollection)
@@ -122,7 +125,7 @@ hasGeneratedCode key = maybe False (\case (_, ModuleCodeGenerated {}) -> True; _
 
 needsGeneratedCode :: SourceFileKey -> [ModuleCollection] -> Bool
 needsGeneratedCode key = maybe False (\case (_, ModuleCodeGenerated {}) -> True; (_, ModuleNotLoaded True) -> True; _ -> False)
-                           . find ((key ==) . fst) . concatMap (Map.assocs . (^. mcModules))
+                           . find (((sfkIsBoot .= NormalHs $ key) ==) . fst) . concatMap (Map.assocs . (^. mcModules))
 
 codeGeneratedFor :: SourceFileKey -> [ModuleCollection] -> [ModuleCollection]
 codeGeneratedFor key = map (mcModules .- Map.adjust (\case (ModuleTypeChecked mod ms) -> ModuleCodeGenerated mod ms
