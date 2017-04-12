@@ -93,6 +93,7 @@ serverLoop :: Bool -> Session -> MVar DaemonSessionState -> Socket -> IO ()
 serverLoop isSilent ghcSess state sock =
     do msg <- recv sock 2048
        when (not $ BS.null msg) $ do -- null on TCP means closed connection
+         when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
          let msgs = BS.split '\n' msg
          continue <- forM msgs $ \msg -> respondTo ghcSess state (sendAll sock . (`BS.snoc` '\n')) msg
          sessionData <- readMVar state
@@ -118,7 +119,7 @@ respondTo ghcSess state next mess
 updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc Bool
 updateClient resp KeepAlive = liftIO (resp KeepAliveResponse) >> return True
 updateClient resp Disconnect = liftIO (resp Disconnected) >> return False
-updateClient _ (SetPackageDB pkgDB) = modify ((packageDB .= pkgDB) . (packageDBSet .= True) . (packageDBSetExplicitely .= True)) >> return True
+updateClient _ (SetPackageDB pkgDB) = modify (packageDB .= pkgDB) >> return True
 updateClient resp (AddPackages packagePathes) = do
     addPackages resp packagePathes
     return True
@@ -130,8 +131,7 @@ updateClient _ (RemovePackages packagePathes) = do
     modify $ refSessMCs .- filter (not . isRemoved)
     modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existing) . ms_mod) (hsc_mod_graph s) })
     mcs <- gets (^. refSessMCs)
-    pkgDbExplicit <- gets (^. packageDBSetExplicitely)
-    when (not pkgDbExplicit && null mcs) $ modify (packageDBSet .= False)
+    when (null mcs) $ modify (packageDBSet .= False)
     return True
   where isRemoved mc = (mc ^. mcRoot) `elem` packagePathes
 
