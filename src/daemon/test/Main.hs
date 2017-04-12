@@ -43,7 +43,7 @@ allTests :: Bool -> FilePath -> MVar Int -> TestTree
 allTests isSource testRoot portCounter
   = localOption (mkTimeout ({- 10s -} 1000 * 1000 * 20))
       $ testGroup "daemon-tests"
-          [ {- testGroup "simple-tests"
+          [ testGroup "simple-tests"
               $ map (makeDaemonTest portCounter) simpleTests
           , testGroup "loading-tests"
               $ map (makeDaemonTest portCounter) loadingTests
@@ -51,14 +51,14 @@ allTests isSource testRoot portCounter
               $ map (makeRefactorTest portCounter) (refactorTests testRoot)
           , testGroup "reload-tests"
               $ map (makeReloadTest portCounter) reloadingTests
-          , -} testGroup "compilation-problem-tests"
+          , testGroup "compilation-problem-tests"
               $ map (makeCompProblemTest portCounter) compProblemTests
           -- if not a stack build, we cannot guarantee that stack is on the path
-          -- , if isSource
-          --    then testGroup "pkg-db-tests" $ map (makePkgDbTest portCounter) pkgDbTests
-          --    else testCase "IGNORED pkg-db-tests" (return ())
-          -- -- cannot execute this when the source is not present
-          -- , if isSource then selfLoadingTest portCounter else testCase "IGNORED self-load" (return ())
+          , if isSource
+             then testGroup "pkg-db-tests" $ map (makePkgDbTest portCounter) pkgDbTests
+             else testCase "IGNORED pkg-db-tests" (return ())
+          -- cannot execute this when the source is not present
+          , if isSource then selfLoadingTest portCounter else testCase "IGNORED self-load" (return ())
           ]
 
 testSuffix = "_test"
@@ -130,27 +130,27 @@ compProblemTests =
   [ ( "load-error"
     , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "load-error"] ]
     , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
-  -- , ( "source-error"
-  --   , [ Right $ AddPackages [testRoot </> "source-error"] ]
-  --   , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
-  -- , ( "reload-error"
-  --   , [ Right $ AddPackages [testRoot </> "empty"]
-  --     , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\nimport No.Such.Module"
-  --     , Right $ ReLoad [] [testRoot </> "empty" </> "A.hs"] []
-  --     , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]
-  --   , \case [LoadingModules {}, LoadedModules {}, LoadingModules {}, CompilationProblem {}] -> True; _ -> False)
-  -- , ( "reload-source-error"
-  --   , [ Right $ AddPackages [testRoot </> "empty"]
-  --     , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\naa = 3 + ()"
-  --     , Right $ ReLoad [] [testRoot </> "empty" </> "A.hs"] []
-  --     , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]
-  --   , \case [LoadingModules {}, LoadedModules {}, LoadingModules {}, CompilationProblem {}] -> True; _ -> False)
-  -- , ( "no-such-file"
-  --   , [ Right $ PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" ++ testSuffix </> "A.hs") "3:1-3:2" ["y"] ]
-  --   , \case [ ErrorMessage _ ] -> True; _ -> False )
-  -- , ( "additional-files"
-  --   , [ Right $ AddPackages [testRoot </> "additional-files"] ]
-  --   , \case [ LoadingModules {}, ErrorMessage _ ] -> True; _ -> False )
+  , ( "source-error"
+    , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "source-error"] ]
+    , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
+  , ( "reload-error"
+    , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "empty"]
+      , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\nimport No.Such.Module"
+      , Right $ ReLoad [] [testRoot </> "empty" </> "A.hs"] []
+      , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]
+    , \case [LoadingModules {}, LoadedModules {}, LoadingModules {}, CompilationProblem {}] -> True; _ -> False)
+  , ( "reload-source-error"
+    , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "empty"]
+      , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\naa = 3 + ()"
+      , Right $ ReLoad [] [testRoot </> "empty" </> "A.hs"] []
+      , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]
+    , \case [LoadingModules {}, LoadedModules {}, LoadingModules {}, CompilationProblem {}] -> True; _ -> False)
+  , ( "no-such-file"
+    , [ Right $ PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" ++ testSuffix </> "A.hs") "3:1-3:2" ["y"] ]
+    , \case [ ErrorMessage _ ] -> True; _ -> False )
+  , ( "additional-files"
+    , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "additional-files"] ]
+    , \case [ LoadingModules {}, ErrorMessage _ ] -> True; _ -> False )
   ]
 
 sourceRoot = ".." </> ".." </> "src"
@@ -339,22 +339,16 @@ makeCompProblemTest port (label, actions, validator) = testCase label $ do
 
 communicateWithDaemon :: MVar Int -> [Either (IO ()) ClientMessage] -> IO [ResponseMsg]
 communicateWithDaemon port msgs = withSocketsDo $ do
-    putStrLn "-communicateWithDaemon"
     portNum <- retryConnect port
-    putStrLn "-server started"
     addrInfo <- getAddrInfo Nothing (Just "127.0.0.1") (Just (show portNum))
     let serverAddr = head addrInfo
-    putStrLn "-creating socket"
     sock <- socket (addrFamily serverAddr) Stream defaultProtocol
-    putStrLn "-waitToConnect"
     waitToConnect sock (addrAddress serverAddr)
-    putStrLn "-ready to communicate"
     intermedRes <- sequence (map (either (\io -> do sendAll sock (encode KeepAlive)
                                                     r <- readSockResponsesUntil sock KeepAliveResponse BS.empty
                                                     io
                                                     return r)
                                  ((>> return []) . sendAll sock . (`BS.snoc` '\n') . encode)) msgs)
-    putStrLn "-messages sent"
     sendAll sock $ encode Disconnect
     resps <- readSockResponsesUntil sock Disconnected BS.empty
     sendAll sock $ encode Stop
@@ -362,8 +356,7 @@ communicateWithDaemon port msgs = withSocketsDo $ do
     return (concat intermedRes ++ resps)
   where waitToConnect sock addr
           = connect sock addr `catch` \(e :: SomeException) -> waitToConnect sock addr
-        retryConnect port = do putStrLn "-retryConnect"
-                               portNum <- readMVar port
+        retryConnect port = do portNum <- readMVar port
                                forkIO $ runDaemon [show portNum, "True"]
                                return portNum
           `catch` \(e :: SomeException) -> do putStrLn ("exception caught: `" ++ show e ++ "` trying with a new port")
@@ -376,7 +369,6 @@ communicateWithDaemon port msgs = withSocketsDo $ do
 readSockResponsesUntil :: Socket -> ResponseMsg -> BS.ByteString -> IO [ResponseMsg]
 readSockResponsesUntil sock rsp bs
   = do resp <- recv sock 2048
-       putStrLn $ "-###" ++ BS.unpack resp
        let fullBS = bs `BS.append` resp
        if BS.null resp
          then return []

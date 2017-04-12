@@ -62,8 +62,7 @@ runDaemonCLI = getArgs >>= runDaemon
 
 runDaemon :: [String] -> IO ()
 runDaemon args = withSocketsDo $
-    do putStrLn "+starting daemon"
-       let finalArgs = args ++ drop (length args) defaultArgs
+    do let finalArgs = args ++ drop (length args) defaultArgs
            isSilent = read (finalArgs !! 1)
        hSetBuffering stdout LineBuffering
        hSetBuffering stderr LineBuffering
@@ -73,7 +72,6 @@ runDaemon args = withSocketsDo $
        when (not isSilent) $ putStrLn $ "Listening on port " ++ finalArgs !! 0
        bind sock (SockAddrInet (read (finalArgs !! 0)) iNADDR_ANY)
        listen sock 1
-       putStrLn "+starting client loop"
        clientLoop isSilent sock
 
 defaultArgs :: [String]
@@ -82,13 +80,9 @@ defaultArgs = ["4123", "True"]
 clientLoop :: Bool -> Socket -> IO ()
 clientLoop isSilent sock
   = do when (not isSilent) $ putStrLn $ "Starting client loop"
-       putStrLn "+accepting"
        (conn,_) <- accept sock
-       putStrLn "+accepted"
        ghcSess <- initGhcSession
-       putStrLn "+ghc session inited"
        state <- newMVar initSession
-       putStrLn "+starting server loop"
        serverLoop isSilent ghcSess state conn
        sessionData <- readMVar state
        when (not (sessionData ^. exiting))
@@ -98,11 +92,8 @@ serverLoop :: Bool -> Session -> MVar DaemonSessionState -> Socket -> IO ()
 serverLoop isSilent ghcSess state sock =
     do msg <- recv sock 2048
        when (not $ BS.null msg) $ do -- null on TCP means closed connection
-         putStrLn $ "+message received: " ++ show (unpack msg)
          let msgs = BS.split '\n' msg
-         putStrLn "+responding"
          continue <- forM msgs $ \msg -> respondTo ghcSess state (sendAll sock . (`BS.snoc` '\n')) msg
-         putStrLn "+responded"
          sessionData <- readMVar state
          when (not (sessionData ^. exiting) && all (== True) continue)
            $ serverLoop isSilent ghcSess state sock
@@ -128,9 +119,7 @@ updateClient resp KeepAlive = liftIO (resp KeepAliveResponse) >> return True
 updateClient resp Disconnect = liftIO (resp Disconnected) >> return False
 updateClient _ (SetPackageDB pkgDB) = modify ((packageDB .= pkgDB) . (packageDBSet .= True) . (packageDBSetExplicitely .= True)) >> return True
 updateClient resp (AddPackages packagePathes) = do
-    liftIO $ putStrLn "+add packages"
     addPackages resp packagePathes
-    liftIO $ putStrLn "+add packages finished"
     return True
 updateClient _ (RemovePackages packagePathes) = do
     mcs <- gets (^. refSessMCs)
@@ -236,7 +225,6 @@ addPackages resp packagePathes = do
     then liftIO $ resp $ ErrorMessage $ "The following packages are not found: " ++ concat (intersperse ", " nonExisting)
     else do
       -- clear existing removed packages
-      liftIO $ putStrLn "+ addPackages: inside"
       existingMCs <- gets (^. refSessMCs)
       let existing = map ms_mod $ (existingMCs ^? traversal & filtered isTheAdded & mcModules & traversal & modRecMS)
       needToReload <- handleErrors $ (filter (\ms -> not $ ms_mod ms `elem` existing))
@@ -245,9 +233,7 @@ addPackages resp packagePathes = do
       forM_ existing $ \mn -> removeTarget (TargetModule (GHC.moduleName mn))
       modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existing) . ms_mod) (hsc_mod_graph s) })
       -- load new modules
-      liftIO $ putStrLn "+ addPackages: initializing pkg db"
       initializePackageDBIfNeeded
-      liftIO $ putStrLn "+ addPackages: running loadPackagesFrom"
       res <- loadPackagesFrom (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]) >> return (getModSumOrig ms))
                               (resp . LoadingModules . map getModSumOrig) (\st fp -> maybeToList <$> detectAutogen fp (st ^. packageDB)) packagePathes
       case res of
@@ -261,15 +247,11 @@ addPackages resp packagePathes = do
         Left err -> liftIO $ resp $ either ErrorMessage CompilationProblem (getProblems err)
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
         initializePackageDBIfNeeded = do
-          liftIO $ putStrLn "+ initializePackageDBIfNeeded"
           pkgDBAlreadySet <- gets (^. packageDBSet)
           when (not pkgDBAlreadySet) $ do
             pkgDB <- gets (^. packageDB)
-            liftIO $ putStrLn "+ initializePackageDBIfNeeded: packageDBLocs"
             pkgDBLocs <- liftIO $ packageDBLocs pkgDB packagePathes
-            liftIO $ putStrLn "+ initializePackageDBIfNeeded: usePackageDB"
             usePackageDB pkgDBLocs
-            liftIO $ putStrLn "+ initializePackageDBIfNeeded: done"
             modify (packageDBSet .= True)
 
 
