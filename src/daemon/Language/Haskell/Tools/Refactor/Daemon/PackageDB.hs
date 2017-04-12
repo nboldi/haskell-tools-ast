@@ -34,8 +34,11 @@ packageDBLoc CabalSandboxDB path = do
                                      else return ""
   return $ map (drop (length "package-db: ")) $ filter ("package-db: " `isPrefixOf`) $ lines config
 packageDBLoc StackDB path = withCurrentDirectory path $ do
+     putStrLn "+running stack"
      (_, snapshotDB, snapshotDBErrs) <- readProcessWithExitCode "stack" ["path", "--snapshot-pkg-db"] ""
+     putStrLn "+running stack 2"
      (_, localDB, localDBErrs) <- readProcessWithExitCode "stack" ["path", "--local-pkg-db"] ""
+     putStrLn "+run stack"
      return $ [trim localDB | null localDBErrs] ++ [trim snapshotDB | null snapshotDBErrs]
 packageDBLoc (ExplicitDB dir) path = do
   hasDir <- doesDirectoryExist (path </> dir)

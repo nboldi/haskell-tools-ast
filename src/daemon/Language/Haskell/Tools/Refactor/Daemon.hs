@@ -261,11 +261,15 @@ addPackages resp packagePathes = do
         Left err -> liftIO $ resp $ either ErrorMessage CompilationProblem (getProblems err)
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
         initializePackageDBIfNeeded = do
+          liftIO $ putStrLn "+ initializePackageDBIfNeeded"
           pkgDBAlreadySet <- gets (^. packageDBSet)
           when (not pkgDBAlreadySet) $ do
             pkgDB <- gets (^. packageDB)
+            liftIO $ putStrLn "+ initializePackageDBIfNeeded: packageDBLocs"
             pkgDBLocs <- liftIO $ packageDBLocs pkgDB packagePathes
+            liftIO $ putStrLn "+ initializePackageDBIfNeeded: usePackageDB"
             usePackageDB pkgDBLocs
+            liftIO $ putStrLn "+ initializePackageDBIfNeeded: done"
             modify (packageDBSet .= True)
 
 
