@@ -126,7 +126,7 @@ respondTo ghcSess state next mess
 updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc Bool
 updateClient resp KeepAlive = liftIO (resp KeepAliveResponse) >> return True
 updateClient resp Disconnect = liftIO (resp Disconnected) >> return False
-updateClient _ (SetPackageDB pkgDB) = modify (packageDB .= pkgDB) >> return True
+updateClient _ (SetPackageDB pkgDB) = modify ((packageDB .= pkgDB) . (packageDBSet .= True) . (packageDBSetExplicitely .= True)) >> return True
 updateClient resp (AddPackages packagePathes) = do
     liftIO $ putStrLn "+add packages"
     addPackages resp packagePathes

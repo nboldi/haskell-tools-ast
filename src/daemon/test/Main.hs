@@ -128,7 +128,7 @@ loadingTests =
 compProblemTests :: [(String, [Either (IO ()) ClientMessage], [ResponseMsg] -> Bool)]
 compProblemTests =
   [ ( "load-error"
-    , [ Right $ AddPackages [testRoot </> "load-error"] ]
+    , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "load-error"] ]
     , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
   -- , ( "source-error"
   --   , [ Right $ AddPackages [testRoot </> "source-error"] ]
