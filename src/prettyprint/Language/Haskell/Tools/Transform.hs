@@ -9,11 +9,11 @@ module Language.Haskell.Tools.Transform
   , sourceTemplateNodeRange, sourceTemplateNodeElems
   , sourceTemplateListRange, srcTmpListBefore, srcTmpListAfter, srcTmpDefaultSeparator, srcTmpIndented, srcTmpSeparators
   , sourceTemplateOptRange, srcTmpOptBefore, srcTmpOptAfter
+  , SourceTemplateTextElem(..), sourceTemplateText
   -- parts of the transformation, used for debugging purposes
-  , rangeToSource, fixRanges, cutUpRanges, getLocIndices, mapLocIndices, fixMainRange, fixCPPSpans
+  , rangeToSource, fixRanges, cutUpRanges, getLocIndices, mapLocIndices, fixMainRange
   ) where
 
-import Language.Haskell.Tools.Transform.FixCPPSpans (fixCPPSpans)
 import Language.Haskell.Tools.Transform.PlaceComments (getNormalComments, getPragmaComments, placeComments)
 import Language.Haskell.Tools.Transform.RangeTemplate ()
 import Language.Haskell.Tools.Transform.RangeTemplateToSourceTemplate (rangeToSource, getLocIndices, mapLocIndices)
@@ -31,7 +31,7 @@ prepareAST :: StringBuffer -> Ann UModule dom RangeStage -> Ann UModule dom SrcT
 prepareAST srcBuffer = rangeToSource srcBuffer . cutUpRanges . fixRanges
 
 prepareASTCpp :: StringBuffer -> Ann UModule dom RangeStage -> Ann UModule dom SrcTemplateStage
-prepareASTCpp srcBuffer = fixCPPSpans . rangeToSource srcBuffer . cutUpRanges . fixRanges . fixMainRange srcBuffer
+prepareASTCpp srcBuffer = rangeToSource srcBuffer . cutUpRanges . fixRanges . fixMainRange srcBuffer
 
 fixMainRange :: StringBuffer -> Ann UModule dom RangeStage -> Ann UModule dom RangeStage
 fixMainRange buffer mod = setRange (mkSrcSpan (srcSpanStart $ getRange mod) (RealSrcLoc (endPos startPos buffer))) mod

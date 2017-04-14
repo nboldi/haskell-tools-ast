@@ -5,11 +5,13 @@
 -- Basically it reads the source file and attaches parts of the source file to the AST elements that have the range of the given source code fragment.
 module Language.Haskell.Tools.Transform.RangeTemplateToSourceTemplate where
 
+import Control.Monad.Identity
 import Control.Monad.State
-import Control.Reference ((^.), _1)
+import Control.Reference
 import Data.Map as Map
 import Data.Ord (Ord(..), Ordering(..))
 import Data.Set as Set
+import Data.List
 import FastString (mkFastString)
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.Transform.RangeTemplate
@@ -57,14 +59,35 @@ applyFragments :: SourceInfoTraversal node => [String] -> Ann node dom RngTempla
 applyFragments srcs = flip evalState srcs
   . sourceInfoTraverseDown (SourceInfoTrf
      (\ni -> do template <- mapM getTextFor (ni ^. rngTemplateNodeElems)
-                return $ SourceTemplateNode (RealSrcSpan $ ni ^. rngTemplateNodeRange) template 0 Nothing)
+                return $ SourceTemplateNode (RealSrcSpan $ ni ^. rngTemplateNodeRange) (concat template) 0 Nothing)
      (\(RangeTemplateList rng bef aft sep indented seps)
          -> do (own, rest) <- splitAt (length seps) <$> get
                put rest
-               return (SourceTemplateList (RealSrcSpan rng) bef aft sep indented own 0 Nothing))
+               return (SourceTemplateList (RealSrcSpan rng) bef aft sep indented (Prelude.map ((:[]) . NormalText) own) 0 Nothing))
      (\(RangeTemplateOpt rng bef aft) -> return (SourceTemplateOpt (RealSrcSpan rng) bef aft 0 Nothing)))
      (return ()) (return ())
-  where getTextFor RangeChildElem = return ChildElem
+  where getTextFor RangeChildElem = return [ChildElem]
         getTextFor (RangeElem _) = do (src:rest) <- get
                                       put rest
-                                      return (TextElem src)
+                                      return [TextElem [NormalText src]]
+
+extractStayingElems :: SourceInfoTraversal node => Ann node dom SrcTemplateStage -> Ann node dom SrcTemplateStage
+extractStayingElems = runIdentity . sourceInfoTraverse (SourceInfoTrf
+    (sourceTemplateNodeElems & traversal & sourceTemplateTextElem !- breakStaying)
+    (srcTmpSeparators & traversal !- breakStaying)
+    pure)
+
+    where breakStaying :: [SourceTemplateTextElem] -> [SourceTemplateTextElem]
+          breakStaying = concat . Prelude.map (\(NormalText s) -> toTxtElems s)
+
+          toTxtElems :: String -> [SourceTemplateTextElem]
+          toTxtElems = extractStaying . lines
+          extractStaying lines = Prelude.foldr appendTxt []
+                                   $ Prelude.map (\ln -> if "#" `isPrefixOf` ln then StayingText ln else NormalText ln) lines
+          appendTxt (NormalText n1) (NormalText n2 : rest) = NormalText (n1 ++ '\n':n2) : rest
+          appendTxt (StayingText n1) (StayingText n2 : rest) = StayingText (n1 ++ '\n':n2) : rest
+          appendTxt e (next:ls) = case reverse (e ^. sourceTemplateText) of
+                                              -- fix '\r' characters that are separated from '\n'
+                                    '\r':_ -> (sourceTemplateText .- init $ e) : (sourceTemplateText .- ('\r':) $ next) : ls
+                                    _      -> e : next : ls
+          appendTxt e ls = e : ls

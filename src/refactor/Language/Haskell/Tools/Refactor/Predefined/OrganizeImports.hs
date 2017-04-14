@@ -89,19 +89,22 @@ sortImports :: forall dom . ImportDeclList dom -> ImportDeclList dom
 sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null) (concatMap (\(sep,elems) -> sep : map fst elems) reordered)
                    $ annListElems .= concatMap (map snd . snd) reordered
                    $ ls
-  where reordered :: [(String, [(String, ImportDecl dom)])]
+  where reordered :: [([SourceTemplateTextElem], [([SourceTemplateTextElem], ImportDecl dom)])]
         reordered = map (_2 .- sortBy (compare `on` (^. _2 & importModule & AST.moduleNameString))) parts
 
         parts = map (_2 .- reverse) $ reverse $ breakApart [] imports
 
-        breakApart :: [(String, [(String, ImportDecl dom)])] -> [(String, ImportDecl dom)] -> [(String, [(String, ImportDecl dom)])]
+        -- break up the list of imports to import groups
+        breakApart :: [([SourceTemplateTextElem], [([SourceTemplateTextElem], ImportDecl dom)])]
+                        -> [([SourceTemplateTextElem], ImportDecl dom)]
+                        -> [([SourceTemplateTextElem], [([SourceTemplateTextElem], ImportDecl dom)])]
         breakApart res [] = res
-        breakApart res ((sep, e) : rest) | length (filter ('\n' ==) sep) > 1
-          = breakApart ((sep, [("",e)]) : res) rest
+        breakApart res ((sep, e) : rest) | length (filter ('\n' ==) (sep ^? traversal & sourceTemplateText & traversal)) > 1
+          = breakApart ((sep, [([],e)]) : res) rest
         breakApart ((lastSep, lastRes) : res) (elem : rest)
           = breakApart ((lastSep, elem : lastRes) : res) rest
         breakApart [] ((sep, e) : rest)
-          = breakApart [(sep, [("",e)])] rest
+          = breakApart [(sep, [([],e)])] rest
 
         imports = zipWithSeparators ls
 

@@ -8,7 +8,7 @@ import Data.List (findIndices)
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Rewrite (AnnList)
-import Language.Haskell.Tools.Transform (srcTmpDefaultSeparator, srcTmpSeparators, srcTmpIndented)
+import Language.Haskell.Tools.Transform
 
 -- | Filters the elements of the list. By default it removes the separator before the element.
 -- Of course, if the first element is removed, the following separator is removed as well.
@@ -45,7 +45,7 @@ insertWhere indented e before after al
                         $ (if isEmptyAnnList then id else annListAnnot&sourceInfo .- setIndented ind . addDefaultSeparator ind)
                         $ al
   where setIndented i = srcTmpIndented .- fmap (insertAt i indented)
-        addDefaultSeparator i al = srcTmpSeparators .- insertAt i (al ^. srcTmpDefaultSeparator) $ al
+        addDefaultSeparator i al = srcTmpSeparators .- insertAt i [NormalText $ al ^. srcTmpDefaultSeparator] $ al
         insertAt n e ls = let (bef,aft) = splitAt n ls in bef ++ [e] ++ aft
         isEmptyAnnList = (null :: [x] -> Bool) $ (al ^? annList)
 
@@ -69,10 +69,10 @@ insertIndex before after list@(first:_)
 
 -- | Gets the elements and separators from a list. The first separator is zipped to the second element.
 -- To the first element, the "" string is zipped.
-zipWithSeparators :: AnnList e dom -> [(String, Ann e dom SrcTemplateStage)]
+zipWithSeparators :: AnnList e dom -> [([SourceTemplateTextElem], Ann e dom SrcTemplateStage)]
 zipWithSeparators (AnnListG (NodeInfo _ src) elems)
   | [] <- src ^. srcTmpSeparators
-  = zip ("" : repeat (src ^. srcTmpDefaultSeparator)) elems
+  = zip ([] : repeat [NormalText $ src ^. srcTmpDefaultSeparator]) elems
   | otherwise
-  = zip ("" : seps ++ repeat (last seps)) elems
+  = zip ([] : seps ++ repeat (last seps)) elems
   where seps = src ^. srcTmpSeparators
