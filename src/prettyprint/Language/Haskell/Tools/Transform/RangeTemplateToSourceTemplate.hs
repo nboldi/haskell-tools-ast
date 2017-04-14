@@ -67,9 +67,9 @@ applyFragments srcs = flip evalState srcs
      (\(RangeTemplateOpt rng bef aft) -> return (SourceTemplateOpt (RealSrcSpan rng) bef aft 0 Nothing)))
      (return ()) (return ())
   where getTextFor RangeChildElem = return [ChildElem]
-        getTextFor (RangeElem _) = do (src:rest) <- get
-                                      put rest
-                                      return [TextElem [NormalText src]]
+        getTextFor (RangeElem rng) = do (src:rest) <- get
+                                        put rest
+                                        return [TextElem [NormalText src] (RealSrcSpan rng)]
 
 extractStayingElems :: SourceInfoTraversal node => Ann node dom SrcTemplateStage -> Ann node dom SrcTemplateStage
 extractStayingElems = runIdentity . sourceInfoTraverse (SourceInfoTrf

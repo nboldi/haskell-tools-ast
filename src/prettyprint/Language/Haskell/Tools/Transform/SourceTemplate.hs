@@ -102,7 +102,9 @@ srcTmpOptRelPos = lens _srcTmpOptRelPos (\v s -> s { _srcTmpOptRelPos = v })
 
 -- | An element of a source template for a singleton AST node.
 data SourceTemplateElem
-  = TextElem { _sourceTemplateTextElem :: [SourceTemplateTextElem] } -- ^ Source text belonging to the current node
+  = TextElem { _sourceTemplateTextElem :: [SourceTemplateTextElem]
+             , _sourceTemplateTextRange :: SrcSpan
+             } -- ^ Source text belonging to the current node
   | ChildElem -- ^ Placeholder for the next children of the node
      deriving (Eq, Ord, Data)
 
@@ -134,7 +136,7 @@ instance Show (OptionalInfo SrcTemplateStage) where
   show SourceTemplateOpt{..} = "<?" ++ show _srcTmpOptBefore ++ " " ++ show _srcTmpOptAfter ++ "?>"
 
 instance Show SourceTemplateElem where
-  show (TextElem s) = show s
+  show (TextElem rng s) = show s
   show ChildElem = "<.>"
 
 instance Show SourceTemplateTextElem where
