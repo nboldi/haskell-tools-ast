@@ -12,12 +12,14 @@ import Data.Map as Map
 import Data.Ord (Ord(..), Ordering(..))
 import Data.Set as Set
 import Data.List
+import Data.List.Split
 import FastString (mkFastString)
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.Transform.RangeTemplate
 import Language.Haskell.Tools.Transform.SourceTemplate
 import SrcLoc
 import StringBuffer (StringBuffer, nextChar, atEnd)
+import Debug.Trace
 
 rangeToSource :: SourceInfoTraversal node => StringBuffer -> Ann node dom RngTemplateStage
                                                           -> Ann node dom SrcTemplateStage
@@ -81,13 +83,13 @@ extractStayingElems = runIdentity . sourceInfoTraverse (SourceInfoTrf
           breakStaying = concat . Prelude.map (\(NormalText s) -> toTxtElems s)
 
           toTxtElems :: String -> [SourceTemplateTextElem]
-          toTxtElems = extractStaying . lines
+          toTxtElems = extractStaying . splitOn "\n"
           extractStaying lines = Prelude.foldr appendTxt []
                                    $ Prelude.map (\ln -> if "#" `isPrefixOf` ln then StayingText ln else NormalText ln) lines
           appendTxt (NormalText n1) (NormalText n2 : rest) = NormalText (n1 ++ '\n':n2) : rest
           appendTxt (StayingText n1) (StayingText n2 : rest) = StayingText (n1 ++ '\n':n2) : rest
           appendTxt e (next:ls) = case reverse (e ^. sourceTemplateText) of
                                               -- fix '\r' characters that are separated from '\n'
-                                    '\r':_ -> (sourceTemplateText .- init $ e) : (sourceTemplateText .- ('\r':) $ next) : ls
-                                    _      -> e : next : ls
-          appendTxt e ls = e : ls
+                                    '\r':_ -> (sourceTemplateText .- init $ e) : (sourceTemplateText .- ("\r\n" ++) $ next) : ls
+                                    _      -> e : (sourceTemplateText .- ('\n':) $ next) : ls
+          appendTxt e [] = [e]

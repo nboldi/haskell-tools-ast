@@ -11,12 +11,12 @@ module Language.Haskell.Tools.Transform
   , sourceTemplateOptRange, srcTmpOptBefore, srcTmpOptAfter
   , SourceTemplateElem(..), sourceTemplateTextElem, sourceTemplateTextRange, SourceTemplateTextElem(..), sourceTemplateText, isStayingText
   -- parts of the transformation, used for debugging purposes
-  , rangeToSource, fixRanges, cutUpRanges, getLocIndices, mapLocIndices, fixMainRange
+  , rangeToSource, fixRanges, cutUpRanges, getLocIndices, mapLocIndices, fixMainRange, extractStayingElems
   ) where
 
 import Language.Haskell.Tools.Transform.PlaceComments (getNormalComments, getPragmaComments, placeComments)
 import Language.Haskell.Tools.Transform.RangeTemplate ()
-import Language.Haskell.Tools.Transform.RangeTemplateToSourceTemplate (rangeToSource, getLocIndices, mapLocIndices)
+import Language.Haskell.Tools.Transform.RangeTemplateToSourceTemplate (rangeToSource, getLocIndices, mapLocIndices, extractStayingElems)
 import Language.Haskell.Tools.Transform.RangeToRangeTemplate (cutUpRanges, fixRanges)
 import Language.Haskell.Tools.Transform.SourceTemplate
 import Language.Haskell.Tools.Transform.SourceTemplateHelpers

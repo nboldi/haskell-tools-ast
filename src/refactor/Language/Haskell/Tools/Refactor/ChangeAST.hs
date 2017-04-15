@@ -10,6 +10,8 @@ import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.Transform
 import SrcLoc
 
+import Debug.Trace
+
 removeSeparator :: SourceInfoTraversal p => ([SourceTemplateTextElem], SrcSpan) -> p dom SrcTemplateStage -> p dom SrcTemplateStage
 removeSeparator (txts, range) = insertText (if not (null staying) then map (range,) staying else [])
   where staying = map (^. sourceTemplateText) . filter isStayingText $ txts
@@ -18,10 +20,14 @@ removeChild :: (SourceInfoTraversal e, SourceInfoTraversal p) => e dom SrcTempla
 removeChild e = insertText (keptText e)
 
 insertText :: SourceInfoTraversal p => [(SrcSpan,String)] -> p dom SrcTemplateStage -> p dom SrcTemplateStage
-insertText inserted p = evalState (sourceInfoTraverse (SourceInfoTrf
-  (sourceTemplateNodeElems & traversal !~ takeWhatPrecedesElem)
-  (srcTmpSeparators & traversal !~ takeWhatPrecedesSep)
-  pure) p) inserted
+insertText inserted p
+  = let (val,st) = runState (sourceInfoTraverse (SourceInfoTrf
+                              (sourceTemplateNodeElems & traversal !~ takeWhatPrecedesElem)
+                              (srcTmpSeparators & traversal !~ takeWhatPrecedesSep)
+                              pure) p) inserted
+     in -- TODO: remove and only log
+        if not (null st) then error $ "The following elements could not be saved: " ++ show st
+                         else val
 
 takeWhatPrecedesSep :: ([SourceTemplateTextElem], SrcSpan) -> State [(SrcSpan,String)] ([SourceTemplateTextElem], SrcSpan)
 takeWhatPrecedesSep e@(_,span) = _1 !~ takeWhatPrecedes span $ e
