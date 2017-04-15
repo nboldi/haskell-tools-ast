@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase, TupleSections #-}
+{-# LANGUAGE LambdaCase, TupleSections, AllowAmbiguousTypes #-}
 module Language.Haskell.Tools.Refactor.ChangeAST (removeChild, removeSeparator) where
 
 import Control.Reference
@@ -8,39 +8,17 @@ import Data.List
 import Data.Maybe
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.Transform
+import Language.Haskell.Tools.Refactor.RefactorBase
 import SrcLoc
 
 import Debug.Trace
 
-removeSeparator :: SourceInfoTraversal p => ([SourceTemplateTextElem], SrcSpan) -> p dom SrcTemplateStage -> p dom SrcTemplateStage
-removeSeparator (txts, range) = insertText (if not (null staying) then map (range,) staying else [])
+removeSeparator :: ([SourceTemplateTextElem], SrcSpan) -> LocalRefactor dom ()
+removeSeparator (txts, range) = tell $ (if not (null staying) then map (Right . (range,)) staying else [])
   where staying = map (^. sourceTemplateText) . filter isStayingText $ txts
 
-removeChild :: (SourceInfoTraversal e, SourceInfoTraversal p) => e dom SrcTemplateStage -> p dom SrcTemplateStage -> p dom SrcTemplateStage
-removeChild e = insertText (keptText e)
-
-insertText :: SourceInfoTraversal p => [(SrcSpan,String)] -> p dom SrcTemplateStage -> p dom SrcTemplateStage
-insertText inserted p
-  = let (val,st) = runState (sourceInfoTraverse (SourceInfoTrf
-                              (sourceTemplateNodeElems & traversal !~ takeWhatPrecedesElem)
-                              (srcTmpSeparators & traversal !~ takeWhatPrecedesSep)
-                              pure) p) inserted
-     in -- TODO: remove and only log
-        if not (null st) then error $ "The following elements could not be saved: " ++ show st
-                         else val
-
-takeWhatPrecedesSep :: ([SourceTemplateTextElem], SrcSpan) -> State [(SrcSpan,String)] ([SourceTemplateTextElem], SrcSpan)
-takeWhatPrecedesSep e@(_,span) = _1 !~ takeWhatPrecedes span $ e
-
-takeWhatPrecedesElem :: SourceTemplateElem -> State [(SrcSpan,String)] SourceTemplateElem
-takeWhatPrecedesElem e@(TextElem _ span) = sourceTemplateTextElem !~ takeWhatPrecedes span $ e
-takeWhatPrecedesElem e = return e
-
-takeWhatPrecedes :: SrcSpan -> [SourceTemplateTextElem] -> State [(SrcSpan,String)] [SourceTemplateTextElem]
-takeWhatPrecedes span elems = do
-  (toInsert,remaining) <- gets (partition ((>= srcSpanEnd span) . srcSpanStart . fst))
-  put remaining
-  return (map (StayingText . snd) toInsert ++ elems)
+removeChild :: (SourceInfoTraversal e) => e dom SrcTemplateStage -> LocalRefactor dom ()
+removeChild e = tell $ map Right $ keptText e
 
 keptText :: SourceInfoTraversal e => e dom SrcTemplateStage -> [(SrcSpan,String)]
 keptText = execWriter . sourceInfoTraverse (SourceInfoTrf

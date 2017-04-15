@@ -14,6 +14,7 @@ module Language.Haskell.Tools.Refactor.RefactorBase where
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.Rewrite
+import Language.Haskell.Tools.Transform
 
 import Bag as GHC
 import DynFlags (HasDynFlags(..))
@@ -26,6 +27,7 @@ import Outputable
 import qualified PrelNames as GHC
 import qualified TyCon as GHC
 import qualified TysWiredIn as GHC
+import SrcLoc
 
 import Control.Exception
 import Control.Monad.Reader
@@ -34,6 +36,7 @@ import Control.Monad.Trans.Except
 import Control.Monad.Writer
 import Control.Reference hiding (element)
 import Data.Char
+import Data.Either
 import Data.Function (on)
 import Data.List
 import Data.List.Split
@@ -109,8 +112,33 @@ localRefactoringRes :: HasModuleInfo dom
                           -> Refactor a
 localRefactoringRes access mod trf
   = let init = RefactorCtx (semanticsModule $ mod ^. semantics) mod (mod ^? modImports&annList)
-     in flip runReaderT init $ do (mod, newNames) <- runWriterT (fromRefactorT trf)
-                                  return $ access (addGeneratedImports newNames) mod
+     in flip runReaderT init $ do (mod, recorded) <- runWriterT (fromRefactorT trf)
+                                  return $ access (addStaying (rights recorded) . addGeneratedImports (lefts recorded)) mod
+  where addStaying [] = id
+        addStaying staying = insertText staying
+
+insertText :: SourceInfoTraversal p => [(SrcSpan,String)] -> p dom SrcTemplateStage -> p dom SrcTemplateStage
+insertText inserted p
+  = let (val,st) = runState (sourceInfoTraverse (SourceInfoTrf
+                              (sourceTemplateNodeElems & traversal !~ takeWhatPrecedesElem)
+                              (srcTmpSeparators & traversal !~ takeWhatPrecedesSep)
+                              pure) p) inserted
+     in -- TODO: remove and only log
+        if not (null st) then error $ "The following elements could not be saved: " ++ show st
+                         else val
+  where
+   takeWhatPrecedesSep :: ([SourceTemplateTextElem], SrcSpan) -> State [(SrcSpan,String)] ([SourceTemplateTextElem], SrcSpan)
+   takeWhatPrecedesSep e@(_,span) = _1 !~ takeWhatPrecedes span $ e
+
+   takeWhatPrecedesElem :: SourceTemplateElem -> State [(SrcSpan,String)] SourceTemplateElem
+   takeWhatPrecedesElem e@(TextElem _ span) = sourceTemplateTextElem !~ takeWhatPrecedes span $ e
+   takeWhatPrecedesElem e = return e
+
+   takeWhatPrecedes :: SrcSpan -> [SourceTemplateTextElem] -> State [(SrcSpan,String)] [SourceTemplateTextElem]
+   takeWhatPrecedes span elems = do
+     (toInsert,remaining) <- gets (partition ((>= srcSpanEnd span) . srcSpanStart . fst))
+     put remaining
+     return (map (StayingText . snd) toInsert ++ elems)
 
 -- | Adds the imports that bring names into scope that are needed by the refactoring
 addGeneratedImports :: [GHC.Name] -> Ann UModule dom SrcTemplateStage -> Ann UModule dom SrcTemplateStage
@@ -163,8 +191,8 @@ instance ExceptionMonad m => ExceptionMonad (ExceptT s m) where
 
 
 -- | Input and output information for the refactoring
-newtype LocalRefactorT dom m a = LocalRefactorT { fromRefactorT :: WriterT [GHC.Name] (ReaderT (RefactorCtx dom) m) a }
-  deriving (Functor, Applicative, Monad, MonadReader (RefactorCtx dom), MonadWriter [GHC.Name], MonadIO, HasDynFlags, ExceptionMonad, GhcMonad)
+newtype LocalRefactorT dom m a = LocalRefactorT { fromRefactorT :: WriterT [Either GHC.Name (SrcSpan, String)] (ReaderT (RefactorCtx dom) m) a }
+  deriving (Functor, Applicative, Monad, MonadReader (RefactorCtx dom), MonadWriter [Either GHC.Name (SrcSpan, String)], MonadIO, HasDynFlags, ExceptionMonad, GhcMonad)
 
 -- | The information a refactoring can use
 data RefactorCtx dom = RefactorCtx { refModuleName :: GHC.Module
@@ -232,7 +260,7 @@ referenceName' makeName name
          else let possibleImports = filter ((name `elem`) . (\imp -> semanticsImported $ imp ^. semantics)) imports
                   fromPrelude = name `elem` semanticsImplicitImports (mod ^. semantics)
                in if | fromPrelude -> return $ makeName [] name
-                     | null possibleImports -> do tell [name]
+                     | null possibleImports -> do tell [Left name]
                                                   return $ makeName [] name
                      | otherwise -> return $ referenceBy makeName name possibleImports
                                      -- use it according to the best available import

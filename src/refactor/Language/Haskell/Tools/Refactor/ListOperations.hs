@@ -10,6 +10,7 @@ import Data.List (findIndices)
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.AST.Rewrite (AnnList)
 import Language.Haskell.Tools.Transform
+import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Refactor.ChangeAST
 import SrcLoc
 
@@ -20,8 +21,20 @@ filterList pred = filterListIndexed (const pred)
 
 filterListIndexed :: SourceInfoTraversal e => (Int -> Ann e dom SrcTemplateStage -> Bool) -> AnnList e dom -> AnnList e dom
 filterListIndexed pred (AnnListG (NodeInfo sema src) elems)
-  = foldr (\s -> (removeChild s .)) id removedElems $ foldr (\s -> (removeSeparator s .)) id removedSeparators
-      $ AnnListG (NodeInfo sema (srcTmpIndented .- fmap filterIndents $ srcTmpSeparators .- filterSeparators $ src)) filteredElems
+  =  AnnListG (NodeInfo sema (srcTmpIndented .- fmap filterIndents $ srcTmpSeparators .- filterSeparators $ src)) filteredElems
+  where elementsKept = findIndices (uncurry pred) (zip [0..] elems)
+        filteredElems = sublist elementsKept elems
+        filterIndents = sublist elementsKept
+        filterSeparators = take (length elementsKept - 1) . sublist elementsKept
+
+filterListSt :: SourceInfoTraversal e => (Ann e dom SrcTemplateStage -> Bool) -> AnnList e dom -> LocalRefactor dom (AnnList e dom)
+filterListSt pred = filterListIndexedSt (const pred)
+
+filterListIndexedSt :: SourceInfoTraversal e => (Int -> Ann e dom SrcTemplateStage -> Bool) -> AnnList e dom -> LocalRefactor dom (AnnList e dom)
+filterListIndexedSt pred (AnnListG (NodeInfo sema src) elems)
+  = do mapM_ removeChild removedElems
+       mapM_ removeSeparator removedSeparators
+       return $ AnnListG (NodeInfo sema (srcTmpIndented .- fmap filterIndents $ srcTmpSeparators .- filterSeparators $ src)) filteredElems
   where elementsKept = findIndices (uncurry pred) (zip [0..] elems)
         filteredElems = sublist elementsKept elems
         removedSeparators :: [([SourceTemplateTextElem], SrcSpan)]
@@ -29,6 +42,7 @@ filterListIndexed pred (AnnListG (NodeInfo sema src) elems)
         removedElems = notSublist elementsKept elems
         filterIndents = sublist elementsKept
         filterSeparators = take (length elementsKept - 1) . sublist elementsKept
+
 
 -- | Selects the given indices from a list
 sublist :: [Int] -> [a] -> [a]
