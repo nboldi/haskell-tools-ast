@@ -63,7 +63,7 @@ applyFragments srcs = flip evalState srcs
      (\(RangeTemplateList rng bef aft sep indented seps)
          -> do (own, rest) <- splitAt (length seps) <$> get
                put rest
-               return (SourceTemplateList (RealSrcSpan rng) bef aft sep indented (Prelude.map ((:[]) . NormalText) own) 0 Nothing))
+               return (SourceTemplateList (RealSrcSpan rng) bef aft sep indented (Prelude.zip (Prelude.map ((:[]) . NormalText) own) (Prelude.map RealSrcSpan seps)) 0 Nothing))
      (\(RangeTemplateOpt rng bef aft) -> return (SourceTemplateOpt (RealSrcSpan rng) bef aft 0 Nothing)))
      (return ()) (return ())
   where getTextFor RangeChildElem = return [ChildElem]
@@ -74,7 +74,7 @@ applyFragments srcs = flip evalState srcs
 extractStayingElems :: SourceInfoTraversal node => Ann node dom SrcTemplateStage -> Ann node dom SrcTemplateStage
 extractStayingElems = runIdentity . sourceInfoTraverse (SourceInfoTrf
     (sourceTemplateNodeElems & traversal & sourceTemplateTextElem !- breakStaying)
-    (srcTmpSeparators & traversal !- breakStaying)
+    (srcTmpSeparators & traversal & _1 !- breakStaying)
     pure)
 
     where breakStaying :: [SourceTemplateTextElem] -> [SourceTemplateTextElem]

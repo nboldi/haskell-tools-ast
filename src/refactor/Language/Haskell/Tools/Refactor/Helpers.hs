@@ -6,14 +6,18 @@
 module Language.Haskell.Tools.Refactor.Helpers where
 
 import Control.Reference
+import Control.Monad.Writer
+import Control.Monad.State
 import Data.Function (on)
-import Data.List (sortBy, nubBy)
+import Data.List (sortBy, nubBy, partition)
+import Data.Maybe
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.Rewrite as AST
 import Language.Haskell.Tools.Refactor.ListOperations (filterList)
 
-import SrcLoc (srcSpanStart)
+import SrcLoc
+import Language.Haskell.Tools.Transform
 
 replaceWithJust :: Ann e dom SrcTemplateStage -> AnnMaybe e dom -> AnnMaybe e dom
 replaceWithJust e = annMaybe .= Just e
@@ -45,6 +49,3 @@ removeEmptyBnds binds exprs = (binds .- removeEmptyBindsAndGuards) . (exprs .- r
 -- | Puts the elements in the orginal order and remove duplicates (elements with the same source range)
 normalizeElements :: [Ann e dom SrcTemplateStage] -> [Ann e dom SrcTemplateStage]
 normalizeElements elems = nubBy ((==) `on` getRange) $ sortBy (compare `on` srcSpanStart . getRange) elems
-
-removeChild :: SourceInfoTraversal e => Ann e dom SrcTemplateStage -> Ann p dom SrcTemplateStage -> Ann p dom SrcTemplateStage
-removeChild e p = p

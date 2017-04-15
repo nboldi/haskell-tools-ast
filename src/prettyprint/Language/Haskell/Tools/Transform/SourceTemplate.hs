@@ -28,7 +28,7 @@ instance SourceInfo SrcTemplateStage where
                               , _srcTmpListAfter :: String -- ^ Text that should be put after the last element if the list becomes populated
                               , _srcTmpDefaultSeparator :: String -- ^ The default separator if the list were empty
                               , _srcTmpIndented :: Maybe [Bool] -- ^ False for elements that should be not aligned
-                              , _srcTmpSeparators :: [[SourceTemplateTextElem]] -- ^ The actual separators that were found in the source code
+                              , _srcTmpSeparators :: [([SourceTemplateTextElem], SrcSpan)] -- ^ The actual separators that were found in the source code
                               , _srcTmpListMinInd :: Int -- ^ Minimum indentation for the element
                               , _srcTmpListRelPos :: Maybe Int -- ^ Relative indentation for newly created elements
                               }
@@ -73,7 +73,7 @@ srcTmpDefaultSeparator = lens _srcTmpDefaultSeparator (\v s -> s { _srcTmpDefaul
 srcTmpIndented :: Simple Lens (ListInfo SrcTemplateStage) (Maybe [Bool])
 srcTmpIndented = lens _srcTmpIndented (\v s -> s { _srcTmpIndented = v })
 
-srcTmpSeparators :: Simple Lens (ListInfo SrcTemplateStage) [[SourceTemplateTextElem]]
+srcTmpSeparators :: Simple Lens (ListInfo SrcTemplateStage) [([SourceTemplateTextElem], SrcSpan)]
 srcTmpSeparators = lens _srcTmpSeparators (\v s -> s { _srcTmpSeparators = v })
 
 srcTmpListMinimalIndent :: Simple Lens (ListInfo SrcTemplateStage) Int
@@ -107,6 +107,10 @@ data SourceTemplateElem
              } -- ^ Source text belonging to the current node
   | ChildElem -- ^ Placeholder for the next children of the node
      deriving (Eq, Ord, Data)
+
+isStayingText :: SourceTemplateTextElem -> Bool
+isStayingText StayingText{} = True
+isStayingText _ = False
 
 data SourceTemplateTextElem
   = NormalText { _sourceTemplateText :: String }

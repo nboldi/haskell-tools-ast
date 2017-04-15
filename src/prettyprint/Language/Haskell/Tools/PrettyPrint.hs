@@ -38,7 +38,7 @@ printRose' :: RealSrcLoc -> RoseTree SrcTemplateStage -> PPState (Seq Char)
 printRose' parent (RoseTree (RoseSpan (SourceTemplateNode rng elems minInd relInd)) children)
   = do slide <- calculateSlide rng
        let printTemplateElems :: [SourceTemplateElem] -> [RoseTree SrcTemplateStage] -> PPState (Seq Char)
-           printTemplateElems (TextElem txtElems : rest) children = putString slide min txt >+< printTemplateElems rest children
+           printTemplateElems (TextElem txtElems _ : rest) children = putString slide min txt >+< printTemplateElems rest children
              where txt = concatMap (^. sourceTemplateText) txtElems
            printTemplateElems (ChildElem : rest) (child : children) = printRose' parent child >+< printTemplateElems rest children
            printTemplateElems [] [] = return empty
@@ -58,7 +58,7 @@ printRose' parent (RoseTree (RoseList (SourceTemplateList rng bef aft defSep ind
            >+< (maybe printListWithSeps printListWithSepsIndented indented) actRng slide min actualSeps children
            >+< putString slide min aft
   where stringSeps :: [String]
-        stringSeps = map (concatMap (^. sourceTemplateText)) seps
+        stringSeps = map (concatMap (^. sourceTemplateText)) (map fst seps)
         actualSeps = case stringSeps of [] -> repeat defSep
                                         _  -> stringSeps ++ repeat (last stringSeps)
 
