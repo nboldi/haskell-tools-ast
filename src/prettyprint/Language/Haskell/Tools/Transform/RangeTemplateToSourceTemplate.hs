@@ -85,11 +85,14 @@ extractStayingElems = runIdentity . sourceInfoTraverse (SourceInfoTrf
           toTxtElems :: String -> [SourceTemplateTextElem]
           toTxtElems = extractStaying . splitOn "\n"
           extractStaying lines = Prelude.foldr appendTxt []
-                                   $ Prelude.map (\ln -> if "#" `isPrefixOf` ln then StayingText ln else NormalText ln) lines
+                                   $ Prelude.map (\ln -> if "#" `isPrefixOf` ln then StayingText ln "\n" else NormalText ln) lines
           appendTxt (NormalText n1) (NormalText n2 : rest) = NormalText (n1 ++ '\n':n2) : rest
-          appendTxt (StayingText n1) (StayingText n2 : rest) = StayingText (n1 ++ '\n':n2) : rest
-          appendTxt e (next:ls) = case reverse (e ^. sourceTemplateText) of
+          appendTxt e (next@NormalText{} : ls) = case reverse (e ^. sourceTemplateText) of
                                               -- fix '\r' characters that are separated from '\n'
-                                    '\r':_ -> (sourceTemplateText .- init $ e) : (sourceTemplateText .- ("\r\n" ++) $ next) : ls
+                                    '\r':_ -> ((sourceTemplateText .- init) . (lineEndings .= "\r\n") $ e) : (sourceTemplateText .- ("\r\n" ++) $ next) : ls
                                     _      -> e : (sourceTemplateText .- ('\n':) $ next) : ls
+          appendTxt e (next : ls) = case reverse (e ^. sourceTemplateText) of
+                                              -- fix '\r' characters that are separated from '\n'
+                                    '\r':_ -> ((sourceTemplateText .- init) . (lineEndings .= "\r\n") $ e) : NormalText "\r\n" : next : ls
+                                    _      -> e : NormalText "\n" : next : ls
           appendTxt e [] = [e]

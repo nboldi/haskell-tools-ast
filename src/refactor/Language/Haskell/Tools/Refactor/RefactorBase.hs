@@ -8,6 +8,7 @@
            , TypeSynonymInstances
            , MultiWayIf
            , TemplateHaskell
+           , ViewPatterns
            #-}
 -- | Basic utilities and types for defining refactorings.
 module Language.Haskell.Tools.Refactor.RefactorBase where
@@ -117,28 +118,56 @@ localRefactoringRes access mod trf
   where addStaying [] = id
         addStaying staying = insertText staying
 
-insertText :: SourceInfoTraversal p => [(SrcSpan,String)] -> p dom SrcTemplateStage -> p dom SrcTemplateStage
+insertText :: SourceInfoTraversal p => [(SrcSpan,String,String)] -> p dom SrcTemplateStage -> p dom SrcTemplateStage
 insertText inserted p
-  = let (val,st) = runState (sourceInfoTraverse (SourceInfoTrf
-                              (sourceTemplateNodeElems & traversal !~ takeWhatPrecedesElem)
-                              (srcTmpSeparators & traversal !~ takeWhatPrecedesSep)
-                              pure) p) inserted
+  = let (val,st) = runState (sourceInfoTraverseUp (SourceInfoTrf
+                              (sourceTemplateNodeElems !~ takeWhatPrecedesElem)
+                              (srcTmpSeparators !~ takeWhatPrecedesSep)
+                              pure) (return ()) (return ()) p) (map Right $ sortOn (^. _1) inserted)
      in -- TODO: remove and only log
-        if not (null st) then error $ "The following elements could not be saved: " ++ show st
-                         else val
+        if not (null (rights st)) then error $ "The following elements could not be saved: " ++ show (rights st)
+                                  else val
   where
-   takeWhatPrecedesSep :: ([SourceTemplateTextElem], SrcSpan) -> State [(SrcSpan,String)] ([SourceTemplateTextElem], SrcSpan)
-   takeWhatPrecedesSep e@(_,span) = _1 !~ takeWhatPrecedes span $ e
+   takeWhatPrecedesSep :: [([SourceTemplateTextElem], SrcSpan)] -> State [Either SrcSpan (SrcSpan,String,String)] [([SourceTemplateTextElem], SrcSpan)]
+   takeWhatPrecedesSep seps = takeWhatPrecedes (Just . (^. _2))
+                                               (\str -> _1 .- (++ [StayingText str ""]))
+                                               (\str -> _1 .- ([StayingText str ""] ++))
+                                               seps
 
-   takeWhatPrecedesElem :: SourceTemplateElem -> State [(SrcSpan,String)] SourceTemplateElem
-   takeWhatPrecedesElem e@(TextElem _ span) = sourceTemplateTextElem !~ takeWhatPrecedes span $ e
-   takeWhatPrecedesElem e = return e
+   takeWhatPrecedesElem :: [SourceTemplateElem] -> State [Either SrcSpan (SrcSpan,String,String)] [SourceTemplateElem]
+   takeWhatPrecedesElem elems = takeWhatPrecedes (^? sourceTemplateTextRange)
+                                                 (\s -> sourceTemplateTextElem .- (++ [StayingText s ""]))
+                                                 (\s -> sourceTemplateTextElem .- ([StayingText s ""] ++))
+                                                 elems
 
-   takeWhatPrecedes :: SrcSpan -> [SourceTemplateTextElem] -> State [(SrcSpan,String)] [SourceTemplateTextElem]
-   takeWhatPrecedes span elems = do
-     (toInsert,remaining) <- gets (partition ((>= srcSpanEnd span) . srcSpanStart . fst))
-     put remaining
-     return (map (StayingText . snd) toInsert ++ elems)
+   takeWhatPrecedes :: (a -> Maybe SrcSpan) -> (String -> a -> a) -> (String -> a -> a) -> [a] -> State [Either SrcSpan (SrcSpan,String,String)] [a]
+   takeWhatPrecedes access append prepend elems
+     | ranges <- mapMaybe access elems
+     , not (null ranges)
+     = do let start = srcSpanEnd $ head ranges
+              end = srcSpanStart $ last ranges
+          toInsert <- get
+          let (prefix,rest) = break (either (const False) (\(sp,_,_) -> srcSpanStart sp >= start)) toInsert
+              (middle,suffix) = break (either (const False) (\(sp,_,_) -> srcSpanEnd sp >= end)) rest
+          put $ prefix ++ Left (mkSrcSpan start end) : suffix
+          return $ mergeInserted access append prepend False middle elems
+     where mergeInserted :: (a -> Maybe SrcSpan) -> (String -> a -> a) -> (String -> a -> a) -> Bool -> [Either SrcSpan (SrcSpan,String,String)] -> [a] -> [a]
+           mergeInserted _ _ _ _ [] elems = elems
+           mergeInserted access append prepend prep insert@(Right (insertSpan,insertStr,ln):toInsert) (fstElem:elems)
+              | Just fstElemSpace <- access fstElem
+              , not prep && case mapMaybe access elems of sp:_ -> srcSpanStart sp >= srcSpanEnd insertSpan
+                                                          _ -> True
+              = mergeInserted access append prepend prep toInsert (append (ln ++ insertStr ++ ln) fstElem : elems)
+              | Just fstElemSpace <- access fstElem
+              , prep && srcSpanStart fstElemSpace >= srcSpanEnd insertSpan
+              = mergeInserted access append prepend prep toInsert (prepend (ln ++ insertStr ++ ln) fstElem : elems)
+              | isJust (access fstElem) && prep
+              = mergeInserted access append prepend False insert (fstElem : elems) -- switch back to append mode
+              | otherwise
+              = fstElem : mergeInserted access append prepend (if isJust (access fstElem) then False else prep) insert elems -- move on and switch back to append mode
+           mergeInserted access append prepend _ toInsert (fstElem:elems)
+              = fstElem : mergeInserted access append prepend True (dropWhile isLeft toInsert) elems -- switch to prepend mode and move on
+   takeWhatPrecedes _ _ _ elems = return elems
 
 -- | Adds the imports that bring names into scope that are needed by the refactoring
 addGeneratedImports :: [GHC.Name] -> Ann UModule dom SrcTemplateStage -> Ann UModule dom SrcTemplateStage
@@ -191,8 +220,8 @@ instance ExceptionMonad m => ExceptionMonad (ExceptT s m) where
 
 
 -- | Input and output information for the refactoring
-newtype LocalRefactorT dom m a = LocalRefactorT { fromRefactorT :: WriterT [Either GHC.Name (SrcSpan, String)] (ReaderT (RefactorCtx dom) m) a }
-  deriving (Functor, Applicative, Monad, MonadReader (RefactorCtx dom), MonadWriter [Either GHC.Name (SrcSpan, String)], MonadIO, HasDynFlags, ExceptionMonad, GhcMonad)
+newtype LocalRefactorT dom m a = LocalRefactorT { fromRefactorT :: WriterT [Either GHC.Name (SrcSpan, String, String)] (ReaderT (RefactorCtx dom) m) a }
+  deriving (Functor, Applicative, Monad, MonadReader (RefactorCtx dom), MonadWriter [Either GHC.Name (SrcSpan, String, String)], MonadIO, HasDynFlags, ExceptionMonad, GhcMonad)
 
 -- | The information a refactoring can use
 data RefactorCtx dom = RefactorCtx { refModuleName :: GHC.Module

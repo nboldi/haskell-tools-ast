@@ -113,8 +113,8 @@ sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null) (concatMap (\
 narrowImports :: forall dom . OrganizeImportsDomain dom
               => Bool -> [String] -> [GHC.Name] -> [(GHC.Name, Bool)] -> [ClsInst] -> [FamInst] -> ImportDeclList dom -> LocalRefactor dom (ImportDeclList dom)
 narrowImports noNarrowSubspecs exportedModules usedNames exportedNames prelInsts prelFamInsts imps
-  = annListElems & traversal !~ narrowImport noNarrowSubspecs exportedModules usedNames exportedNames
-      $ filterListIndexed (\i _ -> impsNeeded !! i) imps
+  = (annListElems & traversal !~ narrowImport noNarrowSubspecs exportedModules usedNames exportedNames)
+      =<< filterListIndexedSt (\i _ -> impsNeeded !! i) imps
   where impsNeeded = neededImports exportedModules (usedNames ++ map fst exportedNames) prelInsts prelFamInsts (imps ^. annListElems)
 
 -- | Reduces the number of definitions used from an import

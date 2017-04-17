@@ -114,7 +114,7 @@ isStayingText _ = False
 
 data SourceTemplateTextElem
   = NormalText { _sourceTemplateText :: String }
-  | StayingText { _sourceTemplateText :: String }
+  | StayingText { _sourceTemplateText :: String, _lineEndings :: String }
      deriving (Eq, Ord, Data)
 
 makeReferences ''SourceTemplateElem
@@ -145,4 +145,4 @@ instance Show SourceTemplateElem where
 
 instance Show SourceTemplateTextElem where
   show (NormalText s) = show s
-  show (StayingText s) = "|" ++ show s ++ "|"
+  show (StayingText s _) = "|" ++ show s ++ "|"

@@ -14,13 +14,14 @@ import SrcLoc
 import Debug.Trace
 
 removeSeparator :: ([SourceTemplateTextElem], SrcSpan) -> LocalRefactor dom ()
-removeSeparator (txts, range) = tell $ (if not (null staying) then map (Right . (range,)) staying else [])
-  where staying = map (^. sourceTemplateText) . filter isStayingText $ txts
+removeSeparator (txts, range) = tell staying
+  where staying = mapMaybe (\case StayingText str lnEnd -> Just (Right (range, str, lnEnd))
+                                  _ -> Nothing) txts
 
 removeChild :: (SourceInfoTraversal e) => e dom SrcTemplateStage -> LocalRefactor dom ()
 removeChild e = tell $ map Right $ keptText e
 
-keptText :: SourceInfoTraversal e => e dom SrcTemplateStage -> [(SrcSpan,String)]
+keptText :: SourceInfoTraversal e => e dom SrcTemplateStage -> [(SrcSpan,String,String)]
 keptText = execWriter . sourceInfoTraverse (SourceInfoTrf
   (\ni -> mapM_ writeStaying (mapMaybe (\case (TextElem elems range) -> Just (elems,range)
                                               _ -> Nothing)
@@ -28,6 +29,7 @@ keptText = execWriter . sourceInfoTraverse (SourceInfoTrf
   (\ni -> mapM_ writeStaying (ni ^. srcTmpSeparators) >> return ni)
   pure)
 
-writeStaying :: ([SourceTemplateTextElem], SrcSpan) -> Writer [(SrcSpan,String)] ()
-writeStaying (txts, range) = if not (null staying) then tell (map (range,) staying) else return ()
-  where staying = map (^. sourceTemplateText) . filter isStayingText $ txts
+writeStaying :: ([SourceTemplateTextElem], SrcSpan) -> Writer [(SrcSpan,String,String)] ()
+writeStaying (txts, range) = tell staying
+  where staying = mapMaybe (\case StayingText str lnEnd -> Just (range, str, lnEnd)
+                                  _ -> Nothing) txts
