@@ -253,6 +253,10 @@ organizeImportTests =
   , "Refactor.OrganizeImports.TemplateHaskell"
   , "Refactor.OrganizeImports.NarrowType"
   , "CPP.ConditionalImport"
+  , "CPP.ConditionalImportBegin"
+  , "CPP.ConditionalImportEnd"
+  , "CPP.ConditionalImportHalfRemoved"
+  , "CPP.ConditionalImportMulti"
   ]
 
 generateSignatureTests =

@@ -39,7 +39,9 @@ filterListIndexedSt pred (AnnListG (NodeInfo sema src) elems)
   where elementsKept = findIndices (uncurry pred) (zip [0..] elems)
         filteredElems = sublist elementsKept elems
         removedSeparators :: [([SourceTemplateTextElem], SrcSpan)]
-        removedSeparators = notSublist elementsKept (src ^. srcTmpSeparators) <|> take 1 (reverse (src ^. srcTmpSeparators))
+        removedSeparators = notSublist elementsKept (src ^. srcTmpSeparators) ++ lastSepRemoved
+        lastSepRemoved = if (length elems - 1) `notElem` elementsKept
+                           then take 1 (reverse (sublist elementsKept $ src ^. srcTmpSeparators)) else []
         removedElems = notSublist elementsKept elems
         filterIndents = sublist elementsKept
         filterSeparators = take (length elementsKept - 1) . sublist elementsKept

@@ -120,7 +120,7 @@ insertText :: SourceInfoTraversal p => [(SrcSpan,String,String)] -> p dom SrcTem
 insertText [] p = p
 insertText inserted p
   = let (val,st) = runState (sourceInfoTraverseUp (SourceInfoTrf
-                              (sourceTemplateNodeElems !~ takeWhatPrecedesElem)
+                              (\stn -> sourceTemplateNodeElems !~ takeWhatPrecedesElem (stn ^. sourceTemplateNodeRange) $ stn)
                               (srcTmpSeparators !~ takeWhatPrecedesSep)
                               pure) (return ()) (return ()) p) (map Right $ sortOn (^. _1) inserted)
      in -- TODO: remove and only log
@@ -128,32 +128,32 @@ insertText inserted p
                                   else val
   where
    takeWhatPrecedesSep :: [([SourceTemplateTextElem], SrcSpan)] -> State [Either SrcSpan (SrcSpan,String,String)] [([SourceTemplateTextElem], SrcSpan)]
-   takeWhatPrecedesSep seps = takeWhatPrecedes (Just . (^. _2))
+   takeWhatPrecedesSep seps = takeWhatPrecedes Nothing (Just . (^. _2))
                                                (\str -> _1 .- (++ [StayingText str ""]))
                                                (\str -> _1 .- ([StayingText str ""] ++))
                                                seps
 
-   takeWhatPrecedesElem :: [SourceTemplateElem] -> State [Either SrcSpan (SrcSpan,String,String)] [SourceTemplateElem]
-   takeWhatPrecedesElem elems = takeWhatPrecedes (^? sourceTemplateTextRange)
-                                                 (\s -> sourceTemplateTextElem .- (++ [StayingText s ""]))
-                                                 (\s -> sourceTemplateTextElem .- ([StayingText s ""] ++))
-                                                 elems
+   takeWhatPrecedesElem :: SrcSpan -> [SourceTemplateElem] -> State [Either SrcSpan (SrcSpan,String,String)] [SourceTemplateElem]
+   takeWhatPrecedesElem rng elems = takeWhatPrecedes (Just rng) (^? sourceTemplateTextRange)
+                                                                (\s -> sourceTemplateTextElem .- (++ [StayingText s ""]))
+                                                                (\s -> sourceTemplateTextElem .- ([StayingText s ""] ++))
+                                                                elems
 
-   takeWhatPrecedes :: (a -> Maybe SrcSpan) -> (String -> a -> a) -> (String -> a -> a) -> [a] -> State [Either SrcSpan (SrcSpan,String,String)] [a]
-   takeWhatPrecedes access append prepend elems
+   takeWhatPrecedes :: Maybe SrcSpan -> (a -> Maybe SrcSpan) -> (String -> a -> a) -> (String -> a -> a) -> [a] -> State [Either SrcSpan (SrcSpan,String,String)] [a]
+   takeWhatPrecedes rng access append prepend elems
      | ranges <- mapMaybe access elems
      , not (null ranges)
-     = do let start = srcSpanEnd $ head ranges
-              end = srcSpanStart $ last ranges
+     = do let start = srcSpanStart $ fromMaybe (head ranges) rng
+              end = srcSpanEnd $ fromMaybe (last ranges) rng
           toInsert <- get
-          let (prefix,rest) = break (either (const False) (\(sp,_,_) -> srcSpanStart sp >= start)) toInsert
-              (middle,suffix) = break (either (const False) (\(sp,_,_) -> srcSpanEnd sp >= end)) rest
+          let (prefix,rest) = break ((>= start) . srcSpanStart . either id (\(sp,_,_) -> sp)) toInsert
+              (middle,suffix) = break ((> end) . srcSpanEnd . either id (\(sp,_,_) -> sp)) rest
           put $ prefix ++ Left (mkSrcSpan start end) : suffix
           return $ mergeInserted access append prepend False middle elems
      where mergeInserted :: (a -> Maybe SrcSpan) -> (String -> a -> a) -> (String -> a -> a) -> Bool -> [Either SrcSpan (SrcSpan,String,String)] -> [a] -> [a]
            mergeInserted _ _ _ _ [] elems = elems
            mergeInserted access append prepend prep insert@(Right (insertSpan,insertStr,ln):toInsert) (fstElem:elems)
-              | Just fstElemSpace <- access fstElem
+              | Just fstElemSpace <- access fstElem -- TODO: is this needed?
               , not prep && case mapMaybe access elems of sp:_ -> srcSpanStart sp >= srcSpanEnd insertSpan
                                                           _ -> True
               = mergeInserted access append prepend prep toInsert (append (ln ++ insertStr ++ ln) fstElem : elems)
@@ -164,9 +164,15 @@ insertText inserted p
               = mergeInserted access append prepend False insert (fstElem : elems) -- switch back to append mode
               | otherwise
               = fstElem : mergeInserted access append prepend (if isJust (access fstElem) then False else prep) insert elems -- move on and switch back to append mode
-           mergeInserted access append prepend _ toInsert (fstElem:elems)
-              = fstElem : mergeInserted access append prepend True (dropWhile isLeft toInsert) elems -- switch to prepend mode and move on
-   takeWhatPrecedes _ _ _ elems = return elems
+           mergeInserted access append prepend prep insert@(Left sp : toInsert) (fstElem:elems)
+              | Just fstElemSpace <- access fstElem
+              = if srcSpanStart fstElemSpace > srcSpanEnd sp
+                  then mergeInserted access append prepend True toInsert (fstElem:elems)
+                  else fstElem : mergeInserted access append prepend prep insert elems
+              | otherwise
+              = fstElem : mergeInserted access append prepend True toInsert elems -- switch to prepend mode and move on
+           mergeInserted _ _ _ _ _ [] = [] -- maybe error
+   takeWhatPrecedes _ _ _ _ elems = return elems
 
 -- | Adds the imports that bring names into scope that are needed by the refactoring
 addGeneratedImports :: [GHC.Name] -> Ann UModule dom SrcTemplateStage -> Ann UModule dom SrcTemplateStage
