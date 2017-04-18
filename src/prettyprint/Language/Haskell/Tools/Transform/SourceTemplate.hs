@@ -140,7 +140,7 @@ instance Show (OptionalInfo SrcTemplateStage) where
   show SourceTemplateOpt{..} = "<?" ++ show _srcTmpOptBefore ++ " " ++ show _srcTmpOptAfter ++ "?>"
 
 instance Show SourceTemplateElem where
-  show (TextElem _ s) = show s
+  show (TextElem s _) = show s
   show ChildElem = "<.>"
 
 instance Show SourceTemplateTextElem where

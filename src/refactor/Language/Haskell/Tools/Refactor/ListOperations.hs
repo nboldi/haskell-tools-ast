@@ -5,6 +5,7 @@ module Language.Haskell.Tools.Refactor.ListOperations where
 
 import Control.Reference
 import Control.Applicative
+import Control.Monad.IO.Class
 import Data.List (findIndices)
 
 import Language.Haskell.Tools.AST
@@ -38,7 +39,7 @@ filterListIndexedSt pred (AnnListG (NodeInfo sema src) elems)
   where elementsKept = findIndices (uncurry pred) (zip [0..] elems)
         filteredElems = sublist elementsKept elems
         removedSeparators :: [([SourceTemplateTextElem], SrcSpan)]
-        removedSeparators = notSublist elementsKept (src ^. srcTmpSeparators) <|> [last (src ^. srcTmpSeparators)]
+        removedSeparators = notSublist elementsKept (src ^. srcTmpSeparators) <|> take 1 (reverse (src ^. srcTmpSeparators))
         removedElems = notSublist elementsKept elems
         filterIndents = sublist elementsKept
         filterSeparators = take (length elementsKept - 1) . sublist elementsKept

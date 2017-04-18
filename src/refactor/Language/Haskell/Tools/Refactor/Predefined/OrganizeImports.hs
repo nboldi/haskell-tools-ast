@@ -34,6 +34,8 @@ import Data.Maybe (Maybe(..), maybe, catMaybes)
 
 import Language.Haskell.Tools.Refactor as AST
 
+import Debug.Trace
+
 type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom, HasModuleInfo dom )
 
 projectOrganizeImports :: forall dom . OrganizeImportsDomain dom => Refactoring dom
@@ -87,7 +89,7 @@ organizeImports mod
 
 -- | Sorts the imports in alphabetical order
 sortImports :: forall dom . ImportDeclList dom -> ImportDeclList dom
-sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null) (concatMap (\(sep,elems) -> sep : map fst elems) reordered)
+sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null . fst) (concatMap (\(sep,elems) -> sep : map fst elems) reordered)
                    $ annListElems .= concatMap (map snd . snd) reordered
                    $ ls
   where reordered :: [(([SourceTemplateTextElem], SrcSpan), [(([SourceTemplateTextElem], SrcSpan), ImportDecl dom)])]

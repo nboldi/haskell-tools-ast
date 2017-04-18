@@ -114,11 +114,10 @@ localRefactoringRes :: HasModuleInfo dom
 localRefactoringRes access mod trf
   = let init = RefactorCtx (semanticsModule $ mod ^. semantics) mod (mod ^? modImports&annList)
      in flip runReaderT init $ do (mod, recorded) <- runWriterT (fromRefactorT trf)
-                                  return $ access (addStaying (rights recorded) . addGeneratedImports (lefts recorded)) mod
-  where addStaying [] = id
-        addStaying staying = insertText staying
+                                  return $ access (insertText (rights recorded) . addGeneratedImports (lefts recorded)) mod
 
 insertText :: SourceInfoTraversal p => [(SrcSpan,String,String)] -> p dom SrcTemplateStage -> p dom SrcTemplateStage
+insertText [] p = p
 insertText inserted p
   = let (val,st) = runState (sourceInfoTraverseUp (SourceInfoTrf
                               (sourceTemplateNodeElems !~ takeWhatPrecedesElem)

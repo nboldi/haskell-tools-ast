@@ -31,7 +31,7 @@ prepareAST :: StringBuffer -> Ann UModule dom RangeStage -> Ann UModule dom SrcT
 prepareAST srcBuffer = rangeToSource srcBuffer . cutUpRanges . fixRanges
 
 prepareASTCpp :: StringBuffer -> Ann UModule dom RangeStage -> Ann UModule dom SrcTemplateStage
-prepareASTCpp srcBuffer = rangeToSource srcBuffer . cutUpRanges . fixRanges . fixMainRange srcBuffer
+prepareASTCpp srcBuffer = extractStayingElems . rangeToSource srcBuffer . cutUpRanges . fixRanges . fixMainRange srcBuffer
 
 fixMainRange :: StringBuffer -> Ann UModule dom RangeStage -> Ann UModule dom RangeStage
 fixMainRange buffer mod = setRange (mkSrcSpan (srcSpanStart $ getRange mod) (RealSrcLoc (endPos startPos buffer))) mod
