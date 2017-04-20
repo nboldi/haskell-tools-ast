@@ -28,9 +28,11 @@ filterListIndexed pred (AnnListG (NodeInfo sema src) elems)
         filterIndents = sublist elementsKept
         filterSeparators = take (length elementsKept - 1) . sublist elementsKept
 
+-- | A version of filterList that cares about keeping non-removable code elements (like preprocessor pragmas)
 filterListSt :: SourceInfoTraversal e => (Ann e dom SrcTemplateStage -> Bool) -> AnnList e dom -> LocalRefactor dom (AnnList e dom)
 filterListSt pred = filterListIndexedSt (const pred)
 
+-- | A version of filterListIndexed that cares about keeping non-removable code elements (like preprocessor pragmas)
 filterListIndexedSt :: SourceInfoTraversal e => (Int -> Ann e dom SrcTemplateStage -> Bool) -> AnnList e dom -> LocalRefactor dom (AnnList e dom)
 filterListIndexedSt pred (AnnListG (NodeInfo sema src) elems)
   = do mapM_ removeChild removedElems

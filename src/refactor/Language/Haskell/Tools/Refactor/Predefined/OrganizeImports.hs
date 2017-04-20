@@ -103,6 +103,7 @@ sortImports ls = srcInfo & srcTmpSeparators .= filter (not . null . fst) (concat
                         -> [(([SourceTemplateTextElem], SrcSpan), [(([SourceTemplateTextElem], SrcSpan), ImportDecl dom)])]
         breakApart res [] = res
         breakApart res ((sep, e) : rest) | length (filter ('\n' ==) (sep ^? _1 & traversal & sourceTemplateText & traversal)) > 1
+                                            || "\n#" `isInfixOf` (sep ^? _1 & traversal & sourceTemplateText & traversal)
           = breakApart ((sep, [(([], noSrcSpan),e)]) : res) rest
         breakApart ((lastSep, lastRes) : res) (elem : rest)
           = breakApart ((lastSep, elem : lastRes) : res) rest

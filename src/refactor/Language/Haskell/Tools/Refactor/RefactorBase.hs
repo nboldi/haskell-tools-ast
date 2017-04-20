@@ -116,29 +116,33 @@ localRefactoringRes access mod trf
      in flip runReaderT init $ do (mod, recorded) <- runWriterT (fromRefactorT trf)
                                   return $ access (insertText (rights recorded) . addGeneratedImports (lefts recorded)) mod
 
+-- | Re-inserts the elements removed from the AST that should be kept (for example preprocessor directives)
 insertText :: SourceInfoTraversal p => [(SrcSpan,String,String)] -> p dom SrcTemplateStage -> p dom SrcTemplateStage
 insertText [] p = p
 insertText inserted p
-  = let (val,st) = runState (sourceInfoTraverseUp (SourceInfoTrf
-                              (\stn -> sourceTemplateNodeElems !~ takeWhatPrecedesElem (stn ^. sourceTemplateNodeRange) $ stn)
-                              (srcTmpSeparators !~ takeWhatPrecedesSep)
-                              pure) (return ()) (return ()) p) (map Right $ sortOn (^. _1) inserted)
-     in -- TODO: remove and only log
-        if not (null (rights st)) then error $ "The following elements could not be saved: " ++ show (rights st)
-                                  else val
+  -- this traverses the AST and finds the positions where the removed elements can be added
+  = evalState (sourceInfoTraverseUp (SourceInfoTrf
+                (\stn -> sourceTemplateNodeElems !~ takeWhatPrecedesElem (stn ^. sourceTemplateNodeRange) $ stn)
+                (srcTmpSeparators !~ takeWhatPrecedesSep)
+                pure) (return ()) (return ()) p) (map Right $ sortOn (^. _1) inserted)
   where
+   -- insert fragments into list separators
    takeWhatPrecedesSep :: [([SourceTemplateTextElem], SrcSpan)] -> State [Either SrcSpan (SrcSpan,String,String)] [([SourceTemplateTextElem], SrcSpan)]
    takeWhatPrecedesSep seps = takeWhatPrecedes Nothing (Just . (^. _2))
                                                (\str -> _1 .- (++ [StayingText str ""]))
                                                (\str -> _1 .- ([StayingText str ""] ++))
                                                seps
 
+   -- insert fragments into AST elements
    takeWhatPrecedesElem :: SrcSpan -> [SourceTemplateElem] -> State [Either SrcSpan (SrcSpan,String,String)] [SourceTemplateElem]
    takeWhatPrecedesElem rng elems = takeWhatPrecedes (Just rng) (^? sourceTemplateTextRange)
                                                                 (\s -> sourceTemplateTextElem .- (++ [StayingText s ""]))
                                                                 (\s -> sourceTemplateTextElem .- ([StayingText s ""] ++))
                                                                 elems
 
+   -- finds the position of the fragment where there are elements in the template both before and after the fragment
+   -- puts holes into the list of inserted fragments where child elements are located
+   -- uses these holes to determine where should the fragment be added
    takeWhatPrecedes :: Maybe SrcSpan -> (a -> Maybe SrcSpan) -> (String -> a -> a) -> (String -> a -> a) -> [a] -> State [Either SrcSpan (SrcSpan,String,String)] [a]
    takeWhatPrecedes rng access append prepend elems
      | ranges <- mapMaybe access elems
@@ -151,12 +155,16 @@ insertText inserted p
           put $ prefix ++ Left (mkSrcSpan start end) : suffix
           return $ mergeInserted access append prepend False middle elems
      where mergeInserted :: (a -> Maybe SrcSpan) -> (String -> a -> a) -> (String -> a -> a) -> Bool -> [Either SrcSpan (SrcSpan,String,String)] -> [a] -> [a]
+           -- no fragments left
            mergeInserted _ _ _ _ [] elems = elems
            mergeInserted access append prepend prep insert@(Right (insertSpan,insertStr,ln):toInsert) (fstElem:elems)
+              -- insert a fragment to the end of the current element if the next elment is after the fragment
               | Just fstElemSpace <- access fstElem -- TODO: is this needed?
               , not prep && case mapMaybe access elems of sp:_ -> srcSpanStart sp >= srcSpanEnd insertSpan
                                                           _ -> True
               = mergeInserted access append prepend prep toInsert (append (ln ++ insertStr ++ ln) fstElem : elems)
+              -- insert the fragment before the current elem if we need an element before (we skipped a child)
+              -- and the current element is after the inserted fragment
               | Just fstElemSpace <- access fstElem
               , prep && srcSpanStart fstElemSpace >= srcSpanEnd insertSpan
               = mergeInserted access append prepend prep toInsert (prepend (ln ++ insertStr ++ ln) fstElem : elems)
@@ -164,10 +172,13 @@ insertText inserted p
               = mergeInserted access append prepend False insert (fstElem : elems) -- switch back to append mode
               | otherwise
               = fstElem : mergeInserted access append prepend (if isJust (access fstElem) then False else prep) insert elems -- move on and switch back to append mode
+           -- when found a hole
            mergeInserted access append prepend prep insert@(Left sp : toInsert) (fstElem:elems)
               | Just fstElemSpace <- access fstElem
               = if srcSpanStart fstElemSpace > srcSpanEnd sp
+                  -- switch to prepend mode
                   then mergeInserted access append prepend True toInsert (fstElem:elems)
+                  -- skip elements that are not after the fragment
                   else fstElem : mergeInserted access append prepend prep insert elems
               | otherwise
               = fstElem : mergeInserted access append prepend True toInsert elems -- switch to prepend mode and move on

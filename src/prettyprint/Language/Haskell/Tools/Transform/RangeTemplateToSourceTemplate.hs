@@ -73,19 +73,26 @@ applyFragments srcs = flip evalState srcs
                                         put rest
                                         return [TextElem [NormalText src] (RealSrcSpan rng)]
 
+-- | Marks template elements in the AST that should always be present in the source code, regardless of their
+-- containing elements being deleted.
+-- Currently it recognizes CPP pragmas (lines starting with #)
+-- This function should only be applied to an AST if CPP is enabled.
 extractStayingElems :: SourceInfoTraversal node => Ann node dom SrcTemplateStage -> Ann node dom SrcTemplateStage
 extractStayingElems = runIdentity . sourceInfoTraverse (SourceInfoTrf
     (sourceTemplateNodeElems & traversal & sourceTemplateTextElem !- breakStaying)
     (srcTmpSeparators & traversal & _1 !- breakStaying)
     pure)
 
-    where breakStaying :: [SourceTemplateTextElem] -> [SourceTemplateTextElem]
+    where -- splits the elements into separate lines and then recombines them
+          breakStaying :: [SourceTemplateTextElem] -> [SourceTemplateTextElem]
           breakStaying = concat . Prelude.map (\(NormalText s) -> toTxtElems s)
 
           toTxtElems :: String -> [SourceTemplateTextElem]
           toTxtElems = extractStaying . splitOn "\n"
           extractStaying lines = Prelude.foldr appendTxt []
                                    $ Prelude.map (\ln -> if "#" `isPrefixOf` ln then StayingText ln "\n" else NormalText ln) lines
+          -- recombines the lines if they are both normal text
+          -- otherwise it moves the windows '\r' characters to the correct position
           appendTxt (NormalText n1) (NormalText n2 : rest) = NormalText (n1 ++ '\n':n2) : rest
           appendTxt e (next@NormalText{} : ls) = case reverse (e ^. sourceTemplateText) of
                                               -- fix '\r' characters that are separated from '\n'

@@ -257,6 +257,7 @@ organizeImportTests =
   , "CPP.ConditionalImportEnd"
   , "CPP.ConditionalImportHalfRemoved"
   , "CPP.ConditionalImportMulti"
+  , "CPP.ConditionalImportOrder"
   ]
 
 generateSignatureTests =
