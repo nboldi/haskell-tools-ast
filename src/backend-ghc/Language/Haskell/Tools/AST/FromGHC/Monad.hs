@@ -140,7 +140,7 @@ rdrSplice :: HsSplice RdrName -> Trf (HsSplice GHC.Name)
 rdrSplice spl = do
     env <- liftGhc getSession
     locals <- unifyScopes [] <$> asks localsInScope
-    let createLocalGRE (n,imp,p) = [GRE n NoParent {- (maybe NoParent ParentIs p) -} (isNothing imp) (maybe [] (map createGREImport) imp) ]
+    let createLocalGRE (n,imp,p) = [GRE n (maybe NoParent ParentIs p) (isNothing imp) (maybe [] (map createGREImport) imp) ]
         createGREImport (UsageSpec q useQ asQ) = ImpSpec (ImpDeclSpec (mkModuleName useQ) (mkModuleName asQ) q noSrcSpan) ImpAll
     let readEnv = mkOccEnv $ map (foldl1 (\e1 e2 -> (fst e1, snd e1 ++ snd e2))) $ groupBy ((==) `on` fst) $ sortOn fst
                    $ map (\n -> (GHC.occName ((^. _1) n), createLocalGRE n))
