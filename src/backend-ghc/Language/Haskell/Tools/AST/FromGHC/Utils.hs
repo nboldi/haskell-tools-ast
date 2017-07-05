@@ -96,8 +96,8 @@ createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
      (insts,famInsts) <- lift $ getOrphanAndFamInstances mod
      return $ mkImportInfo mod (catMaybes lookedUpImported) (catMaybes lookedUpNames) insts famInsts
   where translatePName (PName n p) = do n' <- getFromNameUsing getTopLevelId n
-                                        p' <- just !~ getFromNameUsing getTopLevelId $ p
-                                        return (PName <$> n' <*> p')
+                                        p' <- maybe (return Nothing) (getFromNameUsing getTopLevelId) p
+                                        return (PName <$> n' <*> Just p')
 
 getOrphanAndFamInstances :: Module -> Ghc ([ClsInst], [FamInst])
 getOrphanAndFamInstances mod = do
