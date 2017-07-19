@@ -11,6 +11,7 @@ module Language.Haskell.Tools.Refactor.Daemon where
 
 import Control.Applicative ((<|>))
 import Control.Concurrent.MVar
+import Control.Concurrent.Chan
 import Control.Exception
 import Control.Monad
 import Control.Monad.State.Strict
@@ -60,46 +61,78 @@ import Language.Haskell.Tools.Refactor.Session
 import Paths_haskell_tools_daemon
 
 runDaemonCLI :: IO ()
-runDaemonCLI = getArgs >>= runDaemon
+runDaemonCLI = getArgs >>= runDaemon socketMode
 
-runDaemon :: [String] -> IO ()
-runDaemon args = withSocketsDo $
+data WorkingMode a = WorkingMode { daemonConnect :: [String] -> IO a
+                                 , daemonSend :: a -> ResponseMsg -> IO ()
+                                 , daemonReceive :: a -> IO [Either String ClientMessage]
+                                 }
+
+socketMode :: WorkingMode Socket
+socketMode = WorkingMode sockConn sockSend sockReceive
+  where
+    sockConn finalArgs = do
+      sock <- socket AF_INET Stream 0
+      setSocketOption sock ReuseAddr 1
+      bind sock (SockAddrInet (read (finalArgs !! 0)) iNADDR_ANY)
+      listen sock 4
+      (conn, _) <- accept sock
+      return conn
+    sockSend sock = sendAll sock . (`BS.snoc` '\n') . encode
+    sockReceive sock = do
+      msg <- recv sock 2048
+      return $ if not $ BS.null msg -- null on TCP means closed connection
+        then -- when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
+          let msgs = BS.split '\n' msg
+           in catMaybes $ map decodeMsg msgs
+        else []
+      where decodeMsg :: ByteString -> Maybe (Either String ClientMessage)
+            decodeMsg mess
+              | BS.null mess = Nothing
+              | otherwise = case decode mess of
+                Nothing -> Just $ Left $ "MALFORMED MESSAGE: " ++ unpack mess
+                Just req -> Just $ Right req
+
+channelMode :: WorkingMode (Chan ResponseMsg, Chan ClientMessage)
+channelMode = WorkingMode chanConn chanSend chanReceive
+  where
+    chanConn _ = (,) <$> newChan <*> newChan
+    chanSend (send,_) resp = writeChan send resp
+    chanReceive (_,recv) = (:[]) . Right <$> readChan recv
+
+runDaemon :: WorkingMode a -> [String] -> IO ()
+runDaemon mode args = withSocketsDo $
     do let finalArgs = args ++ drop (length args) defaultArgs
            isSilent = read (finalArgs !! 1)
        hSetBuffering stdout LineBuffering
        hSetBuffering stderr LineBuffering
        when (not isSilent) $ putStrLn $ "Starting Haskell Tools daemon"
-       sock <- socket AF_INET Stream 0
-       setSocketOption sock ReuseAddr 1
+       conn <- daemonConnect mode finalArgs
        when (not isSilent) $ putStrLn $ "Listening on port " ++ finalArgs !! 0
-       bind sock (SockAddrInet (read (finalArgs !! 0)) iNADDR_ANY)
-       listen sock 4
-       clientLoop isSilent sock
+       clientLoop mode conn isSilent
 
 defaultArgs :: [String]
 defaultArgs = ["4123", "True"]
 
-clientLoop :: Bool -> Socket -> IO ()
-clientLoop isSilent sock
+clientLoop :: WorkingMode a -> a -> Bool -> IO ()
+clientLoop mode conn isSilent
   = do when (not isSilent) $ putStrLn $ "Starting client loop"
-       (conn,_) <- accept sock
        ghcSess <- initGhcSession
        state <- newMVar initSession
-       serverLoop isSilent ghcSess state conn
+       serverLoop mode conn isSilent ghcSess state
        sessionData <- readMVar state
        when (not (sessionData ^. exiting))
-         $ clientLoop isSilent sock
+         $ clientLoop mode conn isSilent
 
-serverLoop :: Bool -> Session -> MVar DaemonSessionState -> Socket -> IO ()
-serverLoop isSilent ghcSess state sock =
-    do msg <- recv sock 2048
-       when (not $ BS.null msg) $ do -- null on TCP means closed connection
-         when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
-         let msgs = BS.split '\n' msg
-         continue <- forM msgs $ \msg -> respondTo ghcSess state (sendAll sock . (`BS.snoc` '\n')) msg
-         sessionData <- readMVar state
-         when (not (sessionData ^. exiting) && all (== True) continue)
-           $ serverLoop isSilent ghcSess state sock
+serverLoop :: WorkingMode a -> a -> Bool -> Session -> MVar DaemonSessionState -> IO ()
+serverLoop mode conn isSilent ghcSess state =
+    do msgs <- daemonReceive mode conn
+       continue <- forM msgs $ \case Right req -> respondTo ghcSess state (daemonSend mode conn) req
+                                     Left msg -> do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
+                                                    return True
+       sessionData <- readMVar state
+       when (not (sessionData ^. exiting) && all (== True) continue)
+         $ serverLoop mode conn isSilent ghcSess state
   `catch` interrupted
   where interrupted = \ex -> do
                         let err = show (ex :: IOException)
@@ -107,14 +140,9 @@ serverLoop isSilent ghcSess state sock =
                           putStrLn "Closing down socket"
                           hPutStrLn stderr $ "Some exception caught: " ++ err
 
-respondTo :: Session -> MVar DaemonSessionState -> (ByteString -> IO ()) -> ByteString -> IO Bool
-respondTo ghcSess state next mess
-  | BS.null mess = return True
-  | otherwise
-  = case decode mess of
-      Nothing -> do next $ encode $ ErrorMessage $ "MALFORMED MESSAGE: " ++ unpack mess
-                    return True
-      Just req -> modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient (next . encode) req) st) ghcSess)
+respondTo :: Session -> MVar DaemonSessionState -> (ResponseMsg -> IO ()) -> ClientMessage -> IO Bool
+respondTo ghcSess state next req
+  = modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient next req) st) ghcSess)
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a client
 updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc Bool
@@ -126,7 +154,7 @@ updateClient resp (AddPackages packagePathes) = do
     addPackages resp packagePathes
     return True
 updateClient _ (SetWorkingDir fp) = liftIO (setCurrentDirectory fp) >> return True
-updateClient resp (SetGHCFlags flags) = lift (useFlags flags) >> return True
+updateClient resp (SetGHCFlags flags) = lift (useFlags flags) >>= liftIO . resp . UnusedFlags >> return True
 updateClient _ (RemovePackages packagePathes) = do
     mcs <- gets (^. refSessMCs)
     let existingFiles = concatMap @[] (map (^. sfkFileName) . Map.keys) (mcs ^? traversal & filtered isRemoved & mcModules)
@@ -339,6 +367,7 @@ data ResponseMsg
   | ModulesChanged { undoChanges :: [UndoRefactor] }
   | LoadedModules { loadedModules :: [(FilePath, String)] }
   | LoadingModules { modulesToLoad :: [FilePath] }
+  | UnusedFlags { unusedFlags :: [String] }
   | Disconnected
   deriving (Show, Generic)
 
