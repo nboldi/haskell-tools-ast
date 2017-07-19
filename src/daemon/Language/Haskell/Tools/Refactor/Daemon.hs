@@ -125,6 +125,8 @@ updateClient _ (SetPackageDB pkgDB) = modify (packageDB .= pkgDB) >> return True
 updateClient resp (AddPackages packagePathes) = do
     addPackages resp packagePathes
     return True
+updateClient _ (SetWorkingDir fp) = liftIO (setCurrentDirectory fp) >> return True
+updateClient resp (SetGHCFlags flags) = lift (useFlags flags) >> return True
 updateClient _ (RemovePackages packagePathes) = do
     mcs <- gets (^. refSessMCs)
     let existingFiles = concatMap @[] (map (^. sfkFileName) . Map.keys) (mcs ^? traversal & filtered isRemoved & mcModules)
@@ -312,6 +314,8 @@ data ClientMessage
   | SetPackageDB { pkgDB :: PackageDB }
   | AddPackages { addedPathes :: [FilePath] }
   | RemovePackages { removedPathes :: [FilePath] }
+  | SetWorkingDir { newWorkingDir :: FilePath }
+  | SetGHCFlags { ghcFlags :: [String] }
   | PerformRefactoring { refactoring :: String
                        , modulePath :: FilePath
                        , editorSelection :: String
