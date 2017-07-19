@@ -61,31 +61,38 @@ import Language.Haskell.Tools.Refactor.Session
 import Paths_haskell_tools_daemon
 
 runDaemonCLI :: IO ()
-runDaemonCLI = getArgs >>= runDaemon socketMode
+runDaemonCLI = do store <- newEmptyMVar
+                  getArgs >>= runDaemon socketMode store
+
+runDaemon' :: [String] -> IO ()
+runDaemon' args = do store <- newEmptyMVar
+                     runDaemon socketMode store args
 
 data WorkingMode a = WorkingMode { daemonConnect :: [String] -> IO a
+                                 , daemonDisconnect :: a -> IO ()
                                  , daemonSend :: a -> ResponseMsg -> IO ()
                                  , daemonReceive :: a -> IO [Either String ClientMessage]
                                  }
 
-socketMode :: WorkingMode Socket
-socketMode = WorkingMode sockConn sockSend sockReceive
+socketMode :: WorkingMode (Socket,Socket)
+socketMode = WorkingMode sockConn sockDisconnect sockSend sockReceive
   where
     sockConn finalArgs = do
       sock <- socket AF_INET Stream 0
       setSocketOption sock ReuseAddr 1
       bind sock (SockAddrInet (read (finalArgs !! 0)) iNADDR_ANY)
-      listen sock 4
+      listen sock 1
       (conn, _) <- accept sock
-      return conn
-    sockSend sock = sendAll sock . (`BS.snoc` '\n') . encode
-    sockReceive sock = do
-      msg <- recv sock 2048
-      return $ if not $ BS.null msg -- null on TCP means closed connection
-        then -- when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
+      return (sock,conn)
+    sockDisconnect (sock,conn) = close conn >> close sock
+    sockSend (_,conn) = sendAll conn . (`BS.snoc` '\n') . encode
+    sockReceive (_,conn) = do
+      msg <- recv conn 2048
+      if not $ BS.null msg -- null on TCP means closed connection
+        then do -- when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
           let msgs = BS.split '\n' msg
-           in catMaybes $ map decodeMsg msgs
-        else []
+           in return $ catMaybes $ map decodeMsg msgs
+        else return []
       where decodeMsg :: ByteString -> Maybe (Either String ClientMessage)
             decodeMsg mess
               | BS.null mess = Nothing
@@ -94,22 +101,25 @@ socketMode = WorkingMode sockConn sockSend sockReceive
                 Just req -> Just $ Right req
 
 channelMode :: WorkingMode (Chan ResponseMsg, Chan ClientMessage)
-channelMode = WorkingMode chanConn chanSend chanReceive
+channelMode = WorkingMode chanConn chanDisconnect chanSend chanReceive
   where
     chanConn _ = (,) <$> newChan <*> newChan
+    chanDisconnect _ = return ()
     chanSend (send,_) resp = writeChan send resp
     chanReceive (_,recv) = (:[]) . Right <$> readChan recv
 
-runDaemon :: WorkingMode a -> [String] -> IO ()
-runDaemon mode args = withSocketsDo $
+runDaemon :: WorkingMode a -> MVar a -> [String] -> IO ()
+runDaemon mode connStore args = withSocketsDo $
     do let finalArgs = args ++ drop (length args) defaultArgs
            isSilent = read (finalArgs !! 1)
        hSetBuffering stdout LineBuffering
        hSetBuffering stderr LineBuffering
        when (not isSilent) $ putStrLn $ "Starting Haskell Tools daemon"
        conn <- daemonConnect mode finalArgs
+       putMVar connStore conn
        when (not isSilent) $ putStrLn $ "Listening on port " ++ finalArgs !! 0
        clientLoop mode conn isSilent
+       daemonDisconnect mode conn
 
 defaultArgs :: [String]
 defaultArgs = ["4123", "True"]
@@ -120,9 +130,9 @@ clientLoop mode conn isSilent
        ghcSess <- initGhcSession
        state <- newMVar initSession
        serverLoop mode conn isSilent ghcSess state
-       sessionData <- readMVar state
-       when (not (sessionData ^. exiting))
-         $ clientLoop mode conn isSilent
+      --  sessionData <- readMVar state
+      --  when (not (sessionData ^. exiting))
+      --    $ clientLoop mode conn isSilent
 
 serverLoop :: WorkingMode a -> a -> Bool -> Session -> MVar DaemonSessionState -> IO ()
 serverLoop mode conn isSilent ghcSess state =

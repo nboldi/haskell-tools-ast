@@ -8,6 +8,8 @@
 module Language.Haskell.Tools.Refactor.CLI (refactorSession, tryOut) where
 
 import Control.Applicative ((<|>))
+import Control.Concurrent.MVar
+import Control.Concurrent
 import Control.Exception (displayException)
 import Control.Monad.State.Strict
 import Control.Reference
@@ -34,6 +36,7 @@ import Language.Haskell.Tools.Refactor as HT
 import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.Session
+import Language.Haskell.Tools.Refactor.Daemon
 import Paths_haskell_tools_cli (version)
 
 type CLIRefactorSession = StateT CLISessionState Ghc
@@ -48,6 +51,20 @@ data CLISessionState =
 makeReferences ''CLISessionState
 
 deriving instance Show PkgConfRef
+
+daemonRefSession :: [String] -> IO Bool
+daemonRefSession args
+  | "-v" `elem` args = do
+    putStrLn $ showVersion version
+    return True
+daemonRefSession args = do
+  connStore <- newEmptyMVar
+  forkIO $ runDaemon channelMode connStore []
+  (recv,send) <- takeMVar connStore -- wait for the server to establish connection
+  wd <- getCurrentDirectory
+  writeChan send (SetWorkingDir wd)
+  writeChan send (SetGHCFlags args)
+  forever $ readChan recv >>= print
 
 tryOut :: IO ()
 tryOut = void $ refactorSession stdin stdout
