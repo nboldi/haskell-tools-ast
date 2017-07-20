@@ -92,9 +92,6 @@ clientLoop mode conn isSilent
        ghcSess <- initGhcSession
        state <- newMVar initSession
        serverLoop mode conn isSilent ghcSess state
-      --  sessionData <- readMVar state
-      --  when (not (sessionData ^. exiting))
-      --    $ clientLoop mode conn isSilent
 
 serverLoop :: WorkingMode a -> a -> Bool -> Session -> MVar DaemonSessionState -> IO ()
 serverLoop mode conn isSilent ghcSess state =
