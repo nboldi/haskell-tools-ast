@@ -7,4 +7,4 @@ import System.Exit
 import Language.Haskell.Tools.Refactor.CLI
 
 main :: IO ()
-main = refactorSession stdin stdout =<< getArgs
+main = normalRefactorSession stdin stdout =<< getArgs

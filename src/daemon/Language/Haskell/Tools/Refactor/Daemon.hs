@@ -53,6 +53,8 @@ import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor.Daemon.PackageDB
 import Language.Haskell.Tools.Refactor.Daemon.State
+import Language.Haskell.Tools.Refactor.Daemon.Mode
+import Language.Haskell.Tools.Refactor.Daemon.Protocol
 import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.Prepare
@@ -67,46 +69,6 @@ runDaemonCLI = do store <- newEmptyMVar
 runDaemon' :: [String] -> IO ()
 runDaemon' args = do store <- newEmptyMVar
                      runDaemon socketMode store args
-
-data WorkingMode a = WorkingMode { daemonConnect :: [String] -> IO a
-                                 , daemonDisconnect :: a -> IO ()
-                                 , daemonSend :: a -> ResponseMsg -> IO ()
-                                 , daemonReceive :: a -> IO [Either String ClientMessage]
-                                 }
-
-socketMode :: WorkingMode (Socket,Socket)
-socketMode = WorkingMode sockConn sockDisconnect sockSend sockReceive
-  where
-    sockConn finalArgs = do
-      sock <- socket AF_INET Stream 0
-      setSocketOption sock ReuseAddr 1
-      bind sock (SockAddrInet (read (finalArgs !! 0)) iNADDR_ANY)
-      listen sock 1
-      (conn, _) <- accept sock
-      return (sock,conn)
-    sockDisconnect (sock,conn) = close conn >> close sock
-    sockSend (_,conn) = sendAll conn . (`BS.snoc` '\n') . encode
-    sockReceive (_,conn) = do
-      msg <- recv conn 2048
-      if not $ BS.null msg -- null on TCP means closed connection
-        then do -- when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
-          let msgs = BS.split '\n' msg
-           in return $ catMaybes $ map decodeMsg msgs
-        else return []
-      where decodeMsg :: ByteString -> Maybe (Either String ClientMessage)
-            decodeMsg mess
-              | BS.null mess = Nothing
-              | otherwise = case decode mess of
-                Nothing -> Just $ Left $ "MALFORMED MESSAGE: " ++ unpack mess
-                Just req -> Just $ Right req
-
-channelMode :: WorkingMode (Chan ResponseMsg, Chan ClientMessage)
-channelMode = WorkingMode chanConn chanDisconnect chanSend chanReceive
-  where
-    chanConn _ = (,) <$> newChan <*> newChan
-    chanDisconnect _ = return ()
-    chanSend (send,_) resp = writeChan send resp
-    chanReceive (_,recv) = (:[]) . Right <$> readChan recv
 
 runDaemon :: WorkingMode a -> MVar a -> [String] -> IO ()
 runDaemon mode connStore args = withSocketsDo $
@@ -306,20 +268,6 @@ addPackages resp packagePathes = do
                      return True
             [] -> return True
 
-
-data UndoRefactor = RemoveAdded { undoRemovePath :: FilePath }
-                  | RestoreRemoved { undoRestorePath :: FilePath
-                                   , undoRestoreContents :: String
-                                   }
-                  | UndoChanges { undoChangedPath :: FilePath
-                                , undoDiff :: FileDiff
-                                }
-  deriving (Show, Generic)
-
-instance ToJSON UndoRefactor
-
-type FileDiff = [(Int, Int, String)]
-
 createUndo :: Eq a => Int -> [Diff [a]] -> [(Int, Int, [a])]
 createUndo i (Both str _ : rest) = createUndo (i + length str) rest
 createUndo i (First rem : Second add : rest)
@@ -345,49 +293,3 @@ usePackageDB pkgDbLocs
 getProblems :: RefactorException -> Either String [(SrcSpan, String)]
 getProblems (SourceCodeProblem errs) = Right $ map (\err -> (errMsgSpan err, show err)) $ bagToList errs
 getProblems other = Left $ displayException other
-
-data ClientMessage
-  = KeepAlive
-  | Handshake { clientVersion :: [Int] }
-  | SetPackageDB { pkgDB :: PackageDB }
-  | AddPackages { addedPathes :: [FilePath] }
-  | RemovePackages { removedPathes :: [FilePath] }
-  | SetWorkingDir { newWorkingDir :: FilePath }
-  | SetGHCFlags { ghcFlags :: [String] }
-  | PerformRefactoring { refactoring :: String
-                       , modulePath :: FilePath
-                       , editorSelection :: String
-                       , details :: [String]
-                       }
-  | Stop
-  | Disconnect
-  | ReLoad { addedModules :: [FilePath]
-           , changedModules :: [FilePath]
-           , removedModules :: [FilePath]
-           }
-  deriving (Show, Generic)
-
-instance FromJSON ClientMessage
-
-data ResponseMsg
-  = KeepAliveResponse
-  | HandshakeResponse { serverVersion :: [Int] }
-  | ErrorMessage { errorMsg :: String }
-  | CompilationProblem { errorMarkers :: [(SrcSpan, String)] }
-  | ModulesChanged { undoChanges :: [UndoRefactor] }
-  | LoadedModules { loadedModules :: [(FilePath, String)] }
-  | LoadingModules { modulesToLoad :: [FilePath] }
-  | UnusedFlags { unusedFlags :: [String] }
-  | Disconnected
-  deriving (Show, Generic)
-
-instance ToJSON ResponseMsg
-
-instance ToJSON SrcSpan where
-  toJSON (RealSrcSpan sp) = object [ "file" A..= unpackFS (srcSpanFile sp)
-                                   , "startRow" A..= srcLocLine (realSrcSpanStart sp)
-                                   , "startCol" A..= srcLocCol (realSrcSpanStart sp)
-                                   , "endRow" A..= srcLocLine (realSrcSpanEnd sp)
-                                   , "endCol" A..= srcLocCol (realSrcSpanEnd sp)
-                                   ]
-  toJSON _ = Null

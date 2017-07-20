@@ -5,7 +5,8 @@
            , TypeFamilies
            , StandaloneDeriving
            #-}
-module Language.Haskell.Tools.Refactor.CLI (refactorSession, tryOut) where
+module Language.Haskell.Tools.Refactor.CLI
+  (refactorSession, normalRefactorSession, tryOut) where
 
 import Control.Applicative
 import Control.Concurrent.MVar
@@ -37,21 +38,28 @@ import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.Session
 import Language.Haskell.Tools.Refactor.Daemon
+import Language.Haskell.Tools.Refactor.Daemon.Protocol
+import Language.Haskell.Tools.Refactor.Daemon.Mode (channelMode)
 import Paths_haskell_tools_cli (version)
 
 tryOut :: IO ()
-tryOut = void $ refactorSession stdin stdout
+tryOut = void $ normalRefactorSession stdin stdout
                   [ "-exec=OrganizeImports src\\ast\\Language\\Haskell\\Tools\\AST.hs"
                   , "src/ast", "src/backend-ghc", "src/prettyprint", "src/rewrite", "src/refactor"]
 
-refactorSession :: Handle -> Handle -> [String] -> IO ()
-refactorSession _ _ args
+type ServerInit = MVar (Chan ResponseMsg, Chan ClientMessage) -> IO ()
+
+normalRefactorSession :: Handle -> Handle -> [String] -> IO ()
+normalRefactorSession = refactorSession (\st -> void $ forkIO $ runDaemon channelMode st [])
+
+refactorSession :: ServerInit -> Handle -> Handle -> [String] -> IO ()
+refactorSession _ _ _ args
   | "-v" `elem` args = do
     putStrLn $ showVersion version
-refactorSession input output args = do
+refactorSession init input output args = do
   connStore <- newEmptyMVar
   isInteractive <- newEmptyMVar
-  forkIO $ runDaemon channelMode connStore []
+  init connStore
   (recv,send) <- takeMVar connStore -- wait for the server to establish connection
   wd <- getCurrentDirectory
   writeChan send (SetWorkingDir wd)
