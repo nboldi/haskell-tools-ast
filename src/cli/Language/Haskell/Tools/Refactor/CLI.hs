@@ -7,7 +7,7 @@
            #-}
 module Language.Haskell.Tools.Refactor.CLI (refactorSession, tryOut) where
 
-import Control.Applicative ((<|>))
+import Control.Applicative
 import Control.Concurrent.MVar
 import Control.Concurrent
 import Control.Exception (displayException)
@@ -39,197 +39,69 @@ import Language.Haskell.Tools.Refactor.Session
 import Language.Haskell.Tools.Refactor.Daemon
 import Paths_haskell_tools_cli (version)
 
-type CLIRefactorSession = StateT CLISessionState Ghc
+tryOut :: IO ()
+tryOut = void $ refactorSession stdin stdout
+                  [ "-exec=OrganizeImports src\\ast\\Language\\Haskell\\Tools\\AST.hs"
+                  , "src/ast", "src/backend-ghc", "src/prettyprint", "src/rewrite", "src/refactor"]
 
-data CLISessionState =
-  CLISessionState { _refactState :: RefactorSessionState
-                  , _actualMod :: Maybe SourceFileKey
-                  , _exiting :: Bool
-                  , _dryMode :: Bool
-                  }
-
-makeReferences ''CLISessionState
-
-deriving instance Show PkgConfRef
-
-daemonRefSession :: [String] -> IO Bool
-daemonRefSession args
+refactorSession :: Handle -> Handle -> [String] -> IO ()
+refactorSession _ _ args
   | "-v" `elem` args = do
     putStrLn $ showVersion version
-    return True
-daemonRefSession args = do
+refactorSession input output args = do
   connStore <- newEmptyMVar
+  isInteractive <- newEmptyMVar
   forkIO $ runDaemon channelMode connStore []
   (recv,send) <- takeMVar connStore -- wait for the server to establish connection
   wd <- getCurrentDirectory
   writeChan send (SetWorkingDir wd)
+  -- TODO: separate cmd arguments here instead of in daemon
   writeChan send (SetGHCFlags args)
-  forever $ readChan recv >>= print
+  forkIO $ forever $ do interactive <- takeMVar isInteractive
+                        when interactive (processUserInput input output send)
+  readFromSocket output isInteractive recv send
 
-tryOut :: IO ()
-tryOut = void $ refactorSession stdin stdout
-                  [ "-dry-run", "-one-shot", "-module-name=Language.Haskell.Tools.AST", "-refactoring=OrganizeImports"
-                  , "src/ast", "src/backend-ghc", "src/prettyprint", "src/rewrite", "src/refactor"]
+processUserInput :: Handle -> Handle -> Chan ClientMessage -> IO ()
+processUserInput input output chan = do
+  cmd <- hGetLine input
+  continue <- processCommand output chan cmd
+  when continue $ processUserInput input output chan
 
-refactorSession :: Handle -> Handle -> [String] -> IO Bool
-refactorSession _ _ args | "-v" `elem` args = do putStrLn $ showVersion version
-                                                 return True
-refactorSession input output args = runGhc (Just libdir) $ handleSourceError printSrcErrors
-                                                         $ flip evalStateT initSession $
-  do lift $ initGhcFlags
-     workingDirsAndHtFlags <- lift $ useFlags args
-     let (htFlags, workingDirs) = partition (\case ('-':_) -> True; _ -> False) workingDirsAndHtFlags
-     if null workingDirs then do liftIO $ hPutStrLn output usageMessage
-                                 return False
-                         else do initSuccess <- initializeSession output workingDirs htFlags
-                                 when initSuccess $ runSession input output htFlags
-                                 return initSuccess
-
-  where printSrcErrors err = do dfs <- getSessionDynFlags
-                                liftIO $ printBagOfErrors dfs (srcErrorMessages err)
-                                return False
-
-        initializeSession :: Handle -> [FilePath] -> [String] -> CLIRefactorSession Bool
-        initializeSession output workingDirs flags = do
-          liftIO $ hSetBuffering output NoBuffering
-          liftIO $ hPutStrLn output "Compiling modules. This may take some time. Please wait."
-          res <- loadPackagesFrom (\ms -> liftIO $ hPutStrLn output ("Loaded module: " ++ modSumName ms)) (const $ return ()) (\_ _ -> return []) workingDirs
-          case res of
-            Right _ -> do
-              liftIO . hPutStrLn output $ if ("-one-shot" `elem` flags)
-                then "All modules loaded."
-                else "All modules loaded. Use 'SelectModule module-name' to select a module."
-              when ("-dry-run" `elem` flags) $ modify (dryMode .= True)
-              return True
-            Left err -> liftIO $ do hPutStrLn output (displayException err)
-                                    return False
-
-        runSession :: Handle -> Handle -> [String] -> CLIRefactorSession ()
-        runSession _ output flags | "-one-shot" `elem` flags
-          = let modName = catMaybes $ map (\f -> case splitOn "=" f of ["-module-name", mod] -> Just mod; _ -> Nothing) flags
-                refactoring = catMaybes $ map (\f -> case splitOn "=" f of ["-refactoring", ref] -> Just ref; _ -> Nothing) flags
-             in case (modName, refactoring) of
-                  ([modName],[refactoring]) ->
-                    do performSessionCommand output (LoadModule modName)
-                       command <- readSessionCommand output (takeWhile (/='"') $ dropWhile (=='"') $ refactoring)
-                       void $ performSessionCommand output command
-                  ([],["ProjectOrganizeImports"]) ->
-                    void $ performSessionCommand output (RefactorCommand ProjectOrganizeImports)
-                  _ -> liftIO $ hPutStrLn output "-module-name or -refactoring flag not specified correctly. Not doing any refactoring."
-        runSession input output _ = runSessionLoop input output
-
-        runSessionLoop :: Handle -> Handle -> CLIRefactorSession ()
-        runSessionLoop input output = do
-          actualMod <- gets (^. actualMod)
-          liftIO $ hPutStr output (maybe "no-module-selected> " (\sfk -> (sfk ^. sfkModuleName) ++ "> ") actualMod)
-          cmd <- liftIO $ hGetLine input
-          sessionComm <- readSessionCommand output cmd
-          changedMods <- performSessionCommand output sessionComm
-          void $ reloadChangedModules (hPutStrLn output . ("Re-loaded module: " ++) . modSumName) (const $ return ())
-                   (\ms -> keyFromMS ms `elem` changedMods)
-          doExit <- gets (^. exiting)
-          when (not doExit) (void (runSessionLoop input output))
-
-        usageMessage = "Usage: ht-refact [ht-flags, ghc-flags] package-pathes\n"
-                         ++ "ht-flags: -dry-run -one-shot -module-name=modulename -refactoring=\"refactoring\""
-
-data RefactorSessionCommand
-  = LoadModule String
-  | Skip
-  | Exit
-  | RefactorCommand RefactorCommand
-  deriving Show
-
-readSessionCommand :: Handle -> String -> CLIRefactorSession RefactorSessionCommand
-readSessionCommand output cmd = case (splitOn " " cmd) of
-    ["SelectModule", mod] -> return $ LoadModule mod
-    ["Exit"] -> return Exit
-    cm | head cm `elem` refactorCommands
-       -> do actualMod <- gets (^. actualMod)
-             case readCommand cmd of
-               Right cmd ->
-                 case actualMod of Just _ -> return $ RefactorCommand cmd
-                                   Nothing -> do liftIO $ hPutStrLn output "Set the actual module first"
-                                                 return Skip
-               Left err -> do liftIO $ hPutStrLn output err
-                              return Skip
-    _ -> do liftIO $ hPutStrLn output $ "'" ++ cmd ++ "' is not a known command. Commands are: SelectModule, Exit, "
+processCommand :: Handle -> Chan ClientMessage -> String -> IO Bool
+processCommand output chan cmd =
+  case splitOn " " cmd of
+    ["Exit"] -> writeChan chan Disconnect >> return False
+    ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")
+               , ref `elem` refactorCommands
+       -> writeChan chan (PerformRefactoring ref modPath selection details) >> return True
+    _ -> do liftIO $ hPutStrLn output $ "'" ++ cmd ++ "' is not a known command. Commands are: Exit, "
                                             ++ intercalate ", " refactorCommands
-            return Skip
+            return True
 
-performSessionCommand :: Handle -> RefactorSessionCommand -> CLIRefactorSession [SourceFileKey]
-performSessionCommand output (LoadModule modName) = do
-  files <- HT.findModule modName
-  mcs <- gets (^. refSessMCs)
-  case nub files of
-    [] -> liftIO $ hPutStrLn output ("Cannot find module: " ++ modName)
-    [fileName] -> do
-      mod <- gets (lookupModInSCs (SourceFileKey fileName modName) . (^. refSessMCs))
-      modify $ actualMod .= fmap fst mod
-    _ -> liftIO $ hPutStrLn output ("Ambiguous module: " ++ modName ++ " found: " ++ show files ++ " " ++ show mcs)
-  return []
-performSessionCommand _ Skip = return []
-performSessionCommand _ Exit = do modify $ exiting .= True
-                                  return []
-performSessionCommand output (RefactorCommand cmd)
-  = do actMod <- gets (^. actualMod)
-       (actualMod, otherMods) <- getMods actMod
-       res <- case actualMod of
-         Just mod -> lift $ performCommand cmd mod otherMods
-         -- WALKAROUND: support running refactors that need no module selected
-         Nothing -> case otherMods of (hd:rest) -> lift $ performCommand cmd hd rest
-                                      []        -> return (Right [])
-       inDryMode <- gets (^. dryMode)
-       case res of Left err -> do liftIO $ hPutStrLn output err
-                                  return []
-                   Right resMods -> performChanges output inDryMode resMods
+readFromSocket :: Handle -> MVar Bool -> Chan ResponseMsg -> Chan ClientMessage -> IO ()
+readFromSocket output isInteractive recv send = do
+  continue <- readChan recv >>= processMessage output isInteractive send
+  when continue (readFromSocket output isInteractive recv send)
 
-  where performChanges :: HasModuleInfo dom => Handle -> Bool -> [RefactorChange dom] -> CLIRefactorSession [SourceFileKey]
-        performChanges output False resMods =
-          forM resMods $ \case
-            ModuleCreated n m otherM -> do
-              Just (_, otherMR) <- gets (lookupModInSCs otherM . (^. refSessMCs))
-              let Just otherMS = otherMR ^? modRecMS
+processMessage :: Handle -> MVar Bool -> Chan ClientMessage -> ResponseMsg -> IO Bool
+processMessage _ _ _ (ErrorMessage msg) = putStrLn msg >> return True
+processMessage _ _ _ (CompilationProblem marks) = print marks >> return True
+processMessage output _ _ (LoadedModules mods)
+  = mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods >> return True
+processMessage output isInteractive chan (UnusedFlags flags)
+  = do loadModules chan flags
+       performCmdOptions output isInteractive chan flags
+processMessage _ _ _ Disconnected = return False
+processMessage _ _ _ _ = return True
 
-              otherSrcDir <- liftIO $ getSourceDir otherMS
-              let loc = srcDirFromRoot otherSrcDir n
-              liftIO $ withBinaryFile loc WriteMode $ \handle -> do
-                hSetEncoding handle utf8
-                hPutStr handle (prettyPrint m)
-              return (SourceFileKey n (sourceFileModule (loc `makeRelative` n)))
-            ContentChanged (n,m) -> do
-              let file = n ^. sfkFileName
-              liftIO $ withBinaryFile file WriteMode $ \handle -> do
-                hSetEncoding handle utf8
-                hPutStr handle (prettyPrint m)
-              return n
-            ModuleRemoved mod -> do
-              Just (_,m) <- gets (lookupSourceFileInSCs mod . (^. refSessMCs))
-              case ( fmap semanticsModule (m ^? typedRecModule) <|> fmap semanticsModule (m ^? renamedRecModule)
-                   , fmap isBootModule (m ^? typedRecModule) <|> fmap isBootModule (m ^? renamedRecModule)) of
-                (Just modName, Just isBoot) -> do
-                  ms <- getModSummary modName isBoot
-                  let file = fromJust $ ml_hs_file $ ms_location ms
-                  modify $ (refSessMCs .- removeModule mod)
-                  liftIO $ removeFile file
-                  return (SourceFileKey file mod)
-                _ -> do liftIO $ hPutStrLn output ("Module " ++ mod ++ " could not be removed.")
-                        return (SourceFileKey "" mod)
+loadModules :: Chan ClientMessage -> [String] -> IO ()
+loadModules chan flags = writeChan chan (AddPackages roots)
+  where roots = filter (not . ("-" `isPrefixOf`)) flags
 
-        performChanges output True resMods = do
-          forM_ resMods (liftIO . \case
-            ContentChanged (n,m) -> do
-              hPutStrLn output $ "### Module changed: " ++ (n ^. sfkModuleName) ++ "\n### new content:\n" ++ prettyPrint m
-            ModuleRemoved mod ->
-              hPutStrLn output $ "### Module removed: " ++ mod
-            ModuleCreated n m _ ->
-              hPutStrLn output $ "### Module created: " ++ n ++ "\n### new content:\n" ++ prettyPrint m)
-          return []
-
-        getModSummary name boot
-          = do allMods <- lift getModuleGraph
-               return $ fromJust $ find (\ms -> ms_mod ms == name && (ms_hsc_src ms == HsSrcFile) /= boot) allMods
-
-instance IsRefactSessionState CLISessionState where
-  refSessMCs = refactState & _refSessMCs
-  initSession = CLISessionState initSession Nothing False False
+performCmdOptions :: Handle -> MVar Bool -> Chan ClientMessage -> [String] -> IO Bool
+performCmdOptions output isInteractive chan flags = do
+  mapM_ (processCommand output chan) cmds
+  putMVar isInteractive (null cmds)
+  when (not $ null cmds) $ writeChan chan Disconnect
+  return True
+  where cmds = catMaybes $ map (\f -> case splitOn "=" f of ["-exec", mod] -> Just mod; _ -> Nothing) flags

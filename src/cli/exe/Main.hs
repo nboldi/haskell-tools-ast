@@ -7,7 +7,4 @@ import System.Exit
 import Language.Haskell.Tools.Refactor.CLI
 
 main :: IO ()
-main = exit =<< refactorSession stdin stdout =<< getArgs
-  where exit :: Bool -> IO ()
-        exit True = exitSuccess
-        exit False = exitFailure
+main = refactorSession stdin stdout =<< getArgs
