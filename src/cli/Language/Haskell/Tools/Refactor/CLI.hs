@@ -76,7 +76,8 @@ processUserInput input output chan = do
   when continue $ processUserInput input output chan
 
 processCommand :: Handle -> Chan ClientMessage -> String -> IO Bool
-processCommand output chan cmd =
+processCommand output chan cmd = do
+  putStrLn cmd
   case splitOn " " cmd of
     ["Exit"] -> writeChan chan Disconnect >> return False
     ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")

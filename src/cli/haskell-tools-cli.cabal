@@ -12,6 +12,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 extra-source-files: bench-tests/*.txt
+                  , examples/example-project/*.hs
 
 library
   build-depends:       base                      >= 4.9 && < 4.10
@@ -39,6 +40,21 @@ executable ht-refact
                      , haskell-tools-cli         >= 0.8 && < 0.9
   hs-source-dirs:      exe
   main-is:             Main.hs
+  default-language:    Haskell2010
+
+test-suite haskell-tools-cli-tests
+  type:                exitcode-stdio-1.0
+  ghc-options:         -with-rtsopts=-M2g
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  build-depends:       base                      >= 4.9 && < 4.10
+                     , tasty                     >= 0.11 && < 0.12
+                     , tasty-hunit               >= 0.9 && < 0.10
+                     , directory                 >= 1.2 && < 1.4
+                     , filepath                  >= 1.4 && < 2.0
+                     , haskell-tools-cli         >= 0.8 && < 0.9
+                     , knob                      >= 0.1 && < 0.2
+                     , bytestring                >= 0.10 && < 0.11
   default-language:    Haskell2010
 
 executable ht-test-stackage
