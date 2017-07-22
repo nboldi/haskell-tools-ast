@@ -354,7 +354,6 @@ communicateWithDaemon port msgs = withSocketsDo $ do
                                  ((>> return []) . sendAll sock . (`BS.snoc` '\n') . encode)) msgs)
     sendAll sock $ encode Disconnect
     resps <- readSockResponsesUntil sock Disconnected BS.empty
-    -- sendAll sock $ encode Stop
     close sock
     return (concat intermedRes ++ resps)
   where waitToConnect sock addr

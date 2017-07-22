@@ -36,6 +36,7 @@ import Network.Socket.ByteString.Lazy
 import System.Directory
 import System.Environment
 import System.IO
+import System.IO.Error
 import System.IO.Strict as StrictIO (hGetContents)
 import Data.Version
 
@@ -81,34 +82,30 @@ runDaemon mode connStore args = withSocketsDo $
        conn <- daemonConnect mode finalArgs
        putMVar connStore conn
        when (not isSilent) $ putStrLn $ "Listening on port " ++ finalArgs !! 0
-       clientLoop mode conn isSilent
+       ghcSess <- initGhcSession
+       state <- newMVar initSession
+       serverLoop mode conn isSilent ghcSess state
        daemonDisconnect mode conn
 
 defaultArgs :: [String]
 defaultArgs = ["4123", "True"]
 
-clientLoop :: WorkingMode a -> a -> Bool -> IO ()
-clientLoop mode conn isSilent
-  = do when (not isSilent) $ putStrLn $ "Starting client loop"
-       ghcSess <- initGhcSession
-       state <- newMVar initSession
-       serverLoop mode conn isSilent ghcSess state
-
 serverLoop :: WorkingMode a -> a -> Bool -> Session -> MVar DaemonSessionState -> IO ()
 serverLoop mode conn isSilent ghcSess state =
-    do msgs <- daemonReceive mode conn
+  ( do msgs <- daemonReceive mode conn
        continue <- forM msgs $ \case Right req -> respondTo ghcSess state (daemonSend mode conn) req
                                      Left msg -> do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
                                                     return True
        sessionData <- readMVar state
        when (not (sessionData ^. exiting) && all (== True) continue)
          $ serverLoop mode conn isSilent ghcSess state
-  `catch` interrupted >> serverLoop mode conn isSilent ghcSess state
-  where interrupted = \ex -> do
-                        let err = show (ex :: SomeException)
-                        when (not isSilent) $ do
-                          hPutStrLn stderr $ "Exception caught: " ++ err
-                        daemonSend mode conn $ ErrorMessage $ "Internal error: " ++ err
+  `catchIOError` handleIOError )
+  `catch` (\e -> handleException e >> serverLoop mode conn isSilent ghcSess state)
+  where handleIOError err = hPutStrLn stderr $ "IO Exception caught: " ++ show err
+        handleException ex = do
+          let err = show (ex :: SomeException)
+          hPutStrLn stderr $ "Exception caught: " ++ err
+          daemonSend mode conn $ ErrorMessage $ "Internal error: " ++ err
 
 respondTo :: Session -> MVar DaemonSessionState -> (ResponseMsg -> IO ()) -> ClientMessage -> IO Bool
 respondTo ghcSess state next req
