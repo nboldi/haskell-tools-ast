@@ -49,13 +49,14 @@ tryOut = void $ normalRefactorSession stdin stdout
 
 type ServerInit = MVar (Chan ResponseMsg, Chan ClientMessage) -> IO ()
 
-normalRefactorSession :: Handle -> Handle -> [String] -> IO ()
+normalRefactorSession :: Handle -> Handle -> [String] -> IO Bool
 normalRefactorSession = refactorSession (\st -> void $ forkIO $ runDaemon channelMode st [])
 
-refactorSession :: ServerInit -> Handle -> Handle -> [String] -> IO ()
-refactorSession _ _ _ args
+refactorSession :: ServerInit -> Handle -> Handle -> [String] -> IO Bool
+refactorSession _ _ output args
   | "-v" `elem` args = do
-    putStrLn $ showVersion version
+    hPutStrLn output $ showVersion version
+    return True
 refactorSession init input output args = do
   connStore <- newEmptyMVar
   isInteractive <- newEmptyMVar
@@ -77,7 +78,6 @@ processUserInput input output chan = do
 
 processCommand :: Handle -> Chan ClientMessage -> String -> IO Bool
 processCommand output chan cmd = do
-  putStrLn cmd
   case splitOn " " cmd of
     ["Exit"] -> writeChan chan Disconnect >> return False
     ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")
@@ -87,21 +87,24 @@ processCommand output chan cmd = do
                                             ++ intercalate ", " refactorCommands
             return True
 
-readFromSocket :: Handle -> MVar Bool -> Chan ResponseMsg -> Chan ClientMessage -> IO ()
+readFromSocket :: Handle -> MVar Bool -> Chan ResponseMsg -> Chan ClientMessage -> IO Bool
 readFromSocket output isInteractive recv send = do
   continue <- readChan recv >>= processMessage output isInteractive send
-  when continue (readFromSocket output isInteractive recv send)
+  maybe (readFromSocket output isInteractive recv send) return continue
 
-processMessage :: Handle -> MVar Bool -> Chan ClientMessage -> ResponseMsg -> IO Bool
-processMessage _ _ _ (ErrorMessage msg) = putStrLn msg >> return True
-processMessage _ _ _ (CompilationProblem marks) = print marks >> return True
+-- | Returns Nothing if the execution should continue, Just False on erronous termination
+-- and Just True on normal termination.
+processMessage :: Handle -> MVar Bool -> Chan ClientMessage -> ResponseMsg -> IO (Maybe Bool)
+processMessage output _ _ (ErrorMessage msg) = hPutStrLn output msg >> return (Just False)
+processMessage output _ _ (CompilationProblem marks) = hPutStrLn output (show marks) >> return Nothing
 processMessage output _ _ (LoadedModules mods)
-  = mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods >> return True
+  = mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods >> return Nothing
 processMessage output isInteractive chan (UnusedFlags flags)
   = do loadModules chan flags
        performCmdOptions output isInteractive chan flags
-processMessage _ _ _ Disconnected = return False
-processMessage _ _ _ _ = return True
+       return Nothing
+processMessage _ _ _ Disconnected = return (Just True)
+processMessage _ _ _ _ = return Nothing
 
 loadModules :: Chan ClientMessage -> [String] -> IO ()
 loadModules chan flags = writeChan chan (AddPackages roots)

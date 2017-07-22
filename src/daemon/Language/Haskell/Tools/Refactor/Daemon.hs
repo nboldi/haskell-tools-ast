@@ -6,6 +6,7 @@
            , FlexibleContexts
            , MultiWayIf
            , TypeApplications
+           , TypeFamilies
            #-}
 module Language.Haskell.Tools.Refactor.Daemon where
 
@@ -102,12 +103,12 @@ serverLoop mode conn isSilent ghcSess state =
        sessionData <- readMVar state
        when (not (sessionData ^. exiting) && all (== True) continue)
          $ serverLoop mode conn isSilent ghcSess state
-  `catch` interrupted
+  `catch` interrupted >> serverLoop mode conn isSilent ghcSess state
   where interrupted = \ex -> do
-                        let err = show (ex :: IOException)
+                        let err = show (ex :: SomeException)
                         when (not isSilent) $ do
-                          putStrLn "Closing down socket"
-                          hPutStrLn stderr $ "Some exception caught: " ++ err
+                          hPutStrLn stderr $ "Exception caught: " ++ err
+                        daemonSend mode conn $ ErrorMessage $ "Internal error: " ++ err
 
 respondTo :: Session -> MVar DaemonSessionState -> (ResponseMsg -> IO ()) -> ClientMessage -> IO Bool
 respondTo ghcSess state next req
@@ -158,23 +159,28 @@ updateClient resp (ReLoad added changed removed) =
 
 updateClient _ Stop = modify (exiting .= True) >> return False
 
+-- TODO: perform refactorings without selected modules
 updateClient resp (PerformRefactoring refact modPath selection args) = do
     (selectedMod, otherMods) <- getFileMods modPath
-    case selectedMod of
-      Just actualMod -> do
-        case analyzeCommand refact (selection:args) of
-           Right cmd -> do res <- lift $ performCommand cmd actualMod otherMods
-                           case res of
-                             Left err -> liftIO $ resp $ ErrorMessage err
-                             Right diff -> do changedMods <- applyChanges diff
-                                              liftIO $ resp $ ModulesChanged (map (either id (\(_,_,ch) -> ch)) changedMods)
-                                              void $ reloadChanges (map ((^. sfkModuleName) . (\(key,_,_) -> key)) (rights changedMods))
-           Left err -> liftIO $ resp $ ErrorMessage err
-      Nothing -> liftIO $ resp $ ErrorMessage $ "The following file is not loaded to Haskell-tools: "
-                                                   ++ modPath ++ ". Please add the containing package."
+    case (selectedMod, analyzeCommand refact (selection:args)) of
+      (Just actualMod, Right cmd) -> performRefactoring cmd actualMod otherMods
+      (Nothing, Right cmd)
+        -> case modPath of
+             "" -> case otherMods of -- empty module path is no module selected (example: ProjectOrganizeImports)
+                     mod:rest -> performRefactoring cmd mod rest
+                     [] -> return ()
+             _ -> liftIO $ resp $ ErrorMessage $ "The following file is not loaded to Haskell-tools: "
+                                                        ++ modPath ++ ". Please add the containing package."
+      (_, Left err) -> liftIO $ resp $ ErrorMessage err
     return True
-
-  where applyChanges changes = do
+  where performRefactoring cmd actualMod otherMods = do
+          res <- lift $ performCommand cmd actualMod otherMods
+          case res of
+            Left err -> liftIO $ resp $ ErrorMessage err
+            Right diff -> do changedMods <- applyChanges diff
+                             liftIO $ resp $ ModulesChanged (map (either id (\(_,_,ch) -> ch)) changedMods)
+                             void $ reloadChanges (map ((^. sfkModuleName) . (\(key,_,_) -> key)) (rights changedMods))
+        applyChanges changes = do
           forM changes $ \case
             ModuleCreated n m otherM -> do
               mcs <- gets (^. refSessMCs)

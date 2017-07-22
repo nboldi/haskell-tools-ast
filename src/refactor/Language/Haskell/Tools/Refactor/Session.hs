@@ -95,8 +95,9 @@ getFileMods :: (GhcMonad m, IsRefactSessionState st)
                                    , [(SourceFileKey, UnnamedModule IdDom)] )
 getFileMods fname
   = do mcs <- gets (^. refSessMCs)
-       let mods = map (\(k,m) -> (fromMaybe (error $ "getFileMods: module not loaded: " ++ show m) $ m ^? modRecMS, k))
-                      (concatMap Map.assocs $ (mcs ^? traversal & mcModules :: [Map.Map SourceFileKey ModuleRecord]))
+       liftIO $ putStrLn (show mcs)
+       let mods = mapMaybe (\(k,m) -> fmap (,k) (m ^? modRecMS))
+                           (concatMap @[] Map.assocs $ (mcs ^? traversal & mcModules))
        let sfs = catMaybes $ map (\(ms,k) -> if Just fname == fmap normalise (ml_hs_file (ms_location ms)) then Just k else Nothing) mods
        case sfs of sf:_ -> getMods (Just sf)
                    [] -> getMods Nothing
