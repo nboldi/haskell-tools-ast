@@ -11,8 +11,7 @@ category:            Language
 build-type:          Simple
 cabal-version:       >=1.10
 
-extra-source-files: bench-tests/*.txt
-                  , examples/example-project/*.hs
+extra-source-files: examples/example-project/*.hs
 
 library
   build-depends:       base                      >= 4.9 && < 4.10

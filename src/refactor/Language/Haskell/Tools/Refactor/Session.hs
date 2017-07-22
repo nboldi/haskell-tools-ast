@@ -96,7 +96,6 @@ getFileMods :: (GhcMonad m, IsRefactSessionState st)
                                    , [(SourceFileKey, UnnamedModule IdDom)] )
 getFileMods fname
   = do mcs <- gets (^. refSessMCs)
-       liftIO $ putStrLn (show mcs)
        let mods = mapMaybe (\(k,m) -> fmap (,k) (m ^? modRecMS))
                            (concatMap @[] Map.assocs $ (mcs ^? traversal & mcModules))
        let sfs = catMaybes $ map (\(ms,k) -> if | Just fname == fmap normalise (ml_hs_file (ms_location ms)) -> Just (False, k)
