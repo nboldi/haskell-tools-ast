@@ -35,7 +35,7 @@ main = do
   args <- getArgs
   (year, month, day) <- date
   cases <- bms2Mcases (Date {..}) bms
-  case args of 
+  case args of
     [file] -> writeFile file (show $ encode cases)
     _ -> putStrLn $ LazyBS.unpack $ encode cases
   putStrLn "Execution times (cycles):"
@@ -149,13 +149,13 @@ benchmakable wd rfs = Benchmarkable $ \ _ -> do
   makeCliTest wd rfs
 
 makeCliTest :: String -> [String] -> IO ()
-makeCliTest wd rfs = do   
+makeCliTest wd rfs = do
     copyDir wd (wd ++ "_orig")
     inKnob <- newKnob (BS.pack $ unlines rfs)
     inHandle <- newFileHandle inKnob "<input>" ReadMode
     outKnob <- newKnob (BS.pack [])
     outHandle <- newFileHandle outKnob "<output>" WriteMode
-    void $ refactorSession inHandle outHandle [wd]
+    void $ normalRefactorSession inHandle outHandle [wd]
   `finally` do removeDirectoryRecursive wd
                renameDirectory (wd ++ "_orig") wd
 
