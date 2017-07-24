@@ -1,7 +1,7 @@
 build: off
 
 cache:
-- "c:\\sr" # stack root, short paths == fewer problems
+- "c:\\sr" -> appveyor-cleanup-cache.txt # stack root, short paths == fewer problems
 
 before_test:
 # http://help.appveyor.com/discussions/problems/6312-curl-command-not-found
