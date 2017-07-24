@@ -51,6 +51,8 @@ data ClientMessage
            }
     -- ^ Instructs the engine to re-load a changed module.
     -- LoadingModules, LoadedModules responses may be sent.
+  | Stop
+    -- ^ Stops the server. OBSOLATE
   deriving (Show, Generic)
 
 instance FromJSON ClientMessage
