@@ -109,19 +109,19 @@ loadingTests =
                        , testRoot </> "multi-packages-dependent" </> "package2" </> "B.hs" ]
       , LoadedModules [ (testRoot </> "multi-packages-dependent" </> "package1" </> "A.hs", "A") ]
       , LoadedModules [ (testRoot </> "multi-packages-dependent" </> "package2" </> "B.hs", "B") ] ] )
-  , ( "has-th"
-    , [AddPackages [testRoot </> "has-th"]]
-    , [ LoadingModules [ testRoot </> "has-th" </> "TH.hs", testRoot </> "has-th" </> "A.hs" ]
-      , LoadedModules [ (testRoot </> "has-th" </> "TH.hs", "TH") ]
-      , LoadedModules [ (testRoot </> "has-th" </> "A.hs", "A") ] ] )
-  , ( "th-added-later"
-    , [ AddPackages [testRoot </> "th-added-later" </> "package1"]
-      , AddPackages [testRoot </> "th-added-later" </> "package2"]
-      ]
-    , [ LoadingModules [ testRoot </> "th-added-later" </> "package1" </> "A.hs" ]
-      , LoadedModules [(testRoot </> "th-added-later" </> "package1" </> "A.hs", "A")]
-      , LoadingModules [ testRoot </> "th-added-later" </> "package2" </> "B.hs" ]
-      , LoadedModules [(testRoot </> "th-added-later" </> "package2" </> "B.hs", "B")] ] )
+  -- , ( "has-th"
+  --   , [AddPackages [testRoot </> "has-th"]]
+  --   , [ LoadingModules [ testRoot </> "has-th" </> "TH.hs", testRoot </> "has-th" </> "A.hs" ]
+  --     , LoadedModules [ (testRoot </> "has-th" </> "TH.hs", "TH") ]
+  --     , LoadedModules [ (testRoot </> "has-th" </> "A.hs", "A") ] ] )
+  -- , ( "th-added-later"
+  --   , [ AddPackages [testRoot </> "th-added-later" </> "package1"]
+  --     , AddPackages [testRoot </> "th-added-later" </> "package2"]
+  --     ]
+  --   , [ LoadingModules [ testRoot </> "th-added-later" </> "package1" </> "A.hs" ]
+  --     , LoadedModules [(testRoot </> "th-added-later" </> "package1" </> "A.hs", "A")]
+  --     , LoadingModules [ testRoot </> "th-added-later" </> "package2" </> "B.hs" ]
+  --     , LoadedModules [(testRoot </> "th-added-later" </> "package2" </> "B.hs", "B")] ] )
   , ( "unused-module"
     , [ AddPackages [testRoot </> "unused-mod"] ]
     , [ LoadingModules [ testRoot </> "unused-mod" </> "Main.hs" ]
