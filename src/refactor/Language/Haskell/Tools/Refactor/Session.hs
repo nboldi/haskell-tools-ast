@@ -34,6 +34,7 @@ import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.RefactorBase
 
+
 -- | The state common for refactoring tools, carrying the state of modules.
 data RefactorSessionState
   = RefactorSessionState { __refSessMCs :: [ModuleCollection SourceFileKey]
@@ -54,7 +55,7 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
      st <- get
      moreSrcDirs <- liftIO $ mapM (additionalSrcDirs st) packages
      lift $ useDirs ((modColls ^? traversal & mcSourceDirs & traversal) ++ concat moreSrcDirs)
-     let dirsMods = map (\mc -> (map ((mc ^. mcRoot) </>) (mc ^. mcSourceDirs), getExposedModules mc)) modColls
+     let dirsMods = map (\mc -> (mc ^. mcSourceDirs, getExposedModules mc)) modColls
          alreadyLoadedFilesInOtherPackages
            = concatMap (map (^. sfkFileName) . Map.keys . Map.filter (isJust . (^? typedRecModule)) . (^. mcModules))
                        (filter (\mc -> (mc ^. mcRoot) `notElem` packages) allModColls)
@@ -82,8 +83,8 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
           = makeTarget <$> filterM doesFileExist
                              (map (</> toFileName modName) srcFolders)
           where toFileName = (<.> "hs") . List.intercalate [pathSeparator] . splitOn "."
-                makeTarget [] = (Target (TargetModule (GHC.mkModuleName modName)) True Nothing)
-                makeTarget (fn:_) = (Target (TargetFile fn Nothing) True Nothing)
+                makeTarget [] = Target (TargetModule (GHC.mkModuleName modName)) True Nothing
+                makeTarget (fn:_) = Target (TargetFile fn Nothing) True Nothing
 
         getExposedModules :: ModuleCollection ModuleNameStr -> [ModuleNameStr]
         getExposedModules

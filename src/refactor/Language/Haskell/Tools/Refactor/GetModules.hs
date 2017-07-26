@@ -9,6 +9,7 @@
 -- | Representation and operations for module collections (libraries, executables, ...) in the framework.
 module Language.Haskell.Tools.Refactor.GetModules where
 
+import Control.Applicative
 import Control.Monad
 import Control.Reference
 import Data.Function (on)
@@ -102,13 +103,14 @@ hasGeneratedCode key = maybe False ((\case ModuleCodeGenerated {} -> True; _ -> 
                          . lookupModInSCs key
 
 needsGeneratedCode :: SourceFileKey -> [ModuleCollection SourceFileKey] -> Bool
-needsGeneratedCode key = maybe False ((\case ModuleCodeGenerated {} -> True; ModuleNotLoaded True _ -> True; _ -> False) . snd)
-                           . lookupModInSCs key
+needsGeneratedCode key mcs = maybe False ((\case ModuleCodeGenerated {} -> True; ModuleNotLoaded True _ -> True; _ -> False) . snd)
+                              $ lookupModInSCs key mcs <|> lookupModInSCs (sfkFileName .= "" $ key) mcs
 
 codeGeneratedFor :: SourceFileKey -> [ModuleCollection SourceFileKey] -> [ModuleCollection SourceFileKey]
-codeGeneratedFor key = map (mcModules .- Map.adjust (\case (ModuleTypeChecked mod ms) -> ModuleCodeGenerated mod ms
-                                                           ModuleNotLoaded _ exp -> ModuleNotLoaded True exp
-                                                           r -> r) key)
+codeGeneratedFor key = map (mcModules .- Map.adjust setCodeGen (sfkFileName .= "" $ key) . Map.adjust setCodeGen key)
+  where setCodeGen (ModuleTypeChecked mod ms) = ModuleCodeGenerated mod ms
+        setCodeGen (ModuleNotLoaded _ exp) = ModuleNotLoaded True exp
+        setCodeGen m = m
 
 isAlreadyLoaded :: SourceFileKey -> [ModuleCollection SourceFileKey] -> Bool
 isAlreadyLoaded key = maybe False (\case (_, ModuleNotLoaded {}) -> False; _ -> True)
