@@ -23,7 +23,6 @@ data WatchProcess
   = WatchProcess { _watchPHandle :: ProcessHandle
                  , _watchStdIn :: Handle
                  , _watchStdOut :: Handle
-                 , _watchStore :: IO [String]
                  , _watchThreads :: [ThreadId]
                  }
 
