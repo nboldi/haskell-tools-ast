@@ -2,7 +2,7 @@
 module Language.Haskell.Tools.Refactor.Daemon.State where
 
 import Control.Reference
-
+import Control.Concurrent
 import System.Process
 import System.IO
 
@@ -24,6 +24,7 @@ data WatchProcess
                  , _watchStdIn :: Handle
                  , _watchStdOut :: Handle
                  , _watchStore :: IO [String]
+                 , _watchThreads :: [ThreadId]
                  }
 
 

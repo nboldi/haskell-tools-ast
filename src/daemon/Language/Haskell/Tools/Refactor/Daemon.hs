@@ -96,6 +96,8 @@ runDaemon mode connStore args = withSocketsDo $
                          Nothing -> return Nothing
        modifyMVarMasked_ state ( \s -> return s { _watchProc = watchProcess })
        serverLoop mode conn isSilent ghcSess state
+       case watchProcess of Just wp -> stopWatch wp
+                            Nothing -> return ()
        daemonDisconnect mode conn
 
 defaultArgs :: [String]
@@ -104,6 +106,7 @@ defaultArgs = ["4123", "True"]
 serverLoop :: WorkingMode a -> a -> Bool -> Session -> MVar DaemonSessionState -> IO ()
 serverLoop mode conn isSilent ghcSess state =
   ( do msgs <- daemonReceive mode conn
+       print ("serverLoop:messagesReceived", msgs)
        continue <- forM msgs $ \case Right req -> respondTo ghcSess state (daemonSend mode conn) req
                                      Left msg -> do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
                                                     return True
@@ -319,26 +322,51 @@ createWatchProcess watchExePath ghcSess daemonSess upClient = do
     hSetBuffering _watchStdOut NoBuffering
     hSetNewlineMode _watchStdIn (NewlineMode LF LF)
     hSetNewlineMode _watchStdOut (NewlineMode LF LF)
+    -- collects changes that appear in a given timeframe
     store <- newEmptyMVar
-    forkIO $ forever $ void $ do
+    collectorThread <- forkIO $ forever $ void $ do
+        print ("collectorThread:ready")
         str <- hGetLine _watchStdOut
-        case words str of
-          (["Mod", fn]) -> do
-            let rel = ReLoad [] [ {- get rid of escapes and quoutes -} read fn ] []
-            modifyMVar daemonSess (\st -> swap <$> reflectGhc (runStateT (updateClient upClient rel) st) ghcSess)
-            return ()
-          (["Ptr", fn]) -> return () -- package registered
-          _ -> putStrLn $ "watch_e: word str wrong param: " ++ show (words str)
-        st <- tryTakeMVar store
-        case st of
-          Nothing -> putMVar store [str]
-          (Just strs) -> putMVar store (strs ++ [str])
-    let _watchStore = takeMVar store
-    return WatchProcess {..}
+        print ("change", str)
+        put <- tryPutMVar store [str] -- when the mvar is empty (this is the first change since last reload)
+        print ("change:put", put)
+        when (not put) $ modifyMVar_ store (return . (++ [str])) -- otherwise append
+    reloaderThread <- forkIO $ forever $ void $ do
+        print ("reloaderThread:ready")
+        firstChanges <- readMVar store
+        print ("change:startToAccumulate")
+        allChanges <- accumulateChanges store firstChanges
+        print ("change:accumulated", allChanges)
+        changedFiles <- catMaybes <$> mapM getChangedFile allChanges
+        print ("change:changedFiles", changedFiles)
+        let rel = ReLoad [] changedFiles []
+        print ("change:reloading", rel)
+        when (not $ null changedFiles)
+          $ void $ modifyMVar daemonSess (\st -> swap <$> reflectGhc (runStateT (updateClient upClient rel) st) ghcSess)
+        print ("change:reloaded")
+    let _watchThreads = [collectorThread, reloaderThread]
+    return WatchProcess { .. }
+  where accumulateChanges store previous = do
+          threadDelay 100000 -- wait for 0.1 seconds
+          changes <- readMVar store
+          if changes == previous then takeMVar store
+                                 else accumulateChanges store changes
+        getChangedFile str =
+          case words str of
+            (["Mod", fn]) -> return (Just ({- get rid of escapes and quotes -} read fn))
+            (["Prt", _]) -> return Nothing -- package registered
+            _ -> do putStrLn $ "watch_e: word str wrong param: " ++ show (words str)
+                    return Nothing
+
 
 watchNew :: FilePath -> StateT DaemonSessionState Ghc ()
 watchNew fp = do
     watch <- gets (^. watchProc)
-    case watch of Just w -> void $ liftIO $ do hPutStrLn (_watchStdIn w) $ "watch " ++ fp
-                                               hGetLine (_watchStdOut w)
+    case watch of Just w -> void $ liftIO $ hPutStrLn (_watchStdIn w) $ "watch " ++ fp
                   _      -> return ()
+
+stopWatch :: WatchProcess -> IO ()
+stopWatch WatchProcess{..}
+  = do hPutStrLn _watchStdIn $ "exit"
+       forM _watchThreads killThread
+       void $ waitForProcess _watchPHandle
