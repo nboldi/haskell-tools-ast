@@ -1,9 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables
-           , OverloadedStrings
-           , DeriveGeneric
-           , LambdaCase
-           , TemplateHaskell
-           , FlexibleContexts
+{-# LANGUAGE LambdaCase
            , MultiWayIf
            , TypeApplications
            , TypeFamilies
@@ -13,8 +8,8 @@ module Language.Haskell.Tools.Refactor.Daemon.Update where
 
 import Control.Applicative ((<|>))
 import Control.Concurrent
-import Control.Concurrent.MVar
 import Control.Concurrent.Chan
+import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
 import Control.Monad.State.Strict
@@ -32,17 +27,17 @@ import Data.List hiding (insert)
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Tuple
+import Data.Version
 import GHC.Generics
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
 import Network.Socket.ByteString.Lazy
 import System.Directory
 import System.Environment
+import System.FilePath
 import System.IO
 import System.IO.Error
 import System.IO.Strict as StrictIO (hGetContents)
 import System.Process
-import System.FilePath
-import Data.Version
 
 import Bag
 import DynFlags
@@ -55,16 +50,16 @@ import HscTypes (hsc_mod_graph)
 import Packages
 import SrcLoc
 
+import Language.Haskell.Tools.AST
+import Language.Haskell.Tools.PrettyPrint
+import Language.Haskell.Tools.Refactor.Daemon.PackageDB
+import Language.Haskell.Tools.Refactor.Daemon.Protocol
+import Language.Haskell.Tools.Refactor.Daemon.State
 import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Refactor.Session
-import Language.Haskell.Tools.Refactor.Daemon.Protocol
-import Language.Haskell.Tools.Refactor.Daemon.State
-import Language.Haskell.Tools.Refactor.Daemon.PackageDB
-import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.PrettyPrint
 import Paths_haskell_tools_daemon
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a client

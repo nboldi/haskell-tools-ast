@@ -1,62 +1,29 @@
 {-# LANGUAGE RecordWildCards #-}
 module Language.Haskell.Tools.Refactor.Daemon.Watch where
 
-import Control.Applicative ((<|>))
 import Control.Concurrent
 import Control.Concurrent.MVar
-import Control.Concurrent.Chan
-import Control.Exception
 import Control.Monad
 import Control.Monad.State.Strict
 import Control.Reference hiding (modifyMVarMasked_)
-import qualified Data.Aeson as A ((.=))
-import Data.Aeson hiding ((.=))
-import Data.Algorithm.Diff
-import qualified Data.ByteString.Char8 as StrictBS
-import Data.ByteString.Lazy.Char8 (ByteString)
-import Data.ByteString.Lazy.Char8 (unpack)
-import qualified Data.ByteString.Lazy.Char8 as BS
-import Data.Either
-import Data.IORef
+import qualified Data.Aeson as A ()
 import Data.List hiding (insert)
-import qualified Data.Map as Map
-import Data.Maybe
-import Data.Tuple
-import GHC.Generics
+import Data.Maybe (Maybe(..), catMaybes)
+import Data.Tuple (swap)
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
-import Network.Socket.ByteString.Lazy
-import System.Directory
-import System.Environment
+import System.FilePath (FilePath)
 import System.IO
-import System.IO.Error
-import System.IO.Strict as StrictIO (hGetContents)
 import System.Process
-import System.FilePath
-import Data.Version
 
-import Bag
-import DynFlags
-import ErrUtils
-import FastString (unpackFS)
+import DynFlags ()
 import GHC hiding (loadModule)
-import GHC.Paths ( libdir )
-import GhcMonad (GhcMonad(..), Session(..), reflectGhc, modifySession)
-import HscTypes (hsc_mod_graph)
-import Packages
-import SrcLoc
-
-import Language.Haskell.Tools.Refactor.GetModules
-import Language.Haskell.Tools.Refactor.Perform
-import Language.Haskell.Tools.Refactor.Prepare
-import Language.Haskell.Tools.Refactor.RefactorBase
-import Language.Haskell.Tools.Refactor.Session
-import Language.Haskell.Tools.Refactor.Daemon.Protocol
-import Language.Haskell.Tools.Refactor.Daemon.State
-import Language.Haskell.Tools.Refactor.Daemon.PackageDB
-import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.PrettyPrint
-import Paths_haskell_tools_daemon
-import Language.Haskell.Tools.Refactor.Daemon.Update
+import GhcMonad (GhcMonad(..), Session(..), reflectGhc)
+import Language.Haskell.Tools.AST ()
+import Language.Haskell.Tools.PrettyPrint ()
+import Language.Haskell.Tools.Refactor.Daemon.PackageDB ()
+import Language.Haskell.Tools.Refactor.Daemon.Protocol (ResponseMsg, ClientMessage(..))
+import Language.Haskell.Tools.Refactor.Daemon.State (WatchProcess(..), DaemonSessionState)
+import Language.Haskell.Tools.Refactor.Daemon.Update (updateClient)
 
 createWatchProcess :: FilePath -> Session -> MVar DaemonSessionState -> (ResponseMsg -> IO ()) -> IO WatchProcess
 createWatchProcess watchExePath ghcSess daemonSess upClient = do

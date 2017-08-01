@@ -1,21 +1,11 @@
-{-# LANGUAGE ScopedTypeVariables
-           , OverloadedStrings
-           , DeriveGeneric
-           , LambdaCase
-           , TemplateHaskell
-           , FlexibleContexts
-           , MultiWayIf
-           , TypeApplications
-           , TypeFamilies
-           , RecordWildCards
-           #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Language.Haskell.Tools.Refactor.Daemon where
 
 import Control.Applicative ((<|>))
 import Control.Concurrent
-import Control.Concurrent.MVar
 import Control.Concurrent.Chan
+import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
 import Control.Monad.State.Strict
@@ -33,17 +23,17 @@ import Data.List hiding (insert)
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Tuple
+import Data.Version
 import GHC.Generics
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
 import Network.Socket.ByteString.Lazy
 import System.Directory
 import System.Environment
+import System.FilePath
 import System.IO
 import System.IO.Error
 import System.IO.Strict as StrictIO (hGetContents)
 import System.Process
-import System.FilePath
-import Data.Version
 
 import Bag
 import DynFlags
@@ -58,10 +48,10 @@ import SrcLoc
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.Refactor.Daemon.PackageDB
-import Language.Haskell.Tools.Refactor.Daemon.State
 import Language.Haskell.Tools.Refactor.Daemon.Mode
+import Language.Haskell.Tools.Refactor.Daemon.PackageDB
 import Language.Haskell.Tools.Refactor.Daemon.Protocol
+import Language.Haskell.Tools.Refactor.Daemon.State
 import Language.Haskell.Tools.Refactor.Daemon.Update
 import Language.Haskell.Tools.Refactor.Daemon.Watch
 import Language.Haskell.Tools.Refactor.GetModules
