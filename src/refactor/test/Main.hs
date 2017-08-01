@@ -337,6 +337,8 @@ renameDefinitionTests =
   , ("Refactor.RenameDefinition.RenameModuleAlias", "3:21-3:23", "L")
   , ("Refactor.RenameDefinition.MergeFields", "3:14-3:15", "y")
   , ("Refactor.RenameDefinition.MergeFields_RenameY", "3:34-3:35", "x")
+  , ("Refactor.RenameDefinition.PatternSynonym", "6:9", "ArrowAppl")
+  , ("Refactor.RenameDefinition.PatternSynonymTypeSig", "6:9", "ArrowAppl")
   ]
 
 wrongRenameDefinitionTests =
@@ -591,7 +593,7 @@ performRefactors command workingDir flags target = do
       initGhcFlagsForTest
       useFlags flags
       useDirs [workingDir]
-      setTargets (map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) (concatMap (map (^. sfkModuleName) . Map.keys . (^. mcModules)) mods))
+      setTargets (map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) (concatMap (Map.keys . (^. mcModules)) mods))
       load LoadAllTargets
       allMods <- getModuleGraph
       selectedMod <- getModSummary (GHC.mkModuleName target)
