@@ -7,16 +7,19 @@
            , MultiWayIf
            , TypeApplications
            , TypeFamilies
+           , RecordWildCards
            #-}
+
 module Language.Haskell.Tools.Refactor.Daemon where
 
 import Control.Applicative ((<|>))
+import Control.Concurrent
 import Control.Concurrent.MVar
 import Control.Concurrent.Chan
 import Control.Exception
 import Control.Monad
 import Control.Monad.State.Strict
-import Control.Reference
+import Control.Reference hiding (modifyMVarMasked_)
 import qualified Data.Aeson as A ((.=))
 import Data.Aeson hiding ((.=))
 import Data.Algorithm.Diff
@@ -38,6 +41,8 @@ import System.Environment
 import System.IO
 import System.IO.Error
 import System.IO.Strict as StrictIO (hGetContents)
+import System.Process
+import System.FilePath
 import Data.Version
 
 import Bag
@@ -84,6 +89,8 @@ runDaemon mode connStore args = withSocketsDo $
        when (not isSilent) $ putStrLn $ "Listening on port " ++ finalArgs !! 0
        ghcSess <- initGhcSession
        state <- newMVar initSession
+       watchProcess <- createWatchProcess ghcSess state (daemonSend mode conn)
+       modifyMVarMasked_ state ( \s -> return s { _watchProc = Just watchProcess })
        serverLoop mode conn isSilent ghcSess state
        daemonDisconnect mode conn
 
@@ -93,6 +100,7 @@ defaultArgs = ["4123", "True"]
 serverLoop :: WorkingMode a -> a -> Bool -> Session -> MVar DaemonSessionState -> IO ()
 serverLoop mode conn isSilent ghcSess state =
   ( do msgs <- daemonReceive mode conn
+       liftIO $ putStrLn $ "serverloop_e: " ++ show msgs
        continue <- forM msgs $ \case Right req -> respondTo ghcSess state (daemonSend mode conn) req
                                      Left msg -> do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
                                                     return True
@@ -136,7 +144,8 @@ updateClient _ (RemovePackages packagePathes) = do
 
 updateClient resp (ReLoad added changed removed) =
   -- TODO: check for changed cabal files and reload their packages
-  do mcs <- gets (^. refSessMCs)
+  do liftIO $ putStrLn $ "reload_e: " ++ show added ++ " // " ++ show changed ++ " // " ++ show removed
+     mcs <- gets (^. refSessMCs)
      lift $ forM_ removed (\src -> removeTarget (TargetFile src Nothing))
      -- remove targets deleted
      modify $ refSessMCs & traversal & mcModules
@@ -227,6 +236,17 @@ addPackages :: (ResponseMsg -> IO ()) -> [FilePath] -> StateT DaemonSessionState
 addPackages resp [] = return ()
 addPackages resp packagePathes = do
   nonExisting <- filterM ((return . not) <=< liftIO . doesDirectoryExist) packagePathes
+
+  liftIO $ putStrLn $ "addPackages: " ++ show packagePathes
+  -- createWatch
+  forM_ packagePathes watchNew
+  DaemonSessionState {..} <- get
+  let watch = fromJust _watchProc
+  liftIO $ forkIO $ forever $ void $ do
+      strs <- iowatchGetNews watch
+      putStrLn $ "watch: " ++ show strs
+
+
   if (not (null nonExisting))
     then liftIO $ resp $ ErrorMessage $ "The following packages are not found: " ++ concat (intersperse ", " nonExisting)
     else do
@@ -293,3 +313,95 @@ usePackageDB pkgDbLocs
 getProblems :: RefactorException -> Either String [(SrcSpan, String)]
 getProblems (SourceCodeProblem errs) = Right $ map (\err -> (errMsgSpan err, show err)) $ bagToList errs
 getProblems other = Left $ displayException other
+
+
+createWatchProcess :: Session -> MVar DaemonSessionState -> (ResponseMsg -> IO ())-> IO WatchProcess
+createWatchProcess ghcSess daemonSess upClient = do
+    executablePath <- getExecutablePath
+    let watchExPath = (takeDirectory executablePath) </> "watch"
+    (Just _watchStdIn, Just _watchStdOut, _, _watchPHandle) <- createProcess
+        (proc watchExPath ["slave"]) { cwd = Just "C:\\Users\\ezoltke\\watch", std_in = CreatePipe, std_out = CreatePipe }
+    hSetBuffering _watchStdIn NoBuffering
+    hSetBuffering _watchStdOut NoBuffering
+    hSetNewlineMode _watchStdIn (NewlineMode LF LF)
+    hSetNewlineMode _watchStdOut (NewlineMode LF LF)
+    -- s <- hGetLine _watchStdOut
+    store <- newEmptyMVar
+    -- lock <- newMVar ()
+    forkIO $ forever $ void $ do
+        str <- hGetLine _watchStdOut
+        putStrLn $ "watch_e: '"  ++ str ++ "'"
+        case (words str) of
+          (["Mod", fn]) -> do
+            putStrLn $ "watch_e: MOD" ++ fn
+            let rel = ReLoad [] [read fn] []
+            modifyMVar daemonSess (\st -> swap <$> reflectGhc (runStateT (updateClient upClient rel) st) ghcSess)
+            return ()
+
+
+{-
+respondTo ghcSess state next req
+  = modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient next req) st) ghcSess)
+  | ReLoad { addedModules :: [FilePath]
+           , changedModules :: [FilePath]
+           , removedModules :: [FilePath]
+           }
+-}
+
+          _ -> putStrLn "watch_e: word str wrong param"
+        -- takeMVar lock
+        st <- tryTakeMVar store
+        case st of
+          Nothing -> putMVar store [str]
+          (Just strs) -> putMVar store (strs ++ [str])
+        -- modifyMVarMasked_ store (\strs -> return (strs ++ [str]))
+        -- putMVar lock ()
+    let _watchStore = takeMVar store
+    -- modifyMVarMasked store (\strs -> return ([], strs))
+    return WatchProcess {..}
+{-
+modifyMVarMasked__ :: MVar a -> (a -> IO a) -> IO ()
+modifyMVarMasked__ m io =
+  mask_ $ do
+    a <- tryTakeMVar m
+    case a of
+      Nothing ->
+
+    a  <- takeMVar m
+    a' <- io a `onException` putMVar m a
+    putMVar m a'
+-}
+{-
+createWatch :: StateT DaemonSessionState Ghc ()
+createWatch = do
+    liftIO $ putStrLn "watch_e: createWatch"
+    d@(DaemonSessionState {..}) <- get
+    case _watchProc of
+        Nothing -> do
+            liftIO $ putStrLn "watch_e: dont exist, create"
+            p <- liftIO $ createWatchProcess
+            put d { _watchProc = Just p }
+        (Just _) -> (liftIO $ putStrLn "watch_e: already exist") >> return ()
+-}
+watchNew :: FilePath -> StateT DaemonSessionState Ghc ()
+watchNew fp = do
+    liftIO $ putStrLn $ "watch_e: watchNew " ++ fp
+    DaemonSessionState {..} <- get
+    let WatchProcess {..} = fromJust _watchProc
+    liftIO $ do
+        hPutStrLn _watchStdIn $ "watch " ++ fp
+        s1 <- hGetLine _watchStdOut
+        putStrLn $ "watch_e: '" ++ s1 ++ "'"
+    return ()
+
+watchGetNews :: StateT DaemonSessionState Ghc [String]
+watchGetNews = do
+    DaemonSessionState {..} <- get
+    let WatchProcess {..} = fromJust _watchProc
+    liftIO _watchStore
+
+iowatchGetNews :: WatchProcess -> IO [String]
+iowatchGetNews WatchProcess{..} = _watchStore
+
+
+
