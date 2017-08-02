@@ -42,9 +42,12 @@ createWatchProcess watchExePath ghcSess daemonSess upClient = do
     reloaderThread <- forkIO $ forever $ void $ do
         firstChanges <- readMVar store
         allChanges <- accumulateChanges store firstChanges
-        changedFiles <- catMaybes <$> mapM getChangedFile allChanges
-        let rel = ReLoad [] changedFiles []
-        when (not $ null changedFiles)
+        changedFiles <- catMaybes <$> mapM (getFiles "Mod") allChanges
+        addedFiles <- catMaybes <$> mapM (getFiles "Add") allChanges
+        removedFiles <- catMaybes <$> mapM (getFiles "Rem") allChanges
+        let rel = ReLoad addedFiles changedFiles removedFiles
+        print rel
+        when (length changedFiles + length addedFiles + length removedFiles > 0)
           $ void $ modifyMVar daemonSess (\st -> swap <$> reflectGhc (runStateT (updateClient upClient rel) st) ghcSess)
     let _watchThreads = [collectorThread, reloaderThread]
     return WatchProcess { .. }
@@ -54,12 +57,11 @@ createWatchProcess watchExePath ghcSess daemonSess upClient = do
           changes <- readMVar store
           if changes == previous then takeMVar store
                                  else accumulateChanges store changes
-        getChangedFile str =
+        getFiles kw str =
           case words str of
-            (["Mod", fn]) -> return (Just ({- get rid of escapes and quotes -} read fn))
-            (["Prt", _]) -> return Nothing -- package registered
-            _ -> do putStrLn $ "watch_e: word str wrong param: " ++ show (words str)
-                    return Nothing
+            ([action, fn]) | action == kw
+               -> return (Just ({- get rid of escapes and quotes -} read fn))
+            _  -> return Nothing
 
 stopWatch :: WatchProcess -> IO ()
 stopWatch WatchProcess{..}
