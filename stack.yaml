@@ -6,6 +6,8 @@ packages:
   - src/rewrite
   - src/prettyprint
   - src/refactor
+  - src/builtin-refactorings
+  - src/session
   - demo
   - src/cli
   - src/debug
