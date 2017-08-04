@@ -26,6 +26,7 @@ import Data.List.Split
 import Data.Time.Clock
 import Data.Time.Calendar
 
+import Language.Haskell.Tools.Refactor.Predefined
 import Language.Haskell.Tools.Refactor.CLI
 
 rootDir = "examples"
@@ -135,7 +136,7 @@ makeCliTest wd rfs = do
     inHandle <- newFileHandle inKnob "<input>" ReadMode
     outKnob <- newKnob (BS.pack [])
     outHandle <- newFileHandle outKnob "<output>" WriteMode
-    void $ normalRefactorSession inHandle outHandle [wd]
+    void $ normalRefactorSession builtinRefactorings inHandle outHandle [wd]
   `finally` do removeDirectoryRecursive wd
                renameDirectory (wd ++ "_orig") wd
 

@@ -5,7 +5,8 @@
            , TypeApplications
            , ScopedTypeVariables
            #-}
-module Language.Haskell.Tools.Refactor.Predefined.FloatOut where
+module Language.Haskell.Tools.Refactor.Predefined.FloatOut
+  (floatOut, FloatOutDefinition, floatOutRefactoring) where
 
 import Control.Monad.State
 import Control.Reference
@@ -17,6 +18,9 @@ import Language.Haskell.Tools.Refactor
 import Name as GHC (Name, NamedThing(..), occNameString)
 import OccName (occNameString)
 import SrcLoc (RealSrcSpan)
+
+floatOutRefactoring :: (FloatOutDefinition dom, HasModuleInfo dom) => RefactoringChoice dom
+floatOutRefactoring = SelectionRefactoring "FloatOut" (localRefactoring . floatOut)
 
 type FloatOutDefinition dom = (HasNameInfo dom, HasScopeInfo dom)
 

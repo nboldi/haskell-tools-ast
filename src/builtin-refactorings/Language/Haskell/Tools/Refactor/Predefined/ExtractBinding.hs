@@ -8,7 +8,8 @@
            , TypeFamilies
            , MultiWayIf
            #-}
-module Language.Haskell.Tools.Refactor.Predefined.ExtractBinding (extractBinding', ExtractBindingDomain, tryItOut) where
+module Language.Haskell.Tools.Refactor.Predefined.ExtractBinding
+  (extractBinding', ExtractBindingDomain, tryItOut, extractBindingRefactoring) where
 
 import qualified GHC
 import Name (nameModule_maybe)
@@ -25,6 +26,9 @@ import Data.List (find, intersperse)
 import Data.Maybe
 
 import Language.Haskell.Tools.Refactor
+
+extractBindingRefactoring :: (ExtractBindingDomain dom, HasModuleInfo dom) => RefactoringChoice dom
+extractBindingRefactoring = NamingRefactoring "ExtractBinding" (\loc s -> localRefactoring (extractBinding' loc s))
 
 -- | We need name information to identify bindings, and scope information to check which
 -- entities must be directly passed as parameters.

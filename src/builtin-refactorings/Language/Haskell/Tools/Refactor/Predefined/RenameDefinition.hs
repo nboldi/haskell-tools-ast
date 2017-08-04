@@ -8,7 +8,8 @@
            , ViewPatterns
            , TupleSections
            #-}
-module Language.Haskell.Tools.Refactor.Predefined.RenameDefinition (renameDefinition, renameDefinition', DomainRenameDefinition) where
+module Language.Haskell.Tools.Refactor.Predefined.RenameDefinition
+  (renameDefinition, renameDefinition', DomainRenameDefinition, renameDefinitionRefactoring) where
 
 import qualified GHC
 import Name (OccName(..), NamedThing(..), occNameString)
@@ -29,6 +30,9 @@ import Data.Maybe
 import Debug.Trace
 
 import Language.Haskell.Tools.Refactor
+
+renameDefinitionRefactoring :: DomainRenameDefinition dom => RefactoringChoice dom
+renameDefinitionRefactoring = NamingRefactoring "RenameDefinition" renameDefinition'
 
 type DomainRenameDefinition dom = ( HasNameInfo dom, HasScopeInfo dom, HasDefiningInfo dom
                                   , HasImplicitFieldsInfo dom, HasModuleInfo dom )

@@ -8,7 +8,8 @@
            , TupleSections
            #-}
 module Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature
-  (generateTypeSignature, generateTypeSignature', GenerateSignatureDomain, tryItOut) where
+  ( generateTypeSignature, generateTypeSignature', GenerateSignatureDomain, tryItOut
+  , generateTypeSignatureRefactoring) where
 
 import GHC hiding (Module)
 import Id as GHC
@@ -28,6 +29,9 @@ import Data.Maybe (Maybe(..), catMaybes)
 import Language.Haskell.Tools.Refactor as AST
 
 type GenerateSignatureDomain dom = ( HasModuleInfo dom, HasIdInfo dom, HasImportInfo dom, HasScopeInfo dom )
+
+generateTypeSignatureRefactoring :: GenerateSignatureDomain dom => RefactoringChoice dom
+generateTypeSignatureRefactoring = SelectionRefactoring "GenerateSignature" (localRefactoring . generateTypeSignature')
 
 tryItOut :: String -> String -> IO ()
 tryItOut = tryRefactor (localRefactoring . generateTypeSignature')

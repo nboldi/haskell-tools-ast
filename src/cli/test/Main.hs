@@ -14,6 +14,7 @@ import Data.ByteString.Char8 (pack, unpack)
 import System.IO
 import Control.Concurrent
 
+import Language.Haskell.Tools.Refactor.Predefined
 import Language.Haskell.Tools.Refactor.CLI
 
 main :: IO ()
@@ -43,7 +44,7 @@ makeCliTest (name, dirs, args, input, outputCheck)
       inHandle <- newFileHandle inKnob "<input>" ReadMode
       outKnob <- newKnob (pack [])
       outHandle <- newFileHandle outKnob "<output>" WriteMode
-      res <- normalRefactorSession inHandle outHandle (args suffix ++ testdirs)
+      res <- normalRefactorSession builtinRefactorings inHandle outHandle (args suffix ++ testdirs)
       actualOut <- Data.Knob.getContents outKnob
       assertBool ("The result is not what is expected. Output: " ++ (unpack actualOut))
         =<< outputCheck suffix (unpack actualOut)

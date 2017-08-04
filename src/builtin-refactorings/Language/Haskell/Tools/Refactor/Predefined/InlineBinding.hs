@@ -9,7 +9,8 @@
            #-}
 -- | Defines the inline binding refactoring that removes a value binding and replaces all occurences
 -- with an expression equivalent to the body of the binding.
-module Language.Haskell.Tools.Refactor.Predefined.InlineBinding (inlineBinding, InlineBindingDomain, tryItOut) where
+module Language.Haskell.Tools.Refactor.Predefined.InlineBinding
+  (inlineBinding, InlineBindingDomain, tryItOut, inlineBindingRefactoring) where
 
 import Control.Monad.State
 import Control.Monad.Writer hiding (Alt)
@@ -23,6 +24,9 @@ import Name as GHC (NamedThing(..), Name, occNameString)
 import SrcLoc as GHC (SrcSpan(..), RealSrcSpan, containsSpan)
 
 import Language.Haskell.Tools.Refactor as AST
+
+inlineBindingRefactoring :: InlineBindingDomain dom => RefactoringChoice dom
+inlineBindingRefactoring = SelectionRefactoring "InlineBinding" inlineBinding
 
 tryItOut :: String -> String -> IO ()
 tryItOut = tryRefactor inlineBinding

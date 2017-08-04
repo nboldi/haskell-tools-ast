@@ -59,21 +59,23 @@ import Language.Haskell.Tools.Refactor.Daemon.Mode
 import Language.Haskell.Tools.Refactor.Daemon.Protocol
 import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Perform
+import Language.Haskell.Tools.Refactor.Predefined
 import Language.Haskell.Tools.Refactor.Prepare
+import Language.Haskell.Tools.Refactor.Refactoring
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Refactor.Session
 import Paths_haskell_tools_daemon
 
 runDaemonCLI :: IO ()
 runDaemonCLI = do store <- newEmptyMVar
-                  getArgs >>= runDaemon socketMode store
+                  getArgs >>= runDaemon builtinRefactorings socketMode store
 
-runDaemon' :: [String] -> IO ()
-runDaemon' args = do store <- newEmptyMVar
-                     runDaemon socketMode store args
+runDaemon' :: [RefactoringChoice IdDom] -> [String] -> IO ()
+runDaemon' refactorings args = do store <- newEmptyMVar
+                                  runDaemon refactorings socketMode store args
 
-runDaemon :: WorkingMode a -> MVar a -> [String] -> IO ()
-runDaemon mode connStore args = withSocketsDo $
+runDaemon :: [RefactoringChoice IdDom] -> WorkingMode a -> MVar a -> [String] -> IO ()
+runDaemon refactorings mode connStore args = withSocketsDo $
     do let finalArgs = args ++ drop (length args) defaultArgs
            isSilent = read (finalArgs !! 1)
        hSetBuffering stdout LineBuffering
@@ -84,45 +86,45 @@ runDaemon mode connStore args = withSocketsDo $
        when (not isSilent) $ putStrLn $ "Listening on port " ++ finalArgs !! 0
        ghcSess <- initGhcSession
        state <- newMVar initSession
-       serverLoop mode conn isSilent ghcSess state
+       serverLoop refactorings mode conn isSilent ghcSess state
        daemonDisconnect mode conn
 
 defaultArgs :: [String]
 defaultArgs = ["4123", "True"]
 
-serverLoop :: WorkingMode a -> a -> Bool -> Session -> MVar DaemonSessionState -> IO ()
-serverLoop mode conn isSilent ghcSess state =
+serverLoop :: [RefactoringChoice IdDom] -> WorkingMode a -> a -> Bool -> Session -> MVar DaemonSessionState -> IO ()
+serverLoop refactorings mode conn isSilent ghcSess state =
   ( do msgs <- daemonReceive mode conn
-       continue <- forM msgs $ \case Right req -> respondTo ghcSess state (daemonSend mode conn) req
+       continue <- forM msgs $ \case Right req -> respondTo refactorings ghcSess state (daemonSend mode conn) req
                                      Left msg -> do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
                                                     return True
        sessionData <- readMVar state
        when (not (sessionData ^. exiting) && all (== True) continue)
-         $ serverLoop mode conn isSilent ghcSess state
+         $ serverLoop refactorings mode conn isSilent ghcSess state
   `catchIOError` handleIOError )
-  `catch` (\e -> handleException e >> serverLoop mode conn isSilent ghcSess state)
+  `catch` (\e -> handleException e >> serverLoop refactorings mode conn isSilent ghcSess state)
   where handleIOError err = hPutStrLn stderr $ "IO Exception caught: " ++ show err
         handleException ex = do
           let err = show (ex :: SomeException)
           hPutStrLn stderr $ "Exception caught: " ++ err
           daemonSend mode conn $ ErrorMessage $ "Internal error: " ++ err
 
-respondTo :: Session -> MVar DaemonSessionState -> (ResponseMsg -> IO ()) -> ClientMessage -> IO Bool
-respondTo ghcSess state next req
-  = modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient next req) st) ghcSess)
+respondTo :: [RefactoringChoice IdDom] ->  Session -> MVar DaemonSessionState -> (ResponseMsg -> IO ()) -> ClientMessage -> IO Bool
+respondTo refactorings ghcSess state next req
+  = modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient refactorings next req) st) ghcSess)
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a client
-updateClient :: (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc Bool
-updateClient resp (Handshake _) = liftIO (resp $ HandshakeResponse $ versionBranch version) >> return True
-updateClient resp KeepAlive = liftIO (resp KeepAliveResponse) >> return True
-updateClient resp Disconnect = liftIO (resp Disconnected) >> return False
-updateClient _ (SetPackageDB pkgDB) = modify (packageDB .= pkgDB) >> return True
-updateClient resp (AddPackages packagePathes) = do
+updateClient :: [RefactoringChoice IdDom] ->  (ResponseMsg -> IO ()) -> ClientMessage -> StateT DaemonSessionState Ghc Bool
+updateClient _ resp (Handshake _) = liftIO (resp $ HandshakeResponse $ versionBranch version) >> return True
+updateClient _ resp KeepAlive = liftIO (resp KeepAliveResponse) >> return True
+updateClient _ resp Disconnect = liftIO (resp Disconnected) >> return False
+updateClient _ _ (SetPackageDB pkgDB) = modify (packageDB .= pkgDB) >> return True
+updateClient _ resp (AddPackages packagePathes) = do
     addPackages resp packagePathes
     return True
-updateClient _ (SetWorkingDir fp) = liftIO (setCurrentDirectory fp) >> return True
-updateClient resp (SetGHCFlags flags) = lift (useFlags flags) >>= liftIO . resp . UnusedFlags >> return True
-updateClient _ (RemovePackages packagePathes) = do
+updateClient _ _ (SetWorkingDir fp) = liftIO (setCurrentDirectory fp) >> return True
+updateClient _ resp (SetGHCFlags flags) = lift (useFlags flags) >>= liftIO . resp . UnusedFlags >> return True
+updateClient _ _ (RemovePackages packagePathes) = do
     mcs <- gets (^. refSessMCs)
     let existingFiles = concatMap @[] (map (^. sfkFileName) . Map.keys) (mcs ^? traversal & filtered isRemoved & mcModules)
     lift $ forM_ existingFiles (\fs -> removeTarget (TargetFile fs Nothing))
@@ -134,7 +136,7 @@ updateClient _ (RemovePackages packagePathes) = do
     return True
   where isRemoved mc = (mc ^. mcRoot) `elem` packagePathes
 
-updateClient resp (ReLoad added changed removed) =
+updateClient _ resp (ReLoad added changed removed) =
   -- TODO: check for changed cabal files and reload their packages
   do mcs <- gets (^. refSessMCs)
      lift $ forM_ removed (\src -> removeTarget (TargetFile src Nothing))
@@ -154,24 +156,16 @@ updateClient resp (ReLoad added changed removed) =
                                 Right _ -> return ()
      return True
 
-updateClient _ Stop = modify (exiting .= True) >> return False
+updateClient _ _ Stop = modify (exiting .= True) >> return False
 
 -- TODO: perform refactorings without selected modules
-updateClient resp (PerformRefactoring refact modPath selection args) = do
+updateClient refactorings resp (PerformRefactoring refact modPath selection args) = do
     (selectedMod, otherMods) <- getFileMods modPath
-    case (selectedMod, analyzeCommand refact (selection:args)) of
-      (Just actualMod, Right cmd) -> performRefactoring cmd actualMod otherMods
-      (Nothing, Right cmd)
-        -> case modPath of
-             "" -> case otherMods of -- empty module path is no module selected (example: ProjectOrganizeImports)
-                     mod:rest -> performRefactoring cmd mod rest
-                     [] -> return ()
-             _ -> liftIO $ resp $ ErrorMessage $ "The following file is not loaded to Haskell-tools: "
-                                                        ++ modPath ++ ". Please add the containing package."
-      (_, Left err) -> liftIO $ resp $ ErrorMessage err
+    performRefactoring (refact:selection:args)
+                       (maybe (Left modPath) Right selectedMod) otherMods
     return True
   where performRefactoring cmd actualMod otherMods = do
-          res <- lift $ performCommand cmd actualMod otherMods
+          res <- lift $ performCommand refactorings cmd actualMod otherMods
           case res of
             Left err -> liftIO $ resp $ ErrorMessage err
             Right diff -> do changedMods <- applyChanges diff

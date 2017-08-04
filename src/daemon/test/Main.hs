@@ -26,6 +26,7 @@ import System.IO.Error
 import SrcLoc
 import FastString
 
+import Language.Haskell.Tools.Refactor.Predefined
 import Language.Haskell.Tools.Refactor.Daemon
 import Language.Haskell.Tools.Refactor.Daemon.Protocol
 import Language.Haskell.Tools.Refactor.Daemon.PackageDB
@@ -361,7 +362,7 @@ communicateWithDaemon port msgs = withSocketsDo $ do
   where waitToConnect sock addr
           = connect sock addr `catch` \(e :: SomeException) -> threadDelay 10000 >> waitToConnect sock addr
         retryConnect port = do portNum <- readMVar port
-                               forkIO $ runDaemon' [show portNum, "True"]
+                               forkIO $ runDaemon' builtinRefactorings [show portNum, "True"]
                                return portNum
           `catch` \(e :: SomeException) -> do putStrLn ("exception caught: `" ++ show e ++ "` trying with a new port")
                                               modifyMVar_ port (\i -> if i < pORT_NUM_END

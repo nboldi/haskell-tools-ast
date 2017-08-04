@@ -67,6 +67,9 @@ type LocalRefactoring dom = UnnamedModule dom -> LocalRefactor dom (UnnamedModul
 -- | The type of a refactoring
 type Refactoring dom = ModuleDom dom -> [ModuleDom dom] -> Refactor [RefactorChange dom]
 
+-- | The type of a refactoring that affects the whole project.
+type ProjectRefactoring dom = [ModuleDom dom] -> Refactor [RefactorChange dom]
+
 -- | Change in the project, modification or removal of a module.
 data RefactorChange dom = ContentChanged { fromContentChanged :: ModuleDom dom }
                         | ModuleRemoved { removedModuleName :: String }

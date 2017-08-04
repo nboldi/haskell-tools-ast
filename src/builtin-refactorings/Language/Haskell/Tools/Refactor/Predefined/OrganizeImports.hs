@@ -6,7 +6,10 @@
            , TupleSections
            , TypeApplications
            #-}
-module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports (organizeImports, OrganizeImportsDomain, projectOrganizeImports) where
+module Language.Haskell.Tools.Refactor.Predefined.OrganizeImports
+  ( organizeImports, OrganizeImportsDomain, projectOrganizeImports
+  , organizeImportsRefactoring, projectOrganizeImportsRefactoring
+  ) where
 
 import ConLike (ConLike(..))
 import DataCon (dataConTyCon)
@@ -35,13 +38,17 @@ import Data.Maybe (Maybe(..), maybe, catMaybes)
 
 import Language.Haskell.Tools.Refactor as AST
 
-import Debug.Trace
+organizeImportsRefactoring :: OrganizeImportsDomain dom => RefactoringChoice dom
+organizeImportsRefactoring = ModuleRefactoring "OrganizeImports" (localRefactoring organizeImports)
+
+projectOrganizeImportsRefactoring :: OrganizeImportsDomain dom => RefactoringChoice dom
+projectOrganizeImportsRefactoring = ProjectRefactoring "ProjectOrganizeImports" projectOrganizeImports
 
 type OrganizeImportsDomain dom = ( HasNameInfo dom, HasImportInfo dom, HasModuleInfo dom, HasImplicitFieldsInfo dom )
 
-projectOrganizeImports :: forall dom . OrganizeImportsDomain dom => Refactoring dom
-projectOrganizeImports mod mods
-  = mapM (\(k, m) -> ContentChanged . (k,) <$> localRefactoringRes id m (organizeImports m)) (mod:mods)
+projectOrganizeImports :: forall dom . OrganizeImportsDomain dom => ProjectRefactoring dom
+projectOrganizeImports mods
+  = mapM (\(k, m) -> ContentChanged . (k,) <$> localRefactoringRes id m (organizeImports m)) mods
 
 organizeImports :: forall dom . OrganizeImportsDomain dom => LocalRefactoring dom
 organizeImports mod

@@ -24,6 +24,8 @@ import System.IO
 import System.FilePath
 import Data.Version (showVersion)
 
+import Language.Haskell.Tools.Refactor
+import Language.Haskell.Tools.Refactor.Predefined
 import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.Daemon
 import Language.Haskell.Tools.Refactor.Daemon.Protocol
@@ -31,21 +33,21 @@ import Language.Haskell.Tools.Refactor.Daemon.Mode (channelMode)
 import Paths_haskell_tools_cli (version)
 
 tryOut :: IO ()
-tryOut = void $ normalRefactorSession stdin stdout
+tryOut = void $ normalRefactorSession builtinRefactorings stdin stdout
                   [ "-exec=OrganizeImports src\\ast\\Language\\Haskell\\Tools\\AST.hs"
                   , "src/ast", "src/backend-ghc", "src/prettyprint", "src/rewrite", "src/refactor"]
 
 type ServerInit = MVar (Chan ResponseMsg, Chan ClientMessage) -> IO ()
 
-normalRefactorSession :: Handle -> Handle -> [String] -> IO Bool
-normalRefactorSession = refactorSession (\st -> void $ forkIO $ runDaemon channelMode st [])
+normalRefactorSession :: [RefactoringChoice IdDom] -> Handle -> Handle -> [String] -> IO Bool
+normalRefactorSession refactorings = refactorSession refactorings (\st -> void $ forkIO $ runDaemon refactorings channelMode st [])
 
-refactorSession :: ServerInit -> Handle -> Handle -> [String] -> IO Bool
-refactorSession _ _ output args
+refactorSession :: [RefactoringChoice IdDom] -> ServerInit -> Handle -> Handle -> [String] -> IO Bool
+refactorSession _ _ _ output args
   | "-v" `elem` args = do
     hPutStrLn output $ showVersion version
     return True
-refactorSession init input output args = do
+refactorSession refactorings init input output args = do
   connStore <- newEmptyMVar
   isInteractive <- newEmptyMVar
   init connStore
@@ -55,52 +57,52 @@ refactorSession init input output args = do
   -- TODO: separate cmd arguments here instead of in daemon
   writeChan send (SetGHCFlags args)
   forkIO $ forever $ do interactive <- takeMVar isInteractive
-                        when interactive (processUserInput input output send)
-  readFromSocket output isInteractive recv send
+                        when interactive (processUserInput refactorings input output send)
+  readFromSocket refactorings output isInteractive recv send
 
-processUserInput :: Handle -> Handle -> Chan ClientMessage -> IO ()
-processUserInput input output chan = do
+processUserInput :: [RefactoringChoice IdDom] -> Handle -> Handle -> Chan ClientMessage -> IO ()
+processUserInput refactorings input output chan = do
   cmd <- hGetLine input
-  continue <- processCommand output chan cmd
-  when continue $ processUserInput input output chan
+  continue <- processCommand refactorings output chan cmd
+  when continue $ processUserInput refactorings input output chan
 
-processCommand :: Handle -> Chan ClientMessage -> String -> IO Bool
-processCommand output chan cmd = do
+processCommand :: [RefactoringChoice IdDom] -> Handle -> Chan ClientMessage -> String -> IO Bool
+processCommand refactorings output chan cmd = do
   case splitOn " " cmd of
     ["Exit"] -> writeChan chan Disconnect >> return False
     ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")
-               , ref `elem` refactorCommands
+               , ref `elem` refactorCommands refactorings
        -> writeChan chan (PerformRefactoring ref modPath selection details) >> return True
     _ -> do liftIO $ hPutStrLn output $ "'" ++ cmd ++ "' is not a known command. Commands are: Exit, "
-                                            ++ intercalate ", " refactorCommands
+                                            ++ intercalate ", " (refactorCommands refactorings)
             return True
 
-readFromSocket :: Handle -> MVar Bool -> Chan ResponseMsg -> Chan ClientMessage -> IO Bool
-readFromSocket output isInteractive recv send = do
-  continue <- readChan recv >>= processMessage output isInteractive send
-  maybe (readFromSocket output isInteractive recv send) return continue
+readFromSocket :: [RefactoringChoice IdDom] -> Handle -> MVar Bool -> Chan ResponseMsg -> Chan ClientMessage -> IO Bool
+readFromSocket refactorings output isInteractive recv send = do
+  continue <- readChan recv >>= processMessage refactorings output isInteractive send
+  maybe (readFromSocket refactorings output isInteractive recv send) return continue
 
 -- | Returns Nothing if the execution should continue, Just False on erronous termination
 -- and Just True on normal termination.
-processMessage :: Handle -> MVar Bool -> Chan ClientMessage -> ResponseMsg -> IO (Maybe Bool)
-processMessage output _ _ (ErrorMessage msg) = hPutStrLn output msg >> return (Just False)
-processMessage output _ _ (CompilationProblem marks) = hPutStrLn output (show marks) >> return Nothing
-processMessage output _ _ (LoadedModules mods)
+processMessage :: [RefactoringChoice IdDom] -> Handle -> MVar Bool -> Chan ClientMessage -> ResponseMsg -> IO (Maybe Bool)
+processMessage _ output _ _ (ErrorMessage msg) = hPutStrLn output msg >> return (Just False)
+processMessage _ output _ _ (CompilationProblem marks) = hPutStrLn output (show marks) >> return Nothing
+processMessage _ output _ _ (LoadedModules mods)
   = mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods >> return Nothing
-processMessage output isInteractive chan (UnusedFlags flags)
+processMessage refactorings output isInteractive chan (UnusedFlags flags)
   = do loadModules chan flags
-       performCmdOptions output isInteractive chan flags
+       performCmdOptions refactorings output isInteractive chan flags
        return Nothing
-processMessage _ _ _ Disconnected = return (Just True)
-processMessage _ _ _ _ = return Nothing
+processMessage _ _ _ _ Disconnected = return (Just True)
+processMessage _ _ _ _ _ = return Nothing
 
 loadModules :: Chan ClientMessage -> [String] -> IO ()
 loadModules chan flags = writeChan chan (AddPackages roots)
   where roots = filter (not . ("-" `isPrefixOf`)) flags
 
-performCmdOptions :: Handle -> MVar Bool -> Chan ClientMessage -> [String] -> IO Bool
-performCmdOptions output isInteractive chan flags = do
-  mapM_ (processCommand output chan) cmds
+performCmdOptions :: [RefactoringChoice IdDom] -> Handle -> MVar Bool -> Chan ClientMessage -> [String] -> IO Bool
+performCmdOptions refactorings output isInteractive chan flags = do
+  mapM_ (processCommand refactorings output chan) cmds
   putMVar isInteractive (null cmds)
   when (not $ null cmds) $ writeChan chan Disconnect
   return True

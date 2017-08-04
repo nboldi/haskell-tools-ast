@@ -20,6 +20,7 @@ import Control.Monad
 import Data.Maybe
 import qualified Data.Map as Map
 import Data.List
+import Data.List.Split
 import Data.Either.Combinators
 import System.IO
 import System.Exit
@@ -42,6 +43,7 @@ import Language.Haskell.Tools.Refactor.Predefined.RenameDefinition
 import Language.Haskell.Tools.Refactor.Predefined.ExtractBinding
 import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Refactor.Session
+import Language.Haskell.Tools.Refactor.Predefined
 import Language.Haskell.Tools.Refactor.Predefined.DataToNewtype
 import Language.Haskell.Tools.Refactor.Predefined.IfToGuards
 import Language.Haskell.Tools.Refactor.Predefined.DollarApp
@@ -600,8 +602,9 @@ performRefactors command workingDir flags target = do
       let otherModules = filter (not . (\ms -> ms_mod ms == ms_mod selectedMod && ms_hsc_src ms == ms_hsc_src selectedMod)) allMods
       targetMod <- parseTyped workingDir selectedMod
       otherMods <- mapM (parseTyped workingDir) otherModules
-      res <- performCommand (either error id $ readCommand command)
-                            (SourceFileKey (workingDir </> moduleSourceFile target) target, targetMod) (zip (map keyFromMS otherModules) otherMods)
+      res <- performCommand builtinRefactorings (splitOn " " command)
+                            (Right (SourceFileKey (workingDir </> moduleSourceFile target) target, targetMod))
+                            (zip (map keyFromMS otherModules) otherMods)
       return $ (\case Right r -> Right $ (map (\case ContentChanged (n,m) -> (n ^. sfkModuleName, Just $ prettyPrint m)
                                                      ModuleCreated n m _ -> (n, Just $ prettyPrint m)
                                                      ModuleRemoved m -> (m, Nothing)
@@ -647,7 +650,8 @@ performRefactor command workingDir flags target =
   runGhc (Just libdir) $ do
     useFlags flags
     ((\case Right r -> Right (newContent r); Left l -> Left l) <$> (refact =<< parseTyped workingDir =<< loadModule workingDir target))
-  where refact m = performCommand (either error id $ readCommand command) (SourceFileKey (workingDir </> moduleSourceFile target) target,m) []
+  where refact m = performCommand builtinRefactorings (splitOn " " command)
+                                  (Right (SourceFileKey (workingDir </> moduleSourceFile target) target,m)) []
         newContent (ContentChanged (_, newContent) : ress) = prettyPrint newContent
         newContent ((ModuleCreated _ newContent _) : ress) = prettyPrint newContent
         newContent (_ : ress) = newContent ress

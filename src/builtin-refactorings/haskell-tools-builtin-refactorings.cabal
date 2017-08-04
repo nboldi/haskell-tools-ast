@@ -13,7 +13,8 @@ cabal-version:       >=1.10
 
 library
   ghc-options: -O2
-  exposed-modules:     Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature
+  exposed-modules:     Language.Haskell.Tools.Refactor.Predefined
+                     , Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature
                      , Language.Haskell.Tools.Refactor.Predefined.OrganizeImports
                      , Language.Haskell.Tools.Refactor.Predefined.GenerateExports
                      , Language.Haskell.Tools.Refactor.Predefined.RenameDefinition
