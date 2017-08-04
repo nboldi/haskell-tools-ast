@@ -30,7 +30,8 @@ performCommand :: (HasModuleInfo dom, DomGenerateExports dom, OrganizeImportsDom
                     -> Ghc (Either String [RefactorChange dom])
 performCommand refactorings (name:args) mod mods =
     case (refactoring, mod, args) of
-      (Just (NamingRefactoring _ trf), Right mod, (sp:newName:_)) -> runExceptT $ trf (correctRefactorSpan (snd mod) $ readSrcSpan sp) newName mod mods
+      (Just (NamingRefactoring _ trf), Right mod, (sp:newName:_))
+        -> runExceptT $ trf (correctRefactorSpan (snd mod) $ readSrcSpan sp) newName mod mods
       (Just (NamingRefactoring _ trf), Right _, _) -> return $ Left $ "The refactoring '" ++ name ++ "' needs two argument: a source range and a name"
       (Just (SelectionRefactoring _ trf), Right mod, (sp:_)) -> runExceptT $ trf (correctRefactorSpan (snd mod) $ readSrcSpan sp) mod mods
       (Just (SelectionRefactoring _ trf), Right _, _) -> return $ Left $ "The refactoring '" ++ name ++ "' needs one argument: a source range"
