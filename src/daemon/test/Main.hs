@@ -390,18 +390,8 @@ communicateWithDaemon watch port msgs = withSocketsDo $ do
   where waitToConnect sock addr
           = connect sock addr `catch` \(e :: SomeException) -> threadDelay 10000 >> waitToConnect sock addr
         retryConnect port = do portNum <- readMVar port
-                               watchExe <- glob watchPath
-                               watchE1 <- glob "../../.stack-work"
-                               watchE2 <- glob "../../.stack-work/downloaded"
-                               watchE3 <- glob "../../.stack-work/downloaded/*"
-                               watchE4 <- glob "../../.stack-work/downloaded/*/watch-master"
-                               watchE5 <- glob "../../.stack-work/downloaded/*/watch-master/.stack-work"
-                               watchE6 <- glob "../../.stack-work/downloaded/*/watch-master/.stack-work/dist"
-                               watchE7 <- glob "../../.stack-work/downloaded/*/watch-master/.stack-work/dist/*"
-                               watchE8 <- glob "../../.stack-work/downloaded/*/watch-master/.stack-work/dist/*/build"
-                               watchE9 <- glob "../../.stack-work/downloaded/*/watch-master/.stack-work/dist/*/build/watch"
-                               when watch $ print ("locs", watchE1, watchE2, watchE3, watchE4, watchE5, watchE6, watchE7, watchE8, watchE9)
-                               case (watch, watchExe) of
+                               watchDir <- (++) <$> glob watchPath <*> glob linuxWatchPath
+                               case (watch, watchDir) of
                                  (True, []) -> error "The watch executable is not found."
                                  (True, [w]) -> forkIO $ runDaemon' [show portNum, "True", w </> "watch"]
                                  (False, _) -> forkIO $ runDaemon' [show portNum, "True"]
@@ -414,6 +404,7 @@ communicateWithDaemon watch port msgs = withSocketsDo $ do
 
 -- this must be changed once watch is in stackage
 watchPath = "../../.stack-work/downloaded/*/watch-master/.stack-work/dist/*/build/watch"
+linuxWatchPath = "../../.stack-work/downloaded/*/watch-master/.stack-work/dist/*/*/build/watch"
 
 readSockResponsesUntil :: Socket -> ResponseMsg -> BS.ByteString -> IO [ResponseMsg]
 readSockResponsesUntil sock rsp bs
