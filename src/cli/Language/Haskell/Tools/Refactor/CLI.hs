@@ -24,19 +24,7 @@ import System.IO
 import System.FilePath
 import Data.Version (showVersion)
 
-import DynFlags as GHC
-import ErrUtils
-import GHC
-import GHC.Paths ( libdir )
-import HscTypes as GHC
-import Outputable
-import Packages
-
-import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.Refactor as HT
-import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Perform
-import Language.Haskell.Tools.Refactor.Session
 import Language.Haskell.Tools.Refactor.Daemon
 import Language.Haskell.Tools.Refactor.Daemon.Protocol
 import Language.Haskell.Tools.Refactor.Daemon.Mode (channelMode)
