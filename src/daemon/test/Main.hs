@@ -295,9 +295,9 @@ watchTests
   = [ ("simple-modification", testRoot </> "reloading"
     , [ Right $ AddPackages [ testRoot </> "reloading" ++ testSuffix ]
         -- TODO: be able to wait for some messages before doing IO
-      , Left $ do threadDelay 1000000 -- wait for 0.5s so the packages are loaded
+      , Left $ do threadDelay 2000000 -- wait for 2s so the packages are loaded
                   writeFile (testRoot </> "reloading" ++ testSuffix </> "C.hs") "module C where\nc = ()"
-                  threadDelay 1000000
+                  threadDelay 2000000
       ]
     , \case [ LoadingModules{}, LoadedModules [(pathC,_)], LoadedModules [(pathB,_)], LoadedModules [(pathA,_)]
               , LoadingModules{}, LoadedModules [(pathC',_)], LoadedModules [(pathB',_)], LoadedModules [(pathA',_)]
