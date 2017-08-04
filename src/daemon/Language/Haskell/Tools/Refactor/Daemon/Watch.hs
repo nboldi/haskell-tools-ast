@@ -46,7 +46,6 @@ createWatchProcess watchExePath ghcSess daemonSess upClient = do
         addedFiles <- catMaybes <$> mapM (getFiles "Add") allChanges
         removedFiles <- catMaybes <$> mapM (getFiles "Rem") allChanges
         let rel = ReLoad addedFiles changedFiles removedFiles
-        print rel
         when (length changedFiles + length addedFiles + length removedFiles > 0)
           $ void $ modifyMVar daemonSess (\st -> swap <$> reflectGhc (runStateT (updateClient upClient rel) st) ghcSess)
     let _watchThreads = [collectorThread, reloaderThread]

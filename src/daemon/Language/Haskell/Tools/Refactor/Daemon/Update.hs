@@ -87,19 +87,21 @@ updateClient _ (RemovePackages packagePathes) = do
 
 updateClient resp (ReLoad added changed removed) =
   -- TODO: check for changed cabal files and reload their packages
-  do mcs <- gets (^. refSessMCs)
+  do wd <- liftIO getCurrentDirectory
+     -- in case the paths are absolute ones, we need to make them relative
+     let [added', changed', removed'] = map (map (makeRelative wd)) [added, changed, removed]
      lift $ forM_ removed (\src -> removeTarget (TargetFile src Nothing))
      -- remove targets deleted
      modify $ refSessMCs & traversal & mcModules
-                .- Map.filter (\m -> maybe True ((`notElem` removed) . getModSumOrig) (m ^? modRecMS))
-     modifySession (\s -> s { hsc_mod_graph = filter (\mod -> getModSumOrig mod `notElem` removed) (hsc_mod_graph s) })
+                .- Map.filter (\m -> maybe True ((`notElem` removed') . getModSumOrig) (m ^? modRecMS))
+     modifySession (\s -> s { hsc_mod_graph = filter (\mod -> getModSumOrig mod `notElem` removed') (hsc_mod_graph s) })
      -- reload changed modules
      -- TODO: filter those that are in reloaded packages
      reloadRes <- reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
                                        (\mss -> resp (LoadingModules (map getModSumOrig mss)))
-                                       (\ms -> getModSumOrig ms `elem` changed)
+                                       (\ms -> getModSumOrig ms `elem` changed')
      mcs <- gets (^. refSessMCs)
-     let mcsToReload = filter (\mc -> any ((mc ^. mcRoot) `isPrefixOf`) added && isNothing (moduleCollectionPkgId (mc ^. mcId))) mcs
+     let mcsToReload = filter (\mc -> any ((mc ^. mcRoot) `isPrefixOf`) added' && isNothing (moduleCollectionPkgId (mc ^. mcId))) mcs
      addPackages resp (map (^. mcRoot) mcsToReload) -- reload packages containing added modules
      liftIO $ case reloadRes of Left errs -> resp (either ErrorMessage CompilationProblem (getProblems errs))
                                 Right _ -> return ()
