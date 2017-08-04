@@ -295,9 +295,9 @@ watchTests
   = [ ("simple-modification", testRoot </> "reloading"
     , [ Right $ AddPackages [ testRoot </> "reloading" ++ testSuffix ]
         -- TODO: be able to wait for some messages before doing IO
-      , Left $ do threadDelay 500000 -- wait for 0.5s so the packages are loaded
+      , Left $ do threadDelay 1000000 -- wait for 0.5s so the packages are loaded
                   writeFile (testRoot </> "reloading" ++ testSuffix </> "C.hs") "module C where\nc = ()"
-                  threadDelay 500000
+                  threadDelay 1000000
       ]
     , \case [ LoadingModules{}, LoadedModules [(pathC,_)], LoadedModules [(pathB,_)], LoadedModules [(pathA,_)]
               , LoadingModules{}, LoadedModules [(pathC',_)], LoadedModules [(pathB',_)], LoadedModules [(pathA',_)]
@@ -366,7 +366,7 @@ makeWatchTest port (label, dir, actions, validator) = testCase label $ do
     -- clear the target directory from possible earlier test runs
     when exists $ removeDirectoryRecursive (dir ++ testSuffix)
     copyDir dir (dir ++ testSuffix)
-    actual <- communicateWithDaemon True port actions
+    actual <- communicateWithDaemon True port (Right (SetPackageDB DefaultDB) : actions)
     assertBool ("The responses are not the expected: " ++ show actual) (validator actual)
   `finally` removeDirectoryRecursive (dir ++ testSuffix)
 
