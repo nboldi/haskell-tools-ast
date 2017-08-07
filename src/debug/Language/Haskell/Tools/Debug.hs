@@ -19,14 +19,14 @@ import Language.Haskell.TH.LanguageExtensions (Extension(..))
 import StringBuffer (hGetStringBuffer)
 
 import Language.Haskell.Tools.AST (NodeInfo(..))
-import Language.Haskell.Tools.AST.FromGHC
-import Language.Haskell.Tools.DebugGhcAST ()
+import Language.Haskell.Tools.BackendGHC
+import Language.Haskell.Tools.Debug.DebugGhcAST ()
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.PrettyPrint (prettyPrint)
-import Language.Haskell.Tools.RangeDebug (srcInfoDebug)
-import Language.Haskell.Tools.RangeDebug.Instances ()
-import Language.Haskell.Tools.Refactor.Predefined
-import Language.Haskell.Tools.Transform
+import Language.Haskell.Tools.Debug.RangeDebug (srcInfoDebug)
+import Language.Haskell.Tools.Debug.RangeDebugInstances ()
+import Language.Haskell.Tools.Refactor.Builtin
+import Language.Haskell.Tools.PrettyPrint.Prepare
 
 -- | Should be only used for testing
 demoRefactor :: String -> String -> [String] -> String -> IO ()

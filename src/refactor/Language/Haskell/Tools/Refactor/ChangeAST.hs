@@ -8,7 +8,7 @@ import Control.Monad.Writer
 import Data.List
 import Data.Maybe
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Transform
+import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.Refactor.MonadicOperations
 import Language.Haskell.Tools.Refactor.Monad
 import SrcLoc

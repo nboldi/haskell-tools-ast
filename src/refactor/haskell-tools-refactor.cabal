@@ -23,6 +23,7 @@ library
                      , Language.Haskell.Tools.Refactor.Helpers
                      , Language.Haskell.Tools.Refactor.ChangeAST
                      , Language.Haskell.Tools.Refactor.Refactoring
+                     , Language.Haskell.Tools.Refactor.IndentationUtils
 
   build-depends:       base                      >= 4.9  && < 4.10
                      , mtl                       >= 2.2  && < 2.3

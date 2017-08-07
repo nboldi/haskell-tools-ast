@@ -14,7 +14,7 @@ import Data.ByteString.Char8 (pack, unpack)
 import System.IO
 import Control.Concurrent
 
-import Language.Haskell.Tools.Refactor.Predefined
+import Language.Haskell.Tools.Refactor.Builtin
 import Language.Haskell.Tools.Refactor.CLI
 
 main :: IO ()

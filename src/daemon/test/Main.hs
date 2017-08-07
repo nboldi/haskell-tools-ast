@@ -26,10 +26,10 @@ import System.IO.Error
 import SrcLoc
 import FastString
 
-import Language.Haskell.Tools.Refactor.Predefined
-import Language.Haskell.Tools.Refactor.Daemon
-import Language.Haskell.Tools.Refactor.Daemon.Protocol
-import Language.Haskell.Tools.Refactor.Daemon.PackageDB
+import Language.Haskell.Tools.Refactor.Builtin
+import Language.Haskell.Tools.Daemon
+import Language.Haskell.Tools.Daemon.Protocol
+import Language.Haskell.Tools.Daemon.PackageDB
 
 pORT_NUM_START = 4100
 pORT_NUM_END = 4200

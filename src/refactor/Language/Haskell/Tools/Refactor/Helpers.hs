@@ -13,11 +13,11 @@ import Data.List (sortBy, nubBy, partition)
 import Data.Maybe
 
 import Language.Haskell.Tools.AST as AST
-import Language.Haskell.Tools.AST.Rewrite as AST
+import Language.Haskell.Tools.Rewrite as AST
 import Language.Haskell.Tools.Refactor.ListOperations (filterList)
 
 import SrcLoc
-import Language.Haskell.Tools.Transform
+import Language.Haskell.Tools.PrettyPrint.Prepare
 
 replaceWithJust :: Ann e dom SrcTemplateStage -> AnnMaybe e dom -> AnnMaybe e dom
 replaceWithJust e = annMaybe .= Just e

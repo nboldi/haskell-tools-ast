@@ -52,21 +52,21 @@ extra-source-files: examples/CPP/*.hs
 
 library
   ghc-options: -O2
-  exposed-modules:     Language.Haskell.Tools.Refactor.Predefined
-                     , Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature
-                     , Language.Haskell.Tools.Refactor.Predefined.OrganizeImports
-                     , Language.Haskell.Tools.Refactor.Predefined.GenerateExports
-                     , Language.Haskell.Tools.Refactor.Predefined.RenameDefinition
-                     , Language.Haskell.Tools.Refactor.Predefined.ExtractBinding
-                     , Language.Haskell.Tools.Refactor.Predefined.DataToNewtype
-                     , Language.Haskell.Tools.Refactor.Predefined.IfToGuards
-                     , Language.Haskell.Tools.Refactor.Predefined.DollarApp
-                     , Language.Haskell.Tools.Refactor.Predefined.InlineBinding
-                     , Language.Haskell.Tools.Refactor.Predefined.FloatOut
-                     , Language.Haskell.Tools.Refactor.Predefined.HelloRefactor
-                     , Language.Haskell.Tools.Refactor.Predefined.DollarApp1
-                     , Language.Haskell.Tools.Refactor.Predefined.DollarApp2
-                     , Language.Haskell.Tools.Refactor.Predefined.DollarApp3
+  exposed-modules:     Language.Haskell.Tools.Refactor.Builtin
+                     , Language.Haskell.Tools.Refactor.Builtin.GenerateTypeSignature
+                     , Language.Haskell.Tools.Refactor.Builtin.OrganizeImports
+                     , Language.Haskell.Tools.Refactor.Builtin.GenerateExports
+                     , Language.Haskell.Tools.Refactor.Builtin.RenameDefinition
+                     , Language.Haskell.Tools.Refactor.Builtin.ExtractBinding
+                     , Language.Haskell.Tools.Refactor.Builtin.DataToNewtype
+                     , Language.Haskell.Tools.Refactor.Builtin.IfToGuards
+                     , Language.Haskell.Tools.Refactor.Builtin.DollarApp
+                     , Language.Haskell.Tools.Refactor.Builtin.InlineBinding
+                     , Language.Haskell.Tools.Refactor.Builtin.FloatOut
+                     , Language.Haskell.Tools.Refactor.Builtin.HelloRefactor
+                     , Language.Haskell.Tools.Refactor.Builtin.DollarApp1
+                     , Language.Haskell.Tools.Refactor.Builtin.DollarApp2
+                     , Language.Haskell.Tools.Refactor.Builtin.DollarApp3
 
   build-depends:       base                      >= 4.9  && < 4.10
                      , mtl                       >= 2.2  && < 2.3

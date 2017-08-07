@@ -26,7 +26,7 @@ import Data.List.Split
 import Data.Time.Clock
 import Data.Time.Calendar
 
-import Language.Haskell.Tools.Refactor.Predefined
+import Language.Haskell.Tools.Refactor.Builtin
 import Language.Haskell.Tools.Refactor.CLI
 
 rootDir = "examples"

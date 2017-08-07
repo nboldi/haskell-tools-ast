@@ -4,7 +4,7 @@ import System.IO
 import System.Environment
 import System.Exit
 
-import Language.Haskell.Tools.Refactor.Predefined
+import Language.Haskell.Tools.Refactor.Builtin
 import Language.Haskell.Tools.Refactor.CLI
 
 main :: IO ()

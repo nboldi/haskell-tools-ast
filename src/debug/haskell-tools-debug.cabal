@@ -13,9 +13,9 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Language.Haskell.Tools.Debug
-  other-modules:       Language.Haskell.Tools.DebugGhcAST
-                     , Language.Haskell.Tools.RangeDebug
-                     , Language.Haskell.Tools.RangeDebug.Instances
+  other-modules:       Language.Haskell.Tools.Debug.DebugGhcAST
+                     , Language.Haskell.Tools.Debug.RangeDebug
+                     , Language.Haskell.Tools.Debug.RangeDebugInstances
   build-depends:       base                      >= 4.9 && < 4.10
                      , filepath                  >= 1.4 && < 1.5
                      , template-haskell          >= 2.11 && < 2.12

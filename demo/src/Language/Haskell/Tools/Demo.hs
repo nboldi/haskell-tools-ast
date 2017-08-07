@@ -51,7 +51,7 @@ import Language.Haskell.Tools.ASTDebug
 import Language.Haskell.Tools.ASTDebug.Instances ()
 import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor hiding (initSession)
-import Language.Haskell.Tools.Refactor.Predefined
+import Language.Haskell.Tools.Refactor.Builtin
 
 type ClientId = Int
 

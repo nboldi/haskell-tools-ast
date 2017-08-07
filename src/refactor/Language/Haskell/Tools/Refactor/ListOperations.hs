@@ -9,8 +9,8 @@ import Control.Monad.IO.Class
 import Data.List (findIndices)
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.AST.Rewrite (AnnList)
-import Language.Haskell.Tools.Transform
+import Language.Haskell.Tools.Rewrite (AnnList)
+import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.Refactor.Monad
 import Language.Haskell.Tools.Refactor.MonadicOperations
 import Language.Haskell.Tools.Refactor.ChangeAST

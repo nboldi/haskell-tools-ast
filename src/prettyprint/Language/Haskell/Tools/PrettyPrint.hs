@@ -12,7 +12,7 @@ import SrcLoc
 
 import Language.Haskell.Tools.AST (SrcTemplateStage, SourceInfoTraversal(..))
 import Language.Haskell.Tools.PrettyPrint.RoseTree (RoseSourceInfo(..), RoseTree(..), toRoseTree)
-import Language.Haskell.Tools.Transform.SourceTemplate
+import Language.Haskell.Tools.PrettyPrint.Prepare.SourceTemplate
 
 import Control.Monad.State
 import Control.Reference

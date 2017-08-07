@@ -25,10 +25,10 @@ import System.FilePath
 import Data.Version (showVersion)
 
 import Language.Haskell.Tools.Refactor
-import Language.Haskell.Tools.Refactor.Predefined
-import Language.Haskell.Tools.Refactor.Daemon
-import Language.Haskell.Tools.Refactor.Daemon.Protocol
-import Language.Haskell.Tools.Refactor.Daemon.Mode (channelMode)
+import Language.Haskell.Tools.Refactor.Builtin
+import Language.Haskell.Tools.Daemon
+import Language.Haskell.Tools.Daemon.Protocol
+import Language.Haskell.Tools.Daemon.Mode (channelMode)
 import Paths_haskell_tools_cli (version)
 
 tryOut :: IO ()

@@ -30,15 +30,15 @@ import Data.IntSet (member)
 import Language.Haskell.TH.LanguageExtensions
 
 import Language.Haskell.Tools.AST as AST
-import Language.Haskell.Tools.AST.Rewrite as G
-import Language.Haskell.Tools.AST.FromGHC
-import Language.Haskell.Tools.Transform
+import Language.Haskell.Tools.Rewrite as G
+import Language.Haskell.Tools.BackendGHC
+import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor
-import Language.Haskell.Tools.Refactor.Predefined
-import Language.Haskell.Tools.Refactor.Predefined.DataToNewtype
-import Language.Haskell.Tools.Refactor.Predefined.IfToGuards
-import Language.Haskell.Tools.Refactor.Predefined.DollarApp
+import Language.Haskell.Tools.Refactor.Builtin
+import Language.Haskell.Tools.Refactor.Builtin.DataToNewtype
+import Language.Haskell.Tools.Refactor.Builtin.IfToGuards
+import Language.Haskell.Tools.Refactor.Builtin.DollarApp
 
 main :: IO ()
 main = defaultMain nightlyTests

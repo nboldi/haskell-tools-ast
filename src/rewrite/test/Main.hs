@@ -5,7 +5,7 @@ import Test.Tasty.HUnit
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.AST.Rewrite as G
+import Language.Haskell.Tools.Rewrite as G
 
 main :: IO ()
 main = defaultMain genTests

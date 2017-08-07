@@ -16,10 +16,10 @@
 module Language.Haskell.Tools.Refactor.MonadicOperations where
 
 import Language.Haskell.Tools.AST as AST
-import Language.Haskell.Tools.AST.Rewrite
+import Language.Haskell.Tools.Rewrite
 import Language.Haskell.Tools.Refactor.Monad
 import Language.Haskell.Tools.Refactor.Representation
-import Language.Haskell.Tools.Transform
+import Language.Haskell.Tools.PrettyPrint.Prepare
 
 import Bag as GHC
 import DynFlags (HasDynFlags(..))
