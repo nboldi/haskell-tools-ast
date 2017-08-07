@@ -37,10 +37,10 @@ import qualified Language.Haskell.TH.LanguageExtensions as GHC
 import Name as GHC (Name)
 import RdrName as GHC (RdrName)
 
-import Language.Haskell.Tools.AST (Dom, IdDom)
-import Language.Haskell.Tools.Refactor.RefactorBase
-
-import Debug.Trace
+import Language.Haskell.Tools.Refactor ( ModuleCollection(..), ModuleRecord(..)
+                                       , ModuleCollectionId(..), ModuleNameStr, SourceFileKey(..)
+                                       , mcId, mcRoot, mcModules, mcDependencies, mcLoadFlagSetup
+                                       , mcFlagSetup, sfkFileName, sfkModuleName, modRecMS )
 
 instance Eq (ModuleCollection k) where
   (==) = (==) `on` _mcId

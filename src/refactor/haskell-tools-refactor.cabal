@@ -15,7 +15,6 @@ library
   ghc-options: -O2
   exposed-modules:     Language.Haskell.Tools.Refactor
                      , Language.Haskell.Tools.Refactor.BindingElem
-                     , Language.Haskell.Tools.Refactor.GetModules
                      , Language.Haskell.Tools.Refactor.RefactorBase
                      , Language.Haskell.Tools.Refactor.Prepare
                      , Language.Haskell.Tools.Refactor.ListOperations

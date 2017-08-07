@@ -51,17 +51,14 @@ import HscTypes (hsc_mod_graph)
 import Packages
 import SrcLoc
 
-import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor.Daemon.PackageDB
 import Language.Haskell.Tools.Refactor.Daemon.State
 import Language.Haskell.Tools.Refactor.Daemon.Mode
 import Language.Haskell.Tools.Refactor.Daemon.Protocol
+import Language.Haskell.Tools.Refactor
+import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Predefined
-import Language.Haskell.Tools.Refactor.Prepare
-import Language.Haskell.Tools.Refactor.Refactoring
-import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Refactor.Session
 import Paths_haskell_tools_daemon
 
