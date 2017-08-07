@@ -13,10 +13,12 @@
            , RecordWildCards
            #-}
 -- | Basic utilities and types for defining refactorings.
-module Language.Haskell.Tools.Refactor.RefactorBase where
+module Language.Haskell.Tools.Refactor.MonadicOperations where
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.Rewrite
+import Language.Haskell.Tools.Refactor.Monad
+import Language.Haskell.Tools.Refactor.Representation
 import Language.Haskell.Tools.Transform
 
 import Bag as GHC
@@ -49,112 +51,10 @@ import Data.Maybe
 import Data.Typeable
 import System.FilePath
 
--- | A type for the input and result of refactoring a module
-type UnnamedModule dom = Ann AST.UModule dom SrcTemplateStage
-
--- | The name of the module and the AST
-type ModuleDom dom = (SourceFileKey, UnnamedModule dom)
-
--- | Module name and marker to separate .hs-boot module definitions. Specifies a source file in a working directory.
-data SourceFileKey = SourceFileKey { _sfkFileName :: FilePath
-                                   , _sfkModuleName :: String
-                                   }
-  deriving (Eq, Ord, Show)
-
--- | A refactoring that only affects one module
-type LocalRefactoring dom = UnnamedModule dom -> LocalRefactor dom (UnnamedModule dom)
-
--- | The type of a refactoring
-type Refactoring dom = ModuleDom dom -> [ModuleDom dom] -> Refactor [RefactorChange dom]
-
--- | The type of a refactoring that affects the whole project.
-type ProjectRefactoring dom = [ModuleDom dom] -> Refactor [RefactorChange dom]
-
--- | Change in the project, modification or removal of a module.
-data RefactorChange dom = ContentChanged { fromContentChanged :: ModuleDom dom }
-                        | ModuleRemoved { removedModuleName :: String }
-                        | ModuleCreated { createdModuleName :: String
-                                        , createdModuleContent :: UnnamedModule dom
-                                        , sameLocation :: SourceFileKey
-                                        }
-
--- | Exceptions that can occur while loading modules or during internal operations (not during performing the refactor).
-data RefactorException = IllegalExtensions [String]
-                       | SourceCodeProblem ErrorMessages
-                       | ModuleNotInPackage String
-                       | UnknownException String
-  deriving (Show, Typeable)
-
-moduleSourceFile :: String -> FilePath
-moduleSourceFile m = (foldl1 (</>) (splitOn "." m)) <.> "hs"
-
-sourceFileModule :: FilePath -> String
-sourceFileModule fp = intercalate "." $ splitDirectories $ dropExtension fp
-
-
--- | The modules of a library, executable, test or benchmark. A package contains one or more module collection.
-data ModuleCollection k
-  = ModuleCollection { _mcId :: ModuleCollectionId
-                     , _mcRoot :: FilePath
-                     , _mcSourceDirs :: [FilePath]
-                     , _mcModules :: Map.Map k ModuleRecord
-                     , _mcFlagSetup :: DynFlags -> IO DynFlags -- ^ Sets up the ghc environment for compiling the modules of this collection
-                     , _mcLoadFlagSetup :: DynFlags -> IO DynFlags -- ^ Sets up the ghc environment for dependency analysis
-                     , _mcDependencies :: [ModuleCollectionId]
-                     }
-
-modCollToSfk :: ModuleCollection ModuleNameStr -> ModuleCollection SourceFileKey
-modCollToSfk ModuleCollection{..} = ModuleCollection{ _mcModules = Map.mapKeys (SourceFileKey "") _mcModules, ..}
-
--- | An alias for module names
-type ModuleNameStr = String
-
--- | The state of a module.
-data ModuleRecord
-      = ModuleNotLoaded { _recModuleWillNeedCode :: Bool
-                        , _recModuleExposed :: Bool
-                        }
-      | ModuleParsed { _parsedRecModule :: UnnamedModule (Dom RdrName)
-                     , _modRecMS :: ModSummary
-                     }
-      | ModuleRenamed { _renamedRecModule :: UnnamedModule (Dom GHC.Name)
-                      , _modRecMS :: ModSummary
-                      }
-      | ModuleTypeChecked { _typedRecModule :: UnnamedModule IdDom
-                          , _modRecMS :: ModSummary
-                          }
-      | ModuleCodeGenerated { _typedRecModule :: UnnamedModule IdDom
-                            , _modRecMS :: ModSummary
-                            }
-
--- | This data structure identifies a module collection.
-data ModuleCollectionId = DirectoryMC FilePath
-                       | LibraryMC String
-                       | ExecutableMC String String
-                       | TestSuiteMC String String
-                       | BenchmarkMC String String
- deriving (Eq, Ord, Show)
-
 -- | A common class for the state of refactoring tools
-class IsRefactSessionState st where
+class IsRefactSessionState st where -- TODO: remove
   refSessMCs :: Simple Lens st [ModuleCollection SourceFileKey]
   initSession :: st
-
-instance Show ErrorMessages where
-  show = show . bagToList
-
-instance Exception RefactorException where
-  displayException (SourceCodeProblem prob)
-    = "Source code problem: " ++ showSDocUnsafe (vcat (pprErrMsgBagWithLoc prob))
-  displayException (IllegalExtensions exts)
-    = "The following extensions are not allowed: " ++ (concat $ intersperse ", " exts) ++ "."
-  displayException (ModuleNotInPackage modName) = "The module is not in the package: " ++ modName
-  displayException (UnknownException ex) = "An unexpected problem appeared: " ++ ex ++ "."
-
-instance Show (RefactorChange dom) where
-  show (ContentChanged (n, _)) = "ContentChanged (" ++ show n  ++ ")"
-  show (ModuleRemoved n) = "ModuleRemoved " ++ n
-  show (ModuleCreated n _ other) = "ModuleCreated " ++ n ++ " (" ++ show other ++ ")"
 
 -- | Performs the given refactoring, transforming it into a Ghc action
 runRefactor :: ModuleDom dom -> [ModuleDom dom] -> Refactoring dom -> Ghc (Either String [RefactorChange dom])
@@ -256,96 +156,6 @@ addGeneratedImports names m = modImports&annListElems .- (++ addImports names) $
         -- works on groupby result, so list is nonempty
         createImport names = mkImportDecl False True False Nothing (mkModuleName $ GHC.moduleNameString $ GHC.moduleName $ GHC.nameModule $ head names)
                                           Nothing (Just $ mkImportSpecList (map (\n -> mkIESpec (mkUnqualName' n) Nothing) names))
-
--- some instances missing from GHC
-
-instance (GhcMonad m, Monoid s) => GhcMonad (WriterT s m) where
-  getSession = lift getSession
-  setSession env = lift (setSession env)
-
-instance (ExceptionMonad m, Monoid s) => ExceptionMonad (WriterT s m) where
-  gcatch w c = WriterT (runWriterT w `gcatch` (runWriterT . c))
-  gmask m = WriterT $ gmask (\f -> runWriterT $ m (WriterT . f . runWriterT))
-
-instance (Monad m, HasDynFlags m) => HasDynFlags (StateT s m) where
-  getDynFlags = lift getDynFlags
-
-instance (GhcMonad m) => GhcMonad (StateT s m) where
-  getSession = lift getSession
-  setSession env = lift (setSession env)
-
-instance (ExceptionMonad m) => ExceptionMonad (StateT s m) where
-  gcatch r c = StateT (\ctx -> runStateT r ctx `gcatch` (flip runStateT ctx . c))
-  gmask m = StateT $ \ctx -> gmask (\f -> runStateT (m (\a -> StateT $ \ctx' -> f (runStateT a ctx'))) ctx)
-
-instance (Monad m, HasDynFlags m) => HasDynFlags (LazySt.StateT s m) where
-  getDynFlags = lift getDynFlags
-
-instance (GhcMonad m) => GhcMonad (LazySt.StateT s m) where
-  getSession = lift getSession
-  setSession env = lift (setSession env)
-
-instance (ExceptionMonad m) => ExceptionMonad (LazySt.StateT s m) where
-  gcatch r c = LazySt.StateT (\ctx -> LazySt.runStateT r ctx `gcatch` (flip LazySt.runStateT ctx . c))
-  gmask m = LazySt.StateT $ \ctx -> gmask (\f -> LazySt.runStateT (m (\a -> LazySt.StateT $ \ctx' -> f (LazySt.runStateT a ctx'))) ctx)
-
-
-instance GhcMonad m => GhcMonad (ReaderT s m) where
-  getSession = lift getSession
-  setSession env = lift (setSession env)
-
-instance ExceptionMonad m => ExceptionMonad (ReaderT s m) where
-  gcatch r c = ReaderT (\ctx -> runReaderT r ctx `gcatch` (flip runReaderT ctx . c))
-  gmask m = ReaderT $ \ctx -> gmask (\f -> runReaderT (m (\a -> ReaderT $ \ctx' -> f (runReaderT a ctx'))) ctx)
-
-instance GhcMonad m => GhcMonad (ExceptT s m) where
-  getSession = lift getSession
-  setSession env = lift (setSession env)
-
-instance ExceptionMonad m => ExceptionMonad (ExceptT s m) where
-  gcatch e c = ExceptT (runExceptT e `gcatch` (runExceptT . c))
-  gmask m = ExceptT $ gmask (\f -> runExceptT $ m (ExceptT . f . runExceptT))
-
-
--- | Input and output information for the refactoring
-newtype LocalRefactorT dom m a = LocalRefactorT { fromRefactorT :: WriterT [Either GHC.Name (SrcSpan, String, String)] (ReaderT (RefactorCtx dom) m) a }
-  deriving (Functor, Applicative, Monad, MonadReader (RefactorCtx dom), MonadWriter [Either GHC.Name (SrcSpan, String, String)], MonadIO, HasDynFlags, ExceptionMonad, GhcMonad)
-
--- | The information a refactoring can use
-data RefactorCtx dom = RefactorCtx { refModuleName :: GHC.Module
-                                   , refCtxRoot :: Ann UModule dom SrcTemplateStage
-                                   , refCtxImports :: [Ann UImportDecl dom SrcTemplateStage]
-                                   }
-
-instance MonadTrans (LocalRefactorT dom) where
-  lift = LocalRefactorT . lift . lift
-
--- | A monad that can be used to refactor
-class Monad m => RefactorMonad m where
-  refactError :: String -> m a
-  liftGhc :: Ghc a -> m a
-
-instance RefactorMonad Refactor where
-  refactError = throwE
-  liftGhc = lift
-
-instance RefactorMonad (LocalRefactor dom) where
-  refactError = lift . refactError
-  liftGhc = lift . liftGhc
-
-instance RefactorMonad m => RefactorMonad (StateT s m) where
-  refactError = lift . refactError
-  liftGhc = lift . liftGhc
-
-instance RefactorMonad m => RefactorMonad (LazySt.StateT s m) where
-  refactError = lift . refactError
-  liftGhc = lift . liftGhc
-
--- | The refactoring monad for a given module
-type LocalRefactor dom = LocalRefactorT dom Refactor
-
--- | The refactoring monad for the whole project
-type Refactor = ExceptT String Ghc
 
 registeredNamesFromPrelude :: [GHC.Name]
 registeredNamesFromPrelude = GHC.basicKnownKeyNames ++ map GHC.tyConName GHC.wiredInTyCons
@@ -459,9 +269,3 @@ isOperatorChar c = (isPunctuation c || isSymbol c) && isAscii c
 makeReferences ''SourceFileKey
 makeReferences ''ModuleCollection
 makeReferences ''ModuleRecord
-
-
-findModule :: (IsRefactSessionState st, Monad m) => String -> StateT st m [FilePath]
-findModule m = do
-  mods <- gets (^? refSessMCs & traversal & mcModules)
-  return $ concatMap @[] (map (^. sfkFileName) . filter ((== m) . (^. sfkModuleName)) . Map.keys) mods

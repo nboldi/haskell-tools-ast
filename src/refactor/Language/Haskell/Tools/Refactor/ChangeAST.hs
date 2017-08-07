@@ -9,7 +9,8 @@ import Data.List
 import Data.Maybe
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.Transform
-import Language.Haskell.Tools.Refactor.RefactorBase
+import Language.Haskell.Tools.Refactor.MonadicOperations
+import Language.Haskell.Tools.Refactor.Monad
 import SrcLoc
 
 import Debug.Trace

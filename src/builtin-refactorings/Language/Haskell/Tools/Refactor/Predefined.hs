@@ -1,8 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Language.Haskell.Tools.Refactor.Predefined ( builtinRefactorings ) where
 
-import Language.Haskell.Tools.Refactor.RefactorBase
-import Language.Haskell.Tools.Refactor.Refactoring
+import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.Predefined.RenameDefinition
 import Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature
 import Language.Haskell.Tools.Refactor.Predefined.OrganizeImports

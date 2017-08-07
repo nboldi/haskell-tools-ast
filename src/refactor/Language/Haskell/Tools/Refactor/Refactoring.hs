@@ -1,3 +1,5 @@
+-- | Defines a representation to represent refactorings that can be executed on the codebase.
+-- Refactorings are differentiated on their signatures (inputs needed to execute).
 module Language.Haskell.Tools.Refactor.Refactoring where
 
 import Control.Monad.Trans.Except
@@ -8,8 +10,11 @@ import GHC
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.Refactor.Prepare
-import Language.Haskell.Tools.Refactor.RefactorBase
+import Language.Haskell.Tools.Refactor.Representation
+import Language.Haskell.Tools.Refactor.Monad
+import Language.Haskell.Tools.Refactor.MonadicOperations
 
+-- | The signature and behavior of one refactoring that can be executed.
 data RefactoringChoice dom
   = NamingRefactoring { refactoringName :: String
                       , namingRefactoring :: RealSrcSpan -> String -> Refactoring dom
@@ -24,7 +29,8 @@ data RefactoringChoice dom
                        , projectRefactoring :: ProjectRefactoring dom
                        }
 
--- | Executes a given command on the selected module and given other modules
+-- | Executes a given command (choosen from the set of available refactorings) on the selected
+-- module and given other modules.
 performCommand :: [RefactoringChoice dom] -- ^ The set of available refactorings
                     -> [String] -- ^ The refactoring command
                     -> Either FilePath (ModuleDom dom) -- ^ The module in which the refactoring is performed
@@ -49,5 +55,6 @@ performCommand refactorings (name:args) mod mods =
       (Nothing, _, _) -> return $ Left $ "Unknown command: " ++ name
   where refactoring = find ((== name) . refactoringName) refactorings
 
+-- | Gets the name of possible refactorings.
 refactorCommands :: [RefactoringChoice dom] -> [String]
 refactorCommands = map refactoringName

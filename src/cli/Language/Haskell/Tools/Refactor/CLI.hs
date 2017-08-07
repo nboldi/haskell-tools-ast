@@ -26,7 +26,6 @@ import Data.Version (showVersion)
 
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.Predefined
-import Language.Haskell.Tools.Refactor.RefactorBase
 import Language.Haskell.Tools.Refactor.Daemon
 import Language.Haskell.Tools.Refactor.Daemon.Protocol
 import Language.Haskell.Tools.Refactor.Daemon.Mode (channelMode)

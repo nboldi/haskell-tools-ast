@@ -38,7 +38,9 @@ import System.FilePath
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.FromGHC
 import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.Refactor.RefactorBase
+import Language.Haskell.Tools.Refactor.MonadicOperations
+import Language.Haskell.Tools.Refactor.Monad
+import Language.Haskell.Tools.Refactor.Representation
 import Language.Haskell.Tools.Transform
 
 
