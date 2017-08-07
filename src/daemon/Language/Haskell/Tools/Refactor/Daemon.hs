@@ -210,7 +210,7 @@ updateClient refactorings resp (PerformRefactoring refact modPath selection args
         reloadChanges changedMods
           = do reloadRes <- reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
                                                  (\mss -> resp (LoadingModules (map getModSumOrig mss)))
-                                                 (\ms -> modSumName ms `elem` changedMods)
+                                                 (\ms -> getModSumName ms `elem` changedMods)
                liftIO $ case reloadRes of Left errs -> resp (either ErrorMessage (ErrorMessage . ("The result of the refactoring contains errors: " ++) . show) (getProblems errs))
                                           Right _ -> return ()
 

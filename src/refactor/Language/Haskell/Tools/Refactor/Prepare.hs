@@ -132,6 +132,9 @@ getSourceDir ms
 getModSumOrig :: ModSummary -> FilePath
 getModSumOrig = normalise . fromMaybe (error "getModSumOrig: The given module doesn't have haskell source file.") . ml_hs_file . ms_location
 
+keyFromMS :: ModSummary -> SourceFileKey
+keyFromMS ms = SourceFileKey (normalise $ getModSumOrig ms) (getModSumName ms)
+
 -- | Gets the module name
 getModSumName :: ModSummary -> String
 getModSumName = GHC.moduleNameString . moduleName . ms_mod

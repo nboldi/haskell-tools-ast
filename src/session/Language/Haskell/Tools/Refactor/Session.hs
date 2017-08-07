@@ -95,9 +95,6 @@ handleErrors :: ExceptionMonad m => m a -> m (Either RefactorException a)
 handleErrors action = handleSourceError (return . Left . SourceCodeProblem . srcErrorMessages) (Right <$> action)
                         `gcatch` (return . Left)
 
-keyFromMS :: ModSummary -> SourceFileKey
-keyFromMS ms = SourceFileKey (normalise $ getModSumOrig ms) (modSumName ms)
-
 getMods :: (Monad m, IsRefactSessionState st)
         => Maybe SourceFileKey -> StateT st m ( Maybe (SourceFileKey, UnnamedModule IdDom)
                                               , [(SourceFileKey, UnnamedModule IdDom)] )
@@ -145,7 +142,7 @@ reloadModule :: IsRefactSessionState st => (ModSummary -> IO a) -> ModSummary ->
 reloadModule report ms = do
   mcs <- gets (^. refSessMCs)
   let fp = getModSumOrig ms
-      modName = modSumName ms
+      modName = getModSumName ms
       codeGen = needsGeneratedCode (keyFromMS ms) mcs
   case lookupSourceFileColl fp mcs <|> lookupModuleColl modName mcs of
     Just mc -> do
@@ -164,7 +161,7 @@ checkEvaluatedMods :: IsRefactSessionState st => (ModSummary -> IO a) -> [ModSum
 checkEvaluatedMods report mods = do
     mcs <- gets (^. refSessMCs)
     let lookupFlags ms = maybe return (^. mcFlagSetup) mc
-          where modName = modSumName ms
+          where modName = getModSumName ms
                 mc = lookupModuleColl modName mcs
 
     modsNeedCode <- lift (getEvaluatedMods mods lookupFlags)
@@ -187,7 +184,7 @@ checkEvaluatedMods report mods = do
 -- but code generation were not enabled by then.
 codeGenForModule :: (ModSummary -> IO a) -> [ModuleCollection SourceFileKey] -> ModSummary -> Ghc a
 codeGenForModule report mcs ms
-  = let modName = modSumName ms
+  = let modName = getModSumName ms
         mc = fromMaybe (error $ "codeGenForModule: The following module is not found: " ++ modName) $ lookupModuleColl modName mcs
      in -- TODO: don't recompile, only load?
         do withAlteredDynFlags (liftIO . compileInContext mc mcs)
@@ -210,10 +207,6 @@ getEvaluatedMods mods additionalFlags
            sortedTHMods = filter ((`elem` recompMods) . moduleName . ms_mod) sortedMods
        return sortedTHMods
   where isTH mod = fromEnum TemplateHaskell `member` extensionFlags (ms_hspp_opts mod)
-
-
-modSumName :: ModSummary -> String
-modSumName = GHC.moduleNameString . moduleName . ms_mod
 
 -- * code copied from GHC because it is not public in GhcMake module
 

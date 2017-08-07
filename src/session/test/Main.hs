@@ -25,6 +25,7 @@ import Data.Either.Combinators
 import System.IO
 import System.Exit
 import System.FilePath
+import System.Directory
 import Data.IntSet (member)
 import Language.Haskell.TH.LanguageExtensions
 
@@ -33,15 +34,7 @@ import Language.Haskell.Tools.AST.Rewrite as G
 import Language.Haskell.Tools.AST.FromGHC
 import Language.Haskell.Tools.Transform
 import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.Refactor.Prepare
-import Language.Haskell.Tools.Refactor.GetModules
-import Language.Haskell.Tools.Refactor.Predefined.OrganizeImports
-import Language.Haskell.Tools.Refactor.Predefined.GenerateTypeSignature
-import Language.Haskell.Tools.Refactor.Predefined.GenerateExports
-import Language.Haskell.Tools.Refactor.Predefined.RenameDefinition
-import Language.Haskell.Tools.Refactor.Predefined.ExtractBinding
-import Language.Haskell.Tools.Refactor.RefactorBase
-import Language.Haskell.Tools.Refactor.Session
+import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.Predefined
 import Language.Haskell.Tools.Refactor.Predefined.DataToNewtype
 import Language.Haskell.Tools.Refactor.Predefined.IfToGuards
@@ -589,12 +582,13 @@ checkCorrectlyPrinted workingDir moduleName
 
 performRefactors :: String -> String -> [String] -> String -> IO (Either String [(String, Maybe String)])
 performRefactors command workingDir flags target = do
-    mods <- getAllModules [workingDir]
+    sourceFiles <- filter ((== ".hs") . takeExtension) <$> listDirectory workingDir
+    let sourceModules = map dropExtension sourceFiles
     runGhc (Just libdir) $ do
       initGhcFlagsForTest
       useFlags flags
       useDirs [workingDir]
-      setTargets (map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) (concatMap (Map.keys . (^. mcModules)) mods))
+      setTargets $ map (\mod -> (Target (TargetModule (GHC.mkModuleName mod)) True Nothing)) sourceModules
       load LoadAllTargets
       allMods <- getModuleGraph
       selectedMod <- getModSummary (GHC.mkModuleName target)
