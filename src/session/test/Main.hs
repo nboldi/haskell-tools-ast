@@ -33,7 +33,6 @@ import Language.Haskell.Tools.AST.Rewrite as G
 import Language.Haskell.Tools.AST.FromGHC
 import Language.Haskell.Tools.Transform
 import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.GetModules
 import Language.Haskell.Tools.Refactor.Predefined.OrganizeImports

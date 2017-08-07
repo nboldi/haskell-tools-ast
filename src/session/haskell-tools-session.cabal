@@ -52,8 +52,7 @@ extra-source-files: examples/CPP/*.hs
 
 library
   ghc-options: -O2
-  exposed-modules:     Language.Haskell.Tools.Refactor.Perform
-                     , Language.Haskell.Tools.Refactor.Session
+  exposed-modules:     Language.Haskell.Tools.Refactor.Session
 
   build-depends:       base                      >= 4.9  && < 4.10
                      , mtl                       >= 2.2  && < 2.3

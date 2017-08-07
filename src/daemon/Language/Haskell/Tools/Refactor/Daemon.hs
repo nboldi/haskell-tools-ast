@@ -58,7 +58,6 @@ import Language.Haskell.Tools.Refactor.Daemon.State
 import Language.Haskell.Tools.Refactor.Daemon.Mode
 import Language.Haskell.Tools.Refactor.Daemon.Protocol
 import Language.Haskell.Tools.Refactor.GetModules
-import Language.Haskell.Tools.Refactor.Perform
 import Language.Haskell.Tools.Refactor.Predefined
 import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.Refactoring
