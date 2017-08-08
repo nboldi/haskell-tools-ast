@@ -34,6 +34,7 @@ import Outputable
 import Language.Haskell.Tools.Refactor hiding (ModuleName)
 import Language.Haskell.Tools.Daemon.ModuleGraph
 import Language.Haskell.Tools.Daemon.GetModules
+import Language.Haskell.Tools.Daemon.Representation
 
 -- | The state common for refactoring tools, carrying the state of modules.
 data RefactorSessionState

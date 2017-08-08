@@ -12,9 +12,10 @@ module Language.Haskell.Tools.Refactor
     , module Language.Haskell.Tools.Refactor.BindingElem
     , module Language.Haskell.Tools.Refactor.IndentationUtils
     , module Language.Haskell.Tools.Refactor.Refactoring
+    , module Language.Haskell.Tools.Refactor.NameUtils
     , module Language.Haskell.Tools.Refactor.Representation
     , module Language.Haskell.Tools.Refactor.Monad
-  , Ann, HasSourceInfo(..), HasRange(..), annListElems, annListAnnot, annList, annJust, annMaybe, isAnnNothing, Domain, IdDom
+  , Ann, HasSourceInfo(..), HasRange(..), annListElems, annListAnnot, annList, annJust, annMaybe, isAnnNothing, Domain, Dom, IdDom
     , shortShowSpan, SrcTemplateStage, SourceInfoTraversal(..)
     -- elements of source templates
     , sourceTemplateNodeRange, sourceTemplateNodeElems
@@ -31,6 +32,7 @@ import Language.Haskell.Tools.AST.References
 import Language.Haskell.Tools.Rewrite
 import Language.Haskell.Tools.AST.SemaInfoClasses
 import Language.Haskell.Tools.Refactor.IndentationUtils
+import Language.Haskell.Tools.Refactor.NameUtils
 import Language.Haskell.Tools.Refactor.BindingElem
 import Language.Haskell.Tools.Refactor.Helpers
 import Language.Haskell.Tools.Refactor.ListOperations

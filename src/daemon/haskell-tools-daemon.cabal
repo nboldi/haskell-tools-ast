@@ -91,6 +91,7 @@ library
                      , Language.Haskell.Tools.Daemon.Session
                      , Language.Haskell.Tools.Daemon.ModuleGraph
                      , Language.Haskell.Tools.Daemon.GetModules
+                     , Language.Haskell.Tools.Daemon.Representation
                      , Language.Haskell.Tools.Daemon.State
                      , Language.Haskell.Tools.Daemon.PackageDB
                      , Language.Haskell.Tools.Daemon.Mode

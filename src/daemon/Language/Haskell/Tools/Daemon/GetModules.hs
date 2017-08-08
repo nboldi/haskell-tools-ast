@@ -37,10 +37,8 @@ import qualified Language.Haskell.TH.LanguageExtensions as GHC
 import Name as GHC (Name)
 import RdrName as GHC (RdrName)
 
-import Language.Haskell.Tools.Refactor ( ModuleCollection(..), ModuleRecord(..)
-                                       , ModuleCollectionId(..), ModuleNameStr, SourceFileKey(..)
-                                       , mcId, mcRoot, mcModules, mcDependencies, mcLoadFlagSetup
-                                       , mcFlagSetup, sfkFileName, sfkModuleName, modRecMS )
+import Language.Haskell.Tools.Refactor (SourceFileKey(..), sfkFileName, sfkModuleName)
+import Language.Haskell.Tools.Daemon.Representation
 
 instance Eq (ModuleCollection k) where
   (==) = (==) `on` _mcId

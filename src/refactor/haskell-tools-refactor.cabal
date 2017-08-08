@@ -20,6 +20,7 @@ library
                      , Language.Haskell.Tools.Refactor.Representation
                      , Language.Haskell.Tools.Refactor.Prepare
                      , Language.Haskell.Tools.Refactor.ListOperations
+                     , Language.Haskell.Tools.Refactor.NameUtils
                      , Language.Haskell.Tools.Refactor.Helpers
                      , Language.Haskell.Tools.Refactor.ChangeAST
                      , Language.Haskell.Tools.Refactor.Refactoring

@@ -60,6 +60,7 @@ import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Daemon.GetModules
 import Language.Haskell.Tools.Refactor.Builtin
 import Language.Haskell.Tools.Daemon.Session
+import Language.Haskell.Tools.Daemon.Representation
 import Paths_haskell_tools_daemon
 
 runDaemonCLI :: IO ()
