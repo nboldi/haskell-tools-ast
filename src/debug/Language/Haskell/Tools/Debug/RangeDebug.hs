@@ -44,7 +44,7 @@ instance {-# OVERLAPPING #-} TreeDebug e dom st => GTreeDebug (K1 i (e dom st)) 
   gTreeDebug i (K1 x) = treeDebug' i x
 
 instance {-# OVERLAPPABLE #-} GTreeDebug (K1 i c) where
-  gTreeDebug i (K1 x) = ""
+  gTreeDebug _ (K1 _) = ""
 
 instance GTreeDebug f => GTreeDebug (M1 i t f) where
   gTreeDebug i (M1 x) = gTreeDebug i x

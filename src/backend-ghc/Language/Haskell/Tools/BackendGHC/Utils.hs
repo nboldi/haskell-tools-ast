@@ -130,7 +130,6 @@ getImportedNames name pkg = liftGhc $ do
   let ifaceNames = maybe [] mi_exports $ flip lookupModuleEnv mod
                                        $ eps_PIT eps
   let homeExports = maybe [] (md_exports . hm_details) (lookupHptByModule hpt mod)
-  mi <- getModuleInfo mod
   -- TODO: Why selectors are added in one case and not added in the other?
   return (mod, concatMap (availToPName availNames) ifaceNames ++ concatMap (availToPName availNamesWithSelectors) homeExports)
     where availToPName f a = map (\n -> if n == availName a then PName n Nothing else PName n (Just (availName a))) (f a)
@@ -145,7 +144,7 @@ checkImportVisible _ _ = return True
 ieSpecMatches :: (HsHasName name, GhcMonad m) => IE name -> GHC.Name -> m Bool
 ieSpecMatches (concatMap hsGetNames . HsSyn.ieNames -> ls) name
   | name `elem` ls = return True
-ieSpecMatches ie@(IEThingAll ln) name | [n] <- hsGetNames (HsSyn.ieName ie), isTyConName n
+ieSpecMatches ie@(IEThingAll _) name | [n] <- hsGetNames (HsSyn.ieName ie), isTyConName n
   = do entity <- lookupName n
        return $ case entity of Just (ATyCon tc)
                                  | Just cls <- tyConClass_maybe tc
@@ -460,6 +459,6 @@ unhandledElement label e = do rng <- asks contRange
                               error ("Illegal " ++ label ++ ": " ++ showSDocUnsafe (ppr e) ++ " (ctor: " ++ show (toConstr e) ++ ") at: " ++ show rng)
 
 instance Monoid SrcSpan where
-  span1@(RealSrcSpan _) `mappend` span2 = span1
-  span1 `mappend` span2 = span2
+  span1@(RealSrcSpan _) `mappend` _ = span1
+  _ `mappend` span2 = span2
   mempty = noSrcSpan

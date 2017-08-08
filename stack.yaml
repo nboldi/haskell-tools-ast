@@ -1,5 +1,8 @@
 resolver: lts-8.20
 
+ghc-options:
+  "*": -fwarn-unused-binds -fwarn-unused-matches
+
 packages:
   - src/ast
   - src/backend-ghc

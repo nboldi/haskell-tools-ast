@@ -227,11 +227,11 @@ cleanHsType (HsAppsTy apps) = unLoc $ guessType apps
         guessType [] = error $ "guessType: empty: " ++ showSDocUnsafe (ppr apps)
 
         guessType' :: LHsType n -> [LHsAppType n] -> LHsType n
-        guessType' fun (L l (HsAppPrefix t) : rest) = guessType' (hsAppTy fun t) rest
+        guessType' fun (L _ (HsAppPrefix t) : rest) = guessType' (hsAppTy fun t) rest
         guessType' fun (L l (HsAppInfix n) : rest)
           -- TODO: find a better check
           | showSDocUnsafe (ppr n) == "*" = guessType' (hsAppTy fun (L l (HsTyVar n))) rest
-        guessType' left (L l (HsAppInfix n) : right) = hsOpTy left n (guessType right)
+        guessType' left (L _ (HsAppInfix n) : right) = hsOpTy left n (guessType right)
         guessType' t [] = t
 
         hsAppTy :: LHsType n -> LHsType n -> LHsType n

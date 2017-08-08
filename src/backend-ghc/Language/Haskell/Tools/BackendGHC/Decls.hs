@@ -146,7 +146,7 @@ trfDecl = trfLocNoSema $ \case
                                                        -- the location is needed when there is no = sign
                         <*> makeListBefore " = " " | " (pure $ srcSpanStart $ foldLocs $ getLoc con : map getLoc (hsib_body pats)) (mapM trfConDecl cons)
                         <*> trfMaybe "" "" trfDerivings derivs
-  InstD (DataFamInstD (DataFamInstDecl con pats (HsDataDefn nd _ _ kind cons derivs) _))
+  InstD (DataFamInstD (DataFamInstDecl con pats (HsDataDefn nd _ _ kind cons _) _))
     -> AST.UGDataInstDecl <$> trfDataKeyword nd
                         <*> (focusAfter AnnInstance . focusBeforeIfPresent AnnWhere)
                               (makeInstanceRuleTyVars con pats)
@@ -165,13 +165,13 @@ trfDecl = trfLocNoSema $ \case
   ForD (ForeignExport name (hsib_body -> typ) _ (CExport (L l (CExportStatic _ _ ccall)) _))
     -> AST.UForeignExport <$> annLocNoSema (pure l) (trfCallConv' ccall) <*> trfName name <*> trfType typ
   SpliceD (SpliceDecl (unLoc -> spl) _) -> AST.USpliceDecl <$> trfSplice spl
-  WarningD (Warnings src [])
+  WarningD (Warnings _ [])
     -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) (pure []))
                                                           <*> makeList ", " (before AnnClose) (pure []))
-  WarningD (Warnings src [L _ (Warning names (DeprecatedTxt _ stringLits))])
+  WarningD (Warnings _ [L _ (Warning names (DeprecatedTxt _ stringLits))])
     -> AST.UPragmaDecl <$> annContNoSema (AST.UDeprPragma <$> (makeList " " (after AnnOpen) $ mapM trfName names)
                                                           <*> makeList ", " (before AnnClose) (mapM (\(L l (StringLiteral _ fs)) -> trfFastString (L l fs)) stringLits))
-  WarningD (Warnings src [L _ (Warning names (WarningTxt _ stringLits))])
+  WarningD (Warnings _ [L _ (Warning names (WarningTxt _ stringLits))])
     -> AST.UPragmaDecl <$> annContNoSema (AST.UWarningPragma <$> (makeNonemptyList " " $ mapM trfName names)
                                                              <*> makeList ", " (before AnnClose) (mapM (\(L l (StringLiteral _ fs)) -> trfFastString (L l fs)) stringLits))
   AnnD (HsAnnotation stxt subject expr)
@@ -526,7 +526,7 @@ trfFamilyKind :: TransformName n r => Located (FamilyResultSig n) -> Trf (AnnMay
 trfFamilyKind (unLoc -> fr) = case fr of
   NoSig -> nothing "" " " atTheEnd
   KindSig k -> trfKindSig (Just k)
-  TyVarSig tv -> error "trfFamilyKind: TyVarSig not supported"
+  TyVarSig _ -> error "trfFamilyKind: TyVarSig not supported"
 
 trfFamilyResultSig :: TransformName n r => Located (FamilyResultSig n) -> Maybe (LInjectivityAnn n) -> Trf (AnnMaybeG AST.UTypeFamilySpec (Dom r) RangeStage)
 trfFamilyResultSig (L l fr) Nothing = case fr of

@@ -79,7 +79,7 @@ trfModuleRename mod rangeMod (gr,imports,exps,_) hsMod
               importPrelude names = ( "Prelude", Nothing, False, names)
 
           addToScopeImported (map importNames (transformedImports ^? AST.annList) ++ [importPrelude preludeImports])
-            $ loadSplices mod hsMod transformedImports gr
+            $ loadSplices hsMod
             $ setOriginalNames originalNames . setDeclsToInsert roleAnnots
             $ do filePrags <- trfFilePragmas
                  AST.UModule filePrags
@@ -91,8 +91,8 @@ trfModuleRename mod rangeMod (gr,imports,exps,_) hsMod
                   <*> return transformedImports
                   <*> trfDeclsGroup gr
 
-loadSplices :: ModSummary -> HsModule RdrName -> AnnListG AST.UImportDecl (Dom GHC.Name) RangeStage -> HsGroup Name -> Trf a -> Trf a
-loadSplices modSum hsMod imports group trf = do
+loadSplices :: HsModule RdrName -> Trf a -> Trf a
+loadSplices hsMod trf = do
     let declSpls = map (\(SpliceDecl sp _) -> sp) $ hsMod ^? biplateRef :: [Located (HsSplice RdrName)]
         exprSpls = catMaybes $ map (\case L l (HsSpliceE sp) -> Just (L l sp); _ -> Nothing) $ hsMod ^? biplateRef :: [Located (HsSplice RdrName)]
         typeSpls = catMaybes $ map (\case L l (HsSpliceTy sp _) -> Just (L l sp); _ -> Nothing) $ hsMod ^? biplateRef :: [Located (HsSplice RdrName)]
@@ -151,9 +151,7 @@ trfImports (filter (not . ideclImplicit . unLoc) -> imps)
                                                   <*> (srcLocSpan . srcSpanEnd <$> tokenLoc AnnWhere))
 trfImport :: TransformName n r => LImportDecl n -> Trf (Ann AST.UImportDecl (Dom r) RangeStage)
 trfImport (L l impDecl@(GHC.ImportDecl _ name pkg isSrc _ isQual _ declAs declHiding)) = focusOn l $
-  do range <- asks contRange
-     safeTok <- tokenLoc AnnSafe
-
+  do safeTok <- tokenLoc AnnSafe
      let -- default positions of optional parts of an import declaration
          annBeforeQual = if isSrc then AnnClose else AnnImport
          annBeforeSafe = if isQual then AnnQualified else annBeforeQual

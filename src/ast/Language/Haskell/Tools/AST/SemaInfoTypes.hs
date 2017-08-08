@@ -130,7 +130,7 @@ data ModuleInfo n = ModuleInfo { _defModuleName :: GHC.Module
   deriving Data
 
 instance Data DynFlags where
-  gunfold k z c = error "Cannot construct dyn flags"
+  gunfold _ _ _ = error "Cannot construct dyn flags"
   toConstr _ = dynFlagsCon
   dataTypeOf _ = dynFlagsType
 

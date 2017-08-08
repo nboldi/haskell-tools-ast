@@ -51,7 +51,7 @@ trfMatch :: TransformName n r => n -> Located (Match n (LHsExpr n)) -> Trf (Ann 
 trfMatch id = trfLocNoSema (trfMatch' id)
 
 trfMatch' :: TransformName n r => n -> Match n (LHsExpr n) -> Trf (AST.UMatch (Dom r) RangeStage)
-trfMatch' name (Match funid pats typ (GRHSs rhss (unLoc -> locBinds)))
+trfMatch' name (Match funid pats _ (GRHSs rhss (unLoc -> locBinds)))
   -- TODO: add the optional typ to pats
   = AST.UMatch <$> trfMatchLhs name funid pats
                <*> addToScope pats (addToScope locBinds (trfRhss rhss))
@@ -165,7 +165,7 @@ trfFixitySig (FixitySig names (Fixity _ prec dir))
 trfInlinePragma :: TransformName n r => Located n -> InlinePragma -> Trf (Ann AST.UInlinePragma (Dom r) RangeStage)
 trfInlinePragma name (InlinePragma _ Inlinable _ phase _)
   = annContNoSema (AST.UInlinablePragma <$> trfPhase (pure $ srcSpanStart $ getLoc name) phase <*> trfName name)
-trfInlinePragma name (InlinePragma src NoInline _ _ cl) = annContNoSema (AST.UNoInlinePragma <$> trfName name)
+trfInlinePragma name (InlinePragma _ NoInline _ _ _) = annContNoSema (AST.UNoInlinePragma <$> trfName name)
 trfInlinePragma name (InlinePragma src Inline _ phase cl)
   = annContNoSema $ do rng <- asks contRange
                        let parts = map getLoc $ splitLocated (L rng src)

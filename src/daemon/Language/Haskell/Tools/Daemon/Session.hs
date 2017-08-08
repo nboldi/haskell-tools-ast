@@ -151,7 +151,7 @@ reloadModule report ms = do
       dfs' <- liftIO $ compileInContext mc mcs dfs
       let ms' = ms { ms_hspp_opts = dfs' }
       newm <- lift $ withAlteredDynFlags (\_ -> return (ms_hspp_opts ms')) $
-        parseTyped (mc ^. mcRoot) (if codeGen then forceCodeGen ms' else ms')
+        parseTyped (if codeGen then forceCodeGen ms' else ms')
       modify $ refSessMCs & traversal & filtered (== mc) & mcModules
                  .- Map.insert (keyFromMS ms) ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm ms)
                       . Map.delete (SourceFileKey "" modName)
@@ -172,9 +172,7 @@ checkEvaluatedMods report mods = do
   where reloadIfNeeded ms mcs
           = let key = keyFromMS ms
               in if not (hasGeneratedCode key mcs)
-                   then do md <- gets (^. refSessMCs)
-                           modify $ refSessMCs .- codeGeneratedFor key
-                           md <- gets (^. refSessMCs)
+                   then do modify $ refSessMCs .- codeGeneratedFor key
                            if (isAlreadyLoaded key mcs) then
                                -- The module is already loaded but code is not generated. Need to reload.
                                Just <$> lift (codeGenForModule report (codeGeneratedFor key mcs) ms)
@@ -189,7 +187,7 @@ codeGenForModule report mcs ms
         mc = fromMaybe (error $ "codeGenForModule: The following module is not found: " ++ modName) $ lookupModuleColl modName mcs
      in -- TODO: don't recompile, only load?
         do withAlteredDynFlags (liftIO . compileInContext mc mcs)
-             $ void $ parseTyped (mc ^. mcRoot) (forceCodeGen ms)
+             $ void $ parseTyped (forceCodeGen ms)
            liftIO $ report ms
 
 -- | Check which modules can be reached from the module, if it uses template haskell.

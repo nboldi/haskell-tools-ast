@@ -54,7 +54,6 @@ testPackage noLoad pack = do
              -- correct rts option handling (on windows) requires stack 1.4
              , let autogenPath = "tested-package\\.stack-work\\dist\\" ++ snapshotId ++ "\\build\\autogen"
                    logPath = "logs\\" ++ pack ++ "-refact-log.txt 2>&1"
-                   dbPaths = ["C:\\Users\\nboldi\\AppData\\Local\\Programs\\stack\\x86_64-windows\\ghc-8.0.2\\lib\\package.conf.d", "C:\\sr\\snapshots\\c095693b\\pkgdb"]
                 in Left ("stack exec ht-refact --stack-yaml=..\\stack.yaml --rts-options -M4G -- -exec=\"ProjectOrganizeImports\" tested-package " ++ autogenPath ++ " > " ++ logPath, RefactError)
              , Left ("stack build > logs\\" ++ pack ++ "-reload-log.txt 2>&1", WrongCodeError)
              ]

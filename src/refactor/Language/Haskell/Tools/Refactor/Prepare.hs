@@ -50,7 +50,7 @@ tryRefactor refact moduleName span
   = runGhc (Just libdir) $ do
       initGhcFlags
       useDirs ["."]
-      mod <- loadModule "." moduleName >>= parseTyped "."
+      mod <- loadModule "." moduleName >>= parseTyped
       res <- runRefactor (SourceFileKey (moduleSourceFile moduleName) moduleName, mod) []
                $ refact $ correctRefactorSpan mod $ readSrcSpan span
       case res of Right r -> liftIO $ mapM_ (putStrLn . prettyPrint . snd . fromContentChanged) r
@@ -155,8 +155,8 @@ loadModule workingDir moduleName
 type TypedModule = Ann AST.UModule IdDom SrcTemplateStage
 
 -- | Get the typed representation from a type-correct program.
-parseTyped :: FilePath -> ModSummary -> Ghc TypedModule
-parseTyped wd modSum = withAlteredDynFlags (return . normalizeFlags) $ do
+parseTyped :: ModSummary -> Ghc TypedModule
+parseTyped modSum = withAlteredDynFlags (return . normalizeFlags) $ do
   let hasStaticFlags = StaticPointers `xopt` ms_hspp_opts modSum
       hasCppExtension = Cpp `xopt` ms_hspp_opts modSum
       hasApplicativeDo = ApplicativeDo `xopt` ms_hspp_opts modSum

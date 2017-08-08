@@ -115,7 +115,7 @@ insertText inserted p
            mergeInserted _ _ _ _ [] elems = elems
            mergeInserted access append prepend prep insert@(Right (insertSpan,insertStr,ln):toInsert) (fstElem:elems)
               -- insert a fragment to the end of the current element if the next elment is after the fragment
-              | Just fstElemSpace <- access fstElem -- TODO: is this needed?
+              | Just _ <- access fstElem -- TODO: is this needed?
               , not prep && case mapMaybe access elems of sp:_ -> srcSpanStart sp >= srcSpanEnd insertSpan
                                                           _ -> True
               = mergeInserted access append prepend prep toInsert (append (ln ++ insertStr ++ ln) fstElem : elems)

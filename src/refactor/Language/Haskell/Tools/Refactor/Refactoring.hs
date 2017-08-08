@@ -40,12 +40,12 @@ performCommand refactorings (name:args) mod mods =
     case (refactoring, mod, args) of
       (Just (NamingRefactoring _ trf), Right mod, (sp:newName:_))
         -> runExceptT $ trf (correctRefactorSpan (snd mod) $ readSrcSpan sp) newName mod mods
-      (Just (NamingRefactoring _ trf), Right _, _)
+      (Just (NamingRefactoring _ _), Right _, _)
         -> return $ Left $ "The refactoring '" ++ name
                              ++ "' needs two argument: a source range and a name"
       (Just (SelectionRefactoring _ trf), Right mod, (sp:_))
         -> runExceptT $ trf (correctRefactorSpan (snd mod) $ readSrcSpan sp) mod mods
-      (Just (SelectionRefactoring _ trf), Right _, _)
+      (Just (SelectionRefactoring _ _), Right _, _)
         -> return $ Left $ "The refactoring '" ++ name ++ "' needs one argument: a source range"
       (Just (ModuleRefactoring _ trf), Right mod, _) -> runExceptT $ trf mod mods
       (Just (ProjectRefactoring _ trf), _, _) -> runExceptT $ trf mods

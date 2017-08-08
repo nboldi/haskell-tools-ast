@@ -135,8 +135,7 @@ updateClient _ _ (RemovePackages packagePathes) = do
 
 updateClient _ resp (ReLoad added changed removed) =
   -- TODO: check for changed cabal files and reload their packages
-  do mcs <- gets (^. refSessMCs)
-     lift $ forM_ removed (\src -> removeTarget (TargetFile src Nothing))
+  do lift $ forM_ removed (\src -> removeTarget (TargetFile src Nothing))
      -- remove targets deleted
      modify $ refSessMCs & traversal & mcModules
                 .- Map.filter (\m -> maybe True ((`notElem` removed) . getModSumOrig) (m ^? modRecMS))
@@ -192,7 +191,7 @@ updateClient refactorings resp (PerformRefactoring refact modPath selection args
                 hSetEncoding handle utf8
                 StrictIO.hGetContents handle
               let undo = createUndo 0 $ getGroupedDiff origCont newCont
-              origCont <- liftIO $ withBinaryFile file WriteMode $ \handle -> do
+              liftIO $ withBinaryFile file WriteMode $ \handle -> do
                 hSetEncoding handle utf8
                 hPutStr handle newCont
               return $ Right (n, file, UndoChanges file undo)
@@ -213,7 +212,7 @@ updateClient refactorings resp (PerformRefactoring refact modPath selection args
                                           Right _ -> return ()
 
 addPackages :: (ResponseMsg -> IO ()) -> [FilePath] -> StateT DaemonSessionState Ghc ()
-addPackages resp [] = return ()
+addPackages _ [] = return ()
 addPackages resp packagePathes = do
   nonExisting <- filterM ((return . not) <=< liftIO . doesDirectoryExist) packagePathes
   if (not (null nonExisting))
@@ -234,7 +233,7 @@ addPackages resp packagePathes = do
         res <- loadPackagesFrom (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]) >> return (getModSumOrig ms))
                                 (resp . LoadingModules . map getModSumOrig) (\st fp -> maybeToList <$> detectAutogen fp (st ^. packageDB)) packagePathes
         case res of
-          Right modules -> do
+          Right _ -> do
             mapM_ (reloadModule (\_ -> return ())) (either (const []) id needToReload) -- don't report consequent reloads (not expected)
           Left err -> liftIO $ resp $ either ErrorMessage CompilationProblem (getProblems err)
       else liftIO $ resp $ ErrorMessage $ "Attempted to load two packages with different package DB. "

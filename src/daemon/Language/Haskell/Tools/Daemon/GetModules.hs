@@ -118,7 +118,7 @@ isAlreadyLoaded key = maybe False (\case (_, ModuleNotLoaded {}) -> False; _ -> 
 -- they can be loaded in the order they are defined (no backward imports). This matters in those cases because for them there can be
 -- special compilation flags.
 getAllModules :: [FilePath] -> IO [ModuleCollection ModuleNameStr]
-getAllModules pathes = orderMCs . concat <$> mapM (getModules pathes) (map normalise pathes)
+getAllModules pathes = orderMCs . concat <$> mapM getModules (map normalise pathes)
 
 -- | Sorts model collection in an order to remove all backward references.
 -- Works because module collections defined by directories cannot be recursive.
@@ -135,11 +135,11 @@ orderMCs = sortBy compareMCs
 -- | Get modules of the project with the indicated root directory.
 -- If there is a cabal file, it uses that, otherwise it just scans the directory recursively for haskell sourcefiles.
 -- Only returns the non-boot haskell modules, the boot modules will be found during loading.
-getModules :: [FilePath] -> FilePath -> IO [ModuleCollection ModuleNameStr]
-getModules allRoots root
+getModules :: FilePath -> IO [ModuleCollection ModuleNameStr]
+getModules root
   = do files <- listDirectory root
        case find (\p -> takeExtension p == ".cabal") files of
-          Just cabalFile -> modulesFromCabalFile allRoots root cabalFile
+          Just cabalFile -> modulesFromCabalFile root cabalFile
           Nothing        -> do mods <- modulesFromDirectory root root
                                return [ModuleCollection (DirectoryMC root) root [root] (modKeys mods) return return []]
   where modKeys mods = Map.fromList $ map (, ModuleNotLoaded False True) mods
@@ -163,16 +163,16 @@ srcDirFromRoot fileName moduleName
 
 -- | Load the module using a cabal file. The modules described in the cabal file will be loaded.
 -- The flags and extensions set in the cabal file will be used by default.
-modulesFromCabalFile :: [FilePath] -> FilePath -> FilePath -> IO [ModuleCollection ModuleNameStr]
+modulesFromCabalFile :: FilePath -> FilePath -> IO [ModuleCollection ModuleNameStr]
 -- now adding all conditional entries, regardless of flags
-modulesFromCabalFile allRoots root cabal = (getModules . setupFlags <$> readPackageDescription silent (root </> cabal))
+modulesFromCabalFile root cabal = (getModules . setupFlags <$> readPackageDescription silent (root </> cabal))
   where getModules pkg = maybe [] (maybe [] (:[]) . toModuleCollection pkg) (library pkg)
                            ++ catMaybes (map (toModuleCollection pkg) (executables pkg))
                            ++ catMaybes (map (toModuleCollection pkg) (testSuites pkg))
                            ++ catMaybes (map (toModuleCollection pkg) (benchmarks pkg))
 
         toModuleCollection :: ToModuleCollection tmc => PackageDescription -> tmc -> Maybe (ModuleCollection ModuleNameStr)
-        toModuleCollection PackageDescription{ buildType = Just Custom } tmc
+        toModuleCollection PackageDescription{ buildType = Just Custom } _
           = error "While parsing cabal file \"build-type: custom\" is not supported"
         toModuleCollection pkg tmc
           = let bi = getBuildInfo tmc
