@@ -2,19 +2,17 @@
 -- | Operations for changing the AST
 module Language.Haskell.Tools.Refactor.Utils.AST (removeChild, removeSeparator) where
 
-import Control.Reference
-import Control.Monad.State
+import Control.Monad.State (Monad(..), mapM_)
 import Control.Monad.Writer
+import Control.Reference
 import Data.List
-import Data.Maybe
-import Language.Haskell.Tools.AST
+import Data.Maybe (Maybe(..), mapMaybe, catMaybes)
+import Language.Haskell.Tools.AST (SrcTemplateStage, SourceInfoTrf(..), SourceInfoTraversal(..))
 import Language.Haskell.Tools.PrettyPrint.Prepare
-import Language.Haskell.Tools.Refactor.Utils.Monadic
-import Language.Haskell.Tools.Refactor.Monad
-import SrcLoc
+import Language.Haskell.Tools.Refactor.Monad (LocalRefactor)
+import SrcLoc (SrcSpan)
 
-import Debug.Trace
-import Data.Either
+import Data.Either (Either(..))
 
 -- | Remove a separator from the AST while keeping the textual parts of it that should not be removed (like preprocessor pragmas).
 removeSeparator :: ([SourceTemplateTextElem], SrcSpan) -> LocalRefactor dom ()

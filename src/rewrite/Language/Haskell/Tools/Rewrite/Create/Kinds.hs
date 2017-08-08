@@ -7,9 +7,9 @@ module Language.Haskell.Tools.Rewrite.Create.Kinds where
 
 import Data.String (IsString(..), String)
 import Language.Haskell.Tools.AST (UPromoted(..), UKind(..), UKindConstraint(..))
-import Language.Haskell.Tools.Rewrite.ElementTypes (Name, Kind, KindConstraint)
-import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn, mkAnnList)
 import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn, mkAnnList)
+import Language.Haskell.Tools.Rewrite.ElementTypes (Name, Kind, KindConstraint)
 
 -- | Kind constraint (@ :: * -> * @)
 mkKindConstraint :: Kind dom -> KindConstraint dom

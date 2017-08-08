@@ -7,6 +7,6 @@ module Language.Haskell.Tools.Rewrite
   , module Language.Haskell.Tools.Rewrite.ElementTypes
   ) where
 
-import Language.Haskell.Tools.Rewrite.ElementTypes
 import Language.Haskell.Tools.Rewrite.Create
+import Language.Haskell.Tools.Rewrite.ElementTypes
 import Language.Haskell.Tools.Rewrite.Match

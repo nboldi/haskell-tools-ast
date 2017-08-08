@@ -4,12 +4,12 @@
 module Language.Haskell.Tools.Refactor.Utils.Name where
 
 import Data.Char
-import Data.List.Split
+import Data.List.Split (splitOn)
 
-import Name as GHC
 import GHC hiding (mkModuleName, moduleNameString)
+import Name as GHC (NamedThing(..), Name, isSymOcc)
 
-import Language.Haskell.Tools.Refactor.Monad
+import Language.Haskell.Tools.Refactor.Monad (RefactorMonad(..))
 
 -- | Different classes of definitions that have different kind of names.
 data NameClass = Variable         -- ^ Normal value definitions: functions, variables

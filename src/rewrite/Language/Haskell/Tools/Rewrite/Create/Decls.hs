@@ -7,9 +7,9 @@
 module Language.Haskell.Tools.Rewrite.Create.Decls where
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Rewrite.ElementTypes
-import Language.Haskell.Tools.Rewrite.Create.Utils
 import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Rewrite.Create.Utils
+import Language.Haskell.Tools.Rewrite.ElementTypes
 
 -- | Creates a type synonym ( @type String = [Char]@ )
 mkTypeDecl :: DeclHead dom -> Type dom -> Decl dom

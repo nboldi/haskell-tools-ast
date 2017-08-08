@@ -11,15 +11,14 @@
 module Language.Haskell.Tools.Refactor.Builtin.RenameDefinition
   (renameDefinition, renameDefinition', DomainRenameDefinition, renameDefinitionRefactoring) where
 
+import DataCon (dataConFieldLabels, FieldLbl(..), dataConFieldType)
 import qualified GHC
+import Id
+import IdInfo (RecSelParent(..))
 import Name (OccName(..), NamedThing(..), occNameString)
 import SrcLoc (RealSrcSpan)
-import Id
-import IdInfo
-import Outputable
-import Type
-import TyCon
-import DataCon
+import TyCon (tyConDataCons)
+import Type (TyThing(..), funResultTy, eqType)
 
 import Control.Monad.State
 import Control.Reference as Ref
@@ -27,8 +26,6 @@ import Data.Generics.Uniplate.Data ()
 import Data.List
 import Data.List.Split (splitOn)
 import Data.Maybe
-import Debug.Trace
-
 import Language.Haskell.Tools.Refactor
 
 renameDefinitionRefactoring :: DomainRenameDefinition dom => RefactoringChoice dom

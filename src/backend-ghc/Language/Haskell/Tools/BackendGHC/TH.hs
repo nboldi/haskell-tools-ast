@@ -9,9 +9,6 @@ import FastString as GHC (unpackFS)
 import HsExpr as GHC (HsSplice(..), HsExpr(..), HsBracket(..))
 import SrcLoc as GHC
 
-import Outputable as GHC
-import Control.Monad.IO.Class
-
 import Language.Haskell.Tools.BackendGHC.Decls (trfDecls, trfDeclsGroup)
 import Language.Haskell.Tools.BackendGHC.Exprs (trfExpr, createScopeInfo)
 import Language.Haskell.Tools.BackendGHC.Monad (TrfInput(..), Trf)

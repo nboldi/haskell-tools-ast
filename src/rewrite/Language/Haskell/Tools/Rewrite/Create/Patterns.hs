@@ -7,9 +7,9 @@
 module Language.Haskell.Tools.Rewrite.Create.Patterns where
 
 import Language.Haskell.Tools.AST (UFieldWildcard(..), UPatternField(..), UPattern(..))
-import Language.Haskell.Tools.Rewrite.ElementTypes
-import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn, mkAnnList)
 import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn, mkAnnList)
+import Language.Haskell.Tools.Rewrite.ElementTypes
 
 -- | Pattern name binding
 mkVarPat :: Name dom -> Pattern dom

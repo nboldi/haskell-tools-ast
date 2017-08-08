@@ -2,17 +2,16 @@
 -- Refactorings are differentiated on their signatures (inputs needed to execute).
 module Language.Haskell.Tools.Refactor.Refactoring where
 
-import Control.Monad.Trans.Except
-import Data.List
+import Control.Monad.Trans.Except (runExceptT)
+import Data.List ((++), map, find)
 
-import SrcLoc
-import GHC
+import GHC (RealSrcSpan, Ghc)
+import SrcLoc (RealSrcSpan)
 
-import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Refactor.Prepare
-import Language.Haskell.Tools.Refactor.Representation
-import Language.Haskell.Tools.Refactor.Monad
-import Language.Haskell.Tools.Refactor.Utils.Monadic
+import Language.Haskell.Tools.AST ()
+import Language.Haskell.Tools.Refactor.Monad (ProjectRefactoring, Refactoring)
+import Language.Haskell.Tools.Refactor.Prepare (correctRefactorSpan, readSrcSpan)
+import Language.Haskell.Tools.Refactor.Representation (RefactorChange, ModuleDom)
 
 -- | The signature and behavior of one refactoring that can be executed.
 data RefactoringChoice dom

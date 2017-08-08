@@ -6,9 +6,9 @@ module Language.Haskell.Tools.Rewrite.Create.TH where
 
 import Data.String (IsString(..), String)
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Rewrite.ElementTypes
-import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn, mkAnnList)
 import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn, mkAnnList)
+import Language.Haskell.Tools.Rewrite.ElementTypes
 
 -- | A simple name splice: @$generateX@
 mkIdSplice :: Name dom -> Splice dom

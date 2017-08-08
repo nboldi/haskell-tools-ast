@@ -1,35 +1,35 @@
 {-# LANGUAGE StandaloneDeriving, LambdaCase, ScopedTypeVariables, OverloadedStrings #-}
 module Main where
 
-import Test.Tasty
-import Test.Tasty.HUnit
-import System.Exit
-import System.Directory
-import System.FilePath
-import System.Process
-import System.Environment
-import System.Exit
-import Control.Monad
-import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.MVar
-import Network.Socket hiding (KeepAlive, send, recv)
-import Network.Socket.ByteString.Lazy as Sock
+import Control.Exception (SomeException(..), finally, catch)
+import Control.Monad
+import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BS
 import qualified Data.List as List
 import Data.List (sort)
-import Data.Aeson
-import Data.Maybe
+import Data.Maybe (Maybe(..), isJust, catMaybes)
+import Network.Socket hiding (KeepAlive, send, recv)
+import Network.Socket.ByteString.Lazy as Sock (sendAll, recv)
+import System.Directory
+import System.Environment (unsetEnv)
+import System.Exit (ExitCode(..))
+import System.Exit (ExitCode(..))
+import System.FilePath (FilePath(..), (</>))
 import System.IO
-import System.IO.Error
+import System.IO.Error (catchIOError)
+import System.Process
+import Test.Tasty
+import Test.Tasty.HUnit (assertEqual, assertBool, testCase)
 
-import SrcLoc
-import FastString
+import FastString (mkFastString)
+import SrcLoc (SrcSpan(..), mkSrcSpan, mkSrcLoc)
 
-import Language.Haskell.Tools.Refactor.Builtin
-import Language.Haskell.Tools.Daemon
-import Language.Haskell.Tools.Daemon.Protocol
-import Language.Haskell.Tools.Daemon.PackageDB
+import Language.Haskell.Tools.Daemon (runDaemon')
+import Language.Haskell.Tools.Daemon.PackageDB (PackageDB(..))
+import Language.Haskell.Tools.Daemon.Protocol (UndoRefactor(..), ResponseMsg(..), ClientMessage(..))
+import Language.Haskell.Tools.Refactor.Builtin (builtinRefactorings)
 
 pORT_NUM_START = 4100
 pORT_NUM_END = 4200

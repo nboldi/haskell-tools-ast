@@ -38,10 +38,10 @@ import System.FilePath
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.BackendGHC
 import Language.Haskell.Tools.PrettyPrint
-import Language.Haskell.Tools.Refactor.Utils.Monadic
+import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.Refactor.Monad
 import Language.Haskell.Tools.Refactor.Representation
-import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Refactor.Utils.Monadic
 
 
 -- | A quick function to try the refactorings

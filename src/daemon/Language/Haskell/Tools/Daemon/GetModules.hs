@@ -13,10 +13,10 @@ module Language.Haskell.Tools.Daemon.GetModules where
 import Control.Applicative
 import Control.Monad
 import Control.Reference
+import Data.Char
 import Data.Function (on)
 import Data.List
 import qualified Data.Map as Map
-import Data.Char
 import Data.Maybe
 import Distribution.Compiler
 import Distribution.ModuleName
@@ -31,15 +31,15 @@ import System.Directory
 import System.FilePath
 
 import DynFlags
-import Module (stringToUnitId)
 import qualified DynFlags as GHC
 import GHC hiding (ModuleName)
 import qualified Language.Haskell.TH.LanguageExtensions as GHC
+import Module (stringToUnitId)
 import Name as GHC (Name)
 import RdrName as GHC (RdrName)
 
-import Language.Haskell.Tools.Refactor (SourceFileKey(..), sfkFileName, sfkModuleName)
 import Language.Haskell.Tools.Daemon.Representation
+import Language.Haskell.Tools.Refactor (SourceFileKey(..), sfkFileName, sfkModuleName)
 
 -- | Gets all ModuleCollections from a list of source directories. It also orders the source directories that are package roots so that
 -- they can be loaded in the order they are defined (no backward imports). This matters in those cases because for them there can be

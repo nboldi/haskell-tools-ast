@@ -3,18 +3,16 @@
 -- AST lists carry source information so simple list modification is not enough.
 module Language.Haskell.Tools.Refactor.Utils.Lists where
 
+import Control.Applicative ((<$>))
 import Control.Reference
-import Control.Applicative
-import Control.Monad.IO.Class
 import Data.List (findIndices)
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Rewrite (AnnList)
 import Language.Haskell.Tools.PrettyPrint.Prepare
-import Language.Haskell.Tools.Refactor.Monad
-import Language.Haskell.Tools.Refactor.Utils.Monadic
-import Language.Haskell.Tools.Refactor.Utils.AST
-import SrcLoc
+import Language.Haskell.Tools.Refactor.Monad (LocalRefactor)
+import Language.Haskell.Tools.Refactor.Utils.AST (removeSeparator, removeChild)
+import Language.Haskell.Tools.Rewrite (AnnList)
+import SrcLoc (SrcSpan, noSrcSpan)
 
 -- | Filters the elements of the list. By default it removes the separator before the element.
 -- Of course, if the first element is removed, the following separator is removed as well.

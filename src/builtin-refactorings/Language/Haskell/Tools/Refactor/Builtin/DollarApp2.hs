@@ -3,12 +3,12 @@ module Language.Haskell.Tools.Refactor.Builtin.DollarApp2 where
 
 import Language.Haskell.Tools.Refactor
 
-import Control.Reference
+import Control.Reference ((!~))
+import Id (idName)
+import PrelInfo (wiredInIds)
+import PrelNames (dollarIdKey)
 import SrcLoc (RealSrcSpan)
 import Unique (getUnique)
-import Id (idName)
-import PrelNames (dollarIdKey)
-import PrelInfo (wiredInIds)
 
 tryItOut :: String -> String -> IO ()
 tryItOut = tryRefactor (localRefactoring . dollarApp)

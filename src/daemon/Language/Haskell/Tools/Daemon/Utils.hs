@@ -5,10 +5,10 @@
 -- | Utility operations for the reprsentation of module collections.
 module Language.Haskell.Tools.Daemon.Utils where
 
-import Control.Applicative
+import Control.Applicative (Alternative(..))
 import Control.Reference
-import qualified Data.Map as Map
 import Data.List
+import qualified Data.Map as Map
 
 import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Refactor (SourceFileKey(..), sfkFileName, sfkModuleName)

@@ -2,7 +2,7 @@ module Language.Haskell.Tools.Refactor.Builtin.DollarApp1 where
 
 import Language.Haskell.Tools.Refactor
 
-import Control.Reference
+import Control.Reference ((.-))
 import SrcLoc (RealSrcSpan)
 
 tryItOut :: String -> String -> IO ()

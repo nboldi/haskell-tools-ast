@@ -24,8 +24,8 @@ import Language.Haskell.TH.LanguageExtensions as GHC (Extension(..))
 import Name (NamedThing(..))
 import OccName (HasOccName(..), isSymOcc)
 import qualified PrelNames as GHC (fromStringName, coerceKey)
+import SrcLoc (SrcSpan(..), noSrcSpan)
 import TyCon (TyCon(..), tyConFamInst_maybe)
-import SrcLoc
 import Unique (getUnique)
 
 import Control.Applicative ((<$>), Alternative(..))

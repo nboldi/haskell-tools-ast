@@ -26,21 +26,21 @@ module Language.Haskell.Tools.Refactor
 
 -- Important: Haddock doesn't support the rename all exported modules and export them at once hack
 
-import Language.Haskell.Tools.Rewrite.ElementTypes
 import Language.Haskell.Tools.AST.Helpers
 import Language.Haskell.Tools.AST.References
-import Language.Haskell.Tools.Rewrite
 import Language.Haskell.Tools.AST.SemaInfoClasses
-import Language.Haskell.Tools.Refactor.Utils.Indentation
-import Language.Haskell.Tools.Refactor.Utils.Name
+import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.Refactor.BindingElem
 import Language.Haskell.Tools.Refactor.Helpers
-import Language.Haskell.Tools.Refactor.Utils.Lists
+import Language.Haskell.Tools.Refactor.Monad
 import Language.Haskell.Tools.Refactor.Prepare
-import Language.Haskell.Tools.Refactor.Utils.Monadic
 import Language.Haskell.Tools.Refactor.Refactoring
 import Language.Haskell.Tools.Refactor.Representation
-import Language.Haskell.Tools.Refactor.Monad
-import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Refactor.Utils.Indentation
+import Language.Haskell.Tools.Refactor.Utils.Lists
+import Language.Haskell.Tools.Refactor.Utils.Monadic
+import Language.Haskell.Tools.Refactor.Utils.Name
+import Language.Haskell.Tools.Rewrite
+import Language.Haskell.Tools.Rewrite.ElementTypes
 
 import Language.Haskell.Tools.AST.Ann

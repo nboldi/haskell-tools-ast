@@ -1,16 +1,16 @@
 module Language.Haskell.Tools.Daemon.Mode where
 
+import Control.Concurrent.Chan
+import qualified Data.Aeson as A ()
+import Data.Aeson hiding ((.=))
 import Data.ByteString.Lazy.Char8 (ByteString)
 import Data.ByteString.Lazy.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 as BS
+import Data.Maybe (Maybe(..), catMaybes)
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
-import Network.Socket.ByteString.Lazy
-import Control.Concurrent.Chan
-import qualified Data.Aeson as A ((.=))
-import Data.Aeson hiding ((.=))
-import Data.Maybe
+import Network.Socket.ByteString.Lazy (sendAll, recv)
 
-import Language.Haskell.Tools.Daemon.Protocol
+import Language.Haskell.Tools.Daemon.Protocol (ResponseMsg, ClientMessage)
 
 data WorkingMode a = WorkingMode { daemonConnect :: [String] -> IO a
                                  , daemonDisconnect :: a -> IO ()

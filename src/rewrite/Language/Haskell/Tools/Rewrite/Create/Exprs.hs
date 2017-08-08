@@ -7,9 +7,9 @@
 module Language.Haskell.Tools.Rewrite.Create.Exprs where
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Rewrite.ElementTypes
-import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn, mkAnnList, mkAnnMaybe)
 import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn, mkAnnList, mkAnnMaybe)
+import Language.Haskell.Tools.Rewrite.ElementTypes
 
 -- * Expressions
 

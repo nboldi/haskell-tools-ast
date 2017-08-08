@@ -7,12 +7,12 @@ module Language.Haskell.Tools.Daemon.Protocol where
 
 import qualified Data.Aeson as A ((.=))
 import Data.Aeson hiding ((.=))
-import GHC.Generics
+import GHC.Generics (Generic)
 
-import FastString
+import FastString (unpackFS)
 import SrcLoc
 
-import Language.Haskell.Tools.Daemon.PackageDB
+import Language.Haskell.Tools.Daemon.PackageDB (PackageDB)
 
 -- | The messages expected from the client.
 data ClientMessage

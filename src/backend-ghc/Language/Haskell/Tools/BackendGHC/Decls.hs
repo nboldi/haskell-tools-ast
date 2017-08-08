@@ -28,7 +28,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Language.Haskell.Tools.BackendGHC.Binds
 import Language.Haskell.Tools.BackendGHC.Exprs (trfExpr)
 import Language.Haskell.Tools.BackendGHC.GHCUtils
-import Language.Haskell.Tools.BackendGHC.Kinds
+import Language.Haskell.Tools.BackendGHC.Kinds (trfKindSig, trfKindSig')
 import Language.Haskell.Tools.BackendGHC.Monad
 import Language.Haskell.Tools.BackendGHC.Names
 import Language.Haskell.Tools.BackendGHC.Patterns (trfPattern)
@@ -40,8 +40,7 @@ import Language.Haskell.Tools.AST (Ann, AnnMaybeG, AnnListG, getRange, Dom, Rang
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (nameInfo)
 
-import Outputable
-import Debug.Trace
+import Outputable (Outputable(..), showSDocUnsafe)
 
 trfDecls :: TransformName n r => [LHsDecl n] -> Trf (AnnListG AST.UDecl (Dom r) RangeStage)
 trfDecls decls = addToCurrentScope decls $ makeIndentedListNewlineBefore atTheEnd (mapM trfDecl decls)

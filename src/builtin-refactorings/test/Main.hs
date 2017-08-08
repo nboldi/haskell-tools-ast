@@ -4,41 +4,37 @@
            #-}
 module Main where
 
-import Test.Tasty
+import Test.Tasty (TestTree, testGroup, defaultMain)
 import Test.Tasty.HUnit
 
+import DynFlags (xopt)
 import GHC hiding (loadModule, ParsedModule)
-import DynFlags
 import GHC.Paths ( libdir )
-import Module as GHC
-import StringBuffer
+import Module as GHC (mkModuleName)
+import StringBuffer (hGetStringBuffer)
 
-import Control.Reference
-import Control.Monad.IO.Class
+import Control.Monad (Monad(..), mapM, (=<<))
+import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.State
-import Control.Monad
-import Data.Maybe
-import qualified Data.Map as Map
+import Control.Reference ((^.))
+import Data.Either.Combinators (mapRight, isLeft)
 import Data.List
-import Data.List.Split
-import Data.Either.Combinators
-import System.IO
-import System.Exit
+import Data.List.Split (splitOn)
+import Data.Maybe (Maybe(..), fromJust)
+import Language.Haskell.TH.LanguageExtensions (Extension(..))
+import System.Directory (listDirectory)
 import System.FilePath
-import System.Directory
-import Data.IntSet (member)
-import Language.Haskell.TH.LanguageExtensions
+import System.IO
 
 import Language.Haskell.Tools.AST as AST
-import Language.Haskell.Tools.Rewrite as G
-import Language.Haskell.Tools.BackendGHC
+import Language.Haskell.Tools.BackendGHC (runTrf, trfModule, trfModuleRename)
+import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.PrettyPrint.Prepare
-import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Refactor
-import Language.Haskell.Tools.Refactor.Builtin
-import Language.Haskell.Tools.Refactor.Builtin.DataToNewtype
-import Language.Haskell.Tools.Refactor.Builtin.IfToGuards
-import Language.Haskell.Tools.Refactor.Builtin.DollarApp
+import Language.Haskell.Tools.Refactor.Builtin (builtinRefactorings)
+import Language.Haskell.Tools.Refactor.Builtin.DataToNewtype (dataToNewtype)
+import Language.Haskell.Tools.Refactor.Builtin.DollarApp (dollarApp)
+import Language.Haskell.Tools.Refactor.Builtin.IfToGuards (ifToGuards)
 
 main :: IO ()
 main = defaultMain nightlyTests

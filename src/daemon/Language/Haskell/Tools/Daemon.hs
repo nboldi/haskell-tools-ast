@@ -11,8 +11,8 @@
 module Language.Haskell.Tools.Daemon where
 
 import Control.Applicative ((<|>))
-import Control.Concurrent.MVar
 import Control.Concurrent.Chan
+import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
 import Control.Monad.State.Strict
@@ -30,6 +30,7 @@ import Data.List hiding (insert)
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Tuple
+import Data.Version
 import GHC.Generics
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
 import Network.Socket.ByteString.Lazy
@@ -38,7 +39,6 @@ import System.Environment
 import System.IO
 import System.IO.Error
 import System.IO.Strict as StrictIO (hGetContents)
-import Data.Version
 
 import Bag
 import DynFlags
@@ -51,17 +51,17 @@ import HscTypes (hsc_mod_graph)
 import Packages
 import SrcLoc
 
-import Language.Haskell.Tools.Daemon.PackageDB
-import Language.Haskell.Tools.Daemon.State
-import Language.Haskell.Tools.Daemon.Mode
-import Language.Haskell.Tools.Daemon.Protocol
-import Language.Haskell.Tools.Refactor
-import Language.Haskell.Tools.PrettyPrint
 import Language.Haskell.Tools.Daemon.GetModules
-import Language.Haskell.Tools.Refactor.Builtin
-import Language.Haskell.Tools.Daemon.Session
+import Language.Haskell.Tools.Daemon.Mode
+import Language.Haskell.Tools.Daemon.PackageDB
+import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Daemon.Representation
+import Language.Haskell.Tools.Daemon.Session
+import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Utils
+import Language.Haskell.Tools.PrettyPrint
+import Language.Haskell.Tools.Refactor
+import Language.Haskell.Tools.Refactor.Builtin
 import Paths_haskell_tools_daemon
 
 runDaemonCLI :: IO ()

@@ -7,9 +7,9 @@ module Language.Haskell.Tools.Rewrite.Create.Names where
 
 import Data.String (IsString(..), String)
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Rewrite.ElementTypes
-import Language.Haskell.Tools.Rewrite.Create.Utils (emptyList, mkAnn, mkAnnList)
 import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Rewrite.Create.Utils (emptyList, mkAnn, mkAnnList)
+import Language.Haskell.Tools.Rewrite.ElementTypes
 import qualified Name as GHC
 
 -- | Creates a simple, unqualified name

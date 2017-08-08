@@ -8,18 +8,17 @@ module Language.Haskell.Tools.PrettyPrint.Prepare.RangeTemplateToSourceTemplate 
 import Control.Monad.Identity
 import Control.Monad.State
 import Control.Reference
+import Data.List
+import Data.List.Split (splitOn)
 import Data.Map as Map
 import Data.Ord (Ord(..), Ordering(..))
 import Data.Set as Set
-import Data.List
-import Data.List.Split
 import FastString (mkFastString)
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.PrettyPrint.Prepare.RangeTemplate
 import Language.Haskell.Tools.PrettyPrint.Prepare.SourceTemplate
 import SrcLoc
 import StringBuffer (StringBuffer, nextChar, atEnd)
-import Debug.Trace
 
 rangeToSource :: SourceInfoTraversal node => StringBuffer -> Ann node dom RngTemplateStage
                                                           -> Ann node dom SrcTemplateStage

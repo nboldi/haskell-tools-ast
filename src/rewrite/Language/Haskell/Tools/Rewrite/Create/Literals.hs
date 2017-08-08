@@ -7,8 +7,8 @@ module Language.Haskell.Tools.Rewrite.Create.Literals where
 
 import Data.String (IsString(..), String)
 import Language.Haskell.Tools.AST (ULiteral(..))
-import Language.Haskell.Tools.Rewrite.ElementTypes (Literal)
 import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn)
+import Language.Haskell.Tools.Rewrite.ElementTypes (Literal)
 
 -- | Character literal: @'c'@
 mkCharLit :: Char -> Literal dom

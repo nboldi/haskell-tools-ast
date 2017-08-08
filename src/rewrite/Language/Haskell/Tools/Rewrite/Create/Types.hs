@@ -8,11 +8,11 @@ module Language.Haskell.Tools.Rewrite.Create.Types where
 
 import Data.String (IsString(..), String)
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Rewrite.ElementTypes
+import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.Rewrite.Create.Kinds (mkKindConstraint)
 import Language.Haskell.Tools.Rewrite.Create.Names (mkUnqualName')
 import Language.Haskell.Tools.Rewrite.Create.Utils
-import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Rewrite.ElementTypes
 import qualified Name as GHC (Name)
 
 -- * Generation of types

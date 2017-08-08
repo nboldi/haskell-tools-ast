@@ -16,26 +16,26 @@ import qualified Data.List as List
 import Data.List.Split
 import qualified Data.Map as Map
 import Data.Maybe
+import System.Directory
 import System.FilePath
 import System.IO
-import System.Directory
 
 import Data.IntSet (member)
 import Digraph as GHC
+import DynFlags
 import ErrUtils
 import Exception (ExceptionMonad)
 import FastString as GHC
 import GHC
-import DynFlags
 import HscTypes as GHC
 import Language.Haskell.TH.LanguageExtensions
 import Outputable
 
-import Language.Haskell.Tools.Refactor hiding (ModuleName)
-import Language.Haskell.Tools.Daemon.ModuleGraph
 import Language.Haskell.Tools.Daemon.GetModules
+import Language.Haskell.Tools.Daemon.ModuleGraph
 import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Daemon.Utils
+import Language.Haskell.Tools.Refactor hiding (ModuleName)
 
 -- | The state common for refactoring tools, carrying the state of modules.
 data RefactorSessionState

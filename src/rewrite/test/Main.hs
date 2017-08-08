@@ -1,10 +1,10 @@
 module Main where
 
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.Tasty (TestTree, testGroup, defaultMain)
+import Test.Tasty.HUnit (assertEqual, testCase)
 
-import Language.Haskell.Tools.AST as AST
-import Language.Haskell.Tools.PrettyPrint
+import Language.Haskell.Tools.AST as AST (SrcTemplateStage, Ann, SourceInfoTraversal)
+import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.Rewrite as G
 
 main :: IO ()

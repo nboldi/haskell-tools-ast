@@ -8,8 +8,8 @@
 module Language.Haskell.Tools.BackendGHC.Exprs where
 
 import Control.Monad.Reader
-import Data.List
 import Data.Function (on)
+import Data.List
 import Data.Maybe (Maybe(..), isJust, fromMaybe, catMaybes)
 
 import BasicTypes as GHC (Boxity(..), StringLiteral(..))
@@ -19,6 +19,7 @@ import OccName as GHC (occNameString)
 import PrelNames as GHC (negateName)
 import SrcLoc as GHC
 
+import Language.Haskell.Tools.AST.SemaInfoTypes (ScopeInfo, mkScopeInfo)
 import {-# SOURCE #-} Language.Haskell.Tools.BackendGHC.Binds (trfRhsGuard', trfWhereLocalBinds, trfLocalBinds)
 import Language.Haskell.Tools.BackendGHC.GHCUtils (GHCName(..), getFieldOccName)
 import Language.Haskell.Tools.BackendGHC.Literals (trfLiteral', trfOverloadedLit)
@@ -29,7 +30,6 @@ import Language.Haskell.Tools.BackendGHC.Stmts
 import {-# SOURCE #-} Language.Haskell.Tools.BackendGHC.TH (trfBracket', trfSplice, trfQuasiQuotation')
 import Language.Haskell.Tools.BackendGHC.Types (trfType)
 import Language.Haskell.Tools.BackendGHC.Utils
-import Language.Haskell.Tools.AST.SemaInfoTypes (ScopeInfo, mkScopeInfo)
 
 import Language.Haskell.Tools.AST (Ann, AnnListG, Dom, RangeStage)
 import qualified Language.Haskell.Tools.AST as AST

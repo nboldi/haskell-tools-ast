@@ -3,7 +3,7 @@ module Language.Haskell.Tools.Refactor.Builtin.HelloRefactor where
 import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.Refactor
 
-import Control.Reference
+import Control.Reference ((.-))
 import Debug.Trace (trace)
 import SrcLoc (RealSrcSpan)
 

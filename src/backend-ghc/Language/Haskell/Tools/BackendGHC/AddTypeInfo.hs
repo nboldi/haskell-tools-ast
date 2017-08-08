@@ -23,7 +23,7 @@ import Control.Applicative (Applicative(..), (<$>), Alternative(..))
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.State
 import Control.Monad.Trans.Class (MonadTrans(..))
-import Control.Reference
+import Control.Reference (Lens_1(..), (^.))
 import Data.Generics.Uniplate.Data ()
 import Data.Generics.Uniplate.Operations (universeBi)
 import Data.List as List
@@ -31,8 +31,8 @@ import qualified Data.Map as Map (fromList, lookup)
 import Data.Maybe (Maybe(..), fromMaybe, catMaybes)
 
 import Language.Haskell.Tools.AST as AST
-import Language.Haskell.Tools.BackendGHC.GHCUtils (getTopLevelId)
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (mkCNameInfo)
+import Language.Haskell.Tools.BackendGHC.GHCUtils (getTopLevelId)
 
 addTypeInfos :: LHsBinds Id -> Ann AST.UModule (Dom GHC.Name) RangeStage -> Ghc (Ann AST.UModule IdDom RangeStage)
 addTypeInfos bnds mod = do

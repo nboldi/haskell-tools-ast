@@ -12,7 +12,6 @@ import Id (mkVanillaGlobal)
 import SrcLoc as GHC
 import TyCon as GHC (TyCon(..))
 import TysWiredIn (heqTyCon)
-import Outputable
 
 import Control.Applicative (Applicative(..), (<$>), Alternative(..))
 import Control.Monad.Reader.Class (asks)
@@ -20,7 +19,6 @@ import Control.Reference ((^.))
 import Data.Function (on)
 import Data.List
 import Data.Maybe (Maybe(..), fromJust)
-import Control.Monad.IO.Class
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.BackendGHC.GHCUtils (GHCName(..), cleanHsType)

@@ -5,8 +5,8 @@
 module Language.Haskell.Tools.Rewrite.Create.Utils where
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Rewrite.ElementTypes (AnnMaybe, AnnList)
 import Language.Haskell.Tools.PrettyPrint.Prepare (child, opt, list)
+import Language.Haskell.Tools.Rewrite.ElementTypes (AnnMaybe, AnnList)
 
 fromTemplate :: src -> NodeInfo sema src
 fromTemplate = NodeInfo (error "The newly generated AST fragments have no semantic info")

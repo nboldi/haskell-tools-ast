@@ -5,12 +5,12 @@
 module Language.Haskell.Tools.Daemon.Representation where
 
 import Control.Reference
-import Data.Map as Map
 import Data.Function (on)
+import Data.Map as Map
 import Data.Maybe
 
-import GHC
 import DynFlags
+import GHC
 
 import Language.Haskell.Tools.Refactor
 

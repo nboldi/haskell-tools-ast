@@ -2,12 +2,12 @@
 module Language.Haskell.Tools.Daemon.PackageDB where
 
 import Control.Applicative (Applicative(..), (<$>), Alternative(..))
-import Control.Monad
+import Control.Monad (Monad(..), when)
 import Data.Aeson (FromJSON(..))
 import Data.Char (isSpace)
 import Data.List
 import GHC.Generics (Generic(..))
-import System.Directory
+import System.Directory (withCurrentDirectory, doesFileExist, doesDirectoryExist)
 import System.FilePath (FilePath, (</>))
 import System.Process (readProcessWithExitCode)
 

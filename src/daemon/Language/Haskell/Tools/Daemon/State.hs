@@ -3,10 +3,10 @@ module Language.Haskell.Tools.Daemon.State where
 
 import Control.Reference
 
-import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Daemon.PackageDB
 import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Daemon.Session
+import Language.Haskell.Tools.Refactor
 
 data DaemonSessionState
   = DaemonSessionState { _refactorSession :: RefactorSessionState

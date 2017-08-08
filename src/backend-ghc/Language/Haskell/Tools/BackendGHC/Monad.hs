@@ -3,36 +3,35 @@
 -- during the conversion from GHC AST to our representation.
 module Language.Haskell.Tools.BackendGHC.Monad where
 
+import Control.Applicative ((<|>))
 import Control.Monad.Reader
 import Control.Reference
-import Control.Applicative ((<|>))
 import Data.Function (on)
 import Data.List
-import Data.Maybe
-import Data.Monoid
 import Data.Map as Map (Map, lookup, empty)
+import Data.Maybe
 import Data.Maybe (fromMaybe)
-import qualified Data.Set as Set
+import Data.Monoid (Monoid(..))
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.AST.SemaInfoTypes
+import Language.Haskell.Tools.AST.SemaInfoTypes (PName(..), UsageSpec(..))
 import Language.Haskell.Tools.BackendGHC.GHCUtils (HsHasName(..), rdrNameStr)
 import Language.Haskell.Tools.BackendGHC.SourceMap (SourceMap, annotationsToSrcMap)
 
 import ApiAnnotation (ApiAnnKey)
+import DynFlags (xopt_set)
+import ErrUtils (pprErrMsgBagWithLoc)
 import GHC
+import GHC.LanguageExtensions.Type (Extension(..))
+import HscTypes (HscEnv(..))
 import Name (Name, isVarName, isTyVarName)
-import HscTypes
-import SrcLoc
-import TcRnTypes
-import OccName as GHC
-import RdrName
-import RnEnv
-import DynFlags
-import RnExpr
-import ErrUtils
+import OccName as GHC (HasOccName(..), mkOccEnv)
 import Outputable hiding (empty)
+import RdrName
+import RnEnv (mkUnboundNameRdr)
+import RnExpr (rnLExpr)
+import SrcLoc
 import TcRnMonad
-import GHC.LanguageExtensions.Type
+import TcRnTypes (TcGblEnv(..))
 
 -- | The transformation monad type
 type Trf = ReaderT TrfInput Ghc

@@ -12,7 +12,7 @@
 module Language.Haskell.Tools.BackendGHC.Utils where
 
 import ApiAnnotation (AnnKeywordId)
-import Avail
+import Avail (availNamesWithSelectors, availNames, availName)
 import BasicTypes (StringLiteral(..))
 import CoAxiom as GHC (CoAxiom(..))
 import CoreSyn as GHC (isOrphan)
@@ -32,7 +32,7 @@ import Outputable (Outputable(..), showSDocUnsafe)
 import SrcLoc
 
 import Control.Monad.Reader
-import Control.Reference
+import Control.Reference ((^.), (&))
 import Data.Char (isSpace)
 import Data.Data (Data(..))
 import Data.Either (Either(..), rights, lefts)
@@ -41,12 +41,10 @@ import Data.IORef (readIORef)
 import Data.List
 import Data.Maybe
 import Language.Haskell.Tools.AST as AST
+import Language.Haskell.Tools.AST.SemaInfoTypes as Sema
 import Language.Haskell.Tools.BackendGHC.GHCUtils
 import Language.Haskell.Tools.BackendGHC.Monad
 import Language.Haskell.Tools.BackendGHC.SourceMap
-import Language.Haskell.Tools.AST.SemaInfoTypes as Sema
-
-import Debug.Trace
 
 createModuleInfo :: ModSummary -> SrcSpan -> [LImportDecl n] -> Trf (Sema.ModuleInfo GHC.Name)
 createModuleInfo mod nameLoc (filter (not . ideclImplicit . unLoc) -> imports) = do

@@ -4,11 +4,11 @@
             #-}
 module Language.Haskell.Tools.Debug where
 
-import Control.Monad
-import Control.Reference
+import Control.Monad (Monad(..), (=<<), forM_)
 import Control.Monad.IO.Class (MonadIO(..))
+import Control.Reference ((^.))
+import Data.List.Split (splitOn)
 import Data.Maybe (Maybe(..), fromJust)
-import Data.List.Split
 import GHC.Generics (Generic(..))
 import System.FilePath (pathSeparator, (</>), (<.>))
 
@@ -21,12 +21,12 @@ import StringBuffer (hGetStringBuffer)
 import Language.Haskell.Tools.AST (NodeInfo(..))
 import Language.Haskell.Tools.BackendGHC
 import Language.Haskell.Tools.Debug.DebugGhcAST ()
-import Language.Haskell.Tools.Refactor
-import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.Debug.RangeDebug (srcInfoDebug)
 import Language.Haskell.Tools.Debug.RangeDebugInstances ()
-import Language.Haskell.Tools.Refactor.Builtin
+import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Refactor
+import Language.Haskell.Tools.Refactor.Builtin (builtinRefactorings)
 
 -- | Should be only used for testing
 demoRefactor :: String -> String -> [String] -> String -> IO ()

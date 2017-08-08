@@ -8,20 +8,20 @@
 -- contextual information for refactorings.
 module Language.Haskell.Tools.Refactor.Monad where
 
-import GHC hiding (mkModuleName, moduleNameString)
-import DynFlags
-import Exception
-import Control.Monad.Trans
-import Control.Monad.Trans.Except
-import Control.Monad.Trans.Reader
-import Control.Monad.Trans.Writer
 import Control.Monad.Reader
-import Control.Monad.Writer
-import Control.Monad.State.Strict
 import qualified Control.Monad.State.Lazy as LazySt
+import Control.Monad.State.Strict
+import Control.Monad.Trans (MonadTrans(..), MonadIO)
+import Control.Monad.Trans.Except (ExceptT(..), throwE, runExceptT)
+import Control.Monad.Trans.Reader (ReaderT(..))
+import Control.Monad.Trans.Writer (WriterT(..))
+import Control.Monad.Writer
+import DynFlags (HasDynFlags(..))
+import Exception (ExceptionMonad(..))
+import GHC hiding (mkModuleName, moduleNameString)
 
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Refactor.Representation
+import Language.Haskell.Tools.Refactor.Representation (RefactorChange, ModuleDom, UnnamedModule)
 
 -- | A monad that can be used to refactor
 class Monad m => RefactorMonad m where

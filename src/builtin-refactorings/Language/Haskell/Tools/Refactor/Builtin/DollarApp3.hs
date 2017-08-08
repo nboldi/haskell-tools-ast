@@ -3,7 +3,6 @@ module Language.Haskell.Tools.Refactor.Builtin.DollarApp3 where
 
 import Language.Haskell.Tools.Refactor
 
-import BasicTypes (Fixity(..))
 import Id (idName)
 import qualified Name as GHC (Name)
 import PrelInfo (wiredInIds)
@@ -12,7 +11,7 @@ import SrcLoc (RealSrcSpan, SrcSpan)
 import Unique (getUnique)
 
 import Control.Monad.State
-import Control.Reference ((^.), (!~), biplateRef)
+import Control.Reference ((!~), biplateRef)
 
 tryItOut :: String -> String -> IO ()
 tryItOut = tryRefactor (localRefactoring . dollarApp)

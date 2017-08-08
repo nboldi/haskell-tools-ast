@@ -8,10 +8,10 @@ module Language.Haskell.Tools.Rewrite.Create.Binds where
 
 import Data.String (IsString(..))
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Rewrite.ElementTypes
+import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.Rewrite.Create.Patterns (mkVarPat)
 import Language.Haskell.Tools.Rewrite.Create.Utils (mkAnn, mkAnnList, mkAnnMaybe)
-import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Rewrite.ElementTypes
 
 -- | A simplified function to generate simple value bindings without local definitions, guards or complex lhs.
 mkSimpleBind' :: Name dom -> Expr dom -> ValueBind dom

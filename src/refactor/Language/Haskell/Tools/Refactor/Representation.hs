@@ -8,19 +8,19 @@ module Language.Haskell.Tools.Refactor.Representation where
 
 import Control.Exception
 import Control.Reference
-import Data.Typeable
-import qualified Data.Map as Map
-import qualified Name as GHC
 import Data.List
 import Data.List.Split
-import System.FilePath
+import qualified Data.Map as Map
+import Data.Typeable
 import ErrUtils as GHC
+import qualified Name as GHC
+import System.FilePath
 
-import qualified Module as GHC
+import Bag (bagToList)
 import DynFlags (HasDynFlags(..))
 import GHC hiding (mkModuleName, moduleNameString)
+import qualified Module as GHC
 import Outputable
-import Bag (bagToList)
 
 import Language.Haskell.Tools.AST as AST
 

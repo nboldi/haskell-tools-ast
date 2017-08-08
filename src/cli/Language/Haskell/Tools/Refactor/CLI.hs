@@ -9,26 +9,26 @@ module Language.Haskell.Tools.Refactor.CLI
   (refactorSession, normalRefactorSession, tryOut) where
 
 import Control.Applicative
-import Control.Concurrent.MVar
 import Control.Concurrent
+import Control.Concurrent.MVar
 import Control.Exception (displayException)
 import Control.Monad.State.Strict
 import Control.Reference
+import Data.Char
 import Data.List
 import Data.List.Split
 import Data.Maybe
-import Data.Char
+import Data.Version (showVersion)
 import System.Directory
 import System.Exit
-import System.IO
 import System.FilePath
-import Data.Version (showVersion)
+import System.IO
 
+import Language.Haskell.Tools.Daemon
+import Language.Haskell.Tools.Daemon.Mode (channelMode)
+import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.Builtin
-import Language.Haskell.Tools.Daemon
-import Language.Haskell.Tools.Daemon.Protocol
-import Language.Haskell.Tools.Daemon.Mode (channelMode)
 import Paths_haskell_tools_cli (version)
 
 tryOut :: IO ()

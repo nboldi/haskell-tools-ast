@@ -2,18 +2,14 @@
 -- Code copied from GHC because it is not public in GhcMake module
 module Language.Haskell.Tools.Daemon.ModuleGraph (moduleGraphNodes, getModFromNode) where
 
-import qualified Data.Map as Map
-import Data.Maybe
+import qualified Data.Map as Map (fromList, Map, lookup)
+import Data.Maybe (Maybe(..), mapMaybe)
 
-import Digraph as GHC
-import ErrUtils
-import Exception (ExceptionMonad)
-import FastString as GHC
+import Digraph as GHC (Graph, graphFromEdgedVertices)
+import DynFlags ()
+import FastString as GHC (FastString, fsLit)
 import GHC
-import DynFlags
 import HscTypes as GHC
-import Language.Haskell.TH.LanguageExtensions
-import Outputable
 
 type NodeKey   = (ModuleName, HscSource)
 type NodeMap a = Map.Map NodeKey a

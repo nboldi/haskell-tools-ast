@@ -1,21 +1,18 @@
 module Main where
 
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.Tasty (TestTree, testGroup, defaultMain)
+import Test.Tasty.HUnit (assertBool, testCase)
 
-import System.Exit
+import Control.Monad ((=<<), when, forM_)
+import Data.ByteString.Char8 (pack, unpack)
+import Data.Knob (newKnob, newFileHandle, getContents)
+import qualified Data.List as List
 import System.Directory
 import System.FilePath
-import Control.Monad
-import Control.Exception
-import qualified Data.List as List
-import Data.Knob
-import Data.ByteString.Char8 (pack, unpack)
 import System.IO
-import Control.Concurrent
 
-import Language.Haskell.Tools.Refactor.Builtin
-import Language.Haskell.Tools.Refactor.CLI
+import Language.Haskell.Tools.Refactor.Builtin (builtinRefactorings)
+import Language.Haskell.Tools.Refactor.CLI (normalRefactorSession)
 
 main :: IO ()
 main = defaultMain allTests

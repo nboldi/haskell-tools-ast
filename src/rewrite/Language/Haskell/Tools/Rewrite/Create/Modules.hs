@@ -8,10 +8,10 @@ module Language.Haskell.Tools.Rewrite.Create.Modules where
 
 import Data.String (IsString(..), String)
 import Language.Haskell.Tools.AST
-import Language.Haskell.Tools.Rewrite.ElementTypes
+import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.Rewrite.Create.Names (mkStringNode)
 import Language.Haskell.Tools.Rewrite.Create.Utils
-import Language.Haskell.Tools.PrettyPrint.Prepare
+import Language.Haskell.Tools.Rewrite.ElementTypes
 
 -- | The representation of a haskell module, that is a separate compilation unit.
 -- It may or may not have a header.

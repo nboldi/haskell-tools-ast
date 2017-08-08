@@ -1,18 +1,17 @@
 {-# LANGUAGE LambdaCase #-}
 module Main where
 
-import Control.Applicative
-import Control.Exception
-import Control.Monad
-import System.Directory
-import System.IO
-import System.Process
-import System.Timeout
-import System.Environment
-import System.Exit
-import Control.Concurrent
+import Control.Applicative ((<$>))
+import Control.Concurrent (threadDelay)
+import Control.Exception (IOException, throwIO, catch)
+import Control.Monad (Monad(..), mapM_)
 import Data.List
-import Data.List.Split
+import Data.List.Split (splitOn)
+import System.Directory
+import System.Environment (getArgs)
+import System.Exit (ExitCode(..))
+import System.IO
+import System.Process (waitForProcess, runCommand)
 
 data Result = GetFailure
             | BuildFailure
