@@ -6,6 +6,8 @@ module Language.Haskell.Tools.Daemon.Representation where
 
 import Control.Reference
 import Data.Map as Map
+import Data.Function (on)
+import Data.Maybe
 
 import GHC
 import DynFlags
@@ -61,5 +63,19 @@ class IsRefactSessionState st where -- TODO: remove
   refSessMCs :: Simple Lens st [ModuleCollection SourceFileKey]
   initSession :: st
 
+instance Eq (ModuleCollection k) where
+  (==) = (==) `on` _mcId
+
+instance Show k => Show (ModuleCollection k) where
+  show (ModuleCollection id root srcDirs mods _ _ deps)
+    = "ModuleCollection (" ++ show id ++ ") " ++ root ++ " " ++ show srcDirs ++ " (" ++ show mods ++ ") " ++ show deps
+
 makeReferences ''ModuleCollection
 makeReferences ''ModuleRecord
+
+instance Show ModuleRecord where
+  show (ModuleNotLoaded code exposed) = "ModuleNotLoaded " ++ show code ++ " " ++ show exposed
+  show mr@(ModuleParsed {}) = "ModuleParsed (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
+  show mr@(ModuleRenamed {}) = "ModuleRenamed (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
+  show mr@(ModuleTypeChecked {}) = "ModuleTypeChecked (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
+  show mr@(ModuleCodeGenerated {}) = "ModuleCodeGenerated (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"

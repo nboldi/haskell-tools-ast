@@ -6,7 +6,8 @@
            , TypeApplications
            , RankNTypes
            #-}
--- | Representation and operations for module collections (libraries, executables, ...) in the framework.
+-- | Collecting modules contained in a module collection (library, executable, testsuite or
+-- benchmark). Gets names, source file locations, compilation and load flags for these modules.
 module Language.Haskell.Tools.Daemon.GetModules where
 
 import Control.Applicative
@@ -39,80 +40,6 @@ import RdrName as GHC (RdrName)
 
 import Language.Haskell.Tools.Refactor (SourceFileKey(..), sfkFileName, sfkModuleName)
 import Language.Haskell.Tools.Daemon.Representation
-
-instance Eq (ModuleCollection k) where
-  (==) = (==) `on` _mcId
-
-instance Show k => Show (ModuleCollection k) where
-  show (ModuleCollection id root srcDirs mods _ _ deps)
-    = "ModuleCollection (" ++ show id ++ ") " ++ root ++ " " ++ show srcDirs ++ " (" ++ show mods ++ ") " ++ show deps
-
-containingMC :: FilePath -> Simple Traversal [ModuleCollection k] (ModuleCollection k)
-containingMC fp = traversal & filtered (\mc -> _mcRoot mc `isPrefixOf` fp)
-
-
-moduleCollectionIdString :: ModuleCollectionId -> String
-moduleCollectionIdString (DirectoryMC fp) = fp
-moduleCollectionIdString (LibraryMC id) = id
-moduleCollectionIdString (ExecutableMC _ id) = id
-moduleCollectionIdString (TestSuiteMC _ id) = id
-moduleCollectionIdString (BenchmarkMC _ id) = id
-
-moduleCollectionPkgId :: ModuleCollectionId -> Maybe String
-moduleCollectionPkgId (DirectoryMC _) = Nothing
-moduleCollectionPkgId (LibraryMC id) = Just id
-moduleCollectionPkgId (ExecutableMC id _) = Just id
-moduleCollectionPkgId (TestSuiteMC id _) = Just id
-moduleCollectionPkgId (BenchmarkMC id _) = Just id
-
-instance Show ModuleRecord where
-  show (ModuleNotLoaded code exposed) = "ModuleNotLoaded " ++ show code ++ " " ++ show exposed
-  show mr@(ModuleParsed {}) = "ModuleParsed (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
-  show mr@(ModuleRenamed {}) = "ModuleRenamed (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
-  show mr@(ModuleTypeChecked {}) = "ModuleTypeChecked (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
-  show mr@(ModuleCodeGenerated {}) = "ModuleCodeGenerated (" ++ (GHC.moduleNameString $ GHC.moduleName $ GHC.ms_mod $ fromJust $ mr ^? modRecMS) ++ ")"
-
-modRecLoaded :: ModuleRecord -> Bool
-modRecLoaded ModuleTypeChecked{} = True
-modRecLoaded ModuleCodeGenerated{} = True
-modRecLoaded _ = False
-
--- | Find the module collection where the given module is.
-lookupModuleColl :: String -> [ModuleCollection SourceFileKey] -> Maybe (ModuleCollection SourceFileKey)
-lookupModuleColl moduleName = find (any ((moduleName ==) . (^. sfkModuleName)) . Map.keys . (^. mcModules))
-
-lookupModuleInSCs :: String -> [ModuleCollection SourceFileKey] -> Maybe (SourceFileKey, ModuleRecord)
-lookupModuleInSCs moduleName = find ((moduleName ==) . (^. sfkModuleName) . fst) . concatMap (Map.assocs . (^. mcModules))
-
-lookupSourceFileColl :: FilePath -> [ModuleCollection SourceFileKey] -> Maybe (ModuleCollection SourceFileKey)
-lookupSourceFileColl fp = find (any ((fp ==) . (^. sfkFileName)) . Map.keys . (^. mcModules))
-
-lookupModInSCs :: SourceFileKey -> [ModuleCollection SourceFileKey] -> Maybe (SourceFileKey, ModuleRecord)
-lookupModInSCs moduleName = find (((moduleName ^. sfkFileName) ==) . (^. sfkFileName) . fst) . concatMap (Map.assocs . (^. mcModules))
-
-lookupSourceFileInSCs :: String -> [ModuleCollection SourceFileKey] -> Maybe (SourceFileKey, ModuleRecord)
-lookupSourceFileInSCs fileName = find ((fileName ==) . (^. sfkFileName) . fst) . concatMap (Map.assocs . (^. mcModules))
-
-removeModule :: String -> [ModuleCollection SourceFileKey] -> [ModuleCollection SourceFileKey]
-removeModule moduleName = map (mcModules .- Map.filterWithKey (\k _ -> moduleName /= (k ^. sfkModuleName)))
-
-hasGeneratedCode :: SourceFileKey -> [ModuleCollection SourceFileKey] -> Bool
-hasGeneratedCode key = maybe False ((\case ModuleCodeGenerated {} -> True; _ -> False) . snd)
-                         . lookupModInSCs key
-
-needsGeneratedCode :: SourceFileKey -> [ModuleCollection SourceFileKey] -> Bool
-needsGeneratedCode key mcs = maybe False ((\case ModuleCodeGenerated {} -> True; ModuleNotLoaded True _ -> True; _ -> False) . snd)
-                              $ lookupModInSCs key mcs <|> lookupModInSCs (sfkFileName .= "" $ key) mcs
-
-codeGeneratedFor :: SourceFileKey -> [ModuleCollection SourceFileKey] -> [ModuleCollection SourceFileKey]
-codeGeneratedFor key = map (mcModules .- Map.adjust setCodeGen (sfkFileName .= "" $ key) . Map.adjust setCodeGen key)
-  where setCodeGen (ModuleTypeChecked mod ms) = ModuleCodeGenerated mod ms
-        setCodeGen (ModuleNotLoaded _ exp) = ModuleNotLoaded True exp
-        setCodeGen m = m
-
-isAlreadyLoaded :: SourceFileKey -> [ModuleCollection SourceFileKey] -> Bool
-isAlreadyLoaded key = maybe False (\case (_, ModuleNotLoaded {}) -> False; _ -> True)
-                         . find ((key ==) . fst) . concatMap (Map.assocs . (^. mcModules))
 
 -- | Gets all ModuleCollections from a list of source directories. It also orders the source directories that are package roots so that
 -- they can be loaded in the order they are defined (no backward imports). This matters in those cases because for them there can be
