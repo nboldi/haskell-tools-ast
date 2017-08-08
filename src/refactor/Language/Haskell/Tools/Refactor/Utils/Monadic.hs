@@ -13,7 +13,7 @@
            , RecordWildCards
            #-}
 -- | Basic utilities and types for defining refactorings.
-module Language.Haskell.Tools.Refactor.MonadicOperations where
+module Language.Haskell.Tools.Refactor.Utils.Monadic where
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.Rewrite

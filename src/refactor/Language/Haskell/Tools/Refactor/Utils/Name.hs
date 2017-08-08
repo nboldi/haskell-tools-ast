@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 -- | Defines utility operations on Haskell names such as checking if a given identifier is a
 -- correct name for a certain kind of Haskell construct.
-module Language.Haskell.Tools.Refactor.NameUtils where
+module Language.Haskell.Tools.Refactor.Utils.Name where
 
 import Data.Char
 import Data.List.Split

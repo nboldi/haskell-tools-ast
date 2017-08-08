@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase, TupleSections, AllowAmbiguousTypes #-}
 -- | Operations for changing the AST
-module Language.Haskell.Tools.Refactor.ChangeAST (removeChild, removeSeparator) where
+module Language.Haskell.Tools.Refactor.Utils.AST (removeChild, removeSeparator) where
 
 import Control.Reference
 import Control.Monad.State
@@ -9,7 +9,7 @@ import Data.List
 import Data.Maybe
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.PrettyPrint.Prepare
-import Language.Haskell.Tools.Refactor.MonadicOperations
+import Language.Haskell.Tools.Refactor.Utils.Monadic
 import Language.Haskell.Tools.Refactor.Monad
 import SrcLoc
 

@@ -1,5 +1,5 @@
 -- | Utilities to modify the indentation of AST fragments
-module Language.Haskell.Tools.Refactor.IndentationUtils where
+module Language.Haskell.Tools.Refactor.Utils.Indentation where
 
 import Control.Monad.Identity (Identity(..))
 import Control.Reference ((.=))

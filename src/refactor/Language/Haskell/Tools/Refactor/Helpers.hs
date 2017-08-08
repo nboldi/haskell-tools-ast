@@ -14,7 +14,7 @@ import Data.Maybe
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.Rewrite as AST
-import Language.Haskell.Tools.Refactor.ListOperations (filterList)
+import Language.Haskell.Tools.Refactor.Utils.Lists (filterList)
 
 import SrcLoc
 import Language.Haskell.Tools.PrettyPrint.Prepare
