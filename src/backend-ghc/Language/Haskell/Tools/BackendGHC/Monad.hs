@@ -29,7 +29,6 @@ import Outputable hiding (empty)
 import RdrName
 import RnEnv (mkUnboundNameRdr)
 import RnExpr (rnLExpr)
-import SrcLoc
 import TcRnMonad
 import TcRnTypes (TcGblEnv(..))
 

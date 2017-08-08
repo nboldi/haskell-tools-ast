@@ -17,7 +17,7 @@ import Type as GHC (Type, mkTyVarTy, mkTyConTy)
 import TysWiredIn as GHC (starKindTyCon)
 import UniqFM as GHC (eltsUFM)
 import UniqSupply as GHC (uniqFromSupply, mkSplitUniqSupply)
-import Var as GHC (Var(..), Id)
+import Var as GHC (Var(..))
 
 import Control.Applicative (Applicative(..), (<$>), Alternative(..))
 import Control.Monad.IO.Class (MonadIO(..))

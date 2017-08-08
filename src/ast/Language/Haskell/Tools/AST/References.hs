@@ -7,7 +7,6 @@ module Language.Haskell.Tools.AST.References where
 import Control.Reference hiding (element)
 import Language.Haskell.Tools.AST.MakeASTReferences
 
-import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Representation.Binds
 import Language.Haskell.Tools.AST.Representation.Decls
 import Language.Haskell.Tools.AST.Representation.Exprs

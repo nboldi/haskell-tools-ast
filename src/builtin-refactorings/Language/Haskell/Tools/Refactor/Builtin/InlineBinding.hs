@@ -13,7 +13,6 @@ module Language.Haskell.Tools.Refactor.Builtin.InlineBinding
   (inlineBinding, InlineBindingDomain, tryItOut, inlineBindingRefactoring) where
 
 import Control.Monad.State
-import Control.Monad.Writer hiding (Alt)
 import Control.Reference
 import Data.Generics.Uniplate.Data ()
 import Data.Generics.Uniplate.Operations (Uniplate(..), Biplate(..))

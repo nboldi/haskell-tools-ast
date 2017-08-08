@@ -10,16 +10,11 @@ import Control.Exception
 import Control.Reference
 import Data.List
 import Data.List.Split
-import qualified Data.Map as Map
 import Data.Typeable
-import ErrUtils as GHC
-import qualified Name as GHC
 import System.FilePath
 
 import Bag (bagToList)
-import DynFlags (HasDynFlags(..))
-import GHC hiding (mkModuleName, moduleNameString)
-import qualified Module as GHC
+import ErrUtils as GHC
 import Outputable
 
 import Language.Haskell.Tools.AST as AST

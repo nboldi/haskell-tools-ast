@@ -18,18 +18,14 @@ import qualified Data.Map as Map
 import Data.Maybe
 import System.Directory
 import System.FilePath
-import System.IO
 
 import Data.IntSet (member)
 import Digraph as GHC
 import DynFlags
-import ErrUtils
 import Exception (ExceptionMonad)
-import FastString as GHC
 import GHC
 import HscTypes as GHC
 import Language.Haskell.TH.LanguageExtensions
-import Outputable
 
 import Language.Haskell.Tools.Daemon.GetModules
 import Language.Haskell.Tools.Daemon.ModuleGraph

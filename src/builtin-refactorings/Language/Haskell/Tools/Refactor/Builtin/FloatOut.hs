@@ -16,7 +16,6 @@ import Data.Maybe (Maybe(..), catMaybes)
 import Language.Haskell.Tools.Refactor
 
 import Name as GHC (Name, NamedThing(..), occNameString)
-import OccName (occNameString)
 import SrcLoc (RealSrcSpan)
 
 floatOutRefactoring :: (FloatOutDefinition dom, HasModuleInfo dom) => RefactoringChoice dom

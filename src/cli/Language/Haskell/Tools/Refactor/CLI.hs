@@ -8,20 +8,13 @@
 module Language.Haskell.Tools.Refactor.CLI
   (refactorSession, normalRefactorSession, tryOut) where
 
-import Control.Applicative
 import Control.Concurrent
-import Control.Concurrent.MVar
-import Control.Exception (displayException)
 import Control.Monad.State.Strict
-import Control.Reference
-import Data.Char
 import Data.List
 import Data.List.Split
 import Data.Maybe
 import Data.Version (showVersion)
 import System.Directory
-import System.Exit
-import System.FilePath
 import System.IO
 
 import Language.Haskell.Tools.Daemon

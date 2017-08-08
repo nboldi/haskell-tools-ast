@@ -8,15 +8,13 @@ import ApiAnnotation as GHC (AnnKeywordId(..))
 import FastString as GHC (unpackFS)
 import HsTypes as GHC
 import Name as GHC (occNameString, nameOccName, isWiredInName)
-import OccName as GHC (occNameString)
 import RdrName as GHC (RdrName(..))
 import SrcLoc as GHC
 
-import Control.Monad.Reader (Monad(..))
 import Language.Haskell.Tools.AST (Ann, AnnMaybeG, Dom, RangeStage, HasNoSemanticInfo)
 import qualified Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.BackendGHC.GHCUtils (GHCName(..), cleanHsType)
-import Language.Haskell.Tools.BackendGHC.Monad (TrfInput(..), Trf, transformingPossibleVar)
+import Language.Haskell.Tools.BackendGHC.Monad (Trf, transformingPossibleVar)
 import Language.Haskell.Tools.BackendGHC.Names (TransformName, trfOperator, trfName)
 import {-# SOURCE #-} Language.Haskell.Tools.BackendGHC.Types (trfType')
 import Language.Haskell.Tools.BackendGHC.Utils

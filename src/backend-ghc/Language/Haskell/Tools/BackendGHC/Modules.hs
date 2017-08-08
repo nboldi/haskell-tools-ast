@@ -22,9 +22,6 @@ import DynFlags as GHC ()
 import FastString as GHC (unpackFS)
 import FieldLabel as GHC (FieldLbl(..))
 import GHC
-import HscTypes as GHC (WarningTxt(..), ModSummary, HscEnv(..))
-import Name as GHC hiding (varName)
-import RdrName as GHC (RdrName, Parent(..), GlobalRdrElt(..))
 import SrcLoc as GHC
 import TcRnMonad as GHC (Applicative(..), (<$>))
 

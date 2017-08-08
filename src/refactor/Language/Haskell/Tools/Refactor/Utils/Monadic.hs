@@ -15,42 +15,29 @@
 -- | Basic utilities and types for defining refactorings.
 module Language.Haskell.Tools.Refactor.Utils.Monadic where
 
+import Control.Monad.Reader
+import Control.Monad.State.Strict
+import Control.Monad.Trans.Except
+import Control.Monad.Writer
+import Control.Reference hiding (element)
+import Data.Either
+import Data.Function (on)
+import Data.List
+import Data.List.Split
+import Data.Maybe
+
+import GHC hiding (mkModuleName, moduleNameString)
+import qualified Module as GHC
+import qualified Name as GHC
+import qualified PrelNames as GHC
+import qualified TyCon as GHC
+import qualified TysWiredIn as GHC
+
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.Refactor.Monad
 import Language.Haskell.Tools.Refactor.Representation
 import Language.Haskell.Tools.Rewrite
-
-import Bag as GHC
-import DynFlags (HasDynFlags(..))
-import ErrUtils as GHC
-import Exception (ExceptionMonad(..))
-import GHC hiding (mkModuleName, moduleNameString)
-import qualified Module as GHC
-import qualified Name as GHC
-import Outputable
-import qualified PrelNames as GHC
-import SrcLoc
-import qualified TyCon as GHC
-import qualified TysWiredIn as GHC
-
-import Control.Exception
-import Control.Monad.Reader
-import qualified Control.Monad.State as LazySt
-import Control.Monad.State.Strict
-import Control.Monad.Trans.Except
-import Control.Monad.Writer
-import Control.Reference hiding (element)
-import Data.Char
-import Data.Either
-import Data.Function (on)
-import Data.List
-import Data.List.Split
-import qualified Data.Map as Map
-import Data.Maybe
-import Data.Typeable
-import System.FilePath
-
 
 -- | Performs the given refactoring, transforming it into a Ghc action
 runRefactor :: ModuleDom dom -> [ModuleDom dom] -> Refactoring dom -> Ghc (Either String [RefactorChange dom])

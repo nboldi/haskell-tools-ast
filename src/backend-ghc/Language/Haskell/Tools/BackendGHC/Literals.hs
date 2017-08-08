@@ -25,7 +25,7 @@ trfLiteral' (HsInteger _ i _) = pure $ AST.UPrimIntLit i
 trfLiteral' (HsRat frac _) = pure $ AST.UFracLit (fl_value frac)
 trfLiteral' (HsFloatPrim frac) = pure $ AST.UPrimFloatLit (fl_value frac)
 trfLiteral' (HsDoublePrim frac) = pure $ AST.UPrimDoubleLit (fl_value frac)
-  
+
 trfOverloadedLit :: OverLitVal -> Trf (AST.ULiteral (Dom r) RangeStage)
 trfOverloadedLit (HsIntegral _ i) = pure $ AST.UIntLit i
 trfOverloadedLit (HsFractional frac) = pure $ AST.UFracLit (fl_value frac)

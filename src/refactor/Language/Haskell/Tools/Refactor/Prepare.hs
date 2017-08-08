@@ -7,11 +7,19 @@
            , FlexibleContexts
            , TypeFamilies
            , TupleSections
-           , TemplateHaskell
            , ViewPatterns
            #-}
 -- | Defines utility methods that prepare Haskell modules for refactoring
 module Language.Haskell.Tools.Refactor.Prepare where
+
+import Control.Monad
+import Control.Monad.IO.Class
+import Data.List ((\\), isSuffixOf)
+import Data.List.Split (splitOn)
+import Data.Maybe
+import Language.Haskell.TH.LanguageExtensions
+import System.Directory
+import System.FilePath
 
 import CmdLineParser
 import DynFlags
@@ -22,18 +30,6 @@ import GHC.Paths ( libdir )
 import Packages
 import SrcLoc
 import StringBuffer
-
-import Control.Exception
-import Control.Monad
-import Control.Monad.IO.Class
-import Control.Monad.Trans
-import Data.IntSet (member)
-import Data.List ((\\), intersperse, isSuffixOf)
-import Data.List.Split
-import Data.Maybe
-import Language.Haskell.TH.LanguageExtensions
-import System.Directory
-import System.FilePath
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.BackendGHC

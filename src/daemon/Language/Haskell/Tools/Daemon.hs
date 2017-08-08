@@ -10,20 +10,13 @@
            #-}
 module Language.Haskell.Tools.Daemon where
 
-import Control.Applicative ((<|>))
-import Control.Concurrent.Chan
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
 import Control.Monad.State.Strict
 import Control.Reference
-import qualified Data.Aeson as A ((.=))
-import Data.Aeson hiding ((.=))
 import Data.Algorithm.Diff
 import qualified Data.ByteString.Char8 as StrictBS
-import Data.ByteString.Lazy.Char8 (ByteString)
-import Data.ByteString.Lazy.Char8 (unpack)
-import qualified Data.ByteString.Lazy.Char8 as BS
 import Data.Either
 import Data.IORef
 import Data.List hiding (insert)
@@ -31,9 +24,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.Tuple
 import Data.Version
-import GHC.Generics
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
-import Network.Socket.ByteString.Lazy
 import System.Directory
 import System.Environment
 import System.IO
@@ -43,15 +34,12 @@ import System.IO.Strict as StrictIO (hGetContents)
 import Bag
 import DynFlags
 import ErrUtils
-import FastString (unpackFS)
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad (GhcMonad(..), Session(..), reflectGhc, modifySession)
 import HscTypes (hsc_mod_graph)
 import Packages
-import SrcLoc
 
-import Language.Haskell.Tools.Daemon.GetModules
 import Language.Haskell.Tools.Daemon.Mode
 import Language.Haskell.Tools.Daemon.PackageDB
 import Language.Haskell.Tools.Daemon.Protocol

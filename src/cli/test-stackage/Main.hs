@@ -10,7 +10,6 @@ import Data.List.Split (splitOn)
 import System.Directory
 import System.Environment (getArgs)
 import System.Exit (ExitCode(..))
-import System.IO
 import System.Process (waitForProcess, runCommand)
 
 data Result = GetFailure

@@ -6,7 +6,6 @@ import Control.Monad.Trans.Except (runExceptT)
 import Data.List ((++), map, find)
 
 import GHC (RealSrcSpan, Ghc)
-import SrcLoc (RealSrcSpan)
 
 import Language.Haskell.Tools.AST ()
 import Language.Haskell.Tools.Refactor.Monad (ProjectRefactoring, Refactoring)
