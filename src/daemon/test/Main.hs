@@ -57,8 +57,6 @@ allTests isSource testRoot portCounter
               $ map (makeReloadTest portCounter) reloadingTests
           , testGroup "compilation-problem-tests"
               $ map (makeCompProblemTest portCounter) compProblemTests
-          , testGroup "watch-tests"
-              $ map (makeWatchTest portCounter) watchTests
           -- if not a stack build, we cannot guarantee that stack is on the path
           , if isSource
              then testGroup "pkg-db-tests" $ map (makePkgDbTest portCounter) pkgDbTests
@@ -290,23 +288,6 @@ pkgDbTests
         initStack = do
           execute "stack" ["clean"]
           execute "stack" ["build"]
-
-watchTests :: [(String, FilePath, [Either (IO ()) ClientMessage], [ResponseMsg] -> Bool)]
-watchTests
-  = [ ("simple-modification", testRoot </> "reloading"
-    , [ Right $ AddPackages [ testRoot </> "reloading" ++ testSuffix ]
-        -- TODO: be able to wait for some messages before doing IO
-      , Left $ do threadDelay 2000000 -- wait for 2s so the packages are loaded
-                  writeFile (testRoot </> "reloading" ++ testSuffix </> "C.hs") "module C where\nc = ()"
-                  threadDelay 2000000
-      ]
-    , \case [ LoadingModules{}, LoadedModules [(pathC,_)], LoadedModules [(pathB,_)], LoadedModules [(pathA,_)]
-              , LoadingModules{}, LoadedModules [(pathC',_)], LoadedModules [(pathB',_)], LoadedModules [(pathA',_)]
-              ] -> let allPathes = map ((testRoot </> "reloading" ++ testSuffix) </>) ["C.hs","B.hs","A.hs"]
-                    in [pathC,pathB,pathA] == allPathes && [pathC',pathB',pathA'] == allPathes
-            _ -> False )
-    ]
-
 
 execute :: String -> [String] -> IO ()
 execute cmd args

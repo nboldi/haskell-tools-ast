@@ -97,7 +97,10 @@ updateClient refactorings resp (PerformRefactoring refact modPath selection args
             Left err -> liftIO $ resp $ ErrorMessage err
             Right diff -> do changedMods <- applyChanges diff
                              liftIO $ resp $ ModulesChanged (map (either id (\(_,_,ch) -> ch)) changedMods)
-                             void $ reloadChanges (map ((^. sfkModuleName) . (\(key,_,_) -> key)) (rights changedMods))
+                             isWatching <- gets (isJust . (^. watchProc))
+                             when (not isWatching) -- if watch is on, then it will automatically
+                                                   -- reload changed files, otherwise we do it manually
+                               $ void $ reloadChanges (map ((^. sfkModuleName) . (\(key,_,_) -> key)) (rights changedMods))
         applyChanges changes = do
           forM changes $ \case
             ModuleCreated n m otherM -> do
