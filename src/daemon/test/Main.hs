@@ -150,7 +150,7 @@ compProblemTests =
       , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]
     , \case [LoadingModules {}, LoadedModules {}, LoadingModules {}, CompilationProblem {}] -> True; _ -> False)
   , ( "no-such-file"
-    , [ Right $ PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" ++ testSuffix </> "A.hs") "3:1-3:2" ["y"] True ]
+    , [ Right $ PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" ++ testSuffix </> "A.hs") "3:1-3:2" ["y"] False ]
     , \case [ ErrorMessage _ ] -> True; _ -> False )
   , ( "additional-files"
     , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "additional-files"] ]
@@ -393,7 +393,7 @@ readSockResponsesUntil sock rsp bs
            let splitted = BS.split '\n' fullBS
                recognized = catMaybes $ map decode splitted
             in if rsp `elem` recognized
-                 then return $ List.delete rsp recognized
+                 then return $ takeWhile (/= rsp) recognized
                  else readSockResponsesUntil sock rsp fullBS
 
 testRoot = "examples" </> "Project"
