@@ -1,6 +1,5 @@
 module Main where
 
-import System.Environment (getArgs)
 import System.Exit (exitSuccess, exitFailure)
 import System.IO (IO, stdout, stdin)
 import Options.Applicative
@@ -25,11 +24,7 @@ main = exit =<< normalRefactorSession builtinRefactorings stdin stdout =<< execP
                       <> header "ht-refact: a command-line interface for Haskell-tools")
 
 cliOptions :: Parser CLIOptions
-cliOptions
-  = CLIOptions <$> version
-               <*> oneShot
-               <*> ghcFlags
-               <*> packages
+cliOptions = CLIOptions <$> version <*> oneShot <*> noWatch <*> watch <*> ghcFlags <*> packages
   where version = switch (long "version"
                             <> short 'v'
                             <> help "Show the version of this software")
@@ -38,6 +33,13 @@ cliOptions
                                    <> short 'e'
                                    <> metavar "COMMAND"
                                    <> help "Commands to execute in a one-shot refactoring run, separated by semicolons.")
+        noWatch = switch (long "no-watch"
+                           <> help "Disables file system watching.")
+        watch = optional $ strOption
+                  (long "watch-exe"
+                    <> short 'w'
+                    <> help "The file path of the watch executable that is used to monitor file system changes."
+                    <> metavar "WATH_PATH")
         ghcFlags
           = optional $ option ghcFlagsParser
                          (long "ghc-options"
