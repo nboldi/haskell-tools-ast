@@ -40,13 +40,16 @@ cliOptions
                                    <> help "Commands to execute in a one-shot refactoring run, separated by semicolons.")
         ghcFlags
           = optional $ option ghcFlagsParser
-                         (long "ghc"
+                         (long "ghc-options"
                            <> short 'g'
                            <> metavar "GHC_OPTIONS"
-                           <> help "Flags passed to GHC when loading the packages.")
+                           <> help "Flags passed to GHC when loading the packages, separated by spaces.")
           where ghcFlagsParser :: ReadM [String]
                 ghcFlagsParser
-                  = ReadM $ do splitted <- splitOn " " <$> ask
+                  = ReadM $ do str <- ask
+                               let str' = case str of '=':rest -> rest
+                                                      other    -> other
+                               let splitted = splitOn " " str'
                                let wrong = filter (not . isPrefixOf "-") splitted
                                when (not $ null wrong)
                                  $ fail ("The following arguments passed as ghc-options are not flags: " ++ intercalate " " wrong)

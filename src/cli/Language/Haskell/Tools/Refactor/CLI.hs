@@ -14,6 +14,7 @@ import Data.List
 import Data.List.Split
 import Data.Maybe
 import Data.Version (showVersion)
+import System.FilePath
 import System.Directory
 import System.IO
 
@@ -40,7 +41,7 @@ normalRefactorSession refactorings = refactorSession refactorings (\st -> void $
 data CLIOptions = CLIOptions { displayVersion :: Bool
                              , executeCommands :: Maybe String
                              , ghcFlags :: Maybe [String]
-                             , packageRoots :: [String]
+                             , packageRoots :: [FilePath]
                              }
 
 refactorSession :: [RefactoringChoice IdDom] -> ServerInit -> Handle -> Handle -> CLIOptions -> IO Bool
@@ -60,7 +61,7 @@ refactorSession refactorings init input output CLIOptions{..} = do
     Just cmds -> performCmdOptions refactorings output send (splitOn ";" cmds)
     Nothing -> return ()
   when (isNothing executeCommands) (void $ forkIO $ processUserInput refactorings input output send)
-  readFromSocket refactorings output recv send
+  readFromSocket output recv
 
 processUserInput :: [RefactoringChoice IdDom] -> Handle -> Handle -> Chan ClientMessage -> IO ()
 processUserInput refactorings input output chan = do
@@ -80,26 +81,26 @@ processCommand shutdown refactorings output chan cmd = do
                                             ++ intercalate ", " (refactorCommands refactorings)
             return True
 
-readFromSocket :: [RefactoringChoice IdDom] -> Handle -> Chan ResponseMsg -> Chan ClientMessage -> IO Bool
-readFromSocket refactorings output recv send = do
-  continue <- readChan recv >>= processMessage refactorings output send
-  maybe (readFromSocket refactorings output recv send) return continue
+readFromSocket :: Handle -> Chan ResponseMsg -> IO Bool
+readFromSocket output recv = do
+  continue <- readChan recv >>= processMessage output
+  maybe (readFromSocket output recv) return continue
 
 -- | Returns Nothing if the execution should continue, Just False on erronous termination
 -- and Just True on normal termination.
-processMessage :: [RefactoringChoice IdDom] -> Handle -> Chan ClientMessage -> ResponseMsg -> IO (Maybe Bool)
-processMessage _ output _ (ErrorMessage msg) = hPutStrLn output msg >> return (Just False)
-processMessage _ output _ (CompilationProblem marks) = hPutStrLn output (show marks) >> return Nothing
-processMessage _ output _ (LoadedModules mods)
+processMessage :: Handle -> ResponseMsg -> IO (Maybe Bool)
+processMessage output (ErrorMessage msg) = hPutStrLn output msg >> return (Just False)
+processMessage output (CompilationProblem marks) = hPutStrLn output (show marks) >> return Nothing
+processMessage output (LoadedModules mods)
   = mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods >> return Nothing
-processMessage refactorings output chan (UnusedFlags flags)
+processMessage output (UnusedFlags flags)
   = if not $ null flags
       then do hPutStrLn output $ "Error: The following ghc-flags are not recognized: "
                                     ++ intercalate " " flags
               return $ Just True
       else return Nothing
-processMessage _ _ _ Disconnected = return (Just True)
-processMessage _ _ _ _ = return Nothing
+processMessage _ Disconnected = return (Just True)
+processMessage _ _ = return Nothing
 
 loadModules :: Chan ClientMessage -> [String] -> IO ()
 loadModules chan flags = writeChan chan (AddPackages roots)
