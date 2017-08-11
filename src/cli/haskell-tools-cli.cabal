@@ -35,6 +35,9 @@ library
 executable ht-refact
   ghc-options:         -rtsopts
   build-depends:       base                      >= 4.9 && < 4.10
+                     , split                     >= 0.2 && < 0.3
+                     , mtl                       >= 2.2 && < 2.3
+                     , optparse-applicative      >= 0.13 && < 0.14
                      , haskell-tools-cli         >= 0.8 && < 0.9
                      , haskell-tools-builtin-refactorings >= 0.8 && < 0.9
   hs-source-dirs:      exe
