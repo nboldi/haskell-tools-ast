@@ -6,7 +6,7 @@
            , RecordWildCards
            #-}
 module Language.Haskell.Tools.Refactor.CLI
-  (refactorSession, normalRefactorSession, tryOut, CLIOptions(..)) where
+  (refactorSession, normalRefactorSession, CLIOptions(..)) where
 
 import Control.Concurrent
 import Control.Monad.State.Strict
@@ -14,7 +14,6 @@ import Data.List
 import Data.List.Split
 import Data.Maybe
 import Data.Version (showVersion)
-import System.FilePath
 import System.Directory
 import System.IO
 
@@ -22,24 +21,20 @@ import Language.Haskell.Tools.Daemon
 import Language.Haskell.Tools.Daemon.Mode (channelMode)
 import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Refactor
-import Language.Haskell.Tools.Refactor.Builtin
 import Paths_haskell_tools_cli (version)
-
-tryOut :: IO ()
-tryOut = void $ normalRefactorSession builtinRefactorings stdin stdout
-                  $ CLIOptions
-                      False
-                      (Just "OrganizeImports src\\ast\\Language\\Haskell\\Tools\\AST.hs")
-                      Nothing
-                      ["src/ast", "src/backend-ghc", "src/prettyprint", "src/rewrite", "src/refactor"]
 
 type ServerInit = MVar (Chan ResponseMsg, Chan ClientMessage) -> IO ()
 
 normalRefactorSession :: [RefactoringChoice IdDom] -> Handle -> Handle -> CLIOptions -> IO Bool
-normalRefactorSession refactorings = refactorSession refactorings (\st -> void $ forkIO $ runDaemon refactorings channelMode st [])
+normalRefactorSession refactorings input output options@CLIOptions{..}
+  = refactorSession refactorings
+      (\st -> void $ forkIO $ runDaemon refactorings channelMode st (DaemonOptions False 0 True cliNoWatch cliWatchExe))
+      input output options
 
 data CLIOptions = CLIOptions { displayVersion :: Bool
                              , executeCommands :: Maybe String
+                             , cliNoWatch :: Bool
+                             , cliWatchExe :: Maybe FilePath
                              , ghcFlags :: Maybe [String]
                              , packageRoots :: [FilePath]
                              }
@@ -101,10 +96,6 @@ processMessage output (UnusedFlags flags)
       else return Nothing
 processMessage _ Disconnected = return (Just True)
 processMessage _ _ = return Nothing
-
-loadModules :: Chan ClientMessage -> [String] -> IO ()
-loadModules chan flags = writeChan chan (AddPackages roots)
-  where roots = filter (not . ("-" `isPrefixOf`)) flags
 
 performCmdOptions :: [RefactoringChoice IdDom] -> Handle -> Chan ClientMessage -> [String] -> IO ()
 performCmdOptions refactorings output chan cmds = do
