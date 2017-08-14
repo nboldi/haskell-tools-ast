@@ -36,13 +36,21 @@ makeCliTest (name, dirs, args, input, outputCheck)
   = let dir = joinPath $ longestCommonPrefix $ map splitDirectories dirs
         testdirs = map (\d -> if d == dir then dir ++ suffix else (dir ++ suffix </> makeRelative dir d)) dirs
     in testCase name $ do
+      putStrLn "makeCliTest 1"
       copyDir dir (dir ++ suffix)
+      putStrLn "makeCliTest 2"
       inKnob <- newKnob (pack (input suffix))
+      putStrLn "makeCliTest 3"
       inHandle <- newFileHandle inKnob "<input>" ReadMode
+      putStrLn "makeCliTest 4"
       outKnob <- newKnob (pack [])
+      putStrLn "makeCliTest 5"
       outHandle <- newFileHandle outKnob "<output>" WriteMode
+      putStrLn "makeCliTest 6"
       res <- normalRefactorSession builtinRefactorings inHandle outHandle (args suffix ++ testdirs)
+      putStrLn "makeCliTest 7"
       actualOut <- Data.Knob.getContents outKnob
+      putStrLn "makeCliTest 8"
       assertBool ("The result is not what is expected. Output: " ++ (unpack actualOut))
         =<< outputCheck suffix (unpack actualOut)
   where suffix = "_test_" ++ name

@@ -40,16 +40,27 @@ refactorSession _ _ _ output args
     hPutStrLn output $ showVersion version
     return True
 refactorSession refactorings init input output args = do
+  putStrLn "refactorSession 1"
   connStore <- newEmptyMVar
+  putStrLn "refactorSession 2"
   isInteractive <- newEmptyMVar
+  putStrLn "refactorSession 3"
   init connStore
+  putStrLn "refactorSession 4"
   (recv,send) <- takeMVar connStore -- wait for the server to establish connection
+  putStrLn "refactorSession 5"
   wd <- getCurrentDirectory
+  putStrLn "refactorSession 6"
   writeChan send (SetWorkingDir wd)
+  putStrLn "refactorSession 7"
   -- TODO: separate cmd arguments here instead of in daemon
+  putStrLn "refactorSession 8"
   writeChan send (SetGHCFlags args)
+  putStrLn "refactorSession 9"
   forkIO $ forever $ do interactive <- takeMVar isInteractive
+                        putStrLn "refactorSession 9/2"
                         when interactive (processUserInput refactorings input output send)
+  putStrLn "refactorSession 10"
   readFromSocket refactorings output isInteractive recv send
 
 processUserInput :: [RefactoringChoice IdDom] -> Handle -> Handle -> Chan ClientMessage -> IO ()
