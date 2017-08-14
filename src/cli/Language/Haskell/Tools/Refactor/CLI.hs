@@ -56,7 +56,7 @@ refactorSession refactorings init input output CLIOptions{..} = do
     Just cmds -> performCmdOptions refactorings output send (splitOn ";" cmds)
     Nothing -> return ()
   when (isNothing executeCommands) (void $ forkIO $ processUserInput refactorings input output send)
-  readFromSocket output recv
+  readFromSocket (isJust executeCommands) output recv
 
 processUserInput :: [RefactoringChoice IdDom] -> Handle -> Handle -> Chan ClientMessage -> IO ()
 processUserInput refactorings input output chan = do
@@ -76,26 +76,28 @@ processCommand shutdown refactorings output chan cmd = do
                                             ++ intercalate ", " (refactorCommands refactorings)
             return True
 
-readFromSocket :: Handle -> Chan ResponseMsg -> IO Bool
-readFromSocket output recv = do
-  continue <- readChan recv >>= processMessage output
-  maybe (readFromSocket output recv) return continue
+readFromSocket :: Bool -> Handle -> Chan ResponseMsg -> IO Bool
+readFromSocket pedantic output recv = do
+  continue <- readChan recv >>= processMessage pedantic output
+  maybe (readFromSocket pedantic output recv) return continue -- repeate if not stopping
 
 -- | Returns Nothing if the execution should continue, Just False on erronous termination
 -- and Just True on normal termination.
-processMessage :: Handle -> ResponseMsg -> IO (Maybe Bool)
-processMessage output (ErrorMessage msg) = hPutStrLn output msg >> return (Just False)
-processMessage output (CompilationProblem marks) = hPutStrLn output (show marks) >> return Nothing
-processMessage output (LoadedModules mods)
+processMessage :: Bool -> Handle -> ResponseMsg -> IO (Maybe Bool)
+processMessage _ output (ErrorMessage msg) = hPutStrLn output msg >> return (Just False)
+processMessage pedantic output (CompilationProblem marks)
+  = do hPutStrLn output (show marks)
+       return (if pedantic then Just False else Nothing)
+processMessage _ output (LoadedModules mods)
   = mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods >> return Nothing
-processMessage output (UnusedFlags flags)
+processMessage _ output (UnusedFlags flags)
   = if not $ null flags
       then do hPutStrLn output $ "Error: The following ghc-flags are not recognized: "
                                     ++ intercalate " " flags
-              return $ Just True
+              return $ Just False
       else return Nothing
-processMessage _ Disconnected = return (Just True)
-processMessage _ _ = return Nothing
+processMessage _ _ Disconnected = return (Just True)
+processMessage _ _ _ = return Nothing
 
 performCmdOptions :: [RefactoringChoice IdDom] -> Handle -> Chan ClientMessage -> [String] -> IO ()
 performCmdOptions refactorings output chan cmds = do
