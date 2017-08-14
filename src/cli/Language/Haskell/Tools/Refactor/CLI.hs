@@ -61,8 +61,9 @@ refactorSession refactorings init input output args = do
                         putStrLn "refactorSession 9/2"
                         when interactive (processUserInput refactorings input output send)
   putStrLn "refactorSession 10"
-  readFromSocket refactorings output isInteractive recv send
+  res <- readFromSocket refactorings output isInteractive recv send
   putStrLn "refactorSession 11"
+  return res
 
 processUserInput :: [RefactoringChoice IdDom] -> Handle -> Handle -> Chan ClientMessage -> IO ()
 processUserInput refactorings input output chan = do
