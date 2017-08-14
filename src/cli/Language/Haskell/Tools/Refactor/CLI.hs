@@ -40,30 +40,17 @@ refactorSession _ _ _ output args
     hPutStrLn output $ showVersion version
     return True
 refactorSession refactorings init input output args = do
-  putStrLn "refactorSession 1"
   connStore <- newEmptyMVar
-  putStrLn "refactorSession 2"
   isInteractive <- newEmptyMVar
-  putStrLn "refactorSession 3"
   init connStore
-  putStrLn "refactorSession 4"
   (recv,send) <- takeMVar connStore -- wait for the server to establish connection
-  putStrLn "refactorSession 5"
   wd <- getCurrentDirectory
-  putStrLn "refactorSession 6"
   writeChan send (SetWorkingDir wd)
-  putStrLn "refactorSession 7"
   -- TODO: separate cmd arguments here instead of in daemon
-  putStrLn "refactorSession 8"
   writeChan send (SetGHCFlags args)
-  putStrLn "refactorSession 9"
   forkIO $ forever $ do interactive <- takeMVar isInteractive
-                        putStrLn "refactorSession 9/2"
                         when interactive (processUserInput refactorings input output send)
-  putStrLn "refactorSession 10"
-  res <- readFromSocket refactorings output isInteractive recv send
-  putStrLn "refactorSession 11"
-  return res
+  readFromSocket refactorings output isInteractive recv send
 
 processUserInput :: [RefactoringChoice IdDom] -> Handle -> Handle -> Chan ClientMessage -> IO ()
 processUserInput refactorings input output chan = do
@@ -84,9 +71,7 @@ processCommand shutdown refactorings output chan cmd = do
 
 readFromSocket :: [RefactoringChoice IdDom] -> Handle -> MVar Bool -> Chan ResponseMsg -> Chan ClientMessage -> IO Bool
 readFromSocket refactorings output isInteractive recv send = do
-  putStrLn "readFromSocket"
   continue <- readChan recv >>= processMessage refactorings output isInteractive send
-  putStrLn "readFromSocket REC"
   maybe (readFromSocket refactorings output isInteractive recv send) return continue
 
 -- | Returns Nothing if the execution should continue, Just False on erronous termination
@@ -97,11 +82,8 @@ processMessage _ output _ _ (CompilationProblem marks) = hPutStrLn output (show 
 processMessage _ output _ _ (LoadedModules mods)
   = mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods >> return Nothing
 processMessage refactorings output isInteractive chan (UnusedFlags flags)
-  = do putStrLn "processMessage UnusedFlags 1"
-       loadModules chan flags
-       putStrLn "processMessage UnusedFlags 2"
+  = do loadModules chan flags
        performCmdOptions refactorings output isInteractive chan flags
-       putStrLn "processMessage UnusedFlags 3"
        return Nothing
 processMessage _ _ _ _ Disconnected = return (Just True)
 processMessage _ _ _ _ _ = return Nothing
