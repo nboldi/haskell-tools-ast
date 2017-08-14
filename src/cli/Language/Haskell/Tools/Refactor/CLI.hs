@@ -84,7 +84,9 @@ processCommand shutdown refactorings output chan cmd = do
 
 readFromSocket :: [RefactoringChoice IdDom] -> Handle -> MVar Bool -> Chan ResponseMsg -> Chan ClientMessage -> IO Bool
 readFromSocket refactorings output isInteractive recv send = do
+  putStrLn "readFromSocket"
   continue <- readChan recv >>= processMessage refactorings output isInteractive send
+  putStrLn "readFromSocket REC"
   maybe (readFromSocket refactorings output isInteractive recv send) return continue
 
 -- | Returns Nothing if the execution should continue, Just False on erronous termination
@@ -95,8 +97,11 @@ processMessage _ output _ _ (CompilationProblem marks) = hPutStrLn output (show 
 processMessage _ output _ _ (LoadedModules mods)
   = mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods >> return Nothing
 processMessage refactorings output isInteractive chan (UnusedFlags flags)
-  = do loadModules chan flags
+  = do putStrLn "processMessage UnusedFlags 1"
+       loadModules chan flags
+       putStrLn "processMessage UnusedFlags 2"
        performCmdOptions refactorings output isInteractive chan flags
+       putStrLn "processMessage UnusedFlags 3"
        return Nothing
 processMessage _ _ _ _ Disconnected = return (Just True)
 processMessage _ _ _ _ _ = return Nothing
