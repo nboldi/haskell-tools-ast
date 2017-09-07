@@ -47,8 +47,7 @@ runTest calcMessages = withSocketsDo $ do
     sock <- socket (addrFamily serverAddr) Stream defaultProtocol
     waitToConnect sock (addrAddress serverAddr)
     msgs <- calcMessages
-    mapM_ (\m -> do sendAll sock (encode m `BS.snoc` '\n')
-                    threadDelay 2000000) msgs
+    mapM_ (\m -> sendAll sock (encode m `BS.snoc` '\n')) msgs
     sendAll sock (encode Disconnect)
     resps <- readSockResponsesUntil sock Disconnected BS.empty
     let correct = all correctResponse resps
