@@ -81,7 +81,7 @@ createImplicitFldInfo :: (GHCName n, HsHasName n) => (a -> n) -> [HsRecField n a
 createImplicitFldInfo select flds = return (mkImplicitFieldInfo (map getLabelAndExpr flds))
   where getLabelAndExpr fld = ( getTheName $ unLoc (getFieldOccName (hsRecFieldLbl fld))
                               , getTheName $ select (hsRecFieldArg fld) )
-        getTheName = (\case e:_ -> e; [] -> error "createImplicitFldInfo: missing names") . hsGetNames'
+        getTheName = (\case e:_ -> e; [] -> convProblem "createImplicitFldInfo: missing names") . hsGetNames'
 
 -- | Adds semantic information to an impord declaration. See ImportInfo.
 createImportData :: (GHCName r, HsHasName n) => GHC.ImportDecl n -> Trf (ImportInfo r)
@@ -443,7 +443,7 @@ splitLocated (L (RealSrcSpan l) str) = splitLocated' str (realSrcSpanStart l) No
         splitLocated' (c:rest) currLoc Nothing = splitLocated' rest (advanceSrcLoc currLoc c) (Just (currLoc, [c]))
         splitLocated' [] currLoc (Just (startLoc, str)) = [L (RealSrcSpan $ mkRealSrcSpan startLoc currLoc) (reverse str)]
         splitLocated' [] _ Nothing = []
-splitLocated _ = error "splitLocated: unhelpful span given"
+splitLocated _ = convProblem "splitLocated: unhelpful span given"
 
 compareSpans :: SrcSpan -> SrcSpan -> Ordering
 compareSpans (RealSrcSpan a) (RealSrcSpan b)
@@ -465,6 +465,7 @@ instance Monoid SrcSpan where
   mempty = noSrcSpan
 
 data ConvertionProblem = ConvertionProblem SrcSpan String
+                       | UnrootedConvertionProblem String
   deriving Show
 
 instance Exception ConvertionProblem
@@ -472,3 +473,6 @@ instance Exception ConvertionProblem
 convertionProblem :: String -> Trf a
 convertionProblem msg = do rng <- asks contRange
                            throw $ ConvertionProblem rng msg
+
+convProblem :: String -> a
+convProblem = throw . UnrootedConvertionProblem

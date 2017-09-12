@@ -56,7 +56,7 @@ addTypeInfos bnds mod = do
                                     case rest of [] -> throw $ ConvertionProblem (RealSrcSpan loc) "Ambiguous or implicit name missing"
                                                  ((_,id):more) -> do put (none ++ more)
                                                                      return $ createCName (AST.semanticsScope ni) (AST.semanticsDefining ni) id
-                _ -> error "addTypeInfos: Cannot access a the semantics of a name.")
+                _ -> convProblem "addTypeInfos: Cannot access a the semantics of a name.")
       pure (traverse (lift . getType)) (traverse (lift . getType)) pure
         pure) mod) (extractSigIds bnds ++ extractSigBindIds bnds)
   where locMapping = Map.fromList $ map (\(L l id) -> (l, id)) $ extractExprIds bnds

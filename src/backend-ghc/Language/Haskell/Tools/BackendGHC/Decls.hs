@@ -96,7 +96,7 @@ trfDeclsGroup (HsGroup vals splices tycls insts derivs fixities defaults foreign
     mergeSplice :: [Located (HsDecl n)] -> Located (HsSplice n) -> [Located (HsDecl n)]
     mergeSplice decls spl@(L spLoc@(RealSrcSpan rss) _)
       = L spLoc (SpliceD (SpliceDecl spl ExplicitSplice)) : filter (\(L (RealSrcSpan rdsp) _) -> not (rss `containsSpan` rdsp)) decls
-    mergeSplice _ (L (UnhelpfulSpan {}) _) = error "mergeSplice: no real span"
+    mergeSplice _ (L (UnhelpfulSpan {}) _) = convProblem "mergeSplice: no real span"
 
     getDeclsToInsert :: Trf [Ann AST.UDecl (Dom r) RangeStage]
     getDeclsToInsert = do decls <- asks declsToInsert
@@ -106,8 +106,8 @@ trfDeclsGroup (HsGroup vals splices tycls insts derivs fixities defaults foreign
        where loadIdsForDecls :: [GHC.Name] -> Ann AST.UDecl (Dom RdrName) RangeStage -> GHC.Ghc (Ann AST.UDecl (Dom r) RangeStage)
              loadIdsForDecls locals = AST.semaTraverse $
                 AST.SemaTrf (AST.nameInfo !~ findName) pure (traverse findName) pure pure pure
-               where findName rdr = pure $ fromGHCName $ fromMaybe (error $ "Data definition name not found: " ++ showSDocUnsafe (ppr rdr)
-                                                                              ++ ", locals: " ++ (concat $ intersperse ", " $ map (showSDocUnsafe . ppr) locals))
+               where findName rdr = pure $ fromGHCName $ fromMaybe (convProblem $ "Data definition name not found: " ++ showSDocUnsafe (ppr rdr)
+                                                                                    ++ ", locals: " ++ (concat $ intersperse ", " $ map (showSDocUnsafe . ppr) locals))
                                                        $ find ((occNameString (rdrNameOcc rdr) ==) . occNameString . nameOccName) locals
 
 trfDecl :: TransformName n r => Located (HsDecl n) -> Trf (Ann AST.UDecl (Dom r) RangeStage)

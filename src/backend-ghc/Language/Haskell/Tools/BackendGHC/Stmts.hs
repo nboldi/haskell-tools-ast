@@ -78,4 +78,4 @@ getNormalStmts [] = []
 getLastStmt :: [Located (Stmt n (LHsExpr n))] -> Located (HsExpr n)
 getLastStmt (L _ (LastStmt body _ _) : _) = body
 getLastStmt (_ : rest) = getLastStmt rest
-getLastStmt [] = error "getLastStmt: empty"
+getLastStmt [] = convProblem "getLastStmt: empty"

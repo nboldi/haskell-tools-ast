@@ -42,7 +42,7 @@ trfExpr (L l cs@(HsCase expr (unLoc . mg_alts -> [])))
        let actualSpan = case take 3 tokensAfter of
                           [(_, AnnOf), (_, AnnOpenC), (endSpan, AnnCloseC)] -> realSpan `combineSrcSpans` endSpan
                           ((endSpan, AnnOf) : _) -> realSpan `combineSrcSpans` endSpan
-                          _ -> error "trfExpr: case without 'of' '{' or '}' token"
+                          _ -> convProblem "trfExpr: case without 'of' '{' or '}' token"
        annLoc createScopeInfo (pure actualSpan) (trfExpr' cs)
 trfExpr e | RealSrcSpan loce <- getLoc e
   = do exprSpls <- asks exprSplices
@@ -81,7 +81,7 @@ trfExpr' (OpApp _ (L _ op) _ _) = unhandledElement "OpApp expression" op
 trfExpr' (NegApp e _) = AST.UPrefixApp <$> annLocNoSema loc (AST.UNormalOp <$> annLoc info loc (AST.nameFromList <$> trfOperatorStr False "-"))
                                        <*> trfExpr e
   where loc = mkSrcSpan <$> atTheStart <*> (pure $ srcSpanStart (getLoc e))
-        info = createNameInfo =<< (fromMaybe (error "minus operation is not found") <$> liftGhc negateOpName)
+        info = createNameInfo =<< (fromMaybe (convProblem "minus operation is not found") <$> liftGhc negateOpName)
         negateOpName = getFromNameUsing (\n -> (\case Just (AnId id) -> Just id; _ -> Nothing) <$> lookupName n) negateName
 trfExpr' (HsPar (unLoc -> SectionL expr (unLoc -> HsVar op))) = AST.ULeftSection <$> trfExpr expr <*> trfOperator op
 trfExpr' (HsPar (unLoc -> SectionL expr (L nameLoc (HsRecFld op))))
