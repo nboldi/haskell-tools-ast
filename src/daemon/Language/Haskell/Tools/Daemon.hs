@@ -21,6 +21,7 @@ import Control.Reference hiding (modifyMVarMasked_)
 import Data.Tuple
 import Data.Version
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
+import qualified Data.ByteString.Lazy.Char8 as BS
 import System.IO
 import System.IO.Error
 
@@ -66,26 +67,27 @@ runDaemon refactorings mode connStore DaemonOptions{..} = withSocketsDo $
        (wp,th) <- if noWatch then return (Nothing, [])
                              else createWatchProcess' watchExe ghcSess state (daemonSend mode conn)
        modifyMVarMasked_ state ( \s -> return s { _watchProc = wp, _watchThreads = th })
-       serverLoop refactorings mode conn silentMode ghcSess state
+       serverLoop refactorings mode BS.empty conn silentMode ghcSess state
        case wp of Just watchProcess -> stopWatch watchProcess th
                   Nothing -> return ()
        daemonDisconnect mode conn
 
 -- | Starts the server loop, receiving requests from the client and updated the server state
 -- according to these.
-serverLoop :: [RefactoringChoice IdDom] -> WorkingMode a -> a -> Bool -> Session
+serverLoop :: [RefactoringChoice IdDom] -> WorkingMode a -> BS.ByteString -> a -> Bool -> Session
                 -> MVar DaemonSessionState -> IO ()
-serverLoop refactorings mode conn isSilent ghcSess state =
-  ( do msgs <- daemonReceive mode conn
+serverLoop refactorings mode rem conn isSilent ghcSess state =
+  ( do (msgs,remaining) <- daemonReceive mode rem conn
        continue <- forM msgs $ \case Right req -> do when (not isSilent) $ putStrLn $ "Message received: " ++ show req
                                                      respondTo refactorings ghcSess state (daemonSend mode conn) req
                                      Left msg -> do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
                                                     return True
        sessionData <- readMVar state
        when (not (sessionData ^. exiting) && all (== True) continue)
-         $ serverLoop refactorings mode conn isSilent ghcSess state
+         $ serverLoop refactorings mode remaining conn isSilent ghcSess state
   `catchIOError` handleIOError )
-  `catch` (\(e :: AsyncException) -> hPutStrLn stderr $ "Asynch exception caught: " ++ show e)
+  `catch` (\e -> case e of UserInterrupt -> return ()
+                           _ -> hPutStrLn stderr $ "Error caught: " ++ show e)
   `catch` (\e -> handleException e >> serverLoop refactorings mode conn isSilent ghcSess state)
   where handleIOError err = hPutStrLn stderr $ "IO Exception caught: " ++ show err
         handleException ex = do

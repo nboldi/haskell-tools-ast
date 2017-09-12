@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 -- | Defines different working modes for the daemon. It can work by using a socket connection
 -- or channels to communicate with the client. When the daemon is used by CLI, it uses channel if
 -- it communicates with an editor plugin it uses the socket connection.
@@ -19,7 +20,7 @@ import Language.Haskell.Tools.Daemon.Protocol (ResponseMsg, ClientMessage)
 data WorkingMode a = WorkingMode { daemonConnect :: Int -> IO a -- TODO: could we generalize this Int parameter nicely?
                                  , daemonDisconnect :: a -> IO ()
                                  , daemonSend :: a -> ResponseMsg -> IO ()
-                                 , daemonReceive :: a -> IO [Either String ClientMessage]
+                                 , daemonReceive :: ByteString -> a -> IO ([Either String ClientMessage], ByteString)
                                  }
 
 -- | Connect to the client running in a separate process using socket connection
@@ -35,18 +36,21 @@ socketMode = WorkingMode sockConn sockDisconnect sockSend sockReceive
       return (sock,conn)
     sockDisconnect (sock,conn) = close conn >> close sock
     sockSend (_,conn) = sendAll conn . (`BS.snoc` '\n') . encode
-    sockReceive (_,conn) = do
+    sockReceive rem (_,conn) = do
       msg <- recv conn 2048
       if not $ BS.null msg -- null on TCP means closed connection
         then do -- when (not isSilent) $ putStrLn $ "message received: " ++ show (unpack msg)
-          let msgs = BS.split '\n' msg
-           in return $ catMaybes $ map decodeMsg msgs
-        else return []
+          let msgs = BS.split '\n' (rem `BS.append` msg)
+              decoded = catMaybes $ map decodeMsg msgs
+           in return $ case reverse decoded of
+                         Left msg : _ -> (init decoded, last msgs)
+                         _ -> (decoded, BS.empty)
+        else return ([], BS.empty)
       where decodeMsg :: ByteString -> Maybe (Either String ClientMessage)
             decodeMsg mess
               | BS.null mess = Nothing
               | otherwise = case decode mess of
-                Nothing -> Just $ Left $ "MALFORMED MESSAGE: " ++ unpack mess
+                Nothing -> Just $ Left $ unpack mess
                 Just req -> Just $ Right req
 
 -- | Connect to the client running in the same process using a channel
@@ -56,4 +60,4 @@ channelMode = WorkingMode chanConn chanDisconnect chanSend chanReceive
     chanConn _ = (,) <$> newChan <*> newChan
     chanDisconnect _ = return ()
     chanSend (send,_) resp = writeChan send resp
-    chanReceive (_,recv) = (:[]) . Right <$> readChan recv
+    chanReceive _ (_,recv) = (,BS.empty) . (:[]) . Right <$> readChan recv

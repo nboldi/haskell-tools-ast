@@ -151,3 +151,22 @@ test-suite haskell-tools-daemon-tests
                      , haskell-tools-daemon
                      , haskell-tools-builtin-refactorings >= 0.9  && < 0.10
   default-language:    Haskell2010
+
+test-suite haskell-tools-stability-tests
+  type:                exitcode-stdio-1.0
+  ghc-options:         -with-rtsopts=-M400m
+  build-depends:       base                      >= 4.9 && < 4.10
+                     , HUnit                     >= 1.5  && < 1.7
+                     , ghc                       >= 8.0  && < 8.1
+                     , tasty                     >= 0.11 && < 0.12
+                     , tasty-hunit               >= 0.9  && < 0.10
+                     , network                   >= 2.6  && < 2.7
+                     , filepath                  >= 1.4  && < 2.0
+                     , directory                 >= 1.2  && < 1.4
+                     , bytestring                >= 0.10 && < 0.11
+                     , aeson                     >= 1.0  && < 1.3
+                     , haskell-tools-daemon
+                     , haskell-tools-builtin-refactorings >= 0.9  && < 0.10
+  hs-source-dirs:      test
+  main-is:             StabilityTests.hs
+  default-language:    Haskell2010
