@@ -203,7 +203,7 @@ trfAlt' = gTrfAlt' trfExpr
 gTrfAlt' :: TransformName n r => (Located (ge n) -> Trf (Ann ae (Dom r) RangeStage)) -> Match n (Located (ge n)) -> Trf (AST.UAlt' ae (Dom r) RangeStage)
 gTrfAlt' te (Match _ [pat] _ (GRHSs rhss (unLoc -> locBinds)))
   = AST.UAlt <$> trfPattern pat <*> gTrfCaseRhss te rhss <*> trfWhereLocalBinds (collectLocs rhss) locBinds
-gTrfAlt' _ _ = error "gTrfAlt': not exactly one alternative when transforming a case alternative"
+gTrfAlt' _ _ = convertionProblem "gTrfAlt': not exactly one alternative when transforming a case alternative"
 
 trfCaseRhss :: TransformName n r => [Located (GRHS n (LHsExpr n))] -> Trf (Ann AST.UCaseRhs (Dom r) RangeStage)
 trfCaseRhss = gTrfCaseRhss trfExpr
@@ -248,8 +248,8 @@ trfCmd' (HsCmdIf _ pred thenExpr elseExpr) = AST.UIfCmd <$> trfExpr pred <*> trf
 trfCmd' (HsCmdLet (unLoc -> binds) cmd) = addToScope binds (AST.ULetCmd <$> trfLocalBinds AnnLet binds <*> trfCmd cmd)
 trfCmd' (HsCmdDo (unLoc -> stmts) _) = AST.UDoCmd <$> makeNonemptyIndentedList (mapM (trfLocNoSema (gTrfDoStmt' trfCmd)) stmts)
 -- | TODO: implement
-trfCmd' (HsCmdLam {}) = error "trfCmd': cmd lambda not supported yet"
-trfCmd' (HsCmdWrap {}) = error "trfCmd': cmd wrap not supported yet"
+trfCmd' (HsCmdLam {}) = convertionProblem "trfCmd': cmd lambda not supported yet"
+trfCmd' (HsCmdWrap {}) = convertionProblem "trfCmd': cmd wrap not supported yet"
 
 trfText' :: StringLiteral -> Trf (AST.UStringNode (Dom r) RangeStage)
 trfText' = pure . AST.UStringNode . unpackFS . sl_fs

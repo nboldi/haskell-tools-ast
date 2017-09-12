@@ -31,6 +31,7 @@ import Name
 import Outputable (Outputable(..), showSDocUnsafe)
 import SrcLoc
 
+import Control.Exception
 import Control.Monad.Reader
 import Control.Reference ((^.), (&))
 import Data.Char (isSpace)
@@ -290,7 +291,7 @@ focusAfter firstTok trf
        if (isGoodSrcSpan firstToken)
           then local (\s -> s { contRange = mkSrcSpan (srcSpanEnd firstToken) (srcSpanEnd (contRange s))}) trf
           else do rng <- asks contRange
-                  error $ "focusAfter: token not found in " ++ show rng ++ ": " ++ show firstTok
+                  convertionProblem $ "focusAfter: token not found in " ++ show rng ++ ": " ++ show firstTok
 
 focusAfterIfPresent :: AnnKeywordId -> Trf a -> Trf a
 focusAfterIfPresent firstTok trf
@@ -306,7 +307,7 @@ focusBefore lastTok trf
        if (isGoodSrcSpan lastToken)
           then local (\s -> s { contRange = mkSrcSpan (srcSpanStart (contRange s)) (srcSpanStart lastToken)}) trf
           else do rng <- asks contRange
-                  error $ "focusBefore: token not found in " ++ show rng ++ ": " ++ show lastTok
+                  convertionProblem $ "focusBefore: token not found in " ++ show rng ++ ": " ++ show lastTok
 
 focusBeforeIfPresent :: AnnKeywordId -> Trf a -> Trf a
 focusBeforeIfPresent lastTok trf
@@ -452,15 +453,22 @@ compareSpans _ _ = EQ
 
 -- | Report errors when cannot convert a type of element
 unhandledElement :: (Data a, Outputable a) => String -> a -> Trf b
-unhandledElement label e = do rng <- asks contRange
-                              error ("Illegal " ++ label ++ ": " ++ showSDocUnsafe (ppr e) ++ " (ctor: " ++ show (toConstr e) ++ ") at: " ++ show rng)
+unhandledElement label e = convertionProblem ("Illegal " ++ label ++ ": " ++ showSDocUnsafe (ppr e) ++ " (ctor: " ++ show (toConstr e) ++ ")")
 
 unhandledElementNoPpr :: (Data a) => String -> a -> Trf b
-unhandledElementNoPpr label e = do rng <- asks contRange
-                                   error ("Illegal " ++ label ++ ": (ctor: " ++ show (toConstr e) ++ ") at: " ++ show rng)
+unhandledElementNoPpr label e = convertionProblem ("Illegal " ++ label ++ ": (ctor: " ++ show (toConstr e) ++ ")")
 
 
 instance Monoid SrcSpan where
   span1@(RealSrcSpan _) `mappend` _ = span1
   _ `mappend` span2 = span2
   mempty = noSrcSpan
+
+data ConvertionProblem = ConvertionProblem SrcSpan String
+  deriving Show
+
+instance Exception ConvertionProblem
+
+convertionProblem :: String -> Trf a
+convertionProblem msg = do rng <- asks contRange
+                           throw $ ConvertionProblem rng msg
