@@ -5,7 +5,7 @@
            #-}
 
 -- | Pretty printing the AST
-module Language.Haskell.Tools.PrettyPrint (prettyPrint, toRoseTree) where
+module Language.Haskell.Tools.PrettyPrint (prettyPrint, toRoseTree, PrettyPrintProblem(..)) where
 
 import FastString (fsLit)
 import SrcLoc

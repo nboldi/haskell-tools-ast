@@ -22,6 +22,8 @@ module Language.Haskell.Tools.Refactor
     , sourceTemplateListRange, srcTmpListBefore, srcTmpListAfter, srcTmpDefaultSeparator, srcTmpIndented, srcTmpSeparators
     , sourceTemplateOptRange, srcTmpOptBefore, srcTmpOptAfter
     , SourceTemplateTextElem(..), sourceTemplateText
+    , UnsupportedExtension(..), SpliceInsertionProblem(..), ConvertionProblem(..)
+    , TransformationProblem(..), BreakUpProblem(..), PrettyPrintProblem(..)
     ) where
 
 -- Important: Haddock doesn't support the rename all exported modules and export them at once hack
@@ -42,5 +44,7 @@ import Language.Haskell.Tools.Refactor.Utils.Monadic
 import Language.Haskell.Tools.Refactor.Utils.Name
 import Language.Haskell.Tools.Rewrite
 import Language.Haskell.Tools.Rewrite.ElementTypes
+import Language.Haskell.Tools.PrettyPrint
+import Language.Haskell.Tools.BackendGHC
 
 import Language.Haskell.Tools.AST.Ann

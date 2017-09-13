@@ -4,7 +4,7 @@
            #-}
 -- | Transform a syntax tree with ranges to a syntax tree that has range templates. Cuts the ranges of children
 -- from the ranges of their parents and replaces it with placeholders.
-module Language.Haskell.Tools.PrettyPrint.Prepare.RangeToRangeTemplate (cutUpRanges, fixRanges) where
+module Language.Haskell.Tools.PrettyPrint.Prepare.RangeToRangeTemplate (cutUpRanges, fixRanges, BreakUpProblem(..)) where
 
 import Language.Haskell.Tools.AST
 

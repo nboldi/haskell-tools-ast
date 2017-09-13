@@ -25,10 +25,12 @@ import System.IO
 import System.IO.Error
 
 import GhcMonad (Session(..), reflectGhc)
+import SrcLoc
 
 import Language.Haskell.Tools.Daemon.Mode
 import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Daemon.Representation
+import Language.Haskell.Tools.Daemon.GetModules
 import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Update
 import Language.Haskell.Tools.Daemon.Watch
@@ -76,24 +78,39 @@ runDaemon refactorings mode connStore DaemonOptions{..} = withSocketsDo $
 serverLoop :: [RefactoringChoice IdDom] -> WorkingMode a -> a -> Bool -> Session
                 -> MVar DaemonSessionState -> IO ()
 serverLoop refactorings mode conn isSilent ghcSess state =
-  ( do msgs <- daemonReceive mode conn
-       continue <- forM msgs $ \case Right req -> do when (not isSilent) $ putStrLn $ "Message received: " ++ show req
-                                                     respondTo refactorings ghcSess state (daemonSend mode conn) req
-                                     Left msg -> do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
-                                                    return True
-       sessionData <- readMVar state
-       when (not (sessionData ^. exiting) && all (== True) continue)
-         $ serverLoop refactorings mode conn isSilent ghcSess state
-  `catchIOError` handleIOError )
-  `catch` (\(e :: AsyncException) -> hPutStrLn stderr $ "Asynch exception caught: " ++ show e)
-  `catch` (\e -> handleException e >> serverLoop refactorings mode conn isSilent ghcSess state)
-  where handleIOError err = hPutStrLn stderr $ "IO Exception caught: " ++ show err
-        handleException ex = do
-          hPutStrLn stderr $ "Exception caught: " ++ show (ex :: SomeException)
-          daemonSend mode conn $ ErrorMessage $ "Internal error: " ++ show ex
+  do msgs <- daemonReceive mode conn
+     continue <- forM msgs $ \case Right req -> do when (not isSilent) $ putStrLn $ "Message received: " ++ show req
+                                                   respondTo refactorings ghcSess state (daemonSend mode conn) req
+                                   Left msg -> do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
+                                                  return True
+     sessionData <- readMVar state
+     when (not (sessionData ^. exiting) && all (== True) continue)
+       $ serverLoop refactorings mode conn isSilent ghcSess state
+  `catches` exceptionHandlers (serverLoop refactorings mode conn isSilent ghcSess state)
+                              (daemonSend mode conn . ErrorMessage)
 
 -- | Responds to a client request by modifying the daemon and GHC state accordingly.
 respondTo :: [RefactoringChoice IdDom] ->  Session -> MVar DaemonSessionState
                -> (ResponseMsg -> IO ()) -> ClientMessage -> IO Bool
 respondTo refactorings ghcSess state next req
   = modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient refactorings next req) st) ghcSess)
+
+exceptionHandlers :: IO () -> (String -> IO ()) -> [Handler ()]
+exceptionHandlers cont send =
+  [ Handler (\(UnsupportedPackage e) -> send ("There are unsupported elements in your package: " ++ e ++ " please correct them before loading them into Haskell-tools.") >> cont)
+  , Handler (\(UnsupportedExtension e) -> send ("The extension you use is not supported: " ++ e ++ ". Please check your source and cabal files for the use of that language extension.") >> cont)
+  , Handler (\(SpliceInsertionProblem rng _) -> send ("A problem occurred while type-checking the Template Haskell splice at: " ++ shortShowSpan rng ++ ". Some complex splices cannot be type checked for reasons currently unknown. Please simplify the splice. We are working on this problem.") >> cont)
+  , Handler (\case (BreakUpProblem outer rng _) -> send ("The program element at " ++ (if isGoodSrcSpan rng then shortShowSpan rng else shortShowSpan (RealSrcSpan outer)) ++ " could not be prepared for refactoring. The most likely reason is preprocessor usage. Only conditional compilation is supported, includes and preprocessor macros are not. If there is no preprocessor usage at the given location, there might be a weirdly placed comment causing a problem.") >> cont)
+  , Handler (\(TransformationProblem msg) -> send ("A problem occurred while preparing the program for refactoring: " ++ msg) >> cont)
+  , Handler (\(PrettyPrintProblem msg) -> send ("A problem occurred while pretty printing the result of the refactoring: " ++ msg) >> cont)
+  , Handler (\case (ConvertionProblem rng msg) -> send ("An unexpected problem occurred while converting the representation of the program element at " ++ shortShowSpan rng ++ ": " ++ msg) >> cont
+                   (UnrootedConvertionProblem msg) -> send ("An unexpected problem occurred while converting between different program representations: " ++ msg) >> cont)
+  , Handler (\(err :: IOException) -> hPutStrLn stderr $ "IO Exception caught: " ++ show err)
+  , Handler (\(e :: AsyncException) -> hPutStrLn stderr $ "Asynch exception caught: " ++ show e)
+  , Handler (\(ex :: SomeException) -> do hPutStrLn stderr $ "Unexpected error: " ++ show (ex :: SomeException)
+                                          send $ "Internal error: " ++ show ex
+                                          cont)
+  ]
+  where handleException ex = do
+          hPutStrLn stderr $ "Unexpected error: " ++ show (ex :: SomeException)
+          send $ "Internal error: " ++ show ex
