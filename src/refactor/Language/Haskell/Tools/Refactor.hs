@@ -16,7 +16,7 @@ module Language.Haskell.Tools.Refactor
     , module Language.Haskell.Tools.Refactor.Representation
     , module Language.Haskell.Tools.Refactor.Monad
   , Ann, HasSourceInfo(..), HasRange(..), annListElems, annListAnnot, annList, annJust, annMaybe, isAnnNothing, Domain, Dom, IdDom
-    , shortShowSpan, SrcTemplateStage, SourceInfoTraversal(..)
+    , shortShowSpan, shortShowSpanWithFile, SrcTemplateStage, SourceInfoTraversal(..)
     -- elements of source templates
     , sourceTemplateNodeRange, sourceTemplateNodeElems
     , sourceTemplateListRange, srcTmpListBefore, srcTmpListAfter, srcTmpDefaultSeparator, srcTmpIndented, srcTmpSeparators
