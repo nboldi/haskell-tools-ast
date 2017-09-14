@@ -19,6 +19,7 @@ import Control.Monad
 import Control.Monad.State.Strict
 import Control.Reference hiding (modifyMVarMasked_)
 import Data.Tuple
+import Data.List
 import Data.Version
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
 import System.IO
@@ -107,10 +108,19 @@ exceptionHandlers cont send =
                    (UnrootedConvertionProblem msg) -> send ("An unexpected problem occurred while converting between different program representations: " ++ msg) >> cont)
   , Handler (\(err :: IOException) -> hPutStrLn stderr $ "IO Exception caught: " ++ show err)
   , Handler (\(e :: AsyncException) -> hPutStrLn stderr $ "Asynch exception caught: " ++ show e)
-  , Handler (\(ex :: SomeException) -> do hPutStrLn stderr $ "Unexpected error: " ++ show (ex :: SomeException)
-                                          send $ "Internal error: " ++ show ex
-                                          cont)
+  , Handler (\(ex :: SomeException) -> handleException ex cont)
   ]
-  where handleException ex = do
-          hPutStrLn stderr $ "Unexpected error: " ++ show (ex :: SomeException)
-          send $ "Internal error: " ++ show ex
+  where handleException ex cont
+          = case handleGHCException (show ex) of
+              Nothing -> do hPutStrLn stderr $ "Unexpected error: " ++ show (ex :: SomeException)
+                            send $ "Internal error: " ++ show ex
+              Just (msg, doContinue) -> send msg >> when doContinue cont
+
+handleGHCException :: String -> Maybe (String, Bool)
+handleGHCException msg | "failed" `isInfixOf` msg && "C pre-processor" `isInfixOf` msg
+  = Just ("Failed to load the package. The cause of that is a failure of the pre-processor. "
+             ++ " Only conditional compilation is supported, includes and preprocessor macros are not: " ++ msg, False)
+handleGHCException msg | "failed" `isInfixOf` msg && "Literate pre-processor" `isInfixOf` msg
+  = Just ("Haskell-tools does not handle Literate Haskell yet."
+             ++ " If you get this error after refactoring, you should undo the refactoring. The error message: " ++ msg, True)
+handleGHCException msg = Nothing
