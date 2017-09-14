@@ -84,16 +84,20 @@ serverLoop :: [RefactoringChoice IdDom] -> WorkingMode a -> a -> Bool -> Session
                 -> MVar DaemonSessionState -> IO ()
 serverLoop refactorings mode conn isSilent ghcSess state =
   do msgs <- daemonReceive mode conn
-     continue <- forM msgs $ \case Right req -> do when (not isSilent) $ putStrLn $ "Message received: " ++ show req
-                                                   respondTo refactorings ghcSess state (daemonSend mode conn) req
-                                   Left msg -> do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
-                                                  return True
+     continue <- mapM respondToMsg msgs
      sessionData <- readMVar state
      when (not (sessionData ^. exiting) && all (== True) continue)
        $ serverLoop refactorings mode conn isSilent ghcSess state
-  `catches` exceptionHandlers (serverLoop refactorings mode conn isSilent ghcSess state)
-                              (daemonSend mode conn . ErrorMessage)
-                              (\err hint -> daemonSend mode conn $ CompilationProblem err hint)
+   `catches` exceptionHandlers (serverLoop refactorings mode conn isSilent ghcSess state)
+                               (daemonSend mode conn . ErrorMessage)
+  where respondToMsg (Right req)
+          = do when (not isSilent) $ putStrLn $ "Message received: " ++ show req
+               respondTo refactorings ghcSess state (daemonSend mode conn) req
+           `catches` userExceptionHandlers
+                        (\s -> daemonSend mode conn (ErrorMessage s) >> return True)
+                        (\err hint -> daemonSend mode conn (CompilationProblem err hint) >> return True)
+        respondToMsg (Left msg) = do daemonSend mode conn $ ErrorMessage $ "MALFORMED MESSAGE: " ++ msg
+                                     return True
 
 -- | Responds to a client request by modifying the daemon and GHC state accordingly.
 respondTo :: [RefactoringChoice IdDom] ->  Session -> MVar DaemonSessionState
@@ -101,21 +105,25 @@ respondTo :: [RefactoringChoice IdDom] ->  Session -> MVar DaemonSessionState
 respondTo refactorings ghcSess state next req
   = modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient refactorings next req) st) ghcSess)
 
-exceptionHandlers :: IO () -> (String -> IO ()) -> ([(SrcSpan, String)] -> [String] -> IO ()) -> [Handler ()]
-exceptionHandlers cont sendError sendCompProblems =
-  [ Handler (\(UnsupportedPackage e) -> sendError ("There are unsupported elements in your package: " ++ e ++ " please correct them before loading them into Haskell-tools.") >> cont)
-  , Handler (\(UnsupportedExtension e) -> sendError ("The extension you use is not supported: " ++ e ++ ". Please check your source and cabal files for the use of that language extension.") >> cont)
-  , Handler (\(SpliceInsertionProblem rng _) -> sendError ("A problem occurred while type-checking the Template Haskell splice at: " ++ shortShowSpan rng ++ ". Some complex splices cannot be type checked for reasons currently unknown. Please simplify the splice. We are working on this problem.") >> cont)
-  , Handler (\case (BreakUpProblem outer rng _) -> sendError ("The program element at " ++ (if isGoodSrcSpan rng then shortShowSpan rng else shortShowSpan (RealSrcSpan outer)) ++ " could not be prepared for refactoring. The most likely reason is preprocessor usage. Only conditional compilation is supported, includes and preprocessor macros are not. If there is no preprocessor usage at the given location, there might be a weirdly placed comment causing a problem.") >> cont)
-  , Handler (\(TransformationProblem msg) -> sendError ("A problem occurred while preparing the program for refactoring: " ++ msg) >> cont)
-  , Handler (\(PrettyPrintProblem msg) -> sendError ("A problem occurred while pretty printing the result of the refactoring: " ++ msg) >> cont)
-  , Handler (\case (ConvertionProblem rng msg) -> sendError ("An unexpected problem occurred while converting the representation of the program element at " ++ shortShowSpan rng ++ ": " ++ msg) >> cont
-                   (UnrootedConvertionProblem msg) -> sendError ("An unexpected problem occurred while converting between different program representations: " ++ msg) >> cont)
+userExceptionHandlers :: (String -> IO Bool) -> ([(SrcSpan, String)] -> [String] -> IO Bool) -> [Handler Bool]
+userExceptionHandlers sendError sendCompProblems =
+  [ Handler (\(UnsupportedPackage e) -> sendError ("There are unsupported elements in your package: " ++ e ++ " please correct them before loading them into Haskell-tools."))
+  , Handler (\(UnsupportedExtension e) -> sendError ("The extension you use is not supported: " ++ e ++ ". Please check your source and cabal files for the use of that language extension."))
+  , Handler (\(SpliceInsertionProblem rng _) -> sendError ("A problem occurred while type-checking the Template Haskell splice at: " ++ shortShowSpan rng ++ ". Some complex splices cannot be type checked for reasons currently unknown. Please simplify the splice. We are working on this problem."))
+  , Handler (\case (BreakUpProblem outer rng _) -> sendError ("The program element at " ++ (if isGoodSrcSpan rng then shortShowSpan rng else shortShowSpan (RealSrcSpan outer)) ++ " could not be prepared for refactoring. The most likely reason is preprocessor usage. Only conditional compilation is supported, includes and preprocessor macros are not. If there is no preprocessor usage at the given location, there might be a weirdly placed comment causing a problem."))
+  , Handler (\(TransformationProblem msg) -> sendError ("A problem occurred while preparing the program for refactoring: " ++ msg))
+  , Handler (\(PrettyPrintProblem msg) -> sendError ("A problem occurred while pretty printing the result of the refactoring: " ++ msg))
+  , Handler (\case (ConvertionProblem rng msg) -> sendError ("An unexpected problem occurred while converting the representation of the program element at " ++ shortShowSpan rng ++ ": " ++ msg)
+                   (UnrootedConvertionProblem msg) -> sendError ("An unexpected problem occurred while converting between different program representations: " ++ msg))
   , Handler (\errs -> let msgs = map (\err -> (errMsgSpan err, show err))
                                    $ bagToList $ srcErrorMessages errs
                           hints = nub $ sort $ catMaybes $ map (handleSourceProblem . snd) msgs
-                       in sendCompProblems msgs hints >> cont)
-  , Handler (\(err :: IOException) -> hPutStrLn stderr $ "IO Exception caught: " ++ show err)
+                       in sendCompProblems msgs hints)
+  ]
+
+exceptionHandlers :: IO () -> (String -> IO ()) -> [Handler ()]
+exceptionHandlers cont sendError =
+  [ Handler (\(err :: IOException) -> hPutStrLn stderr $ "IO Exception caught: " ++ show err)
   , Handler (\(e :: AsyncException) -> hPutStrLn stderr $ "Asynch exception caught: " ++ show e)
   , Handler (\(ex :: SomeException) -> handleException ex cont)
   ]
