@@ -157,10 +157,8 @@ trfImport (L l impDecl@(GHC.ImportDecl _ name pkg isSrc _ isQual _ declAs declHi
        <*> trfModuleName name
        <*> maybe (nothing " " "" (pure $ srcSpanEnd (getLoc name))) (\mn -> makeJust <$> (trfRenaming mn)) declAs
        <*> trfImportSpecs declHiding
-  where trfRenaming mn
-          = annLocNoSema (tokensLoc [AnnAs,AnnVal])
-                         (AST.UImportRenaming <$> (annLocNoSema (tokenLoc AnnVal)
-                                                  (trfModuleName' mn)))
+  where trfRenaming mn = annLocNoSema (tokensLoc [AnnAs,AnnVal])
+                                      (AST.UImportRenaming <$> (trfModuleName mn))
 
 trfImportSpecs :: TransformName n r => Maybe (Bool, Located [LIE n]) -> Trf (AnnMaybeG AST.UImportSpec (Dom r) RangeStage)
 trfImportSpecs (Just (True, l))
@@ -173,17 +171,23 @@ trfIESpec :: TransformName n r => LIE n -> Trf (Maybe (Ann AST.UIESpec (Dom r) R
 trfIESpec = trfMaybeLocNoSema trfIESpec'
 
 trfIESpec' :: TransformName n r => IE n -> Trf (Maybe (AST.UIESpec (Dom r) RangeStage))
-trfIESpec' (IEVar n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (nothing "(" ")" atTheEnd))
-trfIESpec' (IEThingAbs n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (nothing "(" ")" atTheEnd))
+trfIESpec' (IEVar n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName (getWrappedName n) <*> (nothing "(" ")" atTheEnd))
+trfIESpec' (IEThingAbs n) = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName (getWrappedName n) <*> (nothing "(" ")" atTheEnd))
 trfIESpec' (IEThingAll n)
-  = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> subspec))
+  = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName (getWrappedName n) <*> (makeJust <$> subspec))
   where subspec = annLocNoSema (combineSrcSpans <$> tokenLocBack AnnOpenP <*> tokenLocBack AnnCloseP) (pure AST.USubSpecAll)
 trfIESpec' (IEThingWith n _ ls flds)
-  = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName n <*> (makeJust <$> subspec))
+  = Just <$> (AST.UIESpec <$> trfImportModifier <*> trfName (getWrappedName n) <*> (makeJust <$> subspec))
   where subspec = annLocNoSema (combineSrcSpans <$> tokenLocBack AnnOpenP <*> tokenLocBack AnnCloseP)
-                    $ AST.USubSpecList <$> between AnnOpenP AnnCloseP (orderAnnList <$> makeList ", " atTheStart ((++) <$> mapM trfName ls <*> mapM trfName (map (fmap flSelector) flds)))
+                    $ AST.USubSpecList <$> between AnnOpenP AnnCloseP (orderAnnList <$> makeList ", " atTheStart ((++) <$> mapM (trfName . getWrappedName) ls <*> mapM trfName (map (fmap flSelector) flds)))
 trfIESpec' _ = pure Nothing
 
+getWrappedName :: Located (IEWrappedName n) -> Located n
+getWrappedName (L _ (IEName n)) = n
+getWrappedName (L _ (IEPattern n)) = n
+getWrappedName (L _ (IEType n)) = n
+
+-- TODO: easier with wrapped names
 trfImportModifier :: Trf (AnnMaybeG AST.UImportModifier (Dom r) RangeStage)
 trfImportModifier = do
   patLoc <- tokenLoc AnnPattern

@@ -15,7 +15,7 @@ import SrcLoc as GHC
 import TcEvidence as GHC (EvBind(..), TcEvBinds(..))
 import Type as GHC (Type, mkTyVarTy, mkTyConTy)
 import TysWiredIn as GHC (starKindTyCon)
-import UniqFM as GHC (eltsUFM)
+import UniqDFM as GHC (eltsUDFM)
 import UniqSupply as GHC (uniqFromSupply, mkSplitUniqSupply)
 import Var as GHC (Var(..))
 
@@ -74,7 +74,7 @@ addTypeInfos bnds mod = do
         getFixities = do env <- getSession
                          pit <- liftIO $ eps_PIT <$> hscEPS env
                          let hpt = hsc_HPT env
-                             ifaces = moduleEnvElts pit ++ map hm_iface (eltsUFM hpt)
+                             ifaces = moduleEnvElts pit ++ map hm_iface (eltsUDFM hpt)
                          return $ concatMap (\mi -> map (mi_module mi, ) $ mi_fixities mi) ifaces
 
 extractExprIds :: LHsBinds Id -> [Located Id]

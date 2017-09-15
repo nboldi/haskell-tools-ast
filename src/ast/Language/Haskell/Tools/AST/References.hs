@@ -1,6 +1,6 @@
 -- don't show warnings, Template Haskell generated code contains unused variables
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
-{-# LANGUAGE FlexibleContexts, TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts, TemplateHaskell, MonoLocalBinds #-}
 -- | Generated references for AST elements.
 module Language.Haskell.Tools.AST.References where
 
@@ -63,6 +63,7 @@ $(toASTReferences (makeReferences ''UFunDep))
 $(toASTReferences (makeReferences ''UConDecl))
 $(toASTReferences (makeReferences ''UFieldDecl))
 $(toASTReferences (makeReferences ''UDeriving))
+$(toASTReferences (makeReferences ''UDeriveStrategy))
 $(toASTReferences (makeReferences ''UInstanceRule))
 $(toASTReferences (makeReferences ''UInstanceHead))
 $(toASTReferences (makeReferences ''UTypeEqn))

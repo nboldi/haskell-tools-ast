@@ -54,6 +54,7 @@ deriveSemanticTraversal ''UFunDep
 deriveSemanticTraversal ''UConDecl
 deriveSemanticTraversal ''UFieldDecl
 deriveSemanticTraversal ''UDeriving
+deriveSemanticTraversal ''UDeriveStrategy
 deriveSemanticTraversal ''UInstanceRule
 deriveSemanticTraversal ''UInstanceHead
 deriveSemanticTraversal ''UTypeEqn

@@ -5,7 +5,7 @@ module Language.Haskell.Tools.Daemon.ModuleGraph (moduleGraphNodes, getModFromNo
 import qualified Data.Map as Map (fromList, Map, lookup)
 import Data.Maybe (Maybe(..), mapMaybe)
 
-import Digraph as GHC (Graph, graphFromEdgedVertices)
+import Digraph as GHC (Graph, graphFromEdgedVerticesOrd)
 import DynFlags ()
 import FastString as GHC (FastString, fsLit)
 import GHC
@@ -22,7 +22,7 @@ getModFromNode (ms, _, _) = ms
 -- to be reloaded after a recompilation.
 moduleGraphNodes :: Bool -> [ModSummary]
   -> (Graph SummaryNode, HscSource -> ModuleName -> Maybe SummaryNode)
-moduleGraphNodes drop_hs_boot_nodes summaries = (graphFromEdgedVertices nodes, lookup_node)
+moduleGraphNodes drop_hs_boot_nodes summaries = (graphFromEdgedVerticesOrd nodes, lookup_node)
   where
     numbered_summaries = zip summaries [1..]
 

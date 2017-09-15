@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -O0 #-} -- this is needed because of an optimization bug in GHC 8.2.1: https://ghc.haskell.org/trac/ghc/ticket/13413
 {-# LANGUAGE LambdaCase
            , MultiWayIf
            , TypeApplications
@@ -31,7 +32,7 @@ import Data.Algorithm.DiffContext
 import System.FSWatch.Slave
 
 import Bag (bagToList)
-import DynFlags (DynFlags(..), PkgConfRef(..))
+import DynFlags (DynFlags(..), PkgConfRef(..), PackageDBFlag(..))
 import ErrUtils (ErrMsg(..))
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
@@ -308,7 +309,7 @@ usePackageDB [] = return ()
 usePackageDB pkgDbLocs
   = do dfs <- getSessionDynFlags
        dfs' <- liftIO $ fmap fst $ initPackages
-                 $ dfs { extraPkgConfs = (map PkgConfFile pkgDbLocs ++) . extraPkgConfs dfs
+                 $ dfs { packageDBFlags = map (PackageDB . PkgConfFile) pkgDbLocs ++ packageDBFlags dfs
                        , pkgDatabase = Nothing
                        }
        void $ setSessionDynFlags dfs'

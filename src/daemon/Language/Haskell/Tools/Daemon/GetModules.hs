@@ -21,10 +21,11 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Distribution.Compiler
 import Distribution.ModuleName
-import Distribution.Package (Dependency(..), PackageName(..), pkgName)
+import Distribution.Package (Dependency(..), PackageName(..), pkgName, unPackageName)
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Configuration
 import Distribution.PackageDescription.Parse
+import Distribution.Types.UnqualComponentName
 import Distribution.System
 import Distribution.Verbosity (silent)
 import Language.Haskell.Extension as Cabal
@@ -149,14 +150,14 @@ instance ToModuleCollection Library where
   needsToCompile l m = m `elem` exposedModules l
 
 instance ToModuleCollection Executable where
-  mkModuleCollKey pn exe = ExecutableMC (unPackageName pn) (exeName exe)
+  mkModuleCollKey pn exe = ExecutableMC (unPackageName pn) (unUnqualComponentName $ exeName exe)
   getBuildInfo = buildInfo
   getModuleNames exe = fromString (getMain exe) : exeModules exe
   needsToCompile exe mn = components mn == [getMain exe]
   getModuleSourceFiles exe = [(fromString (getMain exe), modulePath exe)]
 
 instance ToModuleCollection TestSuite where
-  mkModuleCollKey pn test = TestSuiteMC (unPackageName pn) (testName test)
+  mkModuleCollKey pn test = TestSuiteMC (unPackageName pn) (unUnqualComponentName $ testName test)
   getBuildInfo = testBuildInfo
   getModuleNames exe = fromString (getMain exe) : testModules exe
   needsToCompile exe mn = components mn == [getMain exe]
@@ -169,7 +170,7 @@ instance ToModuleCollection TestSuite where
         _ -> getMain' (getBuildInfo t)
 
 instance ToModuleCollection Benchmark where
-  mkModuleCollKey pn test = BenchmarkMC (unPackageName pn) (benchmarkName test)
+  mkModuleCollKey pn test = BenchmarkMC (unPackageName pn) (unUnqualComponentName $ benchmarkName test)
   getBuildInfo = benchmarkBuildInfo
   getModuleNames exe = fromString (getMain exe) : benchmarkModules exe
   needsToCompile exe mn = components mn == [getMain exe]
