@@ -4,6 +4,7 @@
            , UndecidableInstances
            , FlexibleContexts
            , FlexibleInstances
+           , MonoLocalBinds
            #-}
 module Language.Haskell.Tools.AST.SemaInfoTypes
   ( -- types

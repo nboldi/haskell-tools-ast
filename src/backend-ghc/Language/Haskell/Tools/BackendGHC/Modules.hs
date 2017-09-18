@@ -24,6 +24,7 @@ import FieldLabel as GHC (FieldLbl(..))
 import GHC
 import SrcLoc as GHC
 import TcRnMonad as GHC (Applicative(..), (<$>))
+import Outputable
 
 import Language.Haskell.Tools.AST (Ann(..), AnnMaybeG, AnnListG(..), Dom, RangeStage
                                   , sourceInfo, semantics, annotation, nodeSpan)

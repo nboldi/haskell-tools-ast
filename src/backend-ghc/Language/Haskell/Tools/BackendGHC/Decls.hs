@@ -44,7 +44,7 @@ trfDecls :: TransformName n r => [LHsDecl n] -> Trf (AnnListG AST.UDecl (Dom r) 
 trfDecls decls = addToCurrentScope decls $ makeIndentedListNewlineBefore atTheEnd (mapM trfDecl decls)
 
 trfDeclsGroup :: forall n r . TransformName n r => HsGroup n -> Trf (AnnListG AST.UDecl (Dom r) RangeStage)
-trfDeclsGroup (HsGroup vals splices tycls derivs fixities defaults foreigns warns anns rules vects _)
+trfDeclsGroup g@(HsGroup vals splices tycls derivs fixities defaults foreigns warns anns rules vects _)
   = do rdrSpls <- asks declSplices -- now we don't want to rename the splices, just interested in their locations to
                                    -- filter out the declarations that are generated from them
        let (sigs, bagToList -> binds) = getBindsAndSigs vals
@@ -62,6 +62,7 @@ trfDeclsGroup (HsGroup vals splices tycls derivs fixities defaults foreigns warn
                         ++ (map (fmap AnnD) anns)
                         ++ (map (fmap RuleD) rules)
                         ++ (map (fmap VectD) vects)
+                        ++ (map (fmap InstD) (hsGroupInstDecls g))
        -- Declarations generated from TH should only be in scope after the splice.
        let (genNames, sourceNames) = partition (\d -> any (\spl -> getLoc spl `containsRealSpan` getLoc d) rdrSpls) alldecls
        addToCurrentScope sourceNames $ do
@@ -141,7 +142,7 @@ trfDecl = trfLocNoSema $ \case
                               (makeInstanceRuleTyVars con pats)
                                                        -- the location is needed when there is no = sign
                         <*> makeListBefore " = " " | " (pure $ srcSpanStart $ foldLocs $ getLoc con : map getLoc (hsib_body pats)) (mapM trfConDecl cons)
-                        <*> makeIndentedList (return $ srcSpanStart (getLoc derivs)) (mapM trfDerivings (unLoc derivs))
+                        <*> makeIndentedList atTheEnd (mapM trfDerivings (unLoc derivs))
   InstD (DataFamInstD (DataFamInstDecl con pats _ (HsDataDefn nd _ _ kind cons _) _))
     -> AST.UGDataInstDecl <$> trfDataKeyword nd
                         <*> (focusAfter AnnInstance . focusBeforeIfPresent AnnWhere)
@@ -183,7 +184,7 @@ trfGADT nd name vars ctx kind cons derivs ctxTok consLoc
                    <*> betweenIfPresent ctxTok AnnEqual (createDeclHead name vars)
                    <*> focusBefore AnnWhere (trfKindSig kind)
                    <*> makeIndentedListBefore " where " consLoc (mapM trfGADTConDecl cons)
-                   <*> makeIndentedList (return $ srcSpanStart (getLoc derivs)) (mapM trfDerivings (unLoc derivs))
+                   <*> makeIndentedList atTheEnd (mapM trfDerivings (unLoc derivs))
 
 trfDataDef :: TransformName n r => NewOrData -> Located n -> LHsQTyVars n -> Located (HsContext n)
                                      -> [Located (ConDecl n)] -> Located [LHsDerivingClause n]
@@ -193,7 +194,7 @@ trfDataDef nd name vars ctx cons derivs ctxTok consLoc
                   <*> trfCtx (after ctxTok) ctx
                   <*> betweenIfPresent ctxTok AnnEqual (createDeclHead name vars)
                   <*> makeListBefore "=" " | " consLoc (mapM trfConDecl cons)
-                  <*> makeIndentedList (return $ srcSpanStart (getLoc derivs)) (mapM trfDerivings (unLoc derivs))
+                  <*> makeIndentedList atTheEnd (mapM trfDerivings (unLoc derivs))
 
 trfVal :: TransformName n r => HsBindLR n n -> Trf (AST.UDecl (Dom r) RangeStage)
 trfVal (PatSynBind psb) = AST.UPatternSynonymDecl <$> annContNoSema (trfPatternSynonym psb)
@@ -276,11 +277,11 @@ trfDerivings = trfLocNoSema $ \case
     -> AST.UDerivings <$> trfDerivingStrategy strat <*> focusOn (getLoc derivs) (trfAnnList ", " trfInstanceHead' (map hsib_body (unLoc derivs)))
 
 trfDerivingStrategy :: Maybe (Located DerivStrategy) -> Trf (AnnMaybeG AST.UDeriveStrategy (Dom r) RangeStage)
-trfDerivingStrategy = trfMaybe " " "" $ trfLocNoSema
-                        $ \case StockStrategy -> return AST.UStockStrategy
-                                AnyclassStrategy -> return AST.UAnyClassStrategy
-                                NewtypeStrategy -> return AST.UNewtypeStrategy
-
+trfDerivingStrategy = trfMaybeDefault " " ""
+                        (trfLocNoSema $ \case StockStrategy -> return AST.UStockStrategy
+                                              AnyclassStrategy -> return AST.UAnyClassStrategy
+                                              NewtypeStrategy -> return AST.UNewtypeStrategy)
+                        atTheStart
 
 trfInstanceRule :: TransformName n r => Located (HsType n) -> Trf (Ann AST.UInstanceRule (Dom r) RangeStage)
 trfInstanceRule = trfLocNoSema (trfInstanceRule' . cleanHsType)
@@ -475,7 +476,7 @@ trfInstDataFam = trfLocNoSema $ \case
                                              <*> trfCtx atTheStart ctx
                                              <*> transformNameAndPats tc pats)
          <*> trfAnnList "" trfConDecl' cons
-         <*> makeIndentedList (return $ srcSpanStart (getLoc derivs)) (mapM trfDerivings (unLoc derivs))
+         <*> makeIndentedList atTheEnd (mapM trfDerivings (unLoc derivs))
     | otherwise
     -> AST.UInstBodyGadtDataDecl
         <$> trfDataKeyword dn
@@ -485,7 +486,7 @@ trfInstDataFam = trfLocNoSema $ \case
                                             <*> transformNameAndPats tc pats)
         <*> trfKindSig ks
         <*> trfAnnList "" trfGADTConDecl' cons
-        <*> makeIndentedList (return $ srcSpanStart (getLoc derivs)) (mapM trfDerivings (unLoc derivs))
+        <*> makeIndentedList atTheEnd (mapM trfDerivings (unLoc derivs))
   where transformNameAndPats tc pats -- TODO: this is simpler with lexical fixity
           | all (\p -> srcSpanEnd (getLoc tc) < srcSpanStart (getLoc p)) pats -- prefix instance head application
           = foldl (\r t -> annLocNoSema (combineSrcSpans (getLoc t) . getRange <$> r)
