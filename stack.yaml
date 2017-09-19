@@ -17,4 +17,5 @@ packages:
   - src/daemon
   - ../watch
 
-extra-deps: []
+extra-deps:
+  - knob-0.1.1
