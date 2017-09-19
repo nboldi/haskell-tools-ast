@@ -4,7 +4,6 @@
            , StandaloneDeriving
            , DeriveGeneric
            , UndecidableInstances
-           , MonoLocalBinds
            #-}
 module Language.Haskell.Tools.Debug.RangeDebugInstances where
 
