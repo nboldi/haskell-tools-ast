@@ -42,7 +42,7 @@ addTypeInfos bnds mod = do
   let getType = getType' ut
   fixities <- getFixities
   let createCName sc def id = mkCNameInfo sc def id fixity
-        where fixity = if any (any ((getOccName id ==) . getOccName . (^. _1))) (init sc)
+        where fixity = if any (any ((getOccName id ==) . getOccName . (^. _1))) (drop 1 sc)
                           then Nothing
                           else fmap (snd . snd) $ List.find (\(mod,(occ,_)) -> Just mod == (nameModule_maybe $ varName id) && occ == getOccName id) fixities
   evalStateT (semaTraverse
