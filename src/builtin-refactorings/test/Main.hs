@@ -151,6 +151,7 @@ languageTests =
   , "Module.Simple"
   , "Module.GhcOptionsPragma"
   , "Module.Export"
+  , "Module.ExportModifiers"
   , "Module.NamespaceExport"
   , "Module.Import"
   , "Module.ImportOp"

@@ -65,7 +65,8 @@ trfModuleRename mod rangeMod (gr,imports,exps,_) hsMod
         replaceSubspecLocs :: [LIE Name] -> [LIE Name]
         replaceSubspecLocs exps = zipWith (\ss ie -> case ie of (L l (IEThingWith n wc ls flds)) -> L l (IEThingWith n wc (replaceNames ss ls) flds)
                                                                 _ -> ie) exportSubspecsRngs exps
-          where replaceNames ss ls = zipWith (\(L _ iew) l -> L l iew) ls ss
+          where replaceNames ss ls = zipWith (\(L _ iew) l -> case iew of IEName (L _ n) -> L l (IEName (L l n))
+                                                                          _              -> L l iew) ls ss
 
         trfModuleRename' preludeImports hsMod@(HsModule name exports _ _ deprec _) = do
           transformedImports <- orderAnnList <$> (trfImports imports)
