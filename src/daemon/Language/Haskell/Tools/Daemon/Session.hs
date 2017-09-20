@@ -4,6 +4,7 @@
            , MultiWayIf
            , FlexibleContexts
            , BangPatterns
+           , StandaloneDeriving
            #-}
 -- | Common operations for managing Daemon-tools sessions, for example loading whole packages or
 -- re-loading modules when they are changed. Maintains the state of the compilation with loaded
@@ -25,6 +26,7 @@ import Data.IntSet (member)
 import Digraph as GHC
 import DynFlags
 import GHC
+import Packages
 import Language.Haskell.TH.LanguageExtensions
 
 import Language.Haskell.Tools.Daemon.GetModules
@@ -60,6 +62,10 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
      withAlteredDynFlags (liftIO . fmap (st ^. ghcFlagsSet) . setupLoadFlags (mcs ^? traversal & mcId) (mcs ^? traversal & mcRoot)
                                                                              (mcs ^? traversal & mcDependencies & traversal)
                                                                              (foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup))) $ do
+       -- need to update package state when setting the list of visible packages
+       dfs <- getSessionDynFlags
+       (dfs', _) <- liftIO $ initPackages dfs
+       setSessionDynFlags dfs'
        modsForColls <- lift $ depanal [] True
        let modsToParse = flattenSCCs $ topSortModuleGraph False modsForColls Nothing
            actuallyCompiled = filter (\ms -> getModSumOrig ms `notElem` alreadyLoadedFilesInOtherPackages) modsToParse
@@ -106,11 +112,6 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
 
         makeTarget (SourceFileKey "" modName) = Target (TargetModule (GHC.mkModuleName modName)) True Nothing
         makeTarget (SourceFileKey filePath _) = Target (TargetFile filePath Nothing) True Nothing
-
--- | Handle GHC exceptions and RefactorException.
--- handleErrors :: ExceptionMonad m => m a -> m (Either RefactorException a)
--- handleErrors action = handleSourceError (return . Left . SourceCodeProblem . srcErrorMessages) (Right <$> action)
---                         `gcatch` (return . Left)
 
 -- TODO: make getMods and getFileMods clearer
 

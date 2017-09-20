@@ -40,9 +40,10 @@ packageDBLoc CabalSandboxDB path = do
                                      else return ""
   return $ map (drop (length "package-db: ")) $ filter ("package-db: " `isPrefixOf`) $ lines config
 packageDBLoc StackDB path = withCurrentDirectory path $ (fmap $ either (\(_ :: SomeException) -> []) id) $ try $ do
+     (_, globalDB, globalDBErrs) <- readProcessWithExitCode "stack" ["path", "--allow-different-user", "--global-pkg-db"] ""
      (_, snapshotDB, snapshotDBErrs) <- readProcessWithExitCode "stack" ["path", "--allow-different-user", "--snapshot-pkg-db"] ""
      (_, localDB, localDBErrs) <- readProcessWithExitCode "stack" ["path", "--allow-different-user", "--local-pkg-db"] ""
-     return $ [trim localDB | null localDBErrs] ++ [trim snapshotDB | null snapshotDBErrs]
+     return $ [trim localDB | null localDBErrs] ++ [trim snapshotDB | null snapshotDBErrs] ++ [trim globalDB | null globalDBErrs]
 packageDBLoc (ExplicitDB dir) path = do
   hasDir <- doesDirectoryExist (path </> dir)
   if hasDir then return [path </> dir]

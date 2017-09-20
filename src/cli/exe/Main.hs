@@ -52,8 +52,10 @@ cliOptions = CLIOptions <$> version <*> verb <*> oneShot <*> noWatch <*> watch <
           where ghcFlagsParser :: ReadM [String]
                 ghcFlagsParser
                   = ReadM $ do str <- ask
-                               let str' = case str of '=':rest -> rest
-                                                      other    -> other
+                               let str' = case str of '=':'"':rest -> init rest
+                                                      '=':rest     -> rest
+                                                      '"':rest     -> init rest
+                                                      other        -> other
                                let splitted = splitOn " " str'
                                let wrong = filter (not . isPrefixOf "-") splitted
                                when (not $ null wrong)
