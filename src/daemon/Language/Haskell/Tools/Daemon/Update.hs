@@ -31,14 +31,12 @@ import Text.PrettyPrint as PP
 import Data.Algorithm.DiffContext
 import System.FSWatch.Slave
 
-import Bag (bagToList)
 import DynFlags (DynFlags(..), PkgConfRef(..), PackageDBFlag(..))
-import ErrUtils (ErrMsg(..))
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad (GhcMonad(..), Session(..), modifySession)
 import HscTypes (hsc_mod_graph)
-import Packages (Version(..), initPackages)
+import Packages (initPackages)
 
 import Language.Haskell.Tools.Daemon.PackageDB
 import Language.Haskell.Tools.Daemon.Protocol
@@ -90,7 +88,7 @@ updateClient _ _ (RemovePackages packagePathes) = do
     return True
   where isRemoved mc = (mc ^. mcRoot) `elem` packagePathes
 
-updateClient refs resp UndoLast =
+updateClient _ resp UndoLast =
   do undos <- gets (^. undoStack)
      case undos of
        [] -> do liftIO $ resp $ ErrorMessage "There is nothing to undo."
@@ -284,7 +282,7 @@ performUndoChanges :: Int -> FileDiff -> String -> String
 performUndoChanges i ((start,end,replace):rest) str | i == start
   = replace ++ performUndoChanges end rest (drop (end-start) str)
 performUndoChanges i diffs (c:str) = c : performUndoChanges (i+1) diffs str
-performUndoChanges i diffs [] = []
+performUndoChanges _ _ [] = []
 
 -- | Get the files added by a refactoring.
 getUndoAdded :: [UndoRefactor] -> [FilePath]

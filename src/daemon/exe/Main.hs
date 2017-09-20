@@ -3,9 +3,6 @@ module Main where
 import Control.Concurrent.MVar
 import Options.Applicative
 import Data.Semigroup ((<>))
-import System.Environment
-import System.Directory
-import System.FilePath
 import Language.Haskell.Tools.Daemon
 import Language.Haskell.Tools.Daemon.Mode
 import Language.Haskell.Tools.Refactor.Builtin

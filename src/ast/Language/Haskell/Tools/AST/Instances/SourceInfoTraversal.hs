@@ -7,7 +7,6 @@ module Language.Haskell.Tools.AST.Instances.SourceInfoTraversal where
 import Control.Applicative
 import Language.Haskell.Tools.AST.TH.SourceInfoTraversal
 
-import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Representation.Binds
 import Language.Haskell.Tools.AST.Representation.Decls
 import Language.Haskell.Tools.AST.Representation.Exprs

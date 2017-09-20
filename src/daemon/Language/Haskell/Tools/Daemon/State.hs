@@ -3,8 +3,6 @@ module Language.Haskell.Tools.Daemon.State where
 
 import Control.Concurrent
 import Control.Reference
-import System.IO
-import System.Process
 import GHC
 import System.FSWatch.Repr
 

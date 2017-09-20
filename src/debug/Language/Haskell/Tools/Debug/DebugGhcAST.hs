@@ -18,9 +18,9 @@ import CoreSyn (Tickish(..))
 import FieldLabel (FieldLbl(..))
 import ForeignCall
 import GHC
-import Module (UnitId(..), Module(..), ModuleName(..))
+import Module (Module(..), ModuleName(..))
 import OccName (OccName(..))
-import Outputable (Outputable(..), OutputableBndr(..), showSDocUnsafe)
+import Outputable (Outputable(..), showSDocUnsafe)
 import PatSyn (PatSyn(..))
 import RdrName (RdrName(..))
 import TcEvidence

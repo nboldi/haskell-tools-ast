@@ -11,7 +11,6 @@
 module Language.Haskell.Tools.Daemon.Session where
 
 import Control.Applicative ((<|>))
-import Control.Exception
 import Control.Monad.State.Strict
 import Control.Reference
 import qualified Data.List as List
@@ -25,9 +24,7 @@ import System.FilePath
 import Data.IntSet (member)
 import Digraph as GHC
 import DynFlags
-import Exception (ExceptionMonad)
 import GHC
-import HscTypes as GHC
 import Language.Haskell.TH.LanguageExtensions
 
 import Language.Haskell.Tools.Daemon.GetModules

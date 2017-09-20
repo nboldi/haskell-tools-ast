@@ -39,7 +39,7 @@ packageDBLoc CabalSandboxDB path = do
               else if hasSandboxFile then readFile (path </> "cabal.sandbox.config")
                                      else return ""
   return $ map (drop (length "package-db: ")) $ filter ("package-db: " `isPrefixOf`) $ lines config
-packageDBLoc StackDB path = withCurrentDirectory path $ (fmap $ either (\(e :: SomeException) -> []) id) $ try $ do
+packageDBLoc StackDB path = withCurrentDirectory path $ (fmap $ either (\(_ :: SomeException) -> []) id) $ try $ do
      (_, snapshotDB, snapshotDBErrs) <- readProcessWithExitCode "stack" ["path", "--allow-different-user", "--snapshot-pkg-db"] ""
      (_, localDB, localDBErrs) <- readProcessWithExitCode "stack" ["path", "--allow-different-user", "--local-pkg-db"] ""
      return $ [trim localDB | null localDBErrs] ++ [trim snapshotDB | null snapshotDBErrs]
@@ -59,7 +59,7 @@ detectAutogen root AutoDB = do
 detectAutogen root DefaultDB = ifExists (root </> "dist" </> "build" </> "autogen")
 detectAutogen root (ExplicitDB _) = ifExists (root </> "dist" </> "build" </> "autogen")
 detectAutogen root CabalSandboxDB = ifExists (root </> "dist" </> "build" </> "autogen")
-detectAutogen root StackDB = (fmap $ either (\(e :: SomeException) -> Nothing) id) $ try $ do
+detectAutogen root StackDB = (fmap $ either (\(_ :: SomeException) -> Nothing) id) $ try $ do
   dir <- withCurrentDirectory root $ do
     (_, distDir, distDirErrs) <- readProcessWithExitCode "stack" ["path", "--allow-different-user", "--dist-dir"] ""
     when (not $ null distDirErrs)  -- print errors if they occurred
