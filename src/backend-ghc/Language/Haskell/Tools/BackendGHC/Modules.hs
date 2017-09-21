@@ -169,7 +169,7 @@ trfImport (L l impDecl@(GHC.ImportDecl _ name pkg isSrc _ isQual _ declAs declHi
        <*> trfModuleName name
        <*> maybe (nothing " " "" (pure $ srcSpanEnd (getLoc name))) (\mn -> makeJust <$> (trfRenaming mn)) declAs
        <*> trfImportSpecs declHiding
-  where trfRenaming mn = annLocNoSema (tokensLoc [AnnAs,AnnVal])
+  where trfRenaming mn = annLocNoSema (combineSrcSpans (getLoc mn) <$> tokenLoc AnnAs)
                                       (AST.UImportRenaming <$> (trfModuleName mn))
 
 trfImportSpecs :: TransformName n r => Maybe (Bool, Located [LIE n]) -> Trf (AnnMaybeG AST.UImportSpec (Dom r) RangeStage)
