@@ -6,7 +6,6 @@ import qualified Data.Map as Map (fromList, Map, lookup)
 import Data.Maybe (Maybe(..), mapMaybe)
 
 import Digraph as GHC (Graph, graphFromEdgedVerticesOrd)
-import DynFlags ()
 import FastString as GHC (FastString, fsLit)
 import GHC
 import HscTypes as GHC

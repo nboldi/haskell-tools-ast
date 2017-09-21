@@ -8,8 +8,8 @@
 module Language.Haskell.Tools.Daemon.PackageDB (PackageDB(..), packageDBLoc, detectAutogen) where
 
 import Control.Applicative (Applicative(..), (<$>), Alternative(..))
-import Control.Monad (Monad(..), when)
 import Control.Exception (SomeException, try)
+import Control.Monad (Monad(..), when)
 import Data.Aeson (FromJSON(..))
 import Data.Char (isSpace)
 import Data.List

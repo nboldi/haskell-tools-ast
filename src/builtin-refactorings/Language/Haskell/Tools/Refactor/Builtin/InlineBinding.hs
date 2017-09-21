@@ -20,7 +20,7 @@ import Data.List (nub)
 import Data.Maybe (Maybe(..), catMaybes)
 
 import Name as GHC (NamedThing(..), Name, occNameString)
-import SrcLoc as GHC (SrcSpan(..), RealSrcSpan, containsSpan)
+import SrcLoc as GHC (SrcSpan(..), RealSrcSpan)
 
 import Language.Haskell.Tools.Refactor as AST
 

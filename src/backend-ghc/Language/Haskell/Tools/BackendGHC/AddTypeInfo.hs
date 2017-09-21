@@ -19,8 +19,8 @@ import UniqDFM as GHC (eltsUDFM)
 import UniqSupply as GHC (uniqFromSupply, mkSplitUniqSupply)
 import Var as GHC (Var(..))
 
-import Control.Exception
 import Control.Applicative (Applicative(..), (<$>), Alternative(..))
+import Control.Exception (throw)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.State
 import Control.Monad.Trans.Class (MonadTrans(..))
@@ -34,7 +34,7 @@ import Data.Maybe (Maybe(..), fromMaybe, catMaybes)
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (mkCNameInfo)
 import Language.Haskell.Tools.BackendGHC.GHCUtils (getTopLevelId)
-import Language.Haskell.Tools.BackendGHC.Utils
+import Language.Haskell.Tools.BackendGHC.Utils (ConvertionProblem(..), convProblem)
 
 addTypeInfos :: LHsBinds Id -> Ann AST.UModule (Dom GHC.Name) RangeStage -> Ghc (Ann AST.UModule IdDom RangeStage)
 addTypeInfos bnds mod = do

@@ -14,7 +14,9 @@ import Data.Generics.Uniplate.Data ()
 import Data.List
 
 import Bag (Bag, bagToList, unionManyBags)
+import BasicTypes (SourceText(..))
 import ConLike (ConLike(..))
+import Data.Maybe (Maybe(..), listToMaybe)
 import GHC
 import Id (Id, mkVanillaGlobal)
 import OccName (OccName)
@@ -23,8 +25,6 @@ import PatSyn (patSynSig)
 import RdrName (RdrName, rdrNameOcc, nameRdrName)
 import SrcLoc
 import Type (TyThing(..), mkFunTys)
-import Data.Maybe
-import BasicTypes
 
 class OutputableBndrId name => GHCName name where
   rdrName :: name -> RdrName

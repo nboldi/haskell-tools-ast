@@ -18,14 +18,11 @@ import Data.Map as Map (fromList, lookup)
 import Data.Maybe
 
 import BasicTypes as GHC (WarningTxt(..), StringLiteral(..))
-import DynFlags as GHC ()
 import FastString as GHC (unpackFS)
 import FieldLabel as GHC (FieldLbl(..))
 import GHC
 import SrcLoc as GHC
 import TcRnMonad as GHC (Applicative(..), (<$>))
-import Outputable
-import qualified OccName as GHC
 
 import Language.Haskell.Tools.AST (Ann(..), AnnMaybeG, AnnListG(..), Dom, RangeStage
                                   , sourceInfo, semantics, annotation, nodeSpan)

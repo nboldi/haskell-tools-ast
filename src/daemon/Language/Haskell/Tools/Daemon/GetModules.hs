@@ -24,9 +24,9 @@ import Distribution.Package (Dependency(..), PackageName(..), pkgName, unPackage
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Configuration
 import Distribution.PackageDescription.Parse
-import Distribution.Types.UnqualComponentName
-import Distribution.Types.ComponentRequestedSpec
 import Distribution.System
+import Distribution.Types.ComponentRequestedSpec
+import Distribution.Types.UnqualComponentName
 import Distribution.Verbosity (silent)
 import Language.Haskell.Extension as Cabal
 import System.Directory

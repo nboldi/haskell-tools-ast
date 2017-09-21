@@ -3,8 +3,8 @@
 -- during the conversion from GHC AST to our representation.
 module Language.Haskell.Tools.BackendGHC.Monad where
 
-import Control.Exception
 import Control.Applicative ((<|>))
+import Control.Exception (Exception, throw)
 import Control.Monad.Reader
 import Control.Reference
 import Data.Function (on)

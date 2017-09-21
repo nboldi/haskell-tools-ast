@@ -6,10 +6,10 @@ import Control.Reference
 import GHC
 import System.FSWatch.Repr
 
-import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Daemon.PackageDB
 import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Daemon.Representation
+import Language.Haskell.Tools.Refactor
 
 -- | The actual state of the daemon process. Contains loaded modules and user settings.
 -- The GHC state is handled separately.

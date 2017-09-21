@@ -31,7 +31,7 @@ import Name
 import Outputable (Outputable(..), showSDocUnsafe)
 import SrcLoc
 
-import Control.Exception
+import Control.Exception (Exception, throw)
 import Control.Monad.Reader
 import Control.Reference ((^.), (&))
 import Data.Char (isSpace)

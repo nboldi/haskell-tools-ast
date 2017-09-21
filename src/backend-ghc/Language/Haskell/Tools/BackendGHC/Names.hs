@@ -21,9 +21,9 @@ import FastString as GHC (FastString, unpackFS)
 import HsSyn as GHC
 import Name as GHC (isSymOcc, occNameString)
 import qualified Name as GHC (Name)
+import OccName as GHC (HasOccName)
 import RdrName as GHC (RdrName)
 import SrcLoc as GHC
-import OccName as GHC (HasOccName)
 
 import Language.Haskell.Tools.AST (Ann(..), AnnListG, RangeStage, Dom)
 import qualified Language.Haskell.Tools.AST as AST

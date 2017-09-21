@@ -13,8 +13,8 @@ import HsExpr as GHC
 import HsPat as GHC (LPat)
 import HsTypes as GHC (HsWildCardBndrs(..), HsImplicitBndrs(..))
 import Name as GHC (isSymOcc)
+import PlaceHolder as GHC (NameOrRdrName)
 import SrcLoc as GHC
-import PlaceHolder as GHC
 
 import Control.Monad.Reader (Monad(..), mapM, asks)
 import Data.List

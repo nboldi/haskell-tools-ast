@@ -14,11 +14,11 @@ module Language.Haskell.Tools.Daemon.Session where
 import Control.Applicative ((<|>))
 import Control.Monad.State.Strict
 import Control.Reference
+import Data.Function (on)
 import qualified Data.List as List
 import Data.List.Split
 import qualified Data.Map as Map
 import Data.Maybe
-import Data.Function (on)
 import System.Directory
 import System.FilePath
 
@@ -26,13 +26,13 @@ import Data.IntSet (member)
 import Digraph as GHC
 import DynFlags
 import GHC
-import Packages
 import Language.Haskell.TH.LanguageExtensions
+import Packages
 
 import Language.Haskell.Tools.Daemon.GetModules
-import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.ModuleGraph
 import Language.Haskell.Tools.Daemon.Representation
+import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Utils
 import Language.Haskell.Tools.Refactor hiding (ModuleName)
 

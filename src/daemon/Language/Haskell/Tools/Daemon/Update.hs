@@ -11,25 +11,25 @@
 -- | Resolves how the daemon should react to individual requests from the client.
 module Language.Haskell.Tools.Daemon.Update where
 
-import Control.Exception
+import Control.DeepSeq (force)
+import Control.Exception (evaluate)
 import Control.Monad
-import Control.DeepSeq
 import Control.Monad.State.Strict
 import Control.Reference hiding (modifyMVarMasked_)
 import Data.Algorithm.Diff (Diff(..), getGroupedDiff)
+import Data.Algorithm.DiffContext (prettyContextDiff, getContextDiff)
 import qualified Data.ByteString.Char8 as StrictBS (unpack, readFile)
 import Data.Either (Either(..), either, rights)
 import Data.IORef (newIORef)
 import Data.List hiding (insert)
-import qualified Data.Map as Map
+import qualified Data.Map as Map (insert, keys, filter)
 import Data.Maybe
 import Data.Version (Version(..))
 import System.Directory (setCurrentDirectory, removeFile, doesDirectoryExist)
+import System.FSWatch.Slave (watch)
 import System.IO
 import System.IO.Strict as StrictIO (hGetContents)
-import Text.PrettyPrint as PP
-import Data.Algorithm.DiffContext
-import System.FSWatch.Slave
+import Text.PrettyPrint as PP (text, render)
 
 import DynFlags (DynFlags(..), PkgConfRef(..), PackageDBFlag(..))
 import GHC hiding (loadModule)
@@ -38,7 +38,7 @@ import GhcMonad (GhcMonad(..), Session(..), modifySession)
 import HscTypes (hsc_mod_graph)
 import Packages (initPackages)
 
-import Language.Haskell.Tools.Daemon.PackageDB
+import Language.Haskell.Tools.Daemon.PackageDB (packageDBLoc, detectAutogen)
 import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Daemon.Session
