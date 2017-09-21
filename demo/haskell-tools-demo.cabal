@@ -60,7 +60,7 @@ test-suite haskell-tools-demo-tests
                      , filepath                  >= 1.4 && < 2.0
                      , bytestring                >= 0.10 && < 0.11
                      , network                   >= 2.6 && < 2.7
-                     , websockets                >= 0.10 && < 0.11
+                     , websockets                >= 0.12 && < 0.13
                      , aeson                     >= 1.0 && < 1.3
                      , haskell-tools-demo
   default-language:    Haskell2010

@@ -61,7 +61,7 @@ test-suite haskell-tools-experimental-refactorings-test
                      , directory                 >= 1.2  && < 1.4
                      , references                >= 0.3  && < 0.4
                      , split                     >= 0.2  && < 0.3
-                     , time                      >= 1.6  && < 1.7
+                     , time                      >= 1.6  && < 1.9
                      , template-haskell          >= 2.12 && < 2.13
                      , ghc                       >= 8.2  && < 8.3
                      , ghc-paths                 >= 0.1  && < 0.2
