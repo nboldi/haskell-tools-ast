@@ -33,12 +33,12 @@ rm -rf out/$TRAVIS_BRANCH/coverage/**
 # Move generated haddock documentation
 
 mkdir -p out/$TRAVIS_BRANCH/api
-mv -r .stack-work/install/x86_64-linux/*/*/doc/* out/$TRAVIS_BRANCH/api
+mv .stack-work/install/x86_64-linux/*/*/doc/* out/$TRAVIS_BRANCH/api
 
 # Move the test coverage report
 
 mkdir -p out/$TRAVIS_BRANCH/coverage
-mv -r .stack-work/install/x86_64-linux/*/*/hpc/combined/all/* out/$TRAVIS_BRANCH/coverage
+mv .stack-work/install/x86_64-linux/*/*/hpc/combined/all/* out/$TRAVIS_BRANCH/coverage
 
 if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
   # Copy the benchmark report
