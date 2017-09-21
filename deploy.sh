@@ -56,4 +56,4 @@ git config push.default simple
 
 git add -A .
 git commit -m "Updating API documentation for: https://github.com/haskell-tools/haskell-tools/commit/$TRAVIS_COMMIT"
-git push -f
+git push --set-upstream -f origin master
