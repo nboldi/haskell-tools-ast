@@ -16,12 +16,14 @@ module Language.Haskell.Tools.Refactor
     , module Language.Haskell.Tools.Refactor.Representation
     , module Language.Haskell.Tools.Refactor.Monad
   , Ann, HasSourceInfo(..), HasRange(..), annListElems, annListAnnot, annList, annJust, annMaybe, isAnnNothing, Domain, Dom, IdDom
-    , shortShowSpan, SrcTemplateStage, SourceInfoTraversal(..)
+    , shortShowSpan, shortShowSpanWithFile, SrcTemplateStage, SourceInfoTraversal(..)
     -- elements of source templates
     , sourceTemplateNodeRange, sourceTemplateNodeElems
     , sourceTemplateListRange, srcTmpListBefore, srcTmpListAfter, srcTmpDefaultSeparator, srcTmpIndented, srcTmpSeparators
     , sourceTemplateOptRange, srcTmpOptBefore, srcTmpOptAfter
     , SourceTemplateTextElem(..), sourceTemplateText
+    , UnsupportedExtension(..), SpliceInsertionProblem(..), ConvertionProblem(..)
+    , TransformationProblem(..), BreakUpProblem(..), PrettyPrintProblem(..)
     ) where
 
 -- Important: Haddock doesn't support the rename all exported modules and export them at once hack
@@ -29,13 +31,15 @@ module Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.AST.Helpers
 import Language.Haskell.Tools.AST.References
 import Language.Haskell.Tools.AST.SemaInfoClasses
+import Language.Haskell.Tools.BackendGHC (SpliceInsertionProblem(..), ConvertionProblem(..))
+import Language.Haskell.Tools.PrettyPrint (PrettyPrintProblem(..))
 import Language.Haskell.Tools.PrettyPrint.Prepare
-import Language.Haskell.Tools.Refactor.Utils.BindingElem
-import Language.Haskell.Tools.Refactor.Utils.Helpers
 import Language.Haskell.Tools.Refactor.Monad
 import Language.Haskell.Tools.Refactor.Prepare
 import Language.Haskell.Tools.Refactor.Refactoring
 import Language.Haskell.Tools.Refactor.Representation
+import Language.Haskell.Tools.Refactor.Utils.BindingElem
+import Language.Haskell.Tools.Refactor.Utils.Helpers
 import Language.Haskell.Tools.Refactor.Utils.Indentation
 import Language.Haskell.Tools.Refactor.Utils.Lists
 import Language.Haskell.Tools.Refactor.Utils.Monadic

@@ -1,4 +1,4 @@
-resolver: lts-9.0
+resolver: nightly-2017-09-14
 
 ghc-options:
   "*": -fwarn-unused-binds -fwarn-unused-matches -fwarn-unused-imports
@@ -17,4 +17,7 @@ packages:
   - src/daemon
 
 extra-deps:
-- fswatch-0.1.0.1
+  - references-0.3.3.0
+  - instance-control-0.1.2.0
+  - fswatch-0.1.0.2
+  - knob-0.1.1

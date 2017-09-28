@@ -6,10 +6,10 @@
 -- daemon engine and from the engine to the client.
 module Language.Haskell.Tools.Daemon.Protocol where
 
+import Control.DeepSeq (NFData)
 import qualified Data.Aeson as A ((.=))
 import Data.Aeson hiding ((.=))
 import GHC.Generics (Generic)
-import Control.DeepSeq
 
 import FastString (unpackFS)
 import SrcLoc
@@ -73,7 +73,9 @@ data ResponseMsg
   | ErrorMessage { errorMsg :: String }
     -- ^ An error message marking internal problems or user mistakes.
     -- TODO: separate internal problems and user mistakes.
-  | CompilationProblem { errorMarkers :: [(SrcSpan, String)] }
+  | CompilationProblem { errorMarkers :: [(SrcSpan, String)]
+                       , errorHints :: [String]
+                       }
     -- ^ A response that tells there are errors in the source code given.
   | DiffInfo { diffInfo :: String }
     -- ^ Information about changes that would be caused by the refactoring.

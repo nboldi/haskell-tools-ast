@@ -4,6 +4,7 @@
            , MultiWayIf
            , FlexibleContexts
            , BangPatterns
+           , StandaloneDeriving
            #-}
 -- | Common operations for managing Daemon-tools sessions, for example loading whole packages or
 -- re-loading modules when they are changed. Maintains the state of the compilation with loaded
@@ -11,29 +12,27 @@
 module Language.Haskell.Tools.Daemon.Session where
 
 import Control.Applicative ((<|>))
-import Control.Exception
 import Control.Monad.State.Strict
 import Control.Reference
+import Data.Function (on)
 import qualified Data.List as List
 import Data.List.Split
 import qualified Data.Map as Map
 import Data.Maybe
-import Data.Function (on)
 import System.Directory
 import System.FilePath
 
 import Data.IntSet (member)
 import Digraph as GHC
 import DynFlags
-import Exception (ExceptionMonad)
 import GHC
-import HscTypes as GHC
 import Language.Haskell.TH.LanguageExtensions
+import Packages
 
 import Language.Haskell.Tools.Daemon.GetModules
-import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.ModuleGraph
 import Language.Haskell.Tools.Daemon.Representation
+import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Utils
 import Language.Haskell.Tools.Refactor hiding (ModuleName)
 
@@ -44,7 +43,7 @@ loadPackagesFrom :: (ModSummary -> IO a)
                       -> ([ModSummary] -> IO ())
                       -> (DaemonSessionState -> FilePath -> IO [FilePath])
                       -> [FilePath]
-                      -> DaemonSession (Either RefactorException [a])
+                      -> DaemonSession [a]
 loadPackagesFrom report loadCallback additionalSrcDirs packages =
   do modColls <- liftIO $ getAllModules packages
      st <- get
@@ -60,9 +59,13 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
      lift $ mapM_ (\t -> when (targetId t `notElem` currentTargets) (addTarget t))
                   (map makeTarget $ List.nubBy ((==) `on` (^. sfkFileName))
                                   $ List.sort $ concatMap getExposedModules mcs')
-     handleErrors $ withAlteredDynFlags (liftIO . fmap (st ^. ghcFlagsSet) . setupLoadFlags (mcs ^? traversal & mcId) (mcs ^? traversal & mcRoot)
-                                                                                            (mcs ^? traversal & mcDependencies & traversal)
-                                                                                            (foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup))) $ do
+     withAlteredDynFlags (liftIO . fmap (st ^. ghcFlagsSet) . setupLoadFlags (mcs ^? traversal & mcId) (mcs ^? traversal & mcRoot)
+                                                                             (mcs ^? traversal & mcDependencies & traversal)
+                                                                             (foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup))) $ do
+       -- need to update package state when setting the list of visible packages
+       dfs <- getSessionDynFlags
+       (dfs', _) <- liftIO $ initPackages dfs
+       setSessionDynFlags dfs'
        modsForColls <- lift $ depanal [] True
        let modsToParse = flattenSCCs $ topSortModuleGraph False modsForColls Nothing
            actuallyCompiled = filter (\ms -> getModSumOrig ms `notElem` alreadyLoadedFilesInOtherPackages) modsToParse
@@ -110,11 +113,6 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
         makeTarget (SourceFileKey "" modName) = Target (TargetModule (GHC.mkModuleName modName)) True Nothing
         makeTarget (SourceFileKey filePath _) = Target (TargetFile filePath Nothing) True Nothing
 
--- | Handle GHC exceptions and RefactorException.
-handleErrors :: ExceptionMonad m => m a -> m (Either RefactorException a)
-handleErrors action = handleSourceError (return . Left . SourceCodeProblem . srcErrorMessages) (Right <$> action)
-                        `gcatch` (return . Left)
-
 -- TODO: make getMods and getFileMods clearer
 
 -- | Get the module that is selected for refactoring and all the other modules.
@@ -140,8 +138,8 @@ getFileMods fname
 
 -- | Reload the modules that have been changed (given by predicate). Pefrom the callback.
 reloadChangedModules :: (ModSummary -> IO a) -> ([ModSummary] -> IO ()) -> (ModSummary -> Bool)
-                           -> DaemonSession (Either RefactorException [a])
-reloadChangedModules report loadCallback isChanged = handleErrors $ do
+                           -> DaemonSession [a]
+reloadChangedModules report loadCallback isChanged = do
   reachable <- getReachableModules loadCallback isChanged
   void $ checkEvaluatedMods report reachable
   mapM (reloadModule report) reachable
@@ -172,7 +170,7 @@ reloadModule :: (ModSummary -> IO a) -> ModSummary -> DaemonSession a
 reloadModule report ms = do
   ghcfl <- gets (^. ghcFlagsSet)
   mcs <- gets (^. refSessMCs)
-  
+
   let fp = getModSumOrig ms
       modName = getModSumName ms
       codeGen = needsGeneratedCode (keyFromMS ms) mcs

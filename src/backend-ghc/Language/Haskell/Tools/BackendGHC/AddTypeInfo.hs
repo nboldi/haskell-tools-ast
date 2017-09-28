@@ -15,11 +15,12 @@ import SrcLoc as GHC
 import TcEvidence as GHC (EvBind(..), TcEvBinds(..))
 import Type as GHC (Type, mkTyVarTy, mkTyConTy)
 import TysWiredIn as GHC (starKindTyCon)
-import UniqFM as GHC (eltsUFM)
+import UniqDFM as GHC (eltsUDFM)
 import UniqSupply as GHC (uniqFromSupply, mkSplitUniqSupply)
 import Var as GHC (Var(..))
 
 import Control.Applicative (Applicative(..), (<$>), Alternative(..))
+import Control.Exception (throw)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.State
 import Control.Monad.Trans.Class (MonadTrans(..))
@@ -33,6 +34,7 @@ import Data.Maybe (Maybe(..), fromMaybe, catMaybes)
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (mkCNameInfo)
 import Language.Haskell.Tools.BackendGHC.GHCUtils (getTopLevelId)
+import Language.Haskell.Tools.BackendGHC.Utils (ConvertionProblem(..), convProblem)
 
 addTypeInfos :: LHsBinds Id -> Ann AST.UModule (Dom GHC.Name) RangeStage -> Ghc (Ann AST.UModule IdDom RangeStage)
 addTypeInfos bnds mod = do
@@ -40,7 +42,7 @@ addTypeInfos bnds mod = do
   let getType = getType' ut
   fixities <- getFixities
   let createCName sc def id = mkCNameInfo sc def id fixity
-        where fixity = if any (any ((getOccName id ==) . getOccName . (^. _1))) (init sc)
+        where fixity = if any (any ((getOccName id ==) . getOccName . (^. _1))) (drop 1 sc)
                           then Nothing
                           else fmap (snd . snd) $ List.find (\(mod,(occ,_)) -> Just mod == (nameModule_maybe $ varName id) && occ == getOccName id) fixities
   evalStateT (semaTraverse
@@ -51,10 +53,10 @@ addTypeInfos bnds mod = do
                   -> case Map.lookup l locMapping of
                             Just id -> return $ createCName (AST.semanticsScope ni) (AST.semanticsDefining ni) id
                             _ -> do (none,rest) <- gets (break ((\(RealSrcSpan sp) -> sp `containsSpan` loc) . fst))
-                                    case rest of [] -> error $ "Ambiguous or implicit name missing, at: " ++ show loc
+                                    case rest of [] -> throw $ ConvertionProblem (RealSrcSpan loc) "Ambiguous or implicit name missing"
                                                  ((_,id):more) -> do put (none ++ more)
                                                                      return $ createCName (AST.semanticsScope ni) (AST.semanticsDefining ni) id
-                _ -> error "addTypeInfos: Cannot access a the semantics of a name.")
+                _ -> convProblem "addTypeInfos: Cannot access a the semantics of a name.")
       pure (traverse (lift . getType)) (traverse (lift . getType)) pure
         pure) mod) (extractSigIds bnds ++ extractSigBindIds bnds)
   where locMapping = Map.fromList $ map (\(L l id) -> (l, id)) $ extractExprIds bnds
@@ -72,7 +74,7 @@ addTypeInfos bnds mod = do
         getFixities = do env <- getSession
                          pit <- liftIO $ eps_PIT <$> hscEPS env
                          let hpt = hsc_HPT env
-                             ifaces = moduleEnvElts pit ++ map hm_iface (eltsUFM hpt)
+                             ifaces = moduleEnvElts pit ++ map hm_iface (eltsUDFM hpt)
                          return $ concatMap (\mi -> map (mi_module mi, ) $ mi_fixities mi) ifaces
 
 extractExprIds :: LHsBinds Id -> [Located Id]

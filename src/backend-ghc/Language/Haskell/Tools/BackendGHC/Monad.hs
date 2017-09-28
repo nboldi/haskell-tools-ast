@@ -4,6 +4,7 @@
 module Language.Haskell.Tools.BackendGHC.Monad where
 
 import Control.Applicative ((<|>))
+import Control.Exception (Exception, throw)
 import Control.Monad.Reader
 import Control.Reference
 import Data.Function (on)
@@ -136,6 +137,7 @@ typeSpliceInserted spl = local (\s -> s { typeSplices = Prelude.filter (\sp -> g
 
 rdrSplice :: HsSplice RdrName -> Trf (HsSplice GHC.Name)
 rdrSplice spl = do
+    rng <- asks contRange
     env <- liftGhc getSession
     locals <- unifyScopes [] <$> asks localsInScope
     let createLocalGRE (n,imp,p) = [GRE n (maybe NoParent ParentIs p) (isNothing imp) (maybe [] (map createGREImport) imp) ]
@@ -150,14 +152,13 @@ rdrSplice spl = do
       $ tcHsSplice' spl
     let typecheckErrors = showSDocUnsafe (vcat (pprErrMsgBagWithLoc (fst (fst tcSpl)))
                                             <+> vcat (pprErrMsgBagWithLoc (snd (fst tcSpl))))
-    when (not (null typecheckErrors)) $ liftIO $ putStrLn ("Typechecking of splice expressions: " ++ typecheckErrors)
-    return $ fromMaybe (error $ "Splice expression could not be typechecked.")
+    return $ fromMaybe (throw $ SpliceInsertionProblem rng typecheckErrors)
                        (snd tcSpl)
   where
-    tcHsSplice' (HsTypedSplice id e)
-      = HsTypedSplice (mkUnboundNameRdr id) <$> (fst <$> rnLExpr e)
-    tcHsSplice' (HsUntypedSplice id e)
-      = HsUntypedSplice (mkUnboundNameRdr id) <$> (fst <$> rnLExpr e)
+    tcHsSplice' (HsTypedSplice dec id e)
+      = HsTypedSplice dec (mkUnboundNameRdr id) <$> (fst <$> rnLExpr e)
+    tcHsSplice' (HsUntypedSplice dec id e)
+      = HsUntypedSplice dec (mkUnboundNameRdr id) <$> (fst <$> rnLExpr e)
     tcHsSplice' (HsQuasiQuote id1 id2 sp fs)
       = pure $ HsQuasiQuote (mkUnboundNameRdr id1) (mkUnboundNameRdr id2) sp fs
 
@@ -166,3 +167,8 @@ rdrSplice spl = do
     unifyScopes _ [] = []
     unifyScopes ex (sc:scs) = filteredSc ++ unifyScopes (ex ++ map (^. _1) filteredSc) scs
       where filteredSc = filter ((\s -> isNothing $ find (\e -> occName e == occName s) ex) . (^. _1)) sc
+
+data SpliceInsertionProblem = SpliceInsertionProblem SrcSpan String
+  deriving Show
+
+instance Exception SpliceInsertionProblem

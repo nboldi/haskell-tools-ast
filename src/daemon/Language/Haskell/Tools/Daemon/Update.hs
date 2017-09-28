@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -O0 #-} -- this is needed because of an optimization bug in GHC 8.2.1: https://ghc.haskell.org/trac/ghc/ticket/13413
 {-# LANGUAGE LambdaCase
            , MultiWayIf
            , TypeApplications
@@ -10,36 +11,34 @@
 -- | Resolves how the daemon should react to individual requests from the client.
 module Language.Haskell.Tools.Daemon.Update where
 
-import Control.Exception
+import Control.DeepSeq (force)
+import Control.Exception (evaluate)
 import Control.Monad
-import Control.DeepSeq
 import Control.Monad.State.Strict
 import Control.Reference hiding (modifyMVarMasked_)
 import Data.Algorithm.Diff (Diff(..), getGroupedDiff)
+import Data.Algorithm.DiffContext (prettyContextDiff, getContextDiff)
 import qualified Data.ByteString.Char8 as StrictBS (unpack, readFile)
 import Data.Either (Either(..), either, rights)
 import Data.IORef (newIORef)
 import Data.List hiding (insert)
-import qualified Data.Map as Map
+import qualified Data.Map as Map (insert, keys, filter)
 import Data.Maybe
 import Data.Version (Version(..))
 import System.Directory (setCurrentDirectory, removeFile, doesDirectoryExist)
+import System.FSWatch.Slave (watch)
 import System.IO
 import System.IO.Strict as StrictIO (hGetContents)
-import Text.PrettyPrint as PP
-import Data.Algorithm.DiffContext
-import System.FSWatch.Slave
+import Text.PrettyPrint as PP (text, render)
 
-import Bag (bagToList)
-import DynFlags (DynFlags(..), PkgConfRef(..))
-import ErrUtils (ErrMsg(..))
+import DynFlags (DynFlags(..), PkgConfRef(..), PackageDBFlag(..))
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad (GhcMonad(..), Session(..), modifySession)
 import HscTypes (hsc_mod_graph)
-import Packages (Version(..), initPackages)
+import Packages (initPackages)
 
-import Language.Haskell.Tools.Daemon.PackageDB
+import Language.Haskell.Tools.Daemon.PackageDB (packageDBLoc, detectAutogen)
 import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Daemon.Session
@@ -89,7 +88,7 @@ updateClient _ _ (RemovePackages packagePathes) = do
     return True
   where isRemoved mc = (mc ^. mcRoot) `elem` packagePathes
 
-updateClient refs resp UndoLast =
+updateClient _ resp UndoLast =
   do undos <- gets (^. undoStack)
      case undos of
        [] -> do liftIO $ resp $ ErrorMessage "There is nothing to undo."
@@ -123,10 +122,10 @@ updateClient refactorings resp (PerformRefactoring refact modPath selection args
             Right diff -> do changedMods <- applyChanges diff
                              if not diffMode
                                then do modify (undoStack .- (map (either fst (^. _3)) changedMods :))
-                                       -- force the evaluation of the undo stack to prevent older versions of 
+                                       -- force the evaluation of the undo stack to prevent older versions of
                                        -- modules seeming to be used when they could be garbage collected
                                        us <- gets (^. undoStack)
-                                       liftIO $ evaluate $ force us 
+                                       liftIO $ evaluate $ force us
                                        return ()
                                else liftIO $ resp $ DiffInfo (concatMap (either snd (^. _4)) changedMods)
                              isWatching <- gets (isJust . (^. watchProc))
@@ -179,11 +178,9 @@ updateClient refactorings resp (PerformRefactoring refact modPath selection args
               return $ Left (RestoreRemoved file origCont, createUnifiedDiff file origCont "")
 
         reloadChanges changedMods
-          = do reloadRes <- reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
-                                                 (\mss -> resp (LoadingModules (map getModSumOrig mss)))
-                                                 (\ms -> getModSumName ms `elem` changedMods)
-               liftIO $ case reloadRes of Left errs -> resp (either ErrorMessage (ErrorMessage . ("The result of the refactoring contains errors: " ++) . show) (getProblems errs))
-                                          Right _ -> return ()
+          = reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
+                                 (\mss -> resp (LoadingModules (map getModSumOrig mss)))
+                                 (\ms -> getModSumName ms `elem` changedMods)
 
 addPackages :: (ResponseMsg -> IO ()) -> [FilePath] -> DaemonSession ()
 addPackages _ [] = return ()
@@ -198,23 +195,20 @@ addPackages resp packagePathes = do
       existingMCs <- gets (^. refSessMCs)
       let existing = (existingMCs ^? traversal & filtered isTheAdded & mcModules & traversal & modRecMS)
           existingModNames = map ms_mod existing
-      needToReload <- handleErrors $ (filter (\ms -> not $ ms_mod ms `elem` existingModNames))
-                                       <$> getReachableModules (\_ -> return ()) (\ms -> ms_mod ms `elem` existingModNames)
+      needToReload <- (filter (\ms -> not $ ms_mod ms `elem` existingModNames))
+                        <$> getReachableModules (\_ -> return ()) (\ms -> ms_mod ms `elem` existingModNames)
       modify' $ refSessMCs .- filter (not . isTheAdded) -- remove the added package from the database
       forM_ existing $ \ms -> removeTarget (TargetFile (getModSumOrig ms) Nothing)
       modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existingModNames) . ms_mod) (hsc_mod_graph s) })
       -- load new modules
       pkgDBok <- initializePackageDBIfNeeded
       if pkgDBok then do
-        res <- loadPackagesFrom
-                 (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)])
-                           >> return (getModSumOrig ms))
-                 (resp . LoadingModules . map getModSumOrig)
-                 (\st fp -> maybeToList <$> detectAutogen fp (st ^. packageDB)) packagePathes
-        case res of
-          Right _ -> do
-            mapM_ (reloadModule (\_ -> return ())) (either (const []) id needToReload) -- don't report consequent reloads (not expected)
-          Left err -> liftIO $ resp $ either ErrorMessage CompilationProblem (getProblems err)
+        loadPackagesFrom
+          (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)])
+                    >> return (getModSumOrig ms))
+          (resp . LoadingModules . map getModSumOrig)
+          (\st fp -> maybeToList <$> detectAutogen fp (st ^. packageDB)) packagePathes
+        mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
       else liftIO $ resp $ ErrorMessage $ "Attempted to load two packages with different package DB. "
                                             ++ "Stack, cabal-sandbox and normal packages cannot be combined"
   where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
@@ -245,14 +239,12 @@ reloadModules resp added changed removed = do
   modifySession (\s -> s { hsc_mod_graph = filter (\mod -> getModSumOrig mod `notElem` removed) (hsc_mod_graph s) })
   -- reload changed modules
   -- TODO: filter those that are in reloaded packages
-  reloadRes <- reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
-                                    (\mss -> resp (LoadingModules (map getModSumOrig mss)))
-                                    (\ms -> getModSumOrig ms `elem` changed)
+  reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
+                       (\mss -> resp (LoadingModules (map getModSumOrig mss)))
+                       (\ms -> getModSumOrig ms `elem` changed)
   mcs <- gets (^. refSessMCs)
   let mcsToReload = filter (\mc -> any ((mc ^. mcRoot) `isPrefixOf`) added && isNothing (moduleCollectionPkgId (mc ^. mcId))) mcs
   addPackages resp (map (^. mcRoot) mcsToReload) -- reload packages containing added modules
-  liftIO $ case reloadRes of Left errs -> resp (either ErrorMessage CompilationProblem (getProblems errs))
-                             Right _ -> return ()
   return True
 
 -- | Creates a compressed set of changes in one file
@@ -290,7 +282,7 @@ performUndoChanges :: Int -> FileDiff -> String -> String
 performUndoChanges i ((start,end,replace):rest) str | i == start
   = replace ++ performUndoChanges end rest (drop (end-start) str)
 performUndoChanges i diffs (c:str) = c : performUndoChanges (i+1) diffs str
-performUndoChanges i diffs [] = []
+performUndoChanges _ _ [] = []
 
 -- | Get the files added by a refactoring.
 getUndoAdded :: [UndoRefactor] -> [FilePath]
@@ -315,14 +307,10 @@ usePackageDB [] = return ()
 usePackageDB pkgDbLocs
   = do dfs <- getSessionDynFlags
        dfs' <- liftIO $ fmap fst $ initPackages
-                 $ dfs { extraPkgConfs = (map PkgConfFile pkgDbLocs ++) . extraPkgConfs dfs
+                 $ dfs { packageDBFlags = map (PackageDB . PkgConfFile) pkgDbLocs ++ packageDBFlags dfs
                        , pkgDatabase = Nothing
                        }
        void $ setSessionDynFlags dfs'
-
-getProblems :: RefactorException -> Either String [(SrcSpan, String)]
-getProblems (SourceCodeProblem errs) = Right $ map (\err -> (errMsgSpan err, show err)) $ bagToList errs
-getProblems other = Left $ displayException other
 
 watchNew :: FilePath -> DaemonSession ()
 watchNew fp = do

@@ -1,5 +1,5 @@
 -- | Generic instance for Haskell AST representation
-{-# LANGUAGE FlexibleContexts, StandaloneDeriving, DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts, StandaloneDeriving, DeriveGeneric, TypeFamilies, UndecidableInstances #-}
 module Language.Haskell.Tools.AST.Instances.Generic where
 
 import GHC.Generics (Generic(..))
@@ -55,6 +55,7 @@ deriving instance Domain dom => Generic (UFunDep dom stage)
 deriving instance Domain dom => Generic (UConDecl dom stage)
 deriving instance Domain dom => Generic (UFieldDecl dom stage)
 deriving instance Domain dom => Generic (UDeriving dom stage)
+deriving instance Domain dom => Generic (UDeriveStrategy dom stage)
 deriving instance Domain dom => Generic (UInstanceRule dom stage)
 deriving instance Domain dom => Generic (UInstanceHead dom stage)
 deriving instance Domain dom => Generic (UTypeEqn dom stage)

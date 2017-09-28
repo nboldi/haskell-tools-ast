@@ -4,6 +4,7 @@
            , TypeFamilies
            , StandaloneDeriving
            , RecordWildCards
+           , ScopedTypeVariables
            #-}
 -- | The command line interface for Haskell-tools. It uses the Haskell-tools daemon package starting
 -- the daemon in the same process and communicating with it through a channel.
@@ -13,17 +14,19 @@ module Language.Haskell.Tools.Refactor.CLI
   (refactorSession, normalRefactorSession, CLIOptions(..)) where
 
 import Control.Concurrent
+import Control.Exception (BlockedIndefinitelyOnMVar(..), catch)
 import Control.Monad.State.Strict
 import Data.List
-import Data.List.Split
+import Data.List.Split (splitOn)
 import Data.Maybe
 import Data.Version (showVersion)
-import System.Directory
+import System.Directory (getCurrentDirectory)
 import System.IO
+import System.IO.Error (isEOFError)
 
-import Language.Haskell.Tools.Daemon
+import Language.Haskell.Tools.Daemon (DaemonOptions(..), runDaemon)
 import Language.Haskell.Tools.Daemon.Mode (channelMode)
-import Language.Haskell.Tools.Daemon.Protocol
+import Language.Haskell.Tools.Daemon.Protocol (ResponseMsg(..), ClientMessage(..))
 import Language.Haskell.Tools.Refactor
 import Paths_haskell_tools_cli (version)
 -- | Normal entry point of the cli.
@@ -32,8 +35,8 @@ normalRefactorSession refactorings input output options@CLIOptions{..}
   = do hSetBuffering stdout LineBuffering -- to synch our output with GHC's
        hSetBuffering stderr LineBuffering -- to synch our output with GHC's
        refactorSession refactorings
-         (\st -> void $ forkIO $ runDaemon refactorings channelMode st
-                                   (DaemonOptions False 0 (not cliVerbose) cliNoWatch cliWatchExe))
+         (\st -> void $ forkIO $ do runDaemon refactorings channelMode st
+                                      (DaemonOptions False 0 (not cliVerbose) cliNoWatch cliWatchExe))
          input output options
 
 -- | Command-line options for the Haskell-tools CLI
@@ -64,7 +67,7 @@ refactorSession refactorings init input output CLIOptions{..} = do
   case executeCommands of
     Just cmds -> performCmdOptions refactorings output send (splitOn ";" cmds)
     Nothing -> return ()
-  when (isNothing executeCommands) (void $ forkIO $ processUserInput refactorings input output send)
+  when (isNothing executeCommands) (void $ forkIO $ do processUserInput refactorings input output send)
   readFromSocket (isJust executeCommands) output recv
 
 -- | An initialization action for the daemon.
@@ -73,9 +76,11 @@ type ServerInit = MVar (Chan ResponseMsg, Chan ClientMessage) -> IO ()
 -- | Reads commands from standard input and executes them.
 processUserInput :: [RefactoringChoice IdDom] -> Handle -> Handle -> Chan ClientMessage -> IO ()
 processUserInput refactorings input output chan = do
-  cmd <- hGetLine input
-  continue <- processCommand False refactorings output chan cmd
-  when continue $ processUserInput refactorings input output chan
+    cmd <- hGetLine input
+    continue <- processCommand False refactorings output chan cmd
+    when continue $ processUserInput refactorings input output chan
+  `catch` \e -> if isEOFError e then return ()
+                                else putStrLn (show e) >> return ()
 
 -- | Perform a command received from the user. The resulting boolean states if the user may continue
 -- (True), or the session is over (False).
@@ -100,20 +105,22 @@ processCommand shutdown refactorings output chan cmd = do
 -- erronous way.
 readFromSocket :: Bool -> Handle -> Chan ResponseMsg -> IO Bool
 readFromSocket pedantic output recv = do
-  continue <- readChan recv >>= processMessage pedantic output
-  maybe (readFromSocket pedantic output recv) return continue -- repeate if not stopping
+    continue <- readChan recv >>= processMessage pedantic output
+    maybe (readFromSocket pedantic output recv) return continue -- repeate if not stopping
+  `catch` \(_ :: BlockedIndefinitelyOnMVar) -> return False -- other threads terminated
 
 -- | Receives a single response from daemon. Returns Nothing if the execution should continue,
 -- Just False on erronous termination and Just True on normal termination.
 processMessage :: Bool -> Handle -> ResponseMsg -> IO (Maybe Bool)
 processMessage _ output (ErrorMessage msg) = hPutStrLn output msg >> return (Just False)
-processMessage pedantic output (CompilationProblem marks)
-  = do hPutStrLn output (show marks)
+processMessage pedantic output (CompilationProblem marks hints)
+  = do mapM_ (hPutStrLn output) hints
+       mapM_ (\(loc, msg) -> hPutStrLn output (shortShowSpanWithFile loc ++ ": " ++ msg)) marks
        return (if pedantic then Just False else Nothing)
 processMessage _ output (LoadedModules mods)
   = do mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods
        return Nothing
-processMessage _ output (DiffInfo diff)
+processMessage _ _ (DiffInfo diff)
   = do putStrLn diff
        return Nothing
 processMessage _ output (UnusedFlags flags)

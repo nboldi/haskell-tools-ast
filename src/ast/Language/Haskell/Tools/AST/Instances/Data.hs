@@ -1,5 +1,5 @@
 -- | Data instances for Haskell AST (used for generics)
-{-# LANGUAGE FlexibleContexts, StandaloneDeriving, DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleContexts, StandaloneDeriving, DeriveDataTypeable, TypeFamilies, UndecidableInstances #-}
 module Language.Haskell.Tools.AST.Instances.Data where
 
 import Data.Data (Data(..), Typeable(..))
@@ -55,6 +55,7 @@ deriving instance (Domain dom, SourceInfo stage) => Data (UFunDep dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UConDecl dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UFieldDecl dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UDeriving dom stage)
+deriving instance (Domain dom, SourceInfo stage) => Data (UDeriveStrategy dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UInstanceRule dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UInstanceHead dom stage)
 deriving instance (Domain dom, SourceInfo stage) => Data (UTypeEqn dom stage)

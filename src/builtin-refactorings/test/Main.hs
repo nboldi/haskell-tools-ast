@@ -131,7 +131,7 @@ languageTests =
   , "Expr.EmptyCase"
   , "Expr.FunSection"
   , "Expr.If"
-  , "Expr.ImplicitParams"
+  -- , "Expr.ImplicitParams"
   , "Expr.ImplicitParamsOrder"
   , "Expr.LambdaCase"
   , "Expr.ListComp"
@@ -151,6 +151,7 @@ languageTests =
   , "Module.Simple"
   , "Module.GhcOptionsPragma"
   , "Module.Export"
+  , "Module.ExportModifiers"
   , "Module.NamespaceExport"
   , "Module.Import"
   , "Module.ImportOp"
@@ -158,7 +159,7 @@ languageTests =
   , "Module.PatternImport"
   , "Pattern.Backtick"
   , "Pattern.Constructor"
-  , "Pattern.ImplicitParams"
+  -- , "Pattern.ImplicitParams"
   , "Pattern.Infix"
   , "Pattern.NestedWildcard"
   , "Pattern.NPlusK"
@@ -300,6 +301,7 @@ renameDefinitionTests =
   , ("Refactor.RenameDefinition.Constructor", "3:14-3:19", "Point2D")
   , ("Refactor.RenameDefinition.Type", "5:16-5:16", "Point2D")
   , ("Refactor.RenameDefinition.Function", "3:1-3:2", "q")
+  , ("Refactor.RenameDefinition.AccentName", "3:1-3:2", "á")
   , ("Refactor.RenameDefinition.QualName", "3:1-3:2", "q")
   , ("Refactor.RenameDefinition.BacktickName", "3:1-3:2", "g")
   , ("Refactor.RenameDefinition.ParenName", "4:3-4:5", "<->")
@@ -528,6 +530,7 @@ loadExpected :: Bool -> String -> String -> IO String
 loadExpected resSuffix workingDir moduleName =
   do -- need to use binary or line endings will be translated
      expectedHandle <- openBinaryFile (workingDir </> map (\case '.' -> pathSeparator; c -> c) moduleName ++ (if resSuffix then "_res" else "") ++ ".hs") ReadMode
+     hSetEncoding expectedHandle utf8
      hGetContents expectedHandle
 
 standardizeLineEndings = filter (/= '\r')
