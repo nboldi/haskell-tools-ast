@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts, StandaloneDeriving, DeriveDataTypeable, TypeFamilies, UndecidableInstances #-}
 module Language.Haskell.Tools.AST.Instances.Data where
 
-import Data.Data (Data(..), Typeable(..))
+import Data.Data
 
 import Language.Haskell.Tools.AST.Ann
 import Language.Haskell.Tools.AST.Representation.Binds
@@ -17,10 +17,35 @@ import Language.Haskell.Tools.AST.Representation.Stmts
 import Language.Haskell.Tools.AST.Representation.TH
 import Language.Haskell.Tools.AST.Representation.Types
 
--- Annotations
-deriving instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage)) => Data (Ann e dom stage)
-deriving instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage)) => Data (AnnMaybeG e dom stage)
-deriving instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage)) => Data (AnnListG e dom stage)
+instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage))
+      => Data (Ann e dom stage) where
+    gfoldl k z (Ann annot elem) = z (Ann annot) `k` elem -- ANNOT IS HIDDEN
+    gunfold k z c = case constrIndex c of 1 -> k (k (z Ann))
+    toConstr (Ann{}) = con_Ann
+    dataTypeOf _ = ty_Ann
+
+con_Ann = mkConstr ty_Ann "Ann" [] Prefix
+ty_Ann   = mkDataType "Language.Haskell.Tools.AST.Ann.Ann" [con_Ann]
+
+instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage))
+      => Data (AnnMaybeG e dom stage) where
+    gfoldl k z (AnnMaybeG annot elem) = z (AnnMaybeG annot) `k` elem -- ANNOT IS HIDDEN
+    gunfold k z c = case constrIndex c of 1 -> k (k (z AnnMaybeG))
+    toConstr (AnnMaybeG{}) = con_AnnMaybeG
+    dataTypeOf _ = ty_AnnMaybeG
+
+con_AnnMaybeG = mkConstr ty_AnnMaybeG "AnnMaybeG" [] Prefix
+ty_AnnMaybeG   = mkDataType "Language.Haskell.Tools.AST.Ann.AnnMaybeG" [con_AnnMaybeG]
+
+instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage))
+      => Data (AnnListG e dom stage) where
+    gfoldl k z (AnnListG annot elem) = z (AnnListG annot) `k` elem -- ANNOT IS HIDDEN
+    gunfold k z c = case constrIndex c of 1 -> k (k (z AnnListG))
+    toConstr (AnnListG{}) = con_AnnListG
+    dataTypeOf _ = ty_AnnListG
+
+con_AnnListG = mkConstr ty_AnnListG "AnnListG" [] Prefix
+ty_AnnListG   = mkDataType "Language.Haskell.Tools.AST.Ann.AnnListG" [con_AnnListG]
 
 -- Modules
 deriving instance (Domain dom, SourceInfo stage) => Data (UModule dom stage)
