@@ -65,6 +65,8 @@ runDaemon _ _ _ DaemonOptions{..} | daemonVersion
   = putStrLn $ showVersion version
 runDaemon refactorings mode connStore DaemonOptions{..} = withSocketsDo $
     do when (not silentMode) $ putStrLn $ "Starting Haskell Tools daemon"
+       hSetBuffering stdout LineBuffering
+       hSetBuffering stderr LineBuffering
        conn <- daemonConnect mode portNumber
        putMVar connStore conn
        when (not silentMode) $ putStrLn $ "Connection established"
