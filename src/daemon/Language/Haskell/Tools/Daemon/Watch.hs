@@ -17,10 +17,13 @@ import System.FSWatch.Slave (waitNotifies, createWatchProcess)
 import System.FilePath (FilePath, takeDirectory, (</>))
 import System.IO (IO, FilePath)
 import GhcMonad (Session(..), reflectGhc)
+import Control.Exception
 
-import Language.Haskell.Tools.Daemon.Protocol (ResponseMsg, ClientMessage(..))
+import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Daemon.State (DaemonSessionState)
 import Language.Haskell.Tools.Daemon.Update (reloadModules)
+import Language.Haskell.Tools.Daemon.ErrorHandling
+import Language.Haskell.Tools.Refactor
 
 -- | Starts the watch process and a thread that receives notifications from it. The notification
 -- thread will invoke updates on the daemon state to re-load files.
@@ -40,7 +43,11 @@ createWatchProcess' watchExePath ghcSess daemonSess upClient = do
             removedFiles = catMaybes $ map getRemovedFile changes
             reloadAction = reloadModules upClient addedFiles changedFiles removedFiles
         when (length changedFiles + length addedFiles + length removedFiles > 0)
-          $ void $ modifyMVar daemonSess (\st -> swap <$> reflectGhc (runStateT reloadAction st) ghcSess)
+          (void $ modifyMVar daemonSess (\st -> swap <$> reflectGhc (runStateT reloadAction st) ghcSess) >> return True
+                     `catches` userExceptionHandlers
+                                 (\s -> upClient (ErrorMessage s) >> return True)
+                                 (\err hint -> upClient (CompilationProblem err hint) >> return True))
+            `catches` exceptionHandlers (return ()) (upClient . ErrorMessage)
       return $ (Just process, [reloaderThread])
 
     getModifiedFile (Mod file) = Just file
