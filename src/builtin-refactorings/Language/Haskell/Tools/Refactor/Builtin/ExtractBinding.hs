@@ -58,7 +58,7 @@ extractBinding sp selectDecl selectExpr name mod
      in case exprRanges of
           (reverse -> exprRange:_) ->
             if | not (null conflicting)
-               -> refactError $ "The given name causes name conflict with the definition(s) at: " ++ concat (intersperse "," (map (shortShowSpan . getRange) conflicting))
+               -> refactError $ "The given name causes name conflict with the definition(s) at: " ++ concat (intersperse "," (map (shortShowSpanWithFile . getRange) conflicting))
                | any (`containsRange` exprRange) $ map getRange declPats
                -> refactError "Extract binding cannot be applied to view pattern expressions."
                | otherwise
