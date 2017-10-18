@@ -89,6 +89,7 @@ processCommand shutdown refactorings output chan cmd = do
   case splitOn " " cmd of
     ["Exit"] -> writeChan chan Disconnect >> return False
     ["Undo"] -> writeChan chan UndoLast >> return True
+    ["Reset"] -> writeChan chan Reset >> return True
     ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")
                , ref `elem` refactorCommands refactorings
        -> do writeChan chan (PerformRefactoring ref modPath selection details shutdown False)

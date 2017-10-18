@@ -28,14 +28,17 @@ import Data.Version (Version(..))
 import System.Directory (setCurrentDirectory, removeFile, doesDirectoryExist)
 import System.FSWatch.Slave (watch)
 import System.IO
+import System.Mem
 import System.IO.Strict as StrictIO (hGetContents)
 import Text.PrettyPrint as PP (text, render)
 
-import DynFlags (DynFlags(..), PkgConfRef(..), PackageDBFlag(..))
+import DynFlags
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad (GhcMonad(..), Session(..), modifySession)
 import HscTypes (hsc_mod_graph)
+import HscMain
+import SysTools
 import Packages (initPackages)
 
 import Language.Haskell.Tools.Daemon.PackageDB (packageDBLoc, detectAutogen)
@@ -52,6 +55,13 @@ import Paths_haskell_tools_daemon (version)
 -- client.
 updateClient :: [RefactoringChoice IdDom] ->  (ResponseMsg -> IO ()) -> ClientMessage
                   -> DaemonSession Bool
+
+updateClient _ resp Reset = do modify' $ \_ -> initSession
+                               env <- initGhcMonad (Just libdir) >> getSession
+                               lift $ setSession env
+                               liftIO performGC
+                               liftIO $ putStrLn "RESET"
+                               return True
 
 updateClient _ resp (Handshake _) = do liftIO (resp $ HandshakeResponse $ versionBranch version)
                                        return True
