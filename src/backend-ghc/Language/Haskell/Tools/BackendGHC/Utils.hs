@@ -35,7 +35,6 @@ import Name
 import Outputable
 import SrcLoc
 
-import Control.DeepSeq
 import Control.Exception (Exception, throw)
 import Control.Monad.Reader
 import Control.Reference ((^.), (&))
