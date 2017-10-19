@@ -9,7 +9,7 @@
            , ViewPatterns
            #-}
 -- | Resolves how the daemon should react to individual requests from the client.
-module Language.Haskell.Tools.Daemon.Update where
+module Language.Haskell.Tools.Daemon.Update (updateClient, reloadModules, initGhcSession) where
 
 import Control.DeepSeq (force)
 import Control.Exception (evaluate)
@@ -44,39 +44,55 @@ import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Daemon.Session
 import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Utils
+import Language.Haskell.Tools.Daemon.Options
 import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.Refactor
 import Paths_haskell_tools_daemon (version)
 
+
+data UpdateCtx = UpdateCtx { options :: DaemonOptions
+                           , refactorings :: [RefactoringChoice IdDom]
+                           , response :: ResponseMsg -> IO ()
+                           }
+
 -- | This function does the real job of acting upon client messages in a stateful environment of a
 -- client.
-updateClient :: [RefactoringChoice IdDom] ->  (ResponseMsg -> IO ()) -> ClientMessage
+updateClient :: DaemonOptions -> [RefactoringChoice IdDom] -> (ResponseMsg -> IO ()) -> ClientMessage
                   -> DaemonSession Bool
+updateClient options refactors resp = updateClient' (UpdateCtx options refactors resp)
 
-updateClient _ resp (Handshake _) = do liftIO (resp $ HandshakeResponse $ versionBranch version)
-                                       return True
 
-updateClient _ resp KeepAlive = do liftIO (resp KeepAliveResponse)
-                                   return True
+updateClient' UpdateCtx{..} (Handshake _)
+  = do liftIO (response $ HandshakeResponse $ versionBranch version)
+       return True
 
-updateClient _ resp Disconnect = do liftIO (resp Disconnected)
-                                    return False
+updateClient' UpdateCtx{..} KeepAlive
+  = do liftIO (response KeepAliveResponse)
+       return True
 
-updateClient _ _ (SetPackageDB pkgDB) = do modify' (packageDB .= pkgDB)
-                                           return True
+updateClient' UpdateCtx{..} Disconnect
+  = do liftIO (response Disconnected)
+       return False
 
-updateClient _ resp (AddPackages packagePathes) = do addPackages resp packagePathes
-                                                     return True
+updateClient' _ (SetPackageDB pkgDB)
+  = do modify' (packageDB .= pkgDB)
+       return True
 
-updateClient _ _ (SetWorkingDir fp) = do liftIO (setCurrentDirectory fp)
-                                         return True
+updateClient' UpdateCtx{..} (AddPackages packagePathes)
+  = do addPackages response packagePathes
+       return True
 
-updateClient _ resp (SetGHCFlags flags) = do (unused, change) <- lift (useFlags flags)
-                                             liftIO $ resp $ UnusedFlags unused
-                                             modify' $ ghcFlagsSet .= change
-                                             return True
+updateClient' _ (SetWorkingDir fp)
+  = do liftIO (setCurrentDirectory fp)
+       return True
 
-updateClient _ _ (RemovePackages packagePathes) = do
+updateClient' UpdateCtx{..} (SetGHCFlags flags)
+  = do (unused, change) <- lift (useFlags flags)
+       liftIO $ response $ UnusedFlags unused
+       modify' $ ghcFlagsSet .= change
+       return True
+
+updateClient' UpdateCtx{..} (RemovePackages packagePathes) = do
     mcs <- gets (^. refSessMCs)
     let existingFiles = concatMap @[] (map (^. sfkFileName) . Map.keys) (mcs ^? traversal & filtered isRemoved & mcModules)
     lift $ forM_ existingFiles (\fs -> removeTarget (TargetFile fs Nothing))
@@ -88,46 +104,45 @@ updateClient _ _ (RemovePackages packagePathes) = do
     return True
   where isRemoved mc = (mc ^. mcRoot) `elem` packagePathes
 
-updateClient _ resp UndoLast =
+updateClient' UpdateCtx{..} UndoLast | disableHistory $ sharedOptions options
+  = do liftIO $ response $ ErrorMessage "Recording history has been disabled from command line."
+       return True
+updateClient' UpdateCtx{..} UndoLast =
   do undos <- gets (^. undoStack)
      case undos of
-       [] -> do liftIO $ resp $ ErrorMessage "There is nothing to undo."
+       [] -> do liftIO $ response $ ErrorMessage "There is nothing to undo."
                 return True
        lastUndo:_ -> do
          modify (undoStack .- tail)
          liftIO $ mapM_ performUndo lastUndo
-         reloadModules resp (getUndoAdded lastUndo)
-                            (getUndoChanged lastUndo)
-                            (getUndoRemoved lastUndo) -- reload the reverted files
+         reloadModules response (getUndoAdded lastUndo)
+                                (getUndoChanged lastUndo)
+                                (getUndoRemoved lastUndo) -- reload the reverted files
 
-updateClient _ resp (ReLoad added changed removed) =
+updateClient' UpdateCtx{..} (ReLoad added changed removed) =
   -- TODO: check for changed cabal files and reload their packages
   do modify (undoStack .= []) -- clear the undo stack
-     reloadModules resp added changed removed
+     reloadModules response added changed removed
 
-updateClient _ _ Stop = do modify (exiting .= True)
-                           return False
+updateClient' _ Stop
+  = do modify (exiting .= True)
+       return False
 
 -- TODO: perform refactorings without selected modules
-updateClient refactorings resp (PerformRefactoring refact modPath selection args shutdown diffMode)
+updateClient' UpdateCtx{..} (PerformRefactoring refact modPath selection args shutdown diffMode)
   = do (selectedMod, otherMods) <- getFileMods modPath
        performRefactoring (refact:selection:args)
                           (maybe (Left modPath) Right selectedMod) otherMods
-       when shutdown $ liftIO $ resp Disconnected
+       when shutdown $ liftIO $ response Disconnected
        return (not shutdown)
   where performRefactoring cmd actualMod otherMods = do
           res <- lift $ performCommand refactorings cmd actualMod otherMods
           case res of
-            Left err -> liftIO $ resp $ ErrorMessage err
+            Left err -> liftIO $ response $ ErrorMessage err
             Right diff -> do changedMods <- applyChanges diff
                              if not diffMode
-                               then do modify (undoStack .- (map (either fst (^. _3)) changedMods :))
-                                       -- force the evaluation of the undo stack to prevent older versions of
-                                       -- modules seeming to be used when they could be garbage collected
-                                       us <- gets (^. undoStack)
-                                       liftIO $ evaluate $ force us
-                                       return ()
-                               else liftIO $ resp $ DiffInfo (concatMap (either snd (^. _4)) changedMods)
+                               then when (not (disableHistory $ sharedOptions options)) $ updateHistory changedMods
+                               else liftIO $ response $ DiffInfo (concatMap (either snd (^. _4)) changedMods)
                              isWatching <- gets (isJust . (^. watchProc))
                              when (not isWatching && not shutdown && not diffMode)
                               -- if watch is on, then it will automatically
@@ -178,9 +193,18 @@ updateClient refactorings resp (PerformRefactoring refact modPath selection args
               return $ Left (RestoreRemoved file origCont, createUnifiedDiff file origCont "")
 
         reloadChanges changedMods
-          = reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
-                                 (\mss -> resp (LoadingModules (map getModSumOrig mss)))
+          = reloadChangedModules (\ms -> response (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
+                                 (\mss -> response (LoadingModules (map getModSumOrig mss)))
                                  (\ms -> getModSumName ms `elem` changedMods)
+
+        updateHistory :: [Either (UndoRefactor, b) (SourceFileKey, FilePath, UndoRefactor, String)] -> DaemonSession ()
+        updateHistory changedMods
+          = do modify (undoStack .- (map (either fst (^. _3)) changedMods :))
+               -- force the evaluation of the undo stack to prevent older versions of
+               -- modules seeming to be used when they could be garbage collected
+               us <- gets (^. undoStack)
+               liftIO $ evaluate $ force us
+               return ()
 
 addPackages :: (ResponseMsg -> IO ()) -> [FilePath] -> DaemonSession ()
 addPackages _ [] = return ()
@@ -299,8 +323,8 @@ getUndoRemoved :: [UndoRefactor] -> [FilePath]
 getUndoRemoved = catMaybes . map (\case RemoveAdded fp -> Just fp
                                         _              -> Nothing)
 
-initGhcSession :: IO Session
-initGhcSession = Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags >> getSession))
+initGhcSession :: Bool -> IO Session
+initGhcSession genCode = Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags' genCode >> getSession))
 
 usePackageDB :: GhcMonad m => [FilePath] -> m ()
 usePackageDB [] = return ()

@@ -24,7 +24,8 @@ import System.Directory (getCurrentDirectory)
 import System.IO
 import System.IO.Error (isEOFError)
 
-import Language.Haskell.Tools.Daemon (DaemonOptions(..), runDaemon)
+import Language.Haskell.Tools.Daemon (runDaemon)
+import Language.Haskell.Tools.Daemon.Options
 import Language.Haskell.Tools.Daemon.Mode (channelMode)
 import Language.Haskell.Tools.Daemon.Protocol (ResponseMsg(..), ClientMessage(..))
 import Language.Haskell.Tools.Refactor
@@ -36,16 +37,15 @@ normalRefactorSession refactorings input output options@CLIOptions{..}
        hSetBuffering stderr LineBuffering -- to synch our output with GHC's
        refactorSession refactorings
          (\st -> void $ forkIO $ do runDaemon refactorings channelMode st
-                                      (DaemonOptions False 0 (not cliVerbose) cliNoWatch cliWatchExe))
+                                      (DaemonOptions False 0 (not cliVerbose) sharedOptions))
          input output options
 
 -- | Command-line options for the Haskell-tools CLI
 data CLIOptions = CLIOptions { displayVersion :: Bool
                              , cliVerbose :: Bool
                              , executeCommands :: Maybe String
-                             , cliNoWatch :: Bool
-                             , cliWatchExe :: Maybe FilePath
                              , ghcFlags :: Maybe [String]
+                             , sharedOptions :: SharedDaemonOptions
                              , packageRoots :: [FilePath]
                              }
 

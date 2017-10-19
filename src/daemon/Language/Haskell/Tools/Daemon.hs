@@ -40,6 +40,7 @@ import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Update
 import Language.Haskell.Tools.Daemon.ErrorHandling
 import Language.Haskell.Tools.Daemon.Watch
+import Language.Haskell.Tools.Daemon.Options
 import Language.Haskell.Tools.Refactor
 import Paths_haskell_tools_daemon
 
@@ -50,52 +51,46 @@ runDaemon' :: [RefactoringChoice IdDom] -> DaemonOptions -> IO ()
 runDaemon' refactorings args = do store <- newEmptyMVar
                                   runDaemon refactorings socketMode store args
 
--- | Command line options for the daemon process.
-data DaemonOptions = DaemonOptions { daemonVersion :: Bool
-                                   , portNumber :: Int
-                                   , silentMode :: Bool
-                                   , noWatch :: Bool
-                                   , watchExe :: Maybe FilePath
-                                   }
-
 -- | Starts the daemon process. This will not return until the daemon stops.
 -- The daemon process is parameterized by the refactorings you can use in it. This entry point gives
 -- back the other endpoint of the connection so it can be used to run the daemon in the same process.
 runDaemon :: [RefactoringChoice IdDom] -> WorkingMode a -> MVar a -> DaemonOptions -> IO ()
 runDaemon _ _ _ DaemonOptions{..} | daemonVersion
   = putStrLn $ showVersion version
-runDaemon refactorings mode connStore DaemonOptions{..} = withSocketsDo $
+runDaemon refactorings mode connStore config@DaemonOptions{..} = withSocketsDo $
     do when (not silentMode) $ putStrLn $ "Starting Haskell Tools daemon"
        hSetBuffering stdout LineBuffering
        hSetBuffering stderr LineBuffering
        conn <- daemonConnect mode portNumber
        putMVar connStore conn
        when (not silentMode) $ putStrLn $ "Connection established"
-       ghcSess <- initGhcSession
+       ghcSess <- initGhcSession (generateCode sharedOptions)
        state <- newMVar initSession
-       (wp,th) <- if noWatch then return (Nothing, [])
-                             else createWatchProcess' watchExe ghcSess state (daemonSend mode conn)
+       (wp,th) <- if noWatch sharedOptions
+                    then return (Nothing, [])
+                    else createWatchProcess'
+                           (watchExe sharedOptions) ghcSess state (daemonSend mode conn)
        modifyMVarMasked_ state ( \s -> return s { _watchProc = wp, _watchThreads = th })
-       serverLoop refactorings mode conn silentMode ghcSess state
+       serverLoop refactorings mode conn config ghcSess state
        case wp of Just watchProcess -> stopWatch watchProcess th
                   Nothing -> return ()
        daemonDisconnect mode conn
 
 -- | Starts the server loop, receiving requests from the client and updated the server state
 -- according to these.
-serverLoop :: [RefactoringChoice IdDom] -> WorkingMode a -> a -> Bool -> Session
+serverLoop :: [RefactoringChoice IdDom] -> WorkingMode a -> a -> DaemonOptions -> Session
                 -> MVar DaemonSessionState -> IO ()
-serverLoop refactorings mode conn isSilent ghcSess state =
+serverLoop refactorings mode conn options ghcSess state =
   do msgs <- daemonReceive mode conn
      continue <- mapM respondToMsg msgs
      sessionData <- readMVar state
      when (not (sessionData ^. exiting) && all (== True) continue)
-       $ serverLoop refactorings mode conn isSilent ghcSess state
-   `catches` exceptionHandlers (serverLoop refactorings mode conn isSilent ghcSess state)
+       $ serverLoop refactorings mode conn options ghcSess state
+   `catches` exceptionHandlers (serverLoop refactorings mode conn options ghcSess state)
                                (daemonSend mode conn . ErrorMessage)
   where respondToMsg (Right req)
-          = do when (not isSilent) $ putStrLn $ "Message received: " ++ show req
-               respondTo refactorings ghcSess state (daemonSend mode conn) req
+          = do when (not (silentMode options)) $ putStrLn $ "Message received: " ++ show req
+               respondTo options refactorings ghcSess state (daemonSend mode conn) req
            `catches` userExceptionHandlers
                         (\s -> daemonSend mode conn (ErrorMessage s) >> return True)
                         (\err hint -> daemonSend mode conn (CompilationProblem err hint) >> return True)
@@ -103,7 +98,7 @@ serverLoop refactorings mode conn isSilent ghcSess state =
                                      return True
 
 -- | Responds to a client request by modifying the daemon and GHC state accordingly.
-respondTo :: [RefactoringChoice IdDom] ->  Session -> MVar DaemonSessionState
+respondTo :: DaemonOptions -> [RefactoringChoice IdDom] -> Session -> MVar DaemonSessionState
                -> (ResponseMsg -> IO ()) -> ClientMessage -> IO Bool
-respondTo refactorings ghcSess state next req
-  = modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient refactorings next req) st) ghcSess)
+respondTo options refactorings ghcSess state next req
+  = modifyMVar state (\st -> swap <$> reflectGhc (runStateT (updateClient options refactorings next req) st) ghcSess)
