@@ -8,6 +8,7 @@
            , AllowAmbiguousTypes
            , TypeApplications
            , TypeFamilies
+           , BangPatterns
            #-}
 module Language.Haskell.Tools.BackendGHC.Utils where
 
@@ -267,6 +268,13 @@ annLoc semam locm nodem = do loc <- locm
                              node <- focusOn loc nodem
                              sema <- semam
                              return (Ann (NodeInfo sema (NodeSpan loc)) node)
+
+-- | Annotates a node with the given location and focuses on the given source span. Strict in the annotation.
+annLoc' :: Trf (SemanticInfo (Dom n) b) -> Trf SrcSpan -> Trf (b (Dom n) RangeStage) -> Trf (Ann b (Dom n) RangeStage)
+annLoc' semam locm nodem = do loc <- locm
+                              node <- focusOn loc nodem
+                              sema <- semam
+                              return $ sema `seq` (Ann (NodeInfo sema (NodeSpan loc)) node)
 
 annLocNoSema :: SemanticInfo (Dom n) b ~ NoSemanticInfo => Trf SrcSpan -> Trf (b (Dom n) RangeStage) -> Trf (Ann b (Dom n) RangeStage)
 annLocNoSema = annLoc (pure mkNoSemanticInfo)

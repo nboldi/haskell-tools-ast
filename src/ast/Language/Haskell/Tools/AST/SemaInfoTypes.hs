@@ -4,6 +4,7 @@
            , UndecidableInstances
            , FlexibleContexts
            , FlexibleInstances
+           , BangPatterns
            #-}
 module Language.Haskell.Tools.AST.SemaInfoTypes
   ( -- types
@@ -139,7 +140,7 @@ dynFlagsCon = mkConstr dynFlagsType "DynFlags" [] Data.Prefix
 
 -- | Creates semantic information for the module element
 mkModuleInfo :: GHC.Module -> DynFlags -> Bool -> [PName n] -> [ClsInst] -> [FamInst] -> ModuleInfo n
-mkModuleInfo = ModuleInfo
+mkModuleInfo mod dfs boot !imported !orphan !family = ModuleInfo mod dfs boot imported orphan family
 
 -- | Info corresponding to an import declaration
 data ImportInfo n = ImportInfo { _importedModule :: GHC.Module -- ^ The name and package of the imported module
@@ -155,7 +156,9 @@ deriving instance Data FamFlavor
 
 -- | Creates semantic information for an import declaration
 mkImportInfo :: GHC.Module -> [n] -> [PName n] -> [ClsInst] -> [FamInst] -> ImportInfo n
-mkImportInfo = ImportInfo
+-- the calculate of these fields involves a big parts of the GHC state and it causes a space leak
+-- if not evaluated strictly
+mkImportInfo mod !names !imported !orphan !family = ImportInfo mod names imported orphan family
 
 -- | Info corresponding to an record-wildcard
 data ImplicitFieldInfo = ImplicitFieldInfo { _implicitFieldBindings :: [(Name, Name)] -- ^ The implicitly bounded names
