@@ -9,6 +9,9 @@
            , TypeApplications
            , TypeFamilies
            , BangPatterns
+           , StandaloneDeriving
+           , DeriveGeneric
+           , DeriveAnyClass
            #-}
 module Language.Haskell.Tools.BackendGHC.Utils where
 
@@ -32,9 +35,11 @@ import Name
 import Outputable
 import SrcLoc
 
+import Control.DeepSeq
 import Control.Exception (Exception, throw)
 import Control.Monad.Reader
 import Control.Reference ((^.), (&))
+import GHC.Generics
 import Data.Char (isSpace)
 import Data.Data (Data(..))
 import Data.Either (Either(..), rights, lefts)
@@ -56,6 +61,8 @@ createModuleInfo mod nameLoc (filter (not . ideclImplicit . unLoc) -> imports) =
   (_,preludeImports) <- if prelude then getImportedNames "Prelude" Nothing else return (ms_mod mod, [])
   (insts, famInsts) <- if prelude then lift $ getOrphanAndFamInstances (Module baseUnitId (GHC.mkModuleName "Prelude"))
                                   else return ([], [])
+  liftIO $ putStrLn $ showSDocUnsafe (ppr insts)
+  liftIO $ putStrLn $ showSDocUnsafe (ppr famInsts)
   return $ mkModuleInfo (ms_mod mod) (ms_hspp_opts mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True) preludeImports insts famInsts
 
 -- | Creates a semantic information for a name
@@ -93,6 +100,8 @@ createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
      lookedUpNames <- liftGhc $ mapM translatePName $ names
      lookedUpImported <- liftGhc $ mapM (getFromNameUsing getTopLevelId . (^. pName)) $ importedNames
      (insts,famInsts) <- lift $ getOrphanAndFamInstances mod
+     liftIO $ putStrLn $ showSDocUnsafe (ppr insts)
+     liftIO $ putStrLn $ showSDocUnsafe (ppr famInsts)
      return $ mkImportInfo mod (catMaybes lookedUpImported) (catMaybes lookedUpNames) insts famInsts
   where translatePName (PName n p) = do n' <- getFromNameUsing getTopLevelId n
                                         p' <- maybe (return Nothing) (getFromNameUsing getTopLevelId) p
