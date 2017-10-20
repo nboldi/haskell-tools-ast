@@ -60,6 +60,7 @@ createModuleInfo mod nameLoc (filter (not . ideclImplicit . unLoc) -> imports) =
   (_,preludeImports) <- if prelude then getImportedNames "Prelude" Nothing else return (ms_mod mod, [])
   (insts, famInsts) <- if prelude then lift $ getOrphanAndFamInstances (Module baseUnitId (GHC.mkModuleName "Prelude"))
                                   else return ([], [])
+  liftIO $ putStrLn $ show preludeImports
   liftIO $ putStrLn $ showSDocUnsafe (ppr insts)
   liftIO $ putStrLn $ showSDocUnsafe (ppr famInsts)
   return $ mkModuleInfo (ms_mod mod) (ms_hspp_opts mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True) preludeImports insts famInsts
@@ -99,6 +100,7 @@ createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
      lookedUpNames <- liftGhc $ mapM translatePName $ names
      lookedUpImported <- liftGhc $ mapM (getFromNameUsing getTopLevelId . (^. pName)) $ importedNames
      (insts,famInsts) <- lift $ getOrphanAndFamInstances mod
+     liftIO $ putStrLn $ show importedNames
      liftIO $ putStrLn $ showSDocUnsafe (ppr insts)
      liftIO $ putStrLn $ showSDocUnsafe (ppr famInsts)
      return $ mkImportInfo mod (catMaybes lookedUpImported) (catMaybes lookedUpNames) insts famInsts

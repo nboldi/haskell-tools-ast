@@ -152,6 +152,7 @@ rdrSplice spl = do
       $ tcHsSplice' spl
     let typecheckErrors = showSDocUnsafe (vcat (pprErrMsgBagWithLoc (fst (fst tcSpl)))
                                             <+> vcat (pprErrMsgBagWithLoc (snd (fst tcSpl))))
+    liftIO $ putStrLn $ showSDocUnsafe (ppr (snd tcSpl))
     return $ fromMaybe (throw $ SpliceInsertionProblem rng typecheckErrors)
                        (snd tcSpl)
   where
