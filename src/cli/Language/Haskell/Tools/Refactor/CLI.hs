@@ -11,7 +11,7 @@
 -- It can be used in a one-shot mode, listing all actions in a command-line parameter or using its
 -- standard input to perform a series of refactorings.
 module Language.Haskell.Tools.Refactor.CLI
-  (refactorSession, normalRefactorSession, CLIOptions(..)) where
+  (refactorSession, normalRefactorSession, CLIOptions(..), SharedDaemonOptions(..)) where
 
 import Control.Concurrent
 import Control.Exception (BlockedIndefinitelyOnMVar(..), catch)

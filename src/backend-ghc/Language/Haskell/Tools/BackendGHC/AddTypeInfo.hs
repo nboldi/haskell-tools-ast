@@ -30,6 +30,7 @@ import Data.Generics.Uniplate.Operations (universeBi)
 import Data.List as List
 import qualified Data.Map as Map (fromList, lookup)
 import Data.Maybe (Maybe(..), fromMaybe, catMaybes)
+import Outputable
 
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (mkCNameInfo)
@@ -41,6 +42,7 @@ addTypeInfos bnds mod = do
   ut <- liftIO mkUnknownType
   let getType = getType' ut
   fixities <- getFixities
+  liftIO $ putStrLn $ showSDocUnsafe (ppr fixities)
   let createCName sc def id = mkCNameInfo sc def id fixity
         where fixity = if any (any ((getOccName id ==) . getOccName . (^. _1))) (drop 1 sc)
                           then Nothing
