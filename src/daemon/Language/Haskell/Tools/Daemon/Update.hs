@@ -28,14 +28,17 @@ import Data.Version (Version(..))
 import System.Directory (setCurrentDirectory, removeFile, doesDirectoryExist)
 import System.FSWatch.Slave (watch)
 import System.IO
+import System.Mem
 import System.IO.Strict as StrictIO (hGetContents)
 import Text.PrettyPrint as PP (text, render)
 
-import DynFlags (DynFlags(..), PkgConfRef(..), PackageDBFlag(..))
+import DynFlags
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad (GhcMonad(..), Session(..), modifySession)
 import HscTypes (hsc_mod_graph)
+import HscMain
+import SysTools
 import Packages (initPackages)
 
 import Language.Haskell.Tools.Daemon.PackageDB (packageDBLoc, detectAutogen)
@@ -61,6 +64,14 @@ updateClient :: DaemonOptions -> [RefactoringChoice IdDom] -> (ResponseMsg -> IO
                   -> DaemonSession Bool
 updateClient options refactors resp = updateClient' (UpdateCtx options refactors resp)
 
+updateClient' UpdateCtx{..} Reset
+  = do roots <- gets (^? refSessMCs & traversal & mcRoot)
+       modify' $ \_ -> initSession
+       liftIO $ initGhcSession (generateCode (sharedOptions options))
+       env <- lift $ initGhcMonad (Just libdir) >> getSession
+       lift $ setSession env
+       addPackages response roots
+       return True
 
 updateClient' UpdateCtx{..} (Handshake _)
   = do liftIO (response $ HandshakeResponse $ versionBranch version)
