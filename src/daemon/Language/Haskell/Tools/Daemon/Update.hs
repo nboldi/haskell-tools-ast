@@ -67,7 +67,7 @@ updateClient options refactors resp = updateClient' (UpdateCtx options refactors
 updateClient' UpdateCtx{..} Reset
   = do roots <- gets (^? refSessMCs & traversal & mcRoot)
        modify' $ \_ -> initSession
-       liftIO $ initGhcSession (generateCode (sharedOptions options))
+       -- env <- liftIO $ initGhcSession (generateCode (sharedOptions options))
        env <- lift $ initGhcMonad (Just libdir) >> getSession
        lift $ setSession env
        addPackages response roots

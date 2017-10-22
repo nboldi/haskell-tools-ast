@@ -26,6 +26,8 @@ import Data.IntSet (member)
 import Digraph as GHC
 import DynFlags
 import GHC
+import GhcMonad (modifySession)
+import HscTypes
 import Language.Haskell.TH.LanguageExtensions
 import Packages
 
@@ -171,7 +173,9 @@ reloadModule :: (ModSummary -> IO a) -> ModSummary -> DaemonSession a
 reloadModule report ms = do
   ghcfl <- gets (^. ghcFlagsSet)
   mcs <- gets (^. refSessMCs)
-
+  -- remove module from session before reloading it, resolves space leak
+  lift $ modifySession (\s -> s { hsc_HPT = delFromHpt (hsc_HPT s) (ms_mod_name ms)
+                                })
   let fp = getModSumOrig ms
       modName = getModSumName ms
       codeGen = needsGeneratedCode (keyFromMS ms) mcs
