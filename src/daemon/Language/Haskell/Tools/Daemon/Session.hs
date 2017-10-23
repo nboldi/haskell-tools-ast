@@ -145,6 +145,9 @@ reloadChangedModules :: (ModSummary -> IO a) -> ([ModSummary] -> IO ()) -> (ModS
 reloadChangedModules report loadCallback isChanged = do
   reachable <- getReachableModules loadCallback isChanged
   void $ checkEvaluatedMods report reachable
+  -- remove module from session before reloading it, resolves space leak
+  let notReloaded = (`notElem` map ms_mod_name reachable) . GHC.moduleName . mi_module . hm_iface
+  lift $ modifySession (\s -> s { hsc_HPT = filterHpt notReloaded (hsc_HPT s) })
   mapM (reloadModule report) reachable
 
 -- | Get all modules that can be accessed from a given set of modules. Can be used to select which
@@ -173,9 +176,6 @@ reloadModule :: (ModSummary -> IO a) -> ModSummary -> DaemonSession a
 reloadModule report ms = do
   ghcfl <- gets (^. ghcFlagsSet)
   mcs <- gets (^. refSessMCs)
-  -- remove module from session before reloading it, resolves space leak
-  lift $ modifySession (\s -> s { hsc_HPT = delFromHpt (hsc_HPT s) (ms_mod_name ms)
-                                })
   let fp = getModSumOrig ms
       modName = getModSumName ms
       codeGen = needsGeneratedCode (keyFromMS ms) mcs
