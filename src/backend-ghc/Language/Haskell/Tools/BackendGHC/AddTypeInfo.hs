@@ -35,7 +35,7 @@ import Outputable
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST (mkCNameInfo)
 import Language.Haskell.Tools.BackendGHC.GHCUtils (getTopLevelId)
-import Language.Haskell.Tools.BackendGHC.Utils (ConvertionProblem(..), convProblem)
+import Language.Haskell.Tools.BackendGHC.Utils
 
 addTypeInfos :: LHsBinds Id -> Ann AST.UModule (Dom GHC.Name) RangeStage -> Ghc (Ann AST.UModule IdDom RangeStage)
 addTypeInfos bnds mod = do
@@ -43,7 +43,7 @@ addTypeInfos bnds mod = do
   let getType = getType' ut
   fixities <- getFixities
   -- fixities to normal form before going on
-  liftIO $ evaluate fixities
+  liftIO $ evaluate (forceElements fixities)
   let createCName sc def id = mkCNameInfo sc def id fixity
         where fixity = if any (any ((getOccName id ==) . getOccName . (^. _1))) (drop 1 sc)
                           then Nothing
