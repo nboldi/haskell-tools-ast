@@ -57,12 +57,11 @@ createModuleInfo mod nameLoc (filter (not . ideclImplicit . unLoc) -> imports) =
   let prelude = (xopt ImplicitPrelude $ ms_hspp_opts mod)
                   && all (\idecl -> ("Prelude" /= (GHC.moduleNameString $ unLoc $ ideclName $ unLoc idecl))
                                       || nameLoc == getLoc idecl) imports
-  (_,preludeImports) <- if prelude then getImportedNames "Prelude" Nothing else return (ms_mod mod, [])
-  (insts, famInsts) <- if prelude then lift $ getOrphanAndFamInstances (Module baseUnitId (GHC.mkModuleName "Prelude"))
-                                  else return ([], [])
-  liftIO $ putStrLn $ show preludeImports
-  liftIO $ putStrLn $ showSDocUnsafe (ppr insts)
-  liftIO $ putStrLn $ showSDocUnsafe (ppr famInsts)
+  (_, forceElements -> preludeImports)
+    <- if prelude then getImportedNames "Prelude" Nothing else return (ms_mod mod, [])
+  (forceElements -> insts, forceElements -> famInsts)
+    <- if prelude then lift $ getOrphanAndFamInstances (Module baseUnitId (GHC.mkModuleName "Prelude"))
+                  else return ([], [])
   return $ mkModuleInfo (ms_mod mod) (ms_hspp_opts mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True) preludeImports insts famInsts
 
 -- | Creates a semantic information for a name
@@ -97,12 +96,10 @@ createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
   do (mod,importedNames) <- getImportedNames (GHC.moduleNameString $ unLoc name) (fmap (unpackFS . sl_fs) pkg)
      names <- liftGhc $ filterM (checkImportVisible declHiding . (^. pName)) importedNames
      -- TODO: only use getFromNameUsing once
-     lookedUpNames <- liftGhc $ mapM translatePName $ names
-     lookedUpImported <- liftGhc $ mapM (getFromNameUsing getTopLevelId . (^. pName)) $ importedNames
-     (insts,famInsts) <- lift $ getOrphanAndFamInstances mod
-     liftIO $ putStrLn $ show importedNames
-     liftIO $ putStrLn $ showSDocUnsafe (ppr insts)
-     liftIO $ putStrLn $ showSDocUnsafe (ppr famInsts)
+     -- elements are forced to prevent unevaluated references remaining and causing a space leak
+     lookedUpNames <- forceElements <$> (liftGhc $ mapM translatePName $ names)
+     lookedUpImported <- forceElements <$> (liftGhc $ mapM (getFromNameUsing getTopLevelId . (^. pName)) $ importedNames)
+     (forceElements -> insts, forceElements -> famInsts) <- lift $ getOrphanAndFamInstances mod
      return $ mkImportInfo mod (catMaybes lookedUpImported) (catMaybes lookedUpNames) insts famInsts
   where translatePName (PName n p) = do n' <- getFromNameUsing getTopLevelId n
                                         p' <- maybe (return Nothing) (getFromNameUsing getTopLevelId) p
@@ -149,6 +146,12 @@ checkImportVisible (Just (isHiding, specs)) name
   | isHiding  = not . or @[] <$> mapM (`ieSpecMatches` name) (map unLoc (unLoc specs))
   | otherwise = or @[] <$> mapM (`ieSpecMatches` name) (map unLoc (unLoc specs))
 checkImportVisible _ _ = return True
+
+forceElements :: [a] -> [a]
+forceElements [] = []
+forceElements (!a:ls) = let res = forceElements ls
+                         in res `seq` (a : ls)
+
 
 ieSpecMatches :: (HsHasName name, GhcMonad m) => IE name -> GHC.Name -> m Bool
 ieSpecMatches (concatMap hsGetNames' . HsSyn.ieNames -> ls) name
