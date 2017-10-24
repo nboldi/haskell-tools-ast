@@ -4,7 +4,7 @@
 module Language.Haskell.Tools.BackendGHC.Monad where
 
 import Control.Applicative ((<|>))
-import Control.Exception (Exception, throw)
+import Control.Exception
 import Control.Monad.Reader
 import Control.Reference
 import Data.Function (on)
@@ -152,7 +152,7 @@ rdrSplice spl = do
       $ tcHsSplice' spl
     let typecheckErrors = showSDocUnsafe (vcat (pprErrMsgBagWithLoc (fst (fst tcSpl)))
                                             <+> vcat (pprErrMsgBagWithLoc (snd (fst tcSpl))))
-    liftIO $ putStrLn $ showSDocUnsafe (ppr (snd tcSpl))
+    liftIO $ evaluate (snd tcSpl)
     return $ fromMaybe (throw $ SpliceInsertionProblem rng typecheckErrors)
                        (snd tcSpl)
   where

@@ -20,7 +20,7 @@ import UniqSupply as GHC (uniqFromSupply, mkSplitUniqSupply)
 import Var as GHC (Var(..))
 
 import Control.Applicative (Applicative(..), (<$>), Alternative(..))
-import Control.Exception (throw)
+import Control.Exception
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.State
 import Control.Monad.Trans.Class (MonadTrans(..))
@@ -42,7 +42,8 @@ addTypeInfos bnds mod = do
   ut <- liftIO mkUnknownType
   let getType = getType' ut
   fixities <- getFixities
-  liftIO $ putStrLn $ showSDocUnsafe (ppr fixities)
+  -- fixities to normal form before going on
+  liftIO $ evaluate fixities
   let createCName sc def id = mkCNameInfo sc def id fixity
         where fixity = if any (any ((getOccName id ==) . getOccName . (^. _1))) (drop 1 sc)
                           then Nothing
