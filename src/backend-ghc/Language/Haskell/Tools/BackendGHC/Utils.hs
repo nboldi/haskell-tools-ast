@@ -149,8 +149,8 @@ checkImportVisible _ _ = return True
 
 forceElements :: [a] -> [a]
 forceElements [] = []
-forceElements (!a:ls) = let res = forceElements ls
-                         in res `seq` (a : ls)
+forceElements (a : ls) = let res = forceElements ls
+                          in a `seq` res `seq` (a : ls)
 
 
 ieSpecMatches :: (HsHasName name, GhcMonad m) => IE name -> GHC.Name -> m Bool
@@ -281,13 +281,6 @@ annLoc semam locm nodem = do loc <- locm
                              node <- focusOn loc nodem
                              sema <- semam
                              return (Ann (NodeInfo sema (NodeSpan loc)) node)
-
--- | Annotates a node with the given location and focuses on the given source span. Strict in the annotation.
-annLoc' :: Trf (SemanticInfo (Dom n) b) -> Trf SrcSpan -> Trf (b (Dom n) RangeStage) -> Trf (Ann b (Dom n) RangeStage)
-annLoc' semam locm nodem = do loc <- locm
-                              node <- focusOn loc nodem
-                              sema <- semam
-                              return $ sema `seq` (Ann (NodeInfo sema (NodeSpan loc)) node)
 
 annLocNoSema :: SemanticInfo (Dom n) b ~ NoSemanticInfo => Trf SrcSpan -> Trf (b (Dom n) RangeStage) -> Trf (Ann b (Dom n) RangeStage)
 annLocNoSema = annLoc (pure mkNoSemanticInfo)

@@ -157,7 +157,8 @@ trfImport (L l impDecl@(GHC.ImportDecl _ name pkg isSrc _ isQual _ declAs declHi
          annBeforeSafe = if isQual then AnnQualified else annBeforeQual
          annBeforePkg = if isGoodSrcSpan safeTok then AnnSafe else annBeforeSafe
 
-     annLoc' (createImportData impDecl) (pure l) $ AST.UImportDecl
+     !importData <- createImportData impDecl
+     annLoc (pure importData) (pure l) $ AST.UImportDecl
        <$> (if isSrc then makeJust <$> annLocNoSema (tokensLoc [AnnOpen, AnnClose]) (pure AST.UImportSource)
                      else nothing " " "" (after AnnImport))
        <*> (if isQual then makeJust <$> (annLocNoSema (tokenLoc AnnQualified) (pure AST.UImportQualified))
