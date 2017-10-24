@@ -57,12 +57,12 @@ createModuleInfo mod nameLoc (filter (not . ideclImplicit . unLoc) -> imports) =
   let prelude = (xopt ImplicitPrelude $ ms_hspp_opts mod)
                   && all (\idecl -> ("Prelude" /= (GHC.moduleNameString $ unLoc $ ideclName $ unLoc idecl))
                                       || nameLoc == getLoc idecl) imports
-  (_, forceElements -> preludeImports)
-    <- if prelude then getImportedNames "Prelude" Nothing else return (ms_mod mod, [])
-  (forceElements -> insts, forceElements -> famInsts)
+  (_, preludeImports) <- if prelude then getImportedNames "Prelude" Nothing else return (ms_mod mod, [])
+  (insts, famInsts)
     <- if prelude then lift $ getOrphanAndFamInstances (Module baseUnitId (GHC.mkModuleName "Prelude"))
                   else return ([], [])
-  return $ mkModuleInfo (ms_mod mod) (ms_hspp_opts mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True) preludeImports insts famInsts
+  return $ mkModuleInfo (ms_mod mod) (ms_hspp_opts mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True)
+                        (forceElements preludeImports) (forceElements insts) (forceElements famInsts)
 
 -- | Creates a semantic information for a name
 createNameInfo :: n -> Trf (NameInfo n)
@@ -97,10 +97,12 @@ createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
      names <- liftGhc $ filterM (checkImportVisible declHiding . (^. pName)) importedNames
      -- TODO: only use getFromNameUsing once
      -- elements are forced to prevent unevaluated references remaining and causing a space leak
-     lookedUpNames <- forceElements <$> (liftGhc $ mapM translatePName $ names)
-     lookedUpImported <- forceElements <$> (liftGhc $ mapM (getFromNameUsing getTopLevelId . (^. pName)) $ importedNames)
-     (forceElements -> insts, forceElements -> famInsts) <- lift $ getOrphanAndFamInstances mod
-     return $ mkImportInfo mod (catMaybes lookedUpImported) (catMaybes lookedUpNames) insts famInsts
+     lookedUpNames <- liftGhc $ mapM translatePName $ names
+     lookedUpImported <- liftGhc $ mapM (getFromNameUsing getTopLevelId . (^. pName)) $ importedNames
+     (insts, famInsts) <- lift $ getOrphanAndFamInstances mod
+     return $ mkImportInfo mod (forceElements $ catMaybes lookedUpImported)
+                               (forceElements $ catMaybes lookedUpNames)
+                               (forceElements insts) (forceElements famInsts)
   where translatePName (PName n p) = do n' <- getFromNameUsing getTopLevelId n
                                         p' <- maybe (return Nothing) (getFromNameUsing getTopLevelId) p
                                         return (PName <$> n' <*> Just p')
