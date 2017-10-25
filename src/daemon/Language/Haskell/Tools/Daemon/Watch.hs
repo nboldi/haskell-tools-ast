@@ -42,12 +42,13 @@ createWatchProcess' watchExePath ghcSess daemonSess upClient = do
             addedFiles = catMaybes $ map getAddedFile changes
             removedFiles = catMaybes $ map getRemovedFile changes
             reloadAction = reloadModules upClient addedFiles changedFiles removedFiles
+            handlers = userExceptionHandlers
+                           (upClient . ErrorMessage)
+                           (\err hint -> upClient (CompilationProblem err hint))
+                         ++ exceptionHandlers (return ()) (upClient . ErrorMessage)
         when (length changedFiles + length addedFiles + length removedFiles > 0)
-          (void $ modifyMVar daemonSess (\st -> swap <$> reflectGhc (runStateT reloadAction st) ghcSess) >> return True
-                     `catches` userExceptionHandlers
-                                 (\s -> upClient (ErrorMessage s) >> return True)
-                                 (\err hint -> upClient (CompilationProblem err hint) >> return True))
-            `catches` exceptionHandlers (return ()) (upClient . ErrorMessage)
+          (void (modifyMVar daemonSess (\st -> swap <$> reflectGhc (runStateT reloadAction st) ghcSess))
+             `catches` handlers)
       return $ (Just process, [reloaderThread])
 
     getModifiedFile (Mod file) = Just file

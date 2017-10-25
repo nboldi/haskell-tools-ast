@@ -25,7 +25,7 @@ import SrcLoc
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Daemon.GetModules
 
-userExceptionHandlers :: (String -> IO Bool) -> ([(SrcSpan, String)] -> [String] -> IO Bool) -> [Handler Bool]
+userExceptionHandlers :: (String -> IO a) -> ([(SrcSpan, String)] -> [String] -> IO a) -> [Handler a]
 userExceptionHandlers sendError sendCompProblems =
   [ Handler (\(UnsupportedPackage e) -> sendError ("There are unsupported elements in your package: " ++ e ++ " please correct them before loading them into Haskell-tools."))
   , Handler (\(UnsupportedExtension e) -> sendError ("The extension you use is not supported: " ++ e ++ ". Please check your source and cabal files for the use of that language extension."))
