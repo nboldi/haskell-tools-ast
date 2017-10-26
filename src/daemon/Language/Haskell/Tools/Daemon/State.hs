@@ -20,6 +20,7 @@ data DaemonSessionState
                            -- ^ The package database that is selected.
                        , _ghcFlagsSet :: DynFlags -> DynFlags
                            -- ^ GHC flags for compiling modules. Overrides settings in cabal files.
+                       , _pkgDbFlags :: DynFlags -> DynFlags
                        , _packageDBSet :: Bool
                            -- ^ True if the package database is actually used. The package database
                            -- cannot be changed if set.
@@ -38,6 +39,6 @@ data DaemonSessionState
 
 -- | An initial state of a daemon session.
 initSession :: DaemonSessionState
-initSession = DaemonSessionState [] AutoDB id False [] False [] Nothing []
+initSession = DaemonSessionState [] AutoDB id id False [] False [] Nothing []
 
 makeReferences ''DaemonSessionState

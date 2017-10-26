@@ -61,21 +61,25 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
      lift $ mapM_ (\t -> when (targetId t `notElem` currentTargets) (addTarget t))
                   (map makeTarget $ List.nubBy ((==) `on` (^. sfkFileName))
                                   $ List.sort $ concatMap getExposedModules mcs')
-     withAlteredDynFlags (liftIO . fmap (st ^. ghcFlagsSet) . setupLoadFlags (mcs ^? traversal & mcId) (mcs ^? traversal & mcRoot)
-                                                                             (mcs ^? traversal & mcDependencies & traversal)
-                                                                             (foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup))) $ do
+     let flagsForLoad = liftIO . fmap (st ^. ghcFlagsSet)
+                               . setupLoadFlags (mcs ^? traversal & mcId) (mcs ^? traversal & mcRoot)
+                                                (mcs ^? traversal & mcDependencies & traversal)
+                                                (foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup))
+     mods <- withAlteredDynFlags flagsForLoad $ do
        -- need to update package state when setting the list of visible packages
        dfs <- getSessionDynFlags
        (dfs', _) <- liftIO $ initPackages dfs
-       setSessionDynFlags dfs'
+       setSessionDynFlags dfs' -- set the package flags (only for this load session)
+       modify' (pkgDbFlags .= \_ -> dfs') -- save the package flags
        modsForColls <- lift $ depanal [] True
        let modsToParse = flattenSCCs $ topSortModuleGraph False modsForColls Nothing
            actuallyCompiled = filter (\ms -> getModSumOrig ms `notElem` alreadyLoadedFilesInOtherPackages) modsToParse
-       liftIO $ loadCallback actuallyCompiled
-       modify (refSessMCs .- foldl (.) id (map (insertIfMissing . keyFromMS) actuallyCompiled))
-       void $ checkEvaluatedMods (\_ -> return ()) actuallyCompiled
-       mods <- mapM (loadModule report) actuallyCompiled
-       return mods
+       modify' (refSessMCs .- foldl (.) id (map (insertIfMissing . keyFromMS) actuallyCompiled))
+       return actuallyCompiled
+
+     liftIO $ loadCallback mods
+     void $ checkEvaluatedMods (\_ -> return ()) mods
+     mapM (loadModule report) mods
 
   where getExposedModules :: ModuleCollection k -> [k]
         getExposedModules
@@ -157,13 +161,16 @@ reloadChangedModules report loadCallback isChanged = do
 -- modules need to be reloaded after a change.
 getReachableModules :: ([ModSummary] -> IO ()) -> (ModSummary -> Bool) -> DaemonSession [ModSummary]
 getReachableModules loadCallback selected = do
+  ghcflags <- gets (^. ghcFlagsSet)
+  dbFlags <- gets (^. pkgDbFlags)
   mcs <- gets (^. refSessMCs)
   -- IMPORTANT: make sure that the module collection is not passed into the flags, they
   -- might not be evaluated and then the reference could prevent garbage collection
   -- of entire ASTs
-  withAlteredDynFlags (liftIO . setupLoadFlags (mcs ^? traversal & mcId) (mcs ^? traversal & mcRoot)
+  withAlteredDynFlags (liftIO . fmap ghcflags
+                              . setupLoadFlags (mcs ^? traversal & mcId) (mcs ^? traversal & mcRoot)
                                                (mcs ^? traversal & mcDependencies & traversal)
-                                               (foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup)) ) $ do
+                                               (foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup)) . dbFlags ) $ do
     allMods <- lift $ depanal [] True
     let (allModsGraph, lookup) = moduleGraphNodes False allMods
         changedMods = catMaybes $ map (\ms -> lookup (ms_hsc_src ms) (moduleName $ ms_mod ms))
@@ -188,19 +195,18 @@ reloadModule report ms = do
                            []   -> error "reloadModule: module collections empty"
   where
     reloadModuleIn codeGen modName ghcfl mc = do
+      dbFlags <- gets (^. pkgDbFlags)
       let dfs = ms_hspp_opts ms
       -- IMPORTANT: make sure that the module collection is not passed into the flags, they
       -- might not be evaluated and then the reference could prevent garbage collection
       -- of entire ASTs
-      dfs' <- liftIO $ fmap ghcfl $ ((mc ^. mcFlagSetup) <=< (mc ^. mcLoadFlagSetup)) dfs
-      let ms' = ms { ms_hspp_opts = dfs' }
-      newm <- lift $ withAlteredDynFlags (\_ -> return dfs') $
-        parseTyped (if codeGen then forceCodeGen ms' else ms')
+      newm <- lift $ withAlteredDynFlags (liftIO . fmap ghcfl . ((mc ^. mcFlagSetup) <=< (mc ^. mcLoadFlagSetup)) . dbFlags) $
+        parseTyped (if codeGen then forceCodeGen ms else ms)
       -- replace the module in the program database
       modify' $ refSessMCs & traversal & filtered (\c -> (c ^. mcId) == (mc ^. mcId)) & mcModules
-                  .- Map.insert (keyFromMS ms') ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm ms')
+                  .- Map.insert (keyFromMS ms) ((if codeGen then ModuleCodeGenerated else ModuleTypeChecked) newm ms)
                        . Map.delete (SourceFileKey "" modName)
-      liftIO $ report ms'
+      liftIO $ report ms
 
 -- | Finds out if a newly added module forces us to generate code for another one.
 -- If the other is already loaded it will be reloaded.
