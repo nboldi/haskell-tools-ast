@@ -50,10 +50,6 @@ cliOptions = CLIOptions <$> version <*> verb <*> oneShot <*> ghcFlags <*> shared
                                                       '=':rest     -> rest
                                                       '"':rest     -> init rest
                                                       other        -> other
-                               let splitted = splitOn " " str'
-                               let wrong = filter (not . isPrefixOf "-") splitted
-                               when (not $ null wrong)
-                                 $ fail ("The following arguments passed as ghc-options are not flags: " ++ intercalate " " wrong)
-                               return splitted
+                               return ( splitOn " " str')
         packages = many $ strArgument (metavar "PACKAGE_ROOT"
                                         <> help "The root folder of packages that are refactored")

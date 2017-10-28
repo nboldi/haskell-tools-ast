@@ -1,4 +1,7 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell
+           , RecordWildCards
+           , NamedFieldPuns
+           #-}
 module Language.Haskell.Tools.Daemon.State where
 
 import Control.Concurrent
@@ -40,5 +43,8 @@ data DaemonSessionState
 -- | An initial state of a daemon session.
 initSession :: DaemonSessionState
 initSession = DaemonSessionState [] AutoDB id id False [] False [] Nothing []
+
+resetSession :: DaemonSessionState -> DaemonSessionState
+resetSession DaemonSessionState{..} = initSession { _packageDB, _ghcFlagsSet }
 
 makeReferences ''DaemonSessionState

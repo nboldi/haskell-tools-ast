@@ -20,7 +20,7 @@ import Data.Algorithm.Diff (Diff(..), getGroupedDiff)
 import Data.Algorithm.DiffContext (prettyContextDiff, getContextDiff)
 import qualified Data.ByteString.Char8 as StrictBS (unpack, readFile)
 import Data.Either (Either(..), either, rights)
-import Data.IORef (newIORef)
+import Data.IORef
 import Data.List hiding (insert)
 import qualified Data.Map as Map (insert, keys, filter)
 import Data.Maybe
@@ -40,6 +40,7 @@ import HscTypes (hsc_mod_graph)
 import HscMain
 import SysTools
 import Packages (initPackages)
+import Linker
 
 import Language.Haskell.Tools.Daemon.PackageDB (packageDBLoc, detectAutogen)
 import Language.Haskell.Tools.Daemon.Protocol
@@ -64,11 +65,15 @@ updateClient :: DaemonOptions -> [RefactoringChoice IdDom] -> (ResponseMsg -> IO
                   -> DaemonSession Bool
 updateClient options refactors resp = updateClient' (UpdateCtx options refactors resp)
 
+updateClient' :: UpdateCtx -> ClientMessage -> DaemonSession Bool
+-- resets the internal state of Haskell-tools (but keeps options)
 updateClient' UpdateCtx{..} Reset
   = do roots <- gets (^? refSessMCs & traversal & mcRoot)
-       modify' $ \_ -> initSession
-       -- env <- liftIO $ initGhcSession (generateCode (sharedOptions options))
-       env <- lift $ initGhcMonad (Just libdir) >> getSession
+       ghcflags <- gets (^. ghcFlagsSet)
+       modify' $ resetSession
+       Session sess <- liftIO $ initGhcSession (generateCode (sharedOptions options))
+       env <- liftIO $ readIORef sess
+       liftIO $ unload env [] -- clear (unload everything) the global state of the linker
        lift $ setSession env
        addPackages response roots
        return True

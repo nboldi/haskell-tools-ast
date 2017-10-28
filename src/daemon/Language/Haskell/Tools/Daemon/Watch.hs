@@ -14,7 +14,7 @@ import Data.Tuple (swap)
 import System.Environment (getExecutablePath)
 import System.FSWatch.Repr (WatchProcess(..), PE(..))
 import System.FSWatch.Slave (waitNotifies, createWatchProcess)
-import System.FilePath (FilePath, takeDirectory, (</>))
+import System.FilePath
 import System.IO (IO, FilePath)
 import GhcMonad (Session(..), reflectGhc)
 import Control.Exception
@@ -51,14 +51,16 @@ createWatchProcess' watchExePath ghcSess daemonSess upClient = do
              `catches` handlers)
       return $ (Just process, [reloaderThread])
 
-    getModifiedFile (Mod file) = Just file
+    getModifiedFile (Mod file) | takeExtension file `elem` sourceExtensions = Just file
     getModifiedFile _ = Nothing
 
-    getAddedFile (Add file) = Just file
+    getAddedFile (Add file) | takeExtension file `elem` sourceExtensions = Just file
     getAddedFile _ = Nothing
 
-    getRemovedFile (Rem file) = Just file
+    getRemovedFile (Rem file) | takeExtension file `elem` sourceExtensions = Just file
     getRemovedFile _ = Nothing
+
+    sourceExtensions = [ ".hs", ".hs-boot" ]
 
     guessExePath = do exePath <- getExecutablePath
                       return $ takeDirectory exePath </> "hfswatch"

@@ -13,12 +13,14 @@ module Language.Haskell.Tools.Daemon.Session where
 
 import Control.Applicative ((<|>))
 import Control.Monad.State.Strict
+import Control.Concurrent.MVar
 import Control.Reference
 import Data.Function (on)
 import qualified Data.List as List
 import Data.List.Split
 import qualified Data.Map as Map
 import Data.Maybe
+import Data.IORef
 import System.Directory
 import System.FilePath
 
@@ -30,6 +32,13 @@ import GhcMonad (modifySession)
 import HscTypes
 import Language.Haskell.TH.LanguageExtensions
 import Packages
+import Module
+import NameCache
+import Outputable
+import UniqFM
+import UniqDFM
+import GHCi
+import Linker
 
 import Language.Haskell.Tools.Daemon.GetModules
 import Language.Haskell.Tools.Daemon.ModuleGraph
@@ -66,11 +75,7 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
                                                 (mcs ^? traversal & mcDependencies & traversal)
                                                 (foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup))
      mods <- withAlteredDynFlags flagsForLoad $ do
-       -- need to update package state when setting the list of visible packages
-       dfs <- getSessionDynFlags
-       (dfs', _) <- liftIO $ initPackages dfs
-       setSessionDynFlags dfs' -- set the package flags (only for this load session)
-       modify' (pkgDbFlags .= \_ -> dfs') -- save the package flags
+       loadVisiblePackages -- need to update package state when setting the list of visible packages
        modsForColls <- lift $ depanal [] True
        let modsToParse = flattenSCCs $ topSortModuleGraph False modsForColls Nothing
            actuallyCompiled = filter (\ms -> getModSumOrig ms `notElem` alreadyLoadedFilesInOtherPackages) modsToParse
@@ -120,6 +125,13 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
         makeTarget (SourceFileKey "" modName) = Target (TargetModule (GHC.mkModuleName modName)) True Nothing
         makeTarget (SourceFileKey filePath _) = Target (TargetFile filePath Nothing) True Nothing
 
+loadVisiblePackages :: DaemonSession ()
+loadVisiblePackages = do
+  dfs <- getSessionDynFlags
+  (dfs', _) <- liftIO $ initPackages dfs
+  setSessionDynFlags dfs' -- set the package flags (only for this load session)
+  modify' (pkgDbFlags .= \_ -> dfs') -- save the package flags
+
 -- TODO: make getMods and getFileMods clearer
 
 -- | Get the module that is selected for refactoring and all the other modules.
@@ -152,7 +164,18 @@ reloadChangedModules report loadCallback isChanged = do
   -- remove module from session before reloading it, resolves space leak
   let reachableMods = map ms_mod_name reachable
       notReloaded = (`notElem` reachableMods) . GHC.moduleName . mi_module . hm_iface
-  lift $ modifySession (\s -> s { hsc_HPT = filterHpt notReloaded (hsc_HPT s)
+  env <- getSession
+  let hptStay = filterHpt notReloaded (hsc_HPT env)
+  -- clear the symbol cache for iserv
+  liftIO $ purgeLookupSymbolCache env
+  -- clear the global linker state
+  liftIO $ unload env (mapMaybe hm_linkable (eltsHpt hptStay))
+  -- clear name cache
+  nameCache <- liftIO $ readIORef $ hsc_NC env
+  let nameCache' = nameCache { nsNames = delModuleEnvList (nsNames nameCache) (map ms_mod reachable) }
+  liftIO $ writeIORef (hsc_NC env) nameCache'
+  -- clear home package table and module graph
+  lift $ modifySession (\s -> s { hsc_HPT = hptStay
                                 , hsc_mod_graph = filter ((`notElem` reachableMods) . ms_mod_name) (hsc_mod_graph s)
                                 })
   mapM (reloadModule report) reachable
@@ -171,6 +194,7 @@ getReachableModules loadCallback selected = do
                               . setupLoadFlags (mcs ^? traversal & mcId) (mcs ^? traversal & mcRoot)
                                                (mcs ^? traversal & mcDependencies & traversal)
                                                (foldl @[] (>=>) return (mcs ^? traversal & mcLoadFlagSetup)) . dbFlags ) $ do
+    loadVisiblePackages -- need to update package state when setting the list of visible packages
     allMods <- lift $ depanal [] True
     let (allModsGraph, lookup) = moduleGraphNodes False allMods
         changedMods = catMaybes $ map (\ms -> lookup (ms_hsc_src ms) (moduleName $ ms_mod ms))

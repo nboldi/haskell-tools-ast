@@ -202,9 +202,10 @@ withAlteredDynFlags modDFs action = do
 
 -- | Forces the code generation for a given module
 forceCodeGen :: ModSummary -> ModSummary
-forceCodeGen ms = ms { ms_hspp_opts = modOpts' }
-  where modOpts = (ms_hspp_opts ms) { hscTarget = HscInterpreted }
-        modOpts' = modOpts { ghcLink = LinkInMemory }
+forceCodeGen ms = ms { ms_hspp_opts = codeGenDfs (ms_hspp_opts ms) }
+
+codeGenDfs :: DynFlags -> DynFlags
+codeGenDfs dfs = dfs { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
 -- | Forces ASM code generation for a given module
 forceAsmGen :: ModSummary -> ModSummary
