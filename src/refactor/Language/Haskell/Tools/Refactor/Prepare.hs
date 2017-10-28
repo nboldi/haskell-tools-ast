@@ -85,7 +85,9 @@ initGhcFlags :: Ghc ()
 initGhcFlags = initGhcFlags' False
 
 initGhcFlagsForTest :: Ghc ()
-initGhcFlagsForTest = initGhcFlags' True
+initGhcFlagsForTest = do initGhcFlags' True
+                         dfs <- getSessionDynFlags
+                         void $ setSessionDynFlags $ dfs { hscTarget = HscAsm }
 
 -- | Sets up basic flags and settings for GHC
 initGhcFlags' :: Bool -> Ghc ()
