@@ -23,8 +23,8 @@ main = do -- create one daemon process for the whole testing session
 
 allTests :: TestTree
 allTests
-  = localOption (mkTimeout ({- 10s -} 1000 * 1000 * 10))
-      $ testGroup "daemon-tests"
+  = localOption (mkTimeout ({- 30s -} 1000 * 1000 * 30))
+      $ testGroup "demo-tests"
           [ testGroup "simple-tests" $ map makeDemoTest simpleTests
           , testGroup "loading-tests" $ map makeDemoTest loadingTests
           , testGroup "refactor-tests" $ map makeDemoTest refactorTests
