@@ -1,6 +1,6 @@
 -- | Data instances for Haskell AST (used for generics)
 {-# LANGUAGE FlexibleContexts, StandaloneDeriving, DeriveDataTypeable, TypeFamilies, UndecidableInstances #-}
-module Language.Haskell.Tools.AST.Instances.Data where
+module Language.Haskell.Tools.AST.Instances.Data () where
 
 import Data.Data
 
@@ -16,6 +16,10 @@ import Language.Haskell.Tools.AST.Representation.Patterns (UPatternField(..), UP
 import Language.Haskell.Tools.AST.Representation.Stmts
 import Language.Haskell.Tools.AST.Representation.TH
 import Language.Haskell.Tools.AST.Representation.Types
+
+-- Making the annotation an opaque attribute in annotated elements.
+-- Needed because otherwise uniplate traverses the annotations, resulting in unnecessary
+-- evaluation and storage.
 
 instance (DomainWith e dom, SourceInfo stage, Typeable e, Data (e dom stage))
       => Data (Ann e dom stage) where

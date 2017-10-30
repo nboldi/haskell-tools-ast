@@ -77,8 +77,6 @@ extra-source-files: examples/Project/has-cabal/*.hs
                   , examples/Project/exposed-mod-as-main/*.hs
                   , examples/Project/exposed-mod-as-main/*.cabal
                   , examples/Project/th-imports-normal/*.hs
-                  , examples/Project/th-imports-normal/*.cabal
-                  , examples/Project/exposed-mod-as-main/*.cabal
                   , examples/Project/has-ghc/*.hs
                   , examples/Project/has-ghc/*.cabal
 

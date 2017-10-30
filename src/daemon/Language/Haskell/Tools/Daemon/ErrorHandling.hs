@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase
            , ScopedTypeVariables
            #-}
+-- | Handlers for common errors in Haskell-tools daemon.
 module Language.Haskell.Tools.Daemon.ErrorHandling where
 
 import Control.Concurrent.MVar
@@ -25,6 +26,7 @@ import SrcLoc
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Daemon.GetModules
 
+-- Handlers for exceptions specific to our application.
 userExceptionHandlers :: (String -> IO a) -> ([(SrcSpan, String)] -> [String] -> IO a) -> [Handler a]
 userExceptionHandlers sendError sendCompProblems =
   [ Handler (\(UnsupportedPackage e) -> sendError ("There are unsupported elements in your package: " ++ e ++ " please correct them before loading them into Haskell-tools."))
@@ -41,6 +43,7 @@ userExceptionHandlers sendError sendCompProblems =
                        in sendCompProblems msgs hints)
   ]
 
+-- | Handlers for generic exceptions: 'IOException', 'AsyncException', 'SomeException'.
 exceptionHandlers :: IO () -> (String -> IO ()) -> [Handler ()]
 exceptionHandlers cont sendError =
   [ Handler (\(err :: IOException) -> hPutStrLn stderr $ "IO Exception caught: " ++ show err)
@@ -53,6 +56,7 @@ exceptionHandlers cont sendError =
                             sendError $ "Internal error: " ++ show ex
               Just (msg, doContinue) -> sendError msg >> when doContinue cont
 
+-- | Hint text and continuation suggestion for different kinds of errors based on pattern matching on error text.
 handleGHCException :: String -> Maybe (String, Bool)
 handleGHCException msg | "failed" `isInfixOf` msg && "C pre-processor" `isInfixOf` msg
   = Just ("Failed to load the package. The cause of that is a failure of the pre-processor. "
@@ -62,6 +66,7 @@ handleGHCException msg | "failed" `isInfixOf` msg && "Literate pre-processor" `i
              ++ " If you get this error after refactoring, you should undo the refactoring. The error message: " ++ msg, True)
 handleGHCException msg = Nothing
 
+-- | Hint text and continuation suggestion for different kinds of source problems based on pattern matching on error text.
 handleSourceProblem :: String -> Maybe String
 handleSourceProblem msg | "is a package module" `isInfixOf` msg
   = Just $ "A module is not found, check that the current working directory is the root of the module hierarchy. "

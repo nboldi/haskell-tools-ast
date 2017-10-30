@@ -61,6 +61,8 @@ createModuleInfo mod nameLoc (filter (not . ideclImplicit . unLoc) -> imports) =
   (insts, famInsts)
     <- if prelude then lift $ getOrphanAndFamInstances (Module baseUnitId (GHC.mkModuleName "Prelude"))
                   else return ([], [])
+  -- This function (via getOrphanAndFamInstances) refers the ghc environment,
+  -- we must evaluate the result or the reference may be kept preventing garbage collection.
   return $ mkModuleInfo (ms_mod mod) (ms_hspp_opts mod) (case ms_hsc_src mod of HsSrcFile -> False; _ -> True)
                         (forceElements preludeImports) (forceElements insts) (forceElements famInsts)
 
@@ -96,10 +98,11 @@ createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
   do (mod,importedNames) <- getImportedNames (GHC.moduleNameString $ unLoc name) (fmap (unpackFS . sl_fs) pkg)
      names <- liftGhc $ filterM (checkImportVisible declHiding . (^. pName)) importedNames
      -- TODO: only use getFromNameUsing once
-     -- elements are forced to prevent unevaluated references remaining and causing a space leak
      lookedUpNames <- liftGhc $ mapM translatePName $ names
      lookedUpImported <- liftGhc $ mapM (getFromNameUsing getTopLevelId . (^. pName)) $ importedNames
      (insts, famInsts) <- lift $ getOrphanAndFamInstances mod
+     -- This function (via getOrphanAndFamInstances) refers the ghc environment,
+     -- we must evaluate the result or the reference may be kept preventing garbage collection.
      return $ mkImportInfo mod (forceElements $ catMaybes lookedUpImported)
                                (forceElements $ catMaybes lookedUpNames)
                                (forceElements insts) (forceElements famInsts)
@@ -107,6 +110,8 @@ createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
                                         p' <- maybe (return Nothing) (getFromNameUsing getTopLevelId) p
                                         return (PName <$> n' <*> Just p')
 
+-- | Gets the orphan and family instances from a module.
+-- Important: the results must be evaluated or ghs session state will not be garbage-collected.
 getOrphanAndFamInstances :: Module -> Ghc ([ClsInst], [FamInst])
 getOrphanAndFamInstances mod = do
   env <- getSession
@@ -149,11 +154,11 @@ checkImportVisible (Just (isHiding, specs)) name
   | otherwise = or @[] <$> mapM (`ieSpecMatches` name) (map unLoc (unLoc specs))
 checkImportVisible _ _ = return True
 
+-- | Forces strict evaluation of a list. Forces elements into WHNF.
 forceElements :: [a] -> [a]
 forceElements [] = []
 forceElements (a : ls) = let res = forceElements ls
                           in a `seq` res `seq` (a : ls)
-
 
 ieSpecMatches :: (HsHasName name, GhcMonad m) => IE name -> GHC.Name -> m Bool
 ieSpecMatches (concatMap hsGetNames' . HsSyn.ieNames -> ls) name

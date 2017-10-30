@@ -42,7 +42,7 @@ addTypeInfos bnds mod = do
   ut <- liftIO mkUnknownType
   let getType = getType' ut
   fixities <- getFixities
-  -- fixities to normal form before going on
+  -- evaluates fixities to normal form before going on, otherwise the reference to session would be kept
   liftIO $ evaluate (forceElements fixities)
   let createCName sc def id = mkCNameInfo sc def id fixity
         where fixity = if any (any ((getOccName id ==) . getOccName . (^. _1))) (drop 1 sc)

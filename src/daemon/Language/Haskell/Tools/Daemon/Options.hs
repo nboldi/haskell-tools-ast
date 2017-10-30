@@ -11,6 +11,7 @@ data DaemonOptions = DaemonOptions { daemonVersion :: Bool
                                    , sharedOptions :: SharedDaemonOptions
                                    }
 
+-- | Command line options shared by CLI and daemon.
 data SharedDaemonOptions = SharedDaemonOptions { noWatch :: Bool
                                                , watchExe :: Maybe FilePath
                                                , generateCode :: Bool

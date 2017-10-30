@@ -53,7 +53,7 @@ import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.Refactor
 import Paths_haskell_tools_daemon (version)
 
-
+-- | Context for responding to a user request.
 data UpdateCtx = UpdateCtx { options :: DaemonOptions
                            , refactorings :: [RefactoringChoice IdDom]
                            , response :: ResponseMsg -> IO ()
