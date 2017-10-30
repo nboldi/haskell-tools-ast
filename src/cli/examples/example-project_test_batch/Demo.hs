@@ -1,3 +1,0 @@
-module Demo where
-
-b = ()
