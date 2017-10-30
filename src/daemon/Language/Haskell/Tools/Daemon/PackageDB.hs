@@ -90,7 +90,7 @@ detectAutogen root StackDB = (fmap $ either (\(_ :: SomeException) -> Nothing) i
 runCommandExpectOK :: String -> IO (Maybe String)
 runCommandExpectOK cmd = do
   (exitCode, res, errs) <- readCreateProcessWithExitCode (shell cmd) ""
-  case exitCode of ExitSuccess -> return (Just res)
+  case exitCode of ExitSuccess -> return (Just $ trim res)
                    ExitFailure code -> do putStrLn ("The command '" ++ cmd ++ "' exited with "
                                                       ++ show code ++ ":\n" ++ errs)
                                           return Nothing
