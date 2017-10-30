@@ -43,7 +43,7 @@ main = do unsetEnv "GHC_PACKAGE_PATH"
 
 allTests :: Bool -> FilePath -> MVar Int -> TestTree
 allTests isSource testRoot portCounter
-  = localOption (mkTimeout ({- 10s -} 1000 * 1000 * 20))
+  = localOption (mkTimeout ({- 30s -} 1000 * 1000 * 30))
       $ testGroup "daemon-tests"
           [ testGroup "simple-tests"
               $ map (makeDaemonTest portCounter) simpleTests
@@ -503,10 +503,9 @@ makeUndoTest port (label, dir, inputs, validator) = testCase label $ do
 
 makePkgDbTest :: MVar Int -> (String, IO (), [ClientMessage], [ResponseMsg]) -> TestTree
 makePkgDbTest port (label, prepare, inputs, expected)
-  = localOption (mkTimeout ({- 30s -} 1000 * 1000 * 30))
-      $ testCase label $ do
-          actual <- communicateWithDaemon False port daemonOpts ([Left prepare] ++ map Right inputs)
-          assertEqual "" expected actual
+  = testCase label $ do
+      actual <- communicateWithDaemon False port daemonOpts ([Left prepare] ++ map Right inputs)
+      assertEqual "" expected actual
 
 makeCompProblemTest :: MVar Int -> (String, [Either (IO ()) ClientMessage], [ResponseMsg] -> Bool) -> TestTree
 makeCompProblemTest port (label, actions, validator) = testCase label $ do
