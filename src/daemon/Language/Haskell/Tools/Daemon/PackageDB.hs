@@ -13,13 +13,13 @@ import Control.Exception (SomeException, try)
 import Control.Monad
 import Data.Aeson (FromJSON(..))
 import Data.Char (isSpace)
-import Data.Maybe
 import Data.List
+import Data.Maybe
 import GHC.Generics (Generic(..))
-import System.Exit
 import System.Directory
+import System.Exit (ExitCode(..))
 import System.FilePath (FilePath, (</>))
-import System.Process
+import System.Process (shell, readCreateProcessWithExitCode)
 
 -- | Possible package database configurations.
 data PackageDB = AutoDB -- ^ Decide the package database automatically.

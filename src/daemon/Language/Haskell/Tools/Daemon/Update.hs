@@ -20,7 +20,7 @@ import Data.Algorithm.Diff (Diff(..), getGroupedDiff)
 import Data.Algorithm.DiffContext (prettyContextDiff, getContextDiff)
 import qualified Data.ByteString.Char8 as StrictBS (unpack, readFile)
 import Data.Either (Either(..), either, rights)
-import Data.IORef
+import Data.IORef (readIORef, newIORef)
 import Data.List hiding (insert)
 import qualified Data.Map as Map (insert, keys, filter)
 import Data.Maybe
@@ -28,27 +28,23 @@ import Data.Version (Version(..))
 import System.Directory (setCurrentDirectory, removeFile, doesDirectoryExist)
 import System.FSWatch.Slave (watch)
 import System.IO
-import System.Mem
 import System.IO.Strict as StrictIO (hGetContents)
 import Text.PrettyPrint as PP (text, render)
 
-import DynFlags
+import DynFlags (DynFlags(..), PkgConfRef(..), PackageDBFlag(..))
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad (GhcMonad(..), Session(..), modifySession)
 import HscTypes (hsc_mod_graph)
-import HscMain
-import SysTools
+import Linker (unload)
 import Packages (initPackages)
-import Linker
-
+import Language.Haskell.Tools.Daemon.Options (SharedDaemonOptions(..), DaemonOptions(..))
 import Language.Haskell.Tools.Daemon.PackageDB (packageDBLoc, detectAutogen)
 import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Daemon.Session
 import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Utils
-import Language.Haskell.Tools.Daemon.Options
 import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.Refactor
 import Paths_haskell_tools_daemon (version)

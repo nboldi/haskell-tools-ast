@@ -4,27 +4,23 @@
 -- | Handlers for common errors in Haskell-tools daemon.
 module Language.Haskell.Tools.Daemon.ErrorHandling where
 
-import Control.Concurrent.MVar
 import Control.Exception
-import Control.Monad
-import Control.Monad.State.Strict
+import Control.Monad (Monad(..), when)
+import Control.Monad.State.Strict (Monad(..), when)
 import Control.Reference hiding (modifyMVarMasked_)
 import Data.List
-import Data.Maybe
-import Data.Tuple
-import Data.Version
+import Data.Maybe (Maybe(..), catMaybes)
+import Data.Tuple (snd)
 import Network.Socket hiding (send, sendTo, recv, recvFrom, KeepAlive)
-import System.IO
-import System.IO.Error
-
-import Bag
+import System.IO (IO, hPutStrLn, stderr)
+import Bag (bagToList)
 import ErrUtils (ErrMsg(..))
-import GhcMonad (Session(..), reflectGhc)
-import HscTypes
-import SrcLoc
+import GhcMonad (Session(..))
+import HscTypes (srcErrorMessages)
+import SrcLoc (SrcSpan(..), isGoodSrcSpan)
 
+import Language.Haskell.Tools.Daemon.GetModules (UnsupportedPackage(..))
 import Language.Haskell.Tools.Refactor
-import Language.Haskell.Tools.Daemon.GetModules
 
 -- Handlers for exceptions specific to our application.
 userExceptionHandlers :: (String -> IO a) -> ([(SrcSpan, String)] -> [String] -> IO a) -> [Handler a]

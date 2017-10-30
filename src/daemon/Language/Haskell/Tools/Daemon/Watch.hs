@@ -6,24 +6,23 @@
 module Language.Haskell.Tools.Daemon.Watch where
 
 import Control.Concurrent
+import Control.Exception (catches)
 import Control.Monad
 import Control.Monad.State.Strict
 import qualified Data.Aeson as A ()
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Tuple (swap)
+import GhcMonad (Session(..), reflectGhc)
 import System.Environment (getExecutablePath)
 import System.FSWatch.Repr (WatchProcess(..), PE(..))
 import System.FSWatch.Slave (waitNotifies, createWatchProcess)
 import System.FilePath
 import System.IO (IO, FilePath)
-import GhcMonad (Session(..), reflectGhc)
-import Control.Exception
 
-import Language.Haskell.Tools.Daemon.Protocol
+import Language.Haskell.Tools.Daemon.ErrorHandling (userExceptionHandlers, exceptionHandlers)
+import Language.Haskell.Tools.Daemon.Protocol (ResponseMsg(..))
 import Language.Haskell.Tools.Daemon.State (DaemonSessionState)
 import Language.Haskell.Tools.Daemon.Update (reloadModules)
-import Language.Haskell.Tools.Daemon.ErrorHandling
-import Language.Haskell.Tools.Refactor
 
 -- | Starts the watch process and a thread that receives notifications from it. The notification
 -- thread will invoke updates on the daemon state to re-load files.

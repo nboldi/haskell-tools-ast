@@ -12,15 +12,15 @@
 module Language.Haskell.Tools.Daemon.Session where
 
 import Control.Applicative ((<|>))
-import Control.Monad.State.Strict
 import Control.Concurrent.MVar
+import Control.Monad.State.Strict
 import Control.Reference
 import Data.Function (on)
+import Data.IORef
 import qualified Data.List as List
 import Data.List.Split
 import qualified Data.Map as Map
 import Data.Maybe
-import Data.IORef
 import System.Directory
 import System.FilePath
 
@@ -28,17 +28,17 @@ import Data.IntSet (member)
 import Digraph as GHC
 import DynFlags
 import GHC
+import GHCi
 import GhcMonad (modifySession)
 import HscTypes
 import Language.Haskell.TH.LanguageExtensions as Exts
-import Packages
+import Linker
 import Module
 import NameCache
 import Outputable
-import UniqFM
+import Packages
 import UniqDFM
-import GHCi
-import Linker
+import UniqFM
 
 import Language.Haskell.Tools.Daemon.GetModules
 import Language.Haskell.Tools.Daemon.ModuleGraph

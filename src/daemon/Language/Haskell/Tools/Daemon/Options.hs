@@ -1,8 +1,8 @@
 module Language.Haskell.Tools.Daemon.Options
          (DaemonOptions(..), parseDaemonCLI, SharedDaemonOptions(..), sharedOptionsParser) where
 
-import Options.Applicative
 import Data.Semigroup ((<>))
+import Options.Applicative
 
 -- | Command line options for the daemon process.
 data DaemonOptions = DaemonOptions { daemonVersion :: Bool

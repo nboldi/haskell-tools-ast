@@ -25,8 +25,8 @@ import System.IO
 import System.IO.Error (isEOFError)
 
 import Language.Haskell.Tools.Daemon (runDaemon)
-import Language.Haskell.Tools.Daemon.Options
 import Language.Haskell.Tools.Daemon.Mode (channelMode)
+import Language.Haskell.Tools.Daemon.Options (SharedDaemonOptions(..), DaemonOptions(..))
 import Language.Haskell.Tools.Daemon.Protocol (ResponseMsg(..), ClientMessage(..))
 import Language.Haskell.Tools.Refactor
 import Paths_haskell_tools_cli (version)

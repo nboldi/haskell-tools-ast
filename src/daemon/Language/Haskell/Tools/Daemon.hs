@@ -32,15 +32,15 @@ import GhcMonad (Session(..), reflectGhc)
 import HscTypes
 import SrcLoc
 
+import Language.Haskell.Tools.Daemon.ErrorHandling
 import Language.Haskell.Tools.Daemon.GetModules
 import Language.Haskell.Tools.Daemon.Mode
+import Language.Haskell.Tools.Daemon.Options
 import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Update
-import Language.Haskell.Tools.Daemon.ErrorHandling
 import Language.Haskell.Tools.Daemon.Watch
-import Language.Haskell.Tools.Daemon.Options
 import Language.Haskell.Tools.Refactor
 import Paths_haskell_tools_daemon
 

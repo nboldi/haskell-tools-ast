@@ -4,7 +4,7 @@
 module Language.Haskell.Tools.BackendGHC.Monad where
 
 import Control.Applicative ((<|>))
-import Control.Exception
+import Control.Exception (Exception, evaluate, throw)
 import Control.Monad.Reader
 import Control.Reference
 import Data.Function (on)

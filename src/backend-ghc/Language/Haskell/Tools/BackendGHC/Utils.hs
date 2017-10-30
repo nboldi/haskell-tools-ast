@@ -38,7 +38,6 @@ import SrcLoc
 import Control.Exception (Exception, throw)
 import Control.Monad.Reader
 import Control.Reference ((^.), (&))
-import GHC.Generics
 import Data.Char (isSpace)
 import Data.Data (Data(..))
 import Data.Either (Either(..), rights, lefts)
@@ -46,6 +45,7 @@ import Data.Function hiding ((&))
 import Data.IORef (readIORef)
 import Data.List
 import Data.Maybe
+import GHC.Generics
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as Sema
 import Language.Haskell.Tools.BackendGHC.GHCUtils
