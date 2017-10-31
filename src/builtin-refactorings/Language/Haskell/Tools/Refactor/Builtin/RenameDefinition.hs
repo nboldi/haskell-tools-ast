@@ -18,7 +18,7 @@ import IdInfo (RecSelParent(..))
 import Name (OccName(..), NamedThing(..), occNameString)
 import SrcLoc (RealSrcSpan)
 import TyCon (tyConDataCons)
-import Type (TyThing(..), funResultTy, eqType)
+import Type (funResultTy, eqType)
 
 import Control.Monad.State
 import Control.Reference as Ref

@@ -45,7 +45,6 @@ import Data.Function hiding ((&))
 import Data.IORef (readIORef)
 import Data.List
 import Data.Maybe
-import GHC.Generics
 import Language.Haskell.Tools.AST as AST
 import Language.Haskell.Tools.AST.SemaInfoTypes as Sema
 import Language.Haskell.Tools.BackendGHC.GHCUtils

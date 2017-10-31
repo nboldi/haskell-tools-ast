@@ -1,7 +1,7 @@
 module Main where
 
 import Control.Monad (Monad(..), (=<<))
-import Control.Monad.Reader (Monad(..), (=<<), MonadReader(..))
+import Control.Monad.Reader (MonadReader(..))
 import Data.List (init)
 import Data.List.Split (splitOn)
 import Data.Semigroup ((<>))

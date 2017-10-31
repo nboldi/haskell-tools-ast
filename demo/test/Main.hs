@@ -5,7 +5,6 @@ import Control.Concurrent (killThread, forkIO)
 import Control.Monad (Monad(..), mapM)
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BS (unpack)
-import qualified Data.List as List ((++), map)
 import Data.Maybe (Maybe(..))
 import Network.WebSockets
 import System.IO (IO(..))

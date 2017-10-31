@@ -8,7 +8,7 @@
 -- been explicitely set by a file path.
 module Language.Haskell.Tools.Daemon.PackageDB (PackageDB(..), packageDBLoc, detectAutogen) where
 
-import Control.Applicative (Applicative(..), (<$>), Alternative(..))
+import Control.Applicative ((<$>), Alternative(..))
 import Control.Exception (SomeException, try)
 import Control.Monad
 import Data.Aeson (FromJSON(..))
