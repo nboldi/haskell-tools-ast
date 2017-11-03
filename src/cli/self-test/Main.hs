@@ -38,22 +38,24 @@ projectDirs = mapM (canonicalizePath . ((".." </> "..") </>))
 tests :: [FilePath] -> [(String, [String])]
 tests roots
   = [ ("just-load", [ "Exit" ] )
-    -- , ("load-and-reload"
-    --   , [ "ChangeFile " ++ (ast ++ suf </> "Language" </> "Haskell" </> "Tools" </> "AST" </> "Ann.hs")
-    --     , "Exit"
-    --     ] )
-    -- , ("refactor"
-    --   , [ "RenameDefinition " ++ (ast ++ suf </> "Language" </> "Haskell" </> "Tools" </> "AST" </> "Ann.hs"
-                              -- ++ "250:6 Ann'" )
-    --     , "Exit"
-    --     ] )
+    , ("load-and-reload"
+      , [ "ChangeFile " ++ (ast ++ suf </> "Language" </> "Haskell" </> "Tools" </> "AST" </> "Ann.hs")
+        , "Exit"
+        ] )
+    , ("refactor"
+      , [ "RenameDefinition " ++ (ast ++ suf </> "Language" </> "Haskell" </> "Tools" </> "AST" </> "Ann.hs")
+                              ++ " 250:6 Ann'"
+        , "Exit"
+        ] )
     ]
   where
    Just ast = find ("ast" `isSuffixOf`) roots
 
 makeCliTest :: [FilePath] -> String -> [String] -> IO ()
 makeCliTest dirs name rfs
-  = do mapM_ (\wd -> copyDir wd (wd ++ suf)) dirs
+  = do putStrLn $ "\n-----------------------------------------\nRunning test: " ++ name
+                    ++ "\n--------------------------------------\n"
+       mapM_ (\wd -> copyDir wd (wd ++ suf)) dirs
        void $ normalRefactorSession builtinRefactorings stdin stdout
                 (CLIOptions False True (Just $ intercalate ";" rfs)
                             (SharedDaemonOptions True Nothing False False Nothing) (map (++ suf) dirs))
