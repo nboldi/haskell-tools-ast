@@ -2,7 +2,7 @@ module Main where
 
 import Control.Exception (finally, catch, SomeException)
 import Control.Monad
-import Data.List (intercalate)
+import Data.List (intercalate, find, isSuffixOf)
 import System.Directory
 import Data.Knob (newKnob, newFileHandle)
 import qualified Data.ByteString.Char8 as BS (pack)
@@ -15,9 +15,13 @@ import Language.Haskell.Tools.Refactor.Builtin (builtinRefactorings)
 import Language.Haskell.Tools.Refactor.CLI (CLIOptions(..), normalRefactorSession)
 
 main :: IO ()
-main = mapM_ (uncurry makeCliTest) tests
+main = do dirs <- projectDirs
+          mapM_ (uncurry (makeCliTest dirs)) (tests dirs)
 
-projectDirs = map ((".." </> "..") </>)
+suf = "_copy"
+
+projectDirs :: IO [FilePath]
+projectDirs = mapM (canonicalizePath . ((".." </> "..") </>))
                 [ "demo"
                 , "src" </> "ast"
                 , "src" </> "backend-ghc"
@@ -31,25 +35,24 @@ projectDirs = map ((".." </> "..") </>)
                 , "src" </> "rewrite"
                 ]
 
-tests :: [(String, [String])]
-tests = [ ("just-load"
-          , [ "Exit"
-            ] )
-        ]
+tests :: [FilePath] -> [(String, [String])]
+tests roots
+  = [ ("just-load", [ "Exit" ] )
+    , ("load-and-reload"
+      , [ "ChangeFile " ++ (ast ++ suf </> "Language" </> "Haskell" </> "Tools" </> "AST" </> "Ann.hs")
+        , "Exit"
+        ] )
+    ]
+  where
+   Just ast = find ("ast" `isSuffixOf`) roots
 
-makeCliTest :: String -> [String] -> IO ()
-makeCliTest name rfs
-  = do putStrLn $ "running test " ++ name
-       --mapM_ (\wd -> copyDir wd (wd ++ "_orig")) projectDirs
-       putStrLn "starting cli"
+makeCliTest :: [FilePath] -> String -> [String] -> IO ()
+makeCliTest dirs name rfs
+  = do mapM_ (\wd -> copyDir wd (wd ++ suf)) dirs
        void $ normalRefactorSession builtinRefactorings stdin stdout
                 (CLIOptions False True (Just $ intercalate ";" rfs)
-                            (SharedDaemonOptions True Nothing False False Nothing) projectDirs)
-       putStrLn "cli finished"
-  -- `finally` (do mapM_ (\wd -> do removeDirectoryRecursive wd
-  --                                renameDirectory (wd ++ "_orig") wd) projectDirs
-  --               putStrLn "directories removed"
-  --             `catch` \e -> print (e :: SomeException))
+                            (SharedDaemonOptions True Nothing False False Nothing) (map (++ suf) dirs))
+       mapM_ (\wd -> removeDirectoryRecursive (wd ++ suf)) dirs
 
 copyDir ::  FilePath -> FilePath -> IO ()
 copyDir src dst = do

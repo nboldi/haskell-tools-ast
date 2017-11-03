@@ -85,6 +85,9 @@ processCommand :: Bool -> [RefactoringChoice IdDom] -> Handle -> Chan ClientMess
 processCommand shutdown refactorings output chan cmd = do
   case splitOn " " cmd of
     ["Exit"] -> writeChan chan Disconnect >> return False
+    ["AddFile", fn] -> writeChan chan (ReLoad [fn] [] []) >> return True
+    ["ChangeFile", fn] -> writeChan chan (ReLoad [] [fn] []) >> return True
+    ["RemoveFile", fn] -> writeChan chan (ReLoad [] [] [fn]) >> return True
     ["Undo"] -> writeChan chan UndoLast >> return True
     ["Reset"] -> writeChan chan Reset >> return True
     ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")
