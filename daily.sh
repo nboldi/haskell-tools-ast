@@ -2,6 +2,10 @@
 set -e # Exit with nonzero exit code if anything fails
 
 if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
+  # run the self-loading test
+  stack bench haskell-tools-cli:self-test
+
+  # test the completeness of distribution packages
   for PKG in ast backend-ghc cli daemon debug prettyprint refactor rewrite
   do
     echo "Extracting the distribution of ${PKG}"

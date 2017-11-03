@@ -38,10 +38,15 @@ projectDirs = mapM (canonicalizePath . ((".." </> "..") </>))
 tests :: [FilePath] -> [(String, [String])]
 tests roots
   = [ ("just-load", [ "Exit" ] )
-    , ("load-and-reload"
-      , [ "ChangeFile " ++ (ast ++ suf </> "Language" </> "Haskell" </> "Tools" </> "AST" </> "Ann.hs")
-        , "Exit"
-        ] )
+    -- , ("load-and-reload"
+    --   , [ "ChangeFile " ++ (ast ++ suf </> "Language" </> "Haskell" </> "Tools" </> "AST" </> "Ann.hs")
+    --     , "Exit"
+    --     ] )
+    -- , ("refactor"
+    --   , [ "RenameDefinition " ++ (ast ++ suf </> "Language" </> "Haskell" </> "Tools" </> "AST" </> "Ann.hs"
+                              -- ++ "250:6 Ann'" )
+    --     , "Exit"
+    --     ] )
     ]
   where
    Just ast = find ("ast" `isSuffixOf`) roots
