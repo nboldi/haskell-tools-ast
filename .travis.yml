@@ -25,7 +25,7 @@ matrix:
   include:
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
-  # - env: BUILD=stack ARGS="" GHCVER=8.0.1 CABALVER=1.24
+  # - env: BUILD=stack ARGS="--coverage --haddock --no-haddock-deps" GHCVER=8.0.1 CABALVER=1.24
   #   compiler: ": #stack default"
   #   addons: {apt: {packages: [ghc-8.0.1,cabal-install-1.24], sources: [hvr-ghc]}}
   - env: BUILD=stack ARGS=""
@@ -49,21 +49,21 @@ before_install:
 
 install:
   # Install all dependecies of Haskell-tools, including test requirements
-  - travis_wait 30 stack --no-terminal --install-ghc build --test --no-run-tests --coverage --only-dependencies
+  - travis_wait 60 stack --no-terminal --install-ghc build --test --no-run-tests $ARGS
 
 script:
 
   # Build Haskell-tools with all library, executable, test and benchmark
-  - travis_wait 30 stack --no-terminal build --test --no-run-tests --coverage --haddock --no-haddock-deps
+  - travis_wait 30 stack --no-terminal build --test --no-run-tests $ARGS
 
   # Run tests. We record test coverage information. We need to perform all of them at once to create the unified coverage reports.
   # Daemon tests are disabled on OSX.
   - |
     if [ "$TRAVIS_OS_NAME" = "osx" ];
     then
-      travis_wait 30 stack --no-terminal test --coverage haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-cli
+      travis_wait 30 stack --no-terminal test $ARGS haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-cli
     else
-      travis_wait 30 stack --no-terminal test --coverage haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-daemon haskell-tools-cli haskell-tools-demo
+      travis_wait 30 stack --no-terminal test $ARGS haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-daemon haskell-tools-cli haskell-tools-demo
     fi
   - stack sdist
 
