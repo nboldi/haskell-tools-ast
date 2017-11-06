@@ -58,9 +58,6 @@ script:
   - stack sdist
 
   # Run the daily test if doing a daily build.
-  - stack exec --rts-options -M3.5G -- ht-refact --no-watch --no-history --execute="Exit" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
-  - stack exec --rts-options -M3.5G -- ht-refact --no-watch --no-history --execute="ChangeFile src/ast/Language/Haskell/Tools/AST/Ann.hs" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
-  - stack exec --rts-options -M3.5G -- ht-refact --no-watch --no-history --execute="RenameDefinition src/ast/Language/Haskell/Tools/AST/Ann.hs 250:6 Ann'" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
   - bash ./daily.sh
 
 after_script:
