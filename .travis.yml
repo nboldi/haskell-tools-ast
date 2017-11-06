@@ -1,6 +1,3 @@
-# Use new container infrastructure for linux testing to enable caching
-# sudo: false
-
 # Choose a lightweight base image; we provide our own build tools.
 language: c
 
@@ -25,9 +22,11 @@ matrix:
   include:
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
-  # - env: BUILD=stack ARGS="--coverage --haddock --no-haddock-deps" GHCVER=8.0.1 CABALVER=1.24
-  #   compiler: ": #stack default"
-  #   addons: {apt: {packages: [ghc-8.0.1,cabal-install-1.24], sources: [hvr-ghc]}}
+  - env: BUILD=stack ARGS="--coverage --haddock --no-haddock-deps"
+    compiler: ": #stack default"
+    os: linux
+    sudo: false
+  #  addons: {apt: {packages: [ghc-8.0.1,cabal-install-1.24], sources: [hvr-ghc]}}
   - env: BUILD=stack ARGS=""
     compiler: ": #stack default"
     os: osx
@@ -57,7 +56,7 @@ script:
   - travis_wait 30 stack --no-terminal build --test --no-run-tests $ARGS
 
   # Run tests. We record test coverage information. We need to perform all of them at once to create the unified coverage reports.
-  # Daemon tests are disabled on OSX.
+  # Daemon tests are disabled on OSX (some socket-related problem).
   - |
     if [ "$TRAVIS_OS_NAME" = "osx" ];
     then
