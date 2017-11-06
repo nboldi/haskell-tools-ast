@@ -1,6 +1,3 @@
-# Use new container infrastructure to enable caching
-sudo: false
-
 # Choose a lightweight base image; we provide our own build tools.
 language: c
 
@@ -11,30 +8,26 @@ cache:
   - $HOME/.cabal
   - $HOME/.stack
 
-# The different configurations we want to test. We have BUILD=cabal which uses
-# cabal-install, and BUILD=stack which uses Stack. More documentation on each
-# of those below.
-#
 # We set the compiler values here to tell Travis to use a different
 # cache file per set of arguments.
-#
-# If you need to have different apt packages for each combination in the
-# matrix, you can use a line such as:
-#     addons: {apt: {packages: [libfcgi-dev,libgmp-dev]}}
 matrix:
   include:
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
-  - env: BUILD=stack ARGS="" GHCVER=8.0.1 CABALVER=1.24
-    compiler: ": #stack default"
-    addons: {apt: {packages: [ghc-8.0.1,cabal-install-1.24], sources: [hvr-ghc]}}
+  - env: BUILD=stack ARGS="--coverage --haddock --no-haddock-deps"
+    compiler: ": #stack default linux"
+    os: linux
+    sudo: false
+  - env: BUILD=stack ARGS=""
+    compiler: ": #stack default osx"
+    os: osx
+    if: type = cron # OSX build is slower, so only do one on nightly
 
 before_install:
   # Using compiler above sets CC to an invalid value, so unset it
   - unset CC
 
   # Download and unpack the stack executable
-  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.cabal/bin:$PATH
   - mkdir -p ~/.local/bin
   - |
     if [ `uname` = "Darwin" ]
@@ -46,26 +39,27 @@ before_install:
 
 install:
   # Install all dependecies of Haskell-tools, including test requirements
-  - travis_wait 30 stack --no-terminal --install-ghc build --test --no-run-tests --coverage --only-dependencies
+  - travis_wait 60 stack --no-terminal --install-ghc build --test --no-run-tests $ARGS
 
 script:
 
   # Build Haskell-tools with all library, executable, test and benchmark
-  - travis_wait 30 stack --no-terminal build --test --no-run-tests --coverage --haddock --no-haddock-deps
+  - travis_wait 30 stack --no-terminal build --test --no-run-tests $ARGS
 
   # Run tests. We record test coverage information. We need to perform all of them at once to create the unified coverage reports.
-  - travis_wait 30 stack --no-terminal test --coverage haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-daemon haskell-tools-cli haskell-tools-demo
+  # Daemon tests are disabled on OSX (some socket-related problem).
+  - |
+    if [ "$TRAVIS_OS_NAME" = "osx" ];
+    then
+      travis_wait 30 stack --no-terminal test $ARGS haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-cli
+    else
+      travis_wait 30 stack --no-terminal test $ARGS haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-daemon haskell-tools-cli haskell-tools-demo
+    fi
   - stack sdist
 
   # Run the daily test if doing a daily build.
   - bash ./daily.sh
 
 after_script:
-  # Run benchmarks. Need to uninstall first to run this without coverage reporting, so the result will be more accurate.
-  - |
-    if [ "$TRAVIS_EVENT_TYPE" = "cron" ];
-    then
-      travis_wait stack --no-terminal bench haskell-tools-cli > benchmark.txt 2>&1
-    fi
-  # Publish API, coverage and benchmark data to our site
+  # Run benchmark, publish API, coverage and benchmark data to our site
   - bash ./deploy.sh
