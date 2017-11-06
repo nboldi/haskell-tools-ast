@@ -25,24 +25,16 @@ matrix:
   include:
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
-  - env: BUILD=stack ARGS="" GHCVER=8.0.1 CABALVER=1.24
+  - env: BUILD=stack ARGS=""
     compiler: ": #stack default"
-    addons: {apt: {packages: [ghc-8.0.1,cabal-install-1.24], sources: [hvr-ghc]}}
 
 before_install:
   # Using compiler above sets CC to an invalid value, so unset it
   - unset CC
 
   # Download and unpack the stack executable
-  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.cabal/bin:$PATH
   - mkdir -p ~/.local/bin
-  - |
-    if [ `uname` = "Darwin" ]
-    then
-      travis_retry curl --insecure -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
-    else
-      travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-    fi
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
 install:
   # Install all dependecies of Haskell-tools, including test requirements
