@@ -3,9 +3,9 @@ set -e # Exit with nonzero exit code if anything fails
 
 if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
   # run the self-tests
-  stack exec ht-refact -- --no-watch --no-history --execute="Exit" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
-  stack exec ht-refact -- --no-watch --no-history --execute="ChangeFile src/ast/Language/Haskell/Tools/AST/Ann.hs" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
-  stack exec ht-refact -- --no-watch --no-history --execute="RenameDefinition src/ast/Language/Haskell/Tools/AST/Ann.hs 250:6 Ann'" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
+  # stack exec ht-refact -- --no-watch --no-history --execute="Exit" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
+  # stack exec ht-refact -- --no-watch --no-history --execute="ChangeFile src/ast/Language/Haskell/Tools/AST/Ann.hs" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
+  # stack exec ht-refact -- --no-watch --no-history --execute="RenameDefinition src/ast/Language/Haskell/Tools/AST/Ann.hs 250:6 Ann'" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
 
   # test the completeness of distribution packages
   for PKG in ast backend-ghc cli daemon debug prettyprint refactor rewrite
