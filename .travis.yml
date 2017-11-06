@@ -58,7 +58,7 @@ script:
   - stack sdist
 
   # Run the daily test if doing a daily build.
-  - travis_wait stack exec ht-refact -- --no-watch --no-history --execute="Exit" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
+  - travis_wait stack exec --rts-options -M3.5G -- ht-refact --no-watch --no-history --execute="Exit" demo src/ast src/backend-ghc src/builtin-refactorings src/cli src/daemon src/debug src/experimental-refactorings src/prettyprint src/refactor src/rewrite
   - bash ./daily.sh
 
 after_script:
