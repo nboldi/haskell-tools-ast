@@ -46,7 +46,11 @@ script:
   - travis_wait 30 stack --no-terminal build --test --no-run-tests --bench --no-run-benchmarks --coverage --haddock --no-haddock-deps
 
   # Run tests. We record test coverage information. We need to perform all of them at once to create the unified coverage reports.
-  - travis_wait 30 stack --no-terminal build --test --no-run-tests --bench --no-run-benchmarks --coverage haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-daemon haskell-tools-cli haskell-tools-demo
+  # Disabled on nightly builds (done when checking the distribution zips anyway).
+  - |
+    if [ "$TRAVIS_EVENT_TYPE" != "cron" ]; then
+      travis_wait 30 stack --no-terminal build --test --no-run-tests --bench --no-run-benchmarks --coverage haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-daemon haskell-tools-cli haskell-tools-demo
+    fi
   - stack sdist
 
   # Run the daily test if doing a daily build.
