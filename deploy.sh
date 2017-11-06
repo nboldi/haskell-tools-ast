@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Pull requests and commits to other branches shouldn't try to deploy
-if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+if [ "$TRAVIS_PULL_REQUEST" != "false" || "$TRAVIS_OS_NAME" != "linux" ]; then
     echo "Skipping deploy"
     exit 0
 fi
