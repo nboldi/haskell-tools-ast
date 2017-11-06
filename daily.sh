@@ -11,9 +11,9 @@ if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
     mv haskell-tools-${PKG}-*/* src/${PKG}
   done
   echo "Running tests on the extracted folders"
-  stack --no-terminal --coverage test haskell-tools-rewrite
-  stack --no-terminal --coverage test haskell-tools-refactor
-  stack --no-terminal --coverage test haskell-tools-cli
-  stack --no-terminal --coverage test haskell-tools-daemon
-  stack --no-terminal --coverage test haskell-tools-demo
+  stack --no-terminal test haskell-tools-rewrite
+  stack --no-terminal test haskell-tools-refactor
+  stack --no-terminal test haskell-tools-cli
+  stack --no-terminal test haskell-tools-daemon
+  stack --no-terminal test haskell-tools-demo
 fi

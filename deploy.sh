@@ -1,10 +1,14 @@
 #!/bin/bash
 
-# Pull requests and commits to other branches shouldn't try to deploy
-if [ "$TRAVIS_PULL_REQUEST" != "false" || "$TRAVIS_OS_NAME" != "linux" ]; then
+# Pull requests or nightly builds shouldn't try to deploy, but pushes to any branch should.
+if [ "$TRAVIS_EVENT_TYPE" != "push" ]; then
     echo "Skipping deploy"
     exit 0
 fi
+
+# Run benchmarks. Need to uninstall first to run this without coverage reporting, so the result will be more accurate.
+echo "Running benchmark"
+travis_wait stack --no-terminal bench haskell-tools-cli > benchmark.txt 2>&1
 
 echo "Starting deploy"
 
