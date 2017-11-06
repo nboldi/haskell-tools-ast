@@ -25,8 +25,12 @@ matrix:
   include:
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
-  - env: BUILD=stack ARGS=""
+  - env: BUILD=stack ARGS="--no-terminal --test --no-run-tests --bench --no-run-benchmarks" DOC_ARGS="--coverage --haddock --no-haddock-deps"
     compiler: ": #stack default"
+    if: type IN (push, pull_request)
+  - env: BUILD=stack ARGS="--no-terminal --test --no-run-tests --bench --no-run-benchmarks" DOC_ARGS=""
+    compiler: ": #stack nightly"
+    if: type = cron
 
 before_install:
   # Using compiler above sets CC to an invalid value, so unset it
@@ -38,30 +42,31 @@ before_install:
 
 install:
   # Install all dependecies of Haskell-tools, including test requirements
-  - travis_wait 30 stack --no-terminal --install-ghc build --test --no-run-tests --bench --no-run-benchmarks --coverage --only-dependencies
+  - travis_wait 30 stack --install-ghc build $ARGS $DOC_ARGS --only-dependencies
 
 script:
 
   # Build Haskell-tools with all library, executable, test and benchmark
-  - travis_wait 30 stack --no-terminal build --test --no-run-tests --bench --no-run-benchmarks --coverage --haddock --no-haddock-deps
+  - travis_wait 30 stack build $ARGS $DOC_ARGS
 
   # Run tests. We record test coverage information. We need to perform all of them at once to create the unified coverage reports.
   # Disabled on nightly builds (done when checking the distribution zips anyway).
+  # On nightly build run the script to run self-test and test package distributions.
   - |
     if [ "$TRAVIS_EVENT_TYPE" != "cron" ]; then
-      travis_wait 30 stack --no-terminal build --test --no-run-tests --bench --no-run-benchmarks --coverage haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-daemon haskell-tools-cli haskell-tools-demo
+      travis_wait 30 stack build $ARGS $DOC_ARGS haskell-tools-rewrite haskell-tools-builtin-refactorings haskell-tools-experimental-refactorings haskell-tools-daemon haskell-tools-cli haskell-tools-demo
+      stack sdist
+    else
+      stack sdist
+      bash ./daily.sh
     fi
-  - stack sdist
-
-  # Run the daily test if doing a daily build.
-  - bash ./daily.sh
 
 after_script:
   # Run benchmarks. Need to uninstall first to run this without coverage reporting, so the result will be more accurate.
   - |
     if [ "$TRAVIS_EVENT_TYPE" = "cron" ];
     then
-      travis_wait stack --no-terminal bench haskell-tools-cli > benchmark.txt 2>&1
+      travis_wait 20 stack $ARGS bench haskell-tools-cli > benchmark.txt 2>&1
     fi
   # Publish API, coverage and benchmark data to our site
   - bash ./deploy.sh
