@@ -58,7 +58,7 @@ allTests isSource testRoot portCounter
           , testGroup "undo-tests"
               $ map (makeUndoTest portCounter) undoTests
           , testGroup "compilation-problem-tests"
-              $ map (makeCompProblemTest portCounter) compProblemTests
+              $ map (makeCompProblemTest portCounter) (compProblemTests isSource)
           , testGroup "special-tests"
               $ map (makeSpecialTest portCounter) (specialTests testRoot)
           -- if not a stack build, we cannot guarantee that stack is on the path
@@ -168,8 +168,8 @@ complexLoadingTests =
               ; _ -> False)
   ]
 
-compProblemTests :: [(String, [Either (IO ()) ClientMessage], [ResponseMsg] -> Bool)]
-compProblemTests =
+compProblemTests :: Bool -> [(String, [Either (IO ()) ClientMessage], [ResponseMsg] -> Bool)]
+compProblemTests isSource =
   [ ( "load-error"
     , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "load-error"] ]
     , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
@@ -192,21 +192,22 @@ compProblemTests =
     , [ Right $ SetPackageDB DefaultDB
       , Right $ PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" ++ testSuffix </> "A.hs") "3:1-3:2" ["y"] False False]
     , \case [ ErrorMessage _ ] -> True; _ -> False )
-  , ( "cabal-sandbox-defaulted"
-    , [ Left $ withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
-      , Right $ SetPackageDB DefaultDB
-      , Right $ AddPackages [testRoot </> "cabal-sandbox"] ]
-    , \case [ErrorMessage{}] -> True; _ -> False )
-  , ( "package-db-conflict"
-    , [ Left $ withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
-      , Right $ AddPackages [testRoot </> "cabal-sandbox", testRoot </> "has-cabal"] ]
-    , \case [ErrorMessage{}] -> True; _ -> False )
-  , ( "package-db-conflict-2"
-    , [ Left $ withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
-      , Right $ AddPackages [testRoot </> "cabal-sandbox"]
-      , Right $ AddPackages [testRoot </> "has-cabal"] ]
-    , \case [LoadingModules{}, LoadedModules{}, ErrorMessage{}] -> True; _ -> False )
-  ]
+  ] ++ if isSource then
+         [ ( "cabal-sandbox-defaulted"
+           , [ Left $ withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
+             , Right $ SetPackageDB DefaultDB
+             , Right $ AddPackages [testRoot </> "cabal-sandbox"] ]
+           , \case [ErrorMessage{}] -> True; _ -> False )
+         , ( "package-db-conflict"
+           , [ Left $ withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
+             , Right $ AddPackages [testRoot </> "cabal-sandbox", testRoot </> "has-cabal"] ]
+           , \case [ErrorMessage{}] -> True; _ -> False )
+         , ( "package-db-conflict-2"
+           , [ Left $ withCurrentDirectory (testRoot </> "cabal-sandbox") initCabalSandbox
+             , Right $ AddPackages [testRoot </> "cabal-sandbox"]
+             , Right $ AddPackages [testRoot </> "has-cabal"] ]
+           , \case [LoadingModules{}, LoadedModules{}, ErrorMessage{}] -> True; _ -> False )
+         ] else []
 
 refactorTests :: FilePath -> [(String, FilePath, [ClientMessage], [ResponseMsg] -> Bool)]
 refactorTests testRoot =
