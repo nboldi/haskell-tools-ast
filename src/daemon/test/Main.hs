@@ -620,7 +620,7 @@ communicateWithDaemon watch port opts msgs = withSocketsDo $ do
     let serverAddr = head addrInfo
     sock <- socket (addrFamily serverAddr) Stream defaultProtocol
     waitToConnect sock (addrAddress serverAddr)
-    let sendAll sock msg = Sock.sendAll sock msg `catch` \e -> do putStrLn "client send"
+    let sendAll sock msg = Sock.sendAll sock msg `catch` \e -> do putStrLn ("Client send: " ++ BS.unpack msg)
                                                                   throwIO (e :: SomeException)
     intermedRes <- sequence (map (either (\io -> do sendAll sock (encode KeepAlive)
                                                     r <- readSockResponsesUntil sock KeepAliveResponse BS.empty
