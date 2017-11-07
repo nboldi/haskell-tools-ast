@@ -649,6 +649,7 @@ communicateWithDaemon watch port opts msgs = withSocketsDo $ do
 tryNTimes :: Int -> IO () -> IO ()
 tryNTimes 0 action = action
 tryNTimes n action = action `catch` \e -> do putStrLn (show (e :: SomeException))
+                                             threadDelay 10000
                                              tryNTimes (n-1) action
 
 
