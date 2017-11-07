@@ -620,8 +620,7 @@ communicateWithDaemon watch port opts msgs = withSocketsDo $ do
     let serverAddr = head addrInfo
     sock <- socket (addrFamily serverAddr) Stream defaultProtocol
     waitToConnect sock (addrAddress serverAddr)
-    let sendAll sock msg = Sock.sendAll sock msg `catch` \e -> do putStrLn ("Client send: " ++ BS.unpack msg)
-                                                                  throwIO (e :: SomeException)
+    let sendAll sock msg = tryNTimes 5 (Sock.sendAll sock msg)
     intermedRes <- sequence (map (either (\io -> do sendAll sock (encode KeepAlive)
                                                     r <- readSockResponsesUntil sock KeepAliveResponse BS.empty
                                                     io
@@ -646,6 +645,12 @@ communicateWithDaemon watch port opts msgs = withSocketsDo $ do
                                                                         then return (i+1)
                                                                         else error "The port number reached the maximum")
                                               retryConnect port
+
+tryNTimes :: Int -> IO () -> IO ()
+tryNTimes 0 action = action
+tryNTimes n action = action `catch` \e -> do putStrLn (show (e :: SomeException))
+                                             tryNTimes (n-1) action
+
 
 daemonOpts :: Int -> Maybe FilePath -> DaemonOptions
 daemonOpts n we = DaemonOptions { daemonVersion = False
