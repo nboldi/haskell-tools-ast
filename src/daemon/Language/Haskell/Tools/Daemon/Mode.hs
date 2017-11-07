@@ -4,6 +4,7 @@
 module Language.Haskell.Tools.Daemon.Mode where
 
 import Control.Concurrent.Chan
+import Control.Exception
 import qualified Data.Aeson as A ()
 import Data.Aeson hiding ((.=))
 import Data.ByteString.Lazy.Char8 (ByteString)
@@ -34,7 +35,7 @@ socketMode = WorkingMode sockConn sockDisconnect sockSend sockReceive
       (conn, _) <- accept sock
       return (sock,conn)
     sockDisconnect (sock,conn) = close conn >> close sock
-    sockSend (_,conn) = sendAll conn . (`BS.snoc` '\n') . encode
+    sockSend (_,conn) = (`catch` \e -> putStrLn "server side" >> throwIO (e :: SomeException)) . sendAll conn . (`BS.snoc` '\n') . encode
     sockReceive (_,conn) = do
       msg <- recv conn 2048
       if not $ BS.null msg -- null on TCP means closed connection

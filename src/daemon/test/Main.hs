@@ -2,7 +2,7 @@
 module Main where
 
 import Control.Concurrent
-import Control.Exception (SomeException(..), finally, catch)
+import Control.Exception
 import Control.Monad
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BS
@@ -620,6 +620,8 @@ communicateWithDaemon watch port opts msgs = withSocketsDo $ do
     let serverAddr = head addrInfo
     sock <- socket (addrFamily serverAddr) Stream defaultProtocol
     waitToConnect sock (addrAddress serverAddr)
+    let sendAll sock msg = Sock.sendAll sock msg `catch` \e -> do putStrLn "client send"
+                                                                  throwIO (e :: SomeException)
     intermedRes <- sequence (map (either (\io -> do sendAll sock (encode KeepAlive)
                                                     r <- readSockResponsesUntil sock KeepAliveResponse BS.empty
                                                     io
