@@ -548,12 +548,12 @@ tryToExecute cmd args
        void $ waitForProcess handle
 
 makeDaemonTest :: MVar Int -> (String, [ClientMessage], [ResponseMsg]) -> TestTree
-makeDaemonTest port (label, input, expected) = testCase label $ do
+makeDaemonTest port (label, input, expected) = testCase label $ tryNTimes 5 $ do
     actual <- communicateWithDaemon False port daemonOpts (map Right (SetPackageDB DefaultDB : input))
     assertEqual "" expected actual
 
 makeComplexLoadTest :: MVar Int -> (String, FilePath, [ClientMessage], [ResponseMsg] -> Bool) -> TestTree
-makeComplexLoadTest port (label, dir, inputs, validator) = testCase label $ do
+makeComplexLoadTest port (label, dir, inputs, validator) = testCase label $ tryNTimes 5 $ do
     exists <- doesDirectoryExist (dir ++ testSuffix)
     -- clear the target directory from possible earlier test runs
     when exists $ removeDirectoryRecursive (dir ++ testSuffix)
@@ -563,7 +563,7 @@ makeComplexLoadTest port (label, dir, inputs, validator) = testCase label $ do
   `finally` removeDirectoryRecursive (dir ++ testSuffix)
 
 makeRefactorTest :: MVar Int -> (String, FilePath, [ClientMessage], [ResponseMsg] -> Bool) -> TestTree
-makeRefactorTest port (label, dir, input, validator) = testCase label $ do
+makeRefactorTest port (label, dir, input, validator) = testCase label $ tryNTimes 5 $ do
     exists <- doesDirectoryExist (dir ++ testSuffix)
     -- clear the target directory from possible earlier test runs
     when exists $ removeDirectoryRecursive (dir ++ testSuffix)
@@ -573,7 +573,7 @@ makeRefactorTest port (label, dir, input, validator) = testCase label $ do
   `finally` removeDirectoryRecursive (dir ++ testSuffix)
 
 makeReloadTest :: MVar Int -> (String, FilePath, [ClientMessage], IO (), [ClientMessage], [ResponseMsg] -> Bool) -> TestTree
-makeReloadTest port (label, dir, input1, io, input2, validator) = testCase label $ do
+makeReloadTest port (label, dir, input1, io, input2, validator) = testCase label $ tryNTimes 5 $ do
     exists <- doesDirectoryExist (dir ++ testSuffix)
     -- clear the target directory from possible earlier test runs
     when exists $ removeDirectoryRecursive (dir ++ testSuffix)
@@ -583,7 +583,7 @@ makeReloadTest port (label, dir, input1, io, input2, validator) = testCase label
   `finally` removeDirectoryRecursive (dir ++ testSuffix)
 
 makeUndoTest :: MVar Int -> (String, FilePath, [Either (IO ()) ClientMessage], [ResponseMsg] -> Bool) -> TestTree
-makeUndoTest port (label, dir, inputs, validator) = testCase label $ do
+makeUndoTest port (label, dir, inputs, validator) = testCase label $ tryNTimes 5 $ do
     exists <- doesDirectoryExist (dir ++ testSuffix)
     -- clear the target directory from possible earlier test runs
     when exists $ removeDirectoryRecursive (dir ++ testSuffix)
@@ -594,17 +594,17 @@ makeUndoTest port (label, dir, inputs, validator) = testCase label $ do
 
 makePkgDbTest :: MVar Int -> (String, IO (), [ClientMessage], [ResponseMsg]) -> TestTree
 makePkgDbTest port (label, prepare, inputs, expected)
-  = testCase label $ do
+  = testCase label $ tryNTimes 5 $ do
       actual <- communicateWithDaemon False port daemonOpts ([Left prepare] ++ map Right inputs)
       assertEqual "" expected actual
 
 makeCompProblemTest :: MVar Int -> (String, [Either (IO ()) ClientMessage], [ResponseMsg] -> Bool) -> TestTree
-makeCompProblemTest port (label, actions, validator) = testCase label $ do
+makeCompProblemTest port (label, actions, validator) = testCase label $ tryNTimes 5 $ do
   actual <- communicateWithDaemon False port daemonOpts actions
   assertBool ("The responses are not the expected: " ++ show actual) (validator actual)
 
 makeSpecialTest :: MVar Int -> (String, FilePath, Int -> Maybe FilePath -> DaemonOptions, [ClientMessage], [ResponseMsg] -> Bool) -> TestTree
-makeSpecialTest port (label, dir, opts, input, validator) = testCase label $ do
+makeSpecialTest port (label, dir, opts, input, validator) = testCase label $ tryNTimes 5 $ do
     exists <- doesDirectoryExist (dir ++ testSuffix)
     -- clear the target directory from possible earlier test runs
     when exists $ removeDirectoryRecursive (dir ++ testSuffix)
@@ -620,7 +620,6 @@ communicateWithDaemon watch port opts msgs = withSocketsDo $ do
     let serverAddr = head addrInfo
     sock <- socket (addrFamily serverAddr) Stream defaultProtocol
     waitToConnect sock (addrAddress serverAddr)
-    let sendAll sock msg = tryNTimes 5 (Sock.sendAll sock msg)
     intermedRes <- sequence (map (either (\io -> do sendAll sock (encode KeepAlive)
                                                     r <- readSockResponsesUntil sock KeepAliveResponse BS.empty
                                                     io
