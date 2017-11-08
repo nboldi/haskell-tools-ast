@@ -272,7 +272,7 @@ addPackages resp packagePathes = do
           case pkgDB of Nothing          -> do db <- liftIO $ decidePkgDB roots
                                                modify (packageDB .= fmap (, False) db)
                                                return (fmap (, False) db)
-                        Just (db, True)  -> return pkgDB
+                        Just (_, True)   -> return pkgDB
                         Just (db, False) -> do newDB <- liftIO $ decidePkgDB roots
                                                if newDB == Just db then return pkgDB
                                                                    else return Nothing
