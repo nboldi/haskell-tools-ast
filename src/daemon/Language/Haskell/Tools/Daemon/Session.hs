@@ -193,6 +193,7 @@ getReachableModules :: ([ModSummary] -> IO ()) -> (ModSummary -> Bool) -> Daemon
 getReachableModules loadCallback selected = do
   mcs <- gets (^. refSessMCs)
   withLoadFlagsForModules mcs $ do
+    lift $ depanal [] True
     sortedRecompMods <- lift $ dependentModules (return . selected)
     liftIO $ loadCallback sortedRecompMods
     return sortedRecompMods
