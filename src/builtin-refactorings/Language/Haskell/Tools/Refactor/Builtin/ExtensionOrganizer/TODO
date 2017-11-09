@@ -1,0 +1,5 @@
+TODO
+
+- resolve the "stack solver" issue (??)
+- fix DerivingsChecker
+- fix AST traversal

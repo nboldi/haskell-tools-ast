@@ -1,7 +1,7 @@
-resolver: nightly-2017-09-28
+resolver: nightly-2017-10-03
 
 ghc-options:
-  "*": -fwarn-unused-binds -fwarn-unused-matches -fwarn-unused-imports
+#  "*": -fwarn-unused-binds -fwarn-unused-matches -fwarn-unused-imports
 
 packages:
   - src/ast
@@ -19,3 +19,5 @@ packages:
 extra-deps:
   - fswatch-0.1.0.2
   - knob-0.1.1
+  # for builtin-refactorings/ExtensionOrganizer
+  - incremental-sat-solver-0.1.8

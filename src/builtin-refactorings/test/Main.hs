@@ -1,5 +1,4 @@
 {-# LANGUAGE LambdaCase
-           , ViewPatterns
            , TypeFamilies
            #-}
 module Main where
@@ -31,6 +30,8 @@ import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.Builtin (builtinRefactorings)
+
+import ExtensionOrganizerTest.Main (extensionOrganizerTestGroup)
 
 main :: IO ()
 main = defaultMain nightlyTests
