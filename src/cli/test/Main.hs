@@ -22,12 +22,12 @@ allTests
   = testGroup "cli-tests" [
       makeCliTest ( "batch", ["examples"</>"example-project"]
                   , \s -> CLIOptions False False (Just $ "RenameDefinition " ++ "examples"</>("example-project"++s)</>"Demo.hs" ++ " 3:1 b")
-                             (SharedDaemonOptions True Nothing False False Nothing)
+                             (SharedDaemonOptions True Nothing False False Nothing Nothing)
                   , \_ -> ""
                   , \s _ -> checkFileContent ("examples"</>("example-project"++s)</>"Demo.hs")
                                              ("b = ()" `List.isInfixOf`))
     , makeCliTest ( "session", ["examples"</>"example-project"]
-                  , \_ -> CLIOptions False False Nothing (SharedDaemonOptions True Nothing False False Nothing)
+                  , \_ -> CLIOptions False False Nothing (SharedDaemonOptions True Nothing False False Nothing Nothing)
                   , \s -> "RenameDefinition " ++ "examples"</>("example-project"++s)</>"Demo.hs" ++ " 3:1 b\nExit\n"
                   , \s _ -> checkFileContent ("examples"</>("example-project"++s)</>"Demo.hs")
                                              ("b = ()" `List.isInfixOf`))
@@ -43,7 +43,7 @@ makeCliTest (name, dirs, args, input, outputCheck)
       inHandle <- newFileHandle inKnob "<input>" ReadMode
       outKnob <- newKnob (pack [])
       outHandle <- newFileHandle outKnob "<output>" WriteMode
-      res <- normalRefactorSession builtinRefactorings inHandle outHandle (args suffix testdirs)
+      normalRefactorSession builtinRefactorings inHandle outHandle (args suffix testdirs)
       actualOut <- Data.Knob.getContents outKnob
       assertBool ("The result is not what is expected. Output: " ++ (unpack actualOut))
         =<< outputCheck suffix (unpack actualOut)

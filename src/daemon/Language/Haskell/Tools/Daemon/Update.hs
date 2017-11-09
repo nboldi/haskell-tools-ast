@@ -7,6 +7,7 @@
            , FlexibleContexts
            , BangPatterns
            , ViewPatterns
+           , TupleSections
            #-}
 -- | Resolves how the daemon should react to individual requests from the client.
 module Language.Haskell.Tools.Daemon.Update (updateClient, updateForFileChanges, initGhcSession) where
@@ -26,7 +27,7 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Version (Version(..))
-import System.Directory (setCurrentDirectory, removeFile, doesDirectoryExist)
+import System.Directory
 import System.FSWatch.Slave (watch)
 import System.IO
 import System.FilePath
@@ -41,7 +42,7 @@ import HscTypes (hsc_mod_graph)
 import Linker (unload)
 import Packages (initPackages)
 import Language.Haskell.Tools.Daemon.Options (SharedDaemonOptions(..), DaemonOptions(..))
-import Language.Haskell.Tools.Daemon.PackageDB (packageDBLoc, detectAutogen)
+import Language.Haskell.Tools.Daemon.PackageDB (decidePkgDB, packageDBLoc, detectAutogen)
 import Language.Haskell.Tools.Daemon.Protocol
 import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Daemon.Session
@@ -88,8 +89,11 @@ updateClient' UpdateCtx{..} Disconnect
   = do liftIO (response Disconnected)
        return False
 
-updateClient' _ (SetPackageDB pkgDB)
-  = do modify' (packageDB .= pkgDB)
+updateClient' UpdateCtx{..} (SetPackageDB pkgDB)
+  = do mcs <- gets (^. refSessMCs)
+       if null mcs
+         then modify' (packageDB .= Just (pkgDB, True))
+         else liftIO $ response $ ErrorMessage "The package database is already in use and cannot be changed."
        return True
 
 updateClient' UpdateCtx{..} (AddPackages packagePathes)
@@ -114,7 +118,7 @@ updateClient' UpdateCtx{..} (RemovePackages packagePathes) = do
     modify' $ refSessMCs .- filter (not . isRemoved)
     modifySession (\s -> s { hsc_mod_graph = filter ((`notElem` existingFiles) . getModSumOrig) (hsc_mod_graph s) })
     mcs <- gets (^. refSessMCs)
-    when (null mcs) $ modify' (packageDBSet .= False)
+    when (null mcs) $ modify' (packageDB .= Nothing)
     return True
   where isRemoved mc = (mc ^. mcRoot) `elem` packagePathes
 
@@ -161,7 +165,7 @@ updateClient' UpdateCtx{..} (PerformRefactoring refact modPath selection args sh
                              if not isWatching && not shutdown && not diffMode
                               -- if watch is on, then it will automatically
                               -- reload changed files, otherwise we do it manually
-                               then void $ reloadChanges (map ((^. sfkModuleName) . (^. _1)) (rights changedMods))
+                               then void $ reloadChanges (map ((^. sfkFileName) . (^. _1)) (rights changedMods))
                                else modify (touchedFiles .= Set.fromList (map ((^. sfkFileName) . (^. _1)) (rights changedMods)))
 
         applyChanges changes = do
@@ -208,9 +212,9 @@ updateClient' UpdateCtx{..} (PerformRefactoring refact modPath selection args sh
               return $ Left (RestoreRemoved file origCont, createUnifiedDiff file origCont "")
 
         reloadChanges changedMods
-          = reloadChangedModules (\ms -> response (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
+          = reloadChangedModules (\ms -> response (LoadedModule (getModSumOrig ms) (getModSumName ms)))
                                  (\mss -> response (LoadingModules (map getModSumOrig mss)))
-                                 (\ms -> getModSumName ms `elem` changedMods)
+                                 (\ms -> getModSumOrig ms `elem` changedMods)
 
         updateHistory :: [Either (UndoRefactor, b) (SourceFileKey, FilePath, UndoRefactor, String)] -> DaemonSession ()
         updateHistory changedMods
@@ -224,51 +228,54 @@ updateClient' UpdateCtx{..} (PerformRefactoring refact modPath selection args sh
 addPackages :: (ResponseMsg -> IO ()) -> [FilePath] -> DaemonSession ()
 addPackages _ [] = return ()
 addPackages resp packagePathes = do
-  nonExisting <- filterM ((return . not) <=< liftIO . doesDirectoryExist) packagePathes
+  roots <- liftIO $ mapM canonicalizePath packagePathes
+  nonExisting <- filterM ((return . not) <=< liftIO . doesDirectoryExist) roots
   DaemonSessionState {..} <- get
   if (not (null nonExisting))
     then liftIO $ resp $ ErrorMessage $ "The following packages are not found: " ++ concat (intersperse ", " nonExisting)
     else do
-      forM_ packagePathes watchNew -- put a file system watch on each package
+      forM_ roots watchNew -- put a file system watch on each package
       -- clear existing removed packages
       existingMCs <- gets (^. refSessMCs)
-      let existing = (existingMCs ^? traversal & filtered isTheAdded & mcModules & traversal & modRecMS)
+      let existing = (existingMCs ^? traversal & filtered (isTheAdded roots) & mcModules & traversal & modRecMS)
           existingModNames = map ms_mod existing
       needToReload <- (filter (\ms -> not $ ms_mod ms `elem` existingModNames))
                         <$> getReachableModules (\_ -> return ()) (\ms -> ms_mod ms `elem` existingModNames)
-      modify' $ refSessMCs .- filter (not . isTheAdded) -- remove the added package from the database
+      modify' $ refSessMCs .- filter (not . isTheAdded roots) -- remove the added package from the database
       forM_ existing $ \ms -> removeTarget (TargetFile (getModSumOrig ms) Nothing)
       modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existingModNames) . ms_mod) (hsc_mod_graph s) })
       -- load new modules
-      pkgDBok <- initializePackageDBIfNeeded
+      pkgDBok <- initializePackageDBIfNeeded roots
       if pkgDBok then do
         error <- loadPackagesFrom
-                   (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
+                   (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
                    (resp . LoadingModules . map getModSumOrig)
-                   (\st fp -> maybeToList <$> detectAutogen fp (st ^. packageDB)) packagePathes
+                   (\st fp -> maybe (return []) (fmap maybeToList . detectAutogen fp . fst) (st ^. packageDB)) roots
         -- handle source errors here to prevent rollback on the tool state
         case error of
           Nothing -> mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
           Just err -> liftIO $ resp $ uncurry CompilationProblem (getProblems err)
       else liftIO $ resp $ ErrorMessage $ "Attempted to load two packages with different package DB. "
                                             ++ "Stack, cabal-sandbox and normal packages cannot be combined"
-  where isTheAdded mc = (mc ^. mcRoot) `elem` packagePathes
-        initializePackageDBIfNeeded = do
-          pkgDBAlreadySet <- gets (^. packageDBSet)
+  where isTheAdded roots mc = (mc ^. mcRoot) `elem` roots
+        initializePackageDBIfNeeded roots = do
+          db <- dbSetup roots
+          case db of
+            Nothing -> return False
+            Just (pkgDB, _) -> do
+              locs <- liftIO $ packageDBLoc pkgDB (head roots)
+              usePackageDB locs
+              modify' (packageDBLocs .= locs)
+              return True
+        dbSetup roots = do
           pkgDB <- gets (^. packageDB)
-          locs <- liftIO $ mapM (packageDBLoc pkgDB) packagePathes
-          case locs of
-            firstLoc:rest ->
-              if | not (all (== firstLoc) rest)
-                     -> return False
-                 | pkgDBAlreadySet -> do
-                     pkgDBLocs <- gets (^. packageDBLocs)
-                     return (pkgDBLocs == firstLoc)
-                 | otherwise -> do
-                     usePackageDB firstLoc
-                     modify' ((packageDBSet .= True) . (packageDBLocs .= firstLoc))
-                     return True
-            [] -> return True
+          case pkgDB of Nothing          -> do db <- liftIO $ decidePkgDB roots
+                                               modify (packageDB .= fmap (, False) db)
+                                               return (fmap (, False) db)
+                        Just (_, True)   -> return pkgDB
+                        Just (db, False) -> do newDB <- liftIO $ decidePkgDB roots
+                                               if newDB == Just db then return pkgDB
+                                                                   else return Nothing
 
 -- | Updates the state of the tool after some files have been changed (possibly by another application)
 updateForFileChanges :: (ResponseMsg -> IO ()) -> [FilePath] -> [FilePath] -> [FilePath] -> DaemonSession ()
@@ -305,7 +312,7 @@ reloadModules resp added changed removed = do
   modifySession (\s -> s { hsc_mod_graph = filter (\mod -> getModSumOrig mod `notElem` removed) (hsc_mod_graph s) })
   -- reload changed modules
   -- TODO: filter those that are in reloaded packages
-  reloadChangedModules (\ms -> resp (LoadedModules [(getModSumOrig ms, getModSumName ms)]))
+  reloadChangedModules (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
                        (\mss -> resp (LoadingModules (map getModSumOrig mss)))
                        (\ms -> getModSumOrig ms `elem` changed)
   mcs <- gets (^. refSessMCs)

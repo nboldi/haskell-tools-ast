@@ -46,7 +46,7 @@ data CLIOptions = CLIOptions { displayVersion :: Bool
                              , executeCommands :: Maybe String
                              , sharedOptions :: SharedDaemonOptions
                              , packageRoots :: [FilePath]
-                             }
+                             } deriving Show
 
 -- | Entry point with configurable initialization. Mainly for testing, call 'normalRefactorSession'
 -- to use the command-line.
@@ -82,11 +82,19 @@ processUserInput refactorings input output chan = do
 -- | Perform a command received from the user. The resulting boolean states if the user may continue
 -- (True), or the session is over (False).
 processCommand :: Bool -> [RefactoringChoice IdDom] -> Handle -> Chan ClientMessage -> String -> IO Bool
+processCommand _ _ _ _ "" = return True
 processCommand shutdown refactorings output chan cmd = do
   case splitOn " " cmd of
     ["Exit"] -> writeChan chan Disconnect >> return False
+    ["AddFile", fn] -> writeChan chan (ReLoad [fn] [] []) >> return True
+    ["ChangeFile", fn] -> writeChan chan (ReLoad [] [fn] []) >> return True
+    ["RemoveFile", fn] -> writeChan chan (ReLoad [] [] [fn]) >> return True
+    [cmd] | cmd `elem` ["AddFile", "ChangeFile", "RemoveFile"]
+      -> hPutStrLn output (cmd ++ " needs one argument. None is given.") >> return False
+    cmd:_ | cmd `elem` ["AddFile", "ChangeFile", "RemoveFile"]
+      -> hPutStrLn output (cmd ++ " needs one argument. Too many arguments given.") >> return False
     ["Undo"] -> writeChan chan UndoLast >> return True
-    ["Reset"] -> writeChan chan Reset >> return True
+    ["Reset"] -> writeChan chan Reset >> return True -- undocumented feature
     ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")
                , ref `elem` refactorCommands refactorings
        -> do writeChan chan (PerformRefactoring ref modPath selection details shutdown False)
@@ -95,8 +103,9 @@ processCommand shutdown refactorings output chan cmd = do
                        , ref `elem` refactorCommands refactorings
        -> do writeChan chan (PerformRefactoring ref modPath selection details shutdown True)
              return (not shutdown)
-    _ -> do liftIO $ hPutStrLn output $ "'" ++ cmd ++ "' is not a known command. Commands are: Exit, "
-                                            ++ intercalate ", " (refactorCommands refactorings)
+    ["Try"] -> hPutStrLn output "The 'Try' modifier requires a refactoring command specified to execute." >> return False
+    _ -> do liftIO $ hPutStrLn output $ "'" ++ cmd ++ "' is not a known command. Commands are: Exit, Undo, AddFile, ChangeFile, RemoveFile, Try REFACTOR"
+                                            ++ concat (map (", " ++) (refactorCommands refactorings))
             return True
 
 -- | Read the responses of the daemon. The result states if the session exited normally or in an
@@ -115,8 +124,8 @@ processMessage pedantic output (CompilationProblem marks hints)
   = do mapM_ (hPutStrLn output) hints
        mapM_ (\(loc, msg) -> hPutStrLn output (shortShowSpanWithFile loc ++ ": " ++ msg)) marks
        return (if pedantic then Just False else Nothing)
-processMessage _ output (LoadedModules mods)
-  = do mapM (\(fp,name) -> hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") ") mods
+processMessage _ output (LoadedModule fp name)
+  = do hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") "
        return Nothing
 processMessage _ output (DiffInfo diff)
   = do hPutStrLn output diff
