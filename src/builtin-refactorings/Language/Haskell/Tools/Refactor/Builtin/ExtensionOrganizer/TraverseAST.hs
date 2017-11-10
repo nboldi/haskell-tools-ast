@@ -19,7 +19,13 @@ import Control.Reference ((!~), (&), (&+&))
 
 import Debug.Trace (trace)
 
+{-
+   NOTE: We need Decl level checking for deriving clausese
+         in order to gain extra information from the newtype and data keywords.
 
+         We need Decl level checking for instance heads, in order to distinguish
+         class instances from data and type family instances.
+-}
 chkDecl :: CheckNode Decl
 chkDecl = chkFlexibleInstances >=> chkDerivings
 
@@ -103,7 +109,7 @@ traverseDecl = chkDecl
                >=> (declFunDeps & annJust !~ traverseFunDeps)
                >=> (declForeignType !~ traverseType)
                >=> (declFixity !~ traverseFixitySignature)
-               -- >=> (declDeriving & annJust !~ traverseDeriving)
+               >=> (declDeriving & annList !~ traverseDeriving)
                >=> (declDecl & annList !~ traverseTypeEqn)
                >=> (declCtx & annJust !~ traverseContext)
                >=> (declCons & annList !~ traverseConDecl)
@@ -168,7 +174,7 @@ traverseRuleVar = (ruleVarName !~ traverseName)
 
 traversePatternSignature :: CheckNode PatternSignature
 traversePatternSignature = chkPatternSignature
-                      -- UPDATE >=> (patSigName !~ traverseName)
+                       >=> (patSigName & annList !~ traverseName)
                        >=> (patSigType !~ traverseType)
 
 -- DONE
@@ -345,7 +351,7 @@ traverseValueBind = (valBindPat !~ traversePattern)
 
 traversePattern :: CheckNode Pattern
 traversePattern = chkPattern
-                  >=>(innerPattern !~ traversePattern)
+                  >=> (innerPattern !~ traversePattern)
                   >=> (innerLiteral !~ traverseLiteral)
                   >=> (patternOperator !~ traverseOperator)
                   >=> (patternFields & annList !~ traversePatternField)

@@ -37,6 +37,8 @@ import Debug.Trace (trace, traceShow)
 --       that will will avoid unnecessary checks.
 --       For example if it already found a record wildcard, it won't check again
 
+--       Pretty easy now. Chcek wheter it is already in the ExtMap.
+
 type OrganizeExtensionsDomain dom = (HasModuleInfo dom, ExtDomain dom)
 
 organizeExtensionsRefactoring :: OrganizeExtensionsDomain dom => RefactoringChoice dom

@@ -1,4 +1,4 @@
-module ExtensionOrganizerTest.Main where
+module Main where
 
 import Test.Tasty (TestTree, testGroup, defaultMain)
 import Test.Tasty.HUnit
@@ -6,7 +6,7 @@ import Test.Tasty.HUnit
 import SrcLoc
 import GHC hiding (loadModule, ModuleName)
 import GHC.Paths (libdir)
-import GHC.LanguageExtensions.Type
+import Language.Haskell.TH.LanguageExtensions
 
 import Data.List (sort)
 import qualified Data.Map.Strict as SMap
@@ -15,11 +15,11 @@ import System.Directory (listDirectory)
 
 import Language.Haskell.Tools.Refactor hiding (ModuleName)
 import Language.Haskell.Tools.PrettyPrint hiding (ModuleName)
+import Language.Haskell.Tools.Refactor.Builtin.OrganizeExtensions
+import ExtensionOrganizerTest.AnnotationParser
 
 import Control.Reference (_1, (.-))
 
-import ExtensionOrganizerTest.AnnotationParser
-import Language.Haskell.Tools.Refactor.Builtin.OrganizeExtensions
 
 import Debug.Trace (trace, traceShow)
 

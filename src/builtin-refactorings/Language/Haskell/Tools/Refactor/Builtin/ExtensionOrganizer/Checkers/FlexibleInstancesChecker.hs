@@ -26,25 +26,28 @@ import Debug.Trace
 {-# ANN module "HLint: ignore Redundant bracket" #-}
 
 -- TODO: write "deriving instance ..." tests (should work)
--- TODO: should expand type synonims  !!!
+-- TODO: should expand type synonyms  !!!
 
 -- NOTE: Here we implicitly constrained the type with ExtDomain.
 --       but we only really need HasNameInfo.
+
+-- NOTE: We need Decl level checking, in order to distinguish
+--       class instances from data and type family instances.
 
 chkFlexibleInstances :: CheckNode Decl
 chkFlexibleInstances = conditional chkFlexibleInstances' FlexibleInstances
 
 chkFlexibleInstances' :: CheckNode Decl
 chkFlexibleInstances' d@(Refact.StandaloneDeriving rule) = checkedReturn rule d
-chkFlexibleInstances' d@(InstanceDecl rule _) = checkedReturn rule d
+chkFlexibleInstances' d@(InstanceDecl rule _)            = checkedReturn rule d
 chkFlexibleInstances' d = return d
 
 checkedReturn :: ExtDomain dom => InstanceRule dom -> a -> ExtMonad a
 checkedReturn rule x = chkInstanceRule rule >> return x
 
 -- this check DOES transform the AST for its internal computations
--- but returns the original one at the end
--- NOTE: There are two traversal:
+-- but returns the original one in the end
+-- NOTE: There are two traversals:
 --       First one on the class level, and the second one one on the type level.
 --       Since biplateRef is lazy, it won't go down to the type level in the first traversal
 chkInstanceRule :: CheckNode InstanceRule

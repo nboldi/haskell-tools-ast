@@ -3,7 +3,6 @@ module ExtensionOrganizerTest.AnnotationParser where
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad -- for Ord Extension
 import Data.List
 import qualified Data.Map.Strict as SMap
-import GHC.LanguageExtensions.Type
 
 import Debug.Trace (trace)
 

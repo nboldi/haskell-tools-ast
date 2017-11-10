@@ -1,9 +1,13 @@
 {-# LANGUAGE FlexibleContexts,
              MultiWayIf,
+             RankNTypes,
              TypeFamilies
              #-}
 
 {-
+  NOTE: We need Decl level checking in order to gain extra information
+        from the newtype and data keywords.
+
   NOTE:
   - DeriveX (X = Data, Generic, Functor, Foldable, Traversable, Lift)
   - same for StandaloneDeriving, but has to check for newtype
@@ -31,6 +35,11 @@
 
   StandaloneDeriving:
   - have to lookup type constructor (could be difficult ...)
+
+  DerivingStrategies:
+  - if there is ANY deriving clause, we must keep it
+    (Because even if we don't specify the strategy, it won't fall back on DeriveAny,
+    but it will try to determine the correct strategy using its own algorithm.)
 
 
   TODO:
@@ -115,9 +124,7 @@ wiredInClasses = [ eqClassName
 
 isWiredInClass = flip elem wiredInClasses
 
-chkDerivings = undefined
 
-{-
 chkDerivings :: CheckNode Decl
 chkDerivings = conditionalAny chkDerivings' derivingExts
            >=> conditional chkStandaloneDeriving Ext.StandaloneDeriving
@@ -132,40 +139,37 @@ chkDerivings = conditionalAny chkDerivings' derivingExts
                            , DeriveFoldable
                            , DeriveTraversable
                            , DeriveAnyClass
-                           , GeneralizedNewtypeDeriving]
+                           , GeneralizedNewtypeDeriving
+                           , DerivingStrategies
+                           ]
 
 
 
 chkDataDecl :: CheckNode Decl
 chkDataDecl d@(DataDecl keyw _ _ _ derivs) = do
-  separateByKeyword keyw derivs
+  annList !~ separateByKeyword keyw $ derivs
   return d
 chkDataDecl d = return d
 
 chkGADTDataDecl :: CheckNode Decl
 chkGADTDataDecl d@(GADTDataDecl keyw _ _ _ _ derivs) = do
   addOccurence_ GADTs d
-  separateByKeyword keyw derivs
+  annList !~ separateByKeyword keyw $ derivs
   return d
 chkGADTDataDecl d = return d
 
 chkDataInstance :: CheckNode Decl
 chkDataInstance d@(DataInstance keyw _ _ derivs) = do
   addOccurence_ TypeFamilies d
-  annList !~ (\x -> separateByKeyword keyw x >> return x) $ derivs
+  annList !~ separateByKeyword keyw $ derivs
   return d
 chkDataInstance d = return d
 
-separateByKeyword :: HasNameInfo dom =>
-                     DataOrNewtypeKeyword dom ->
-                     AnnMaybeG UDeriving dom SrcTemplateStage ->
-                     ExtMonad ()
+separateByKeyword :: DataOrNewtypeKeyword dom -> CheckNode Deriving
 separateByKeyword keyw derivs
   | isNewtypeDecl keyw = checkWith chkClassForNewtype
   | otherwise          = checkWith chkClassForData
-  where checkWith f = do
-          (annJust !~ chkDerivingClause f) derivs
-          return ()
+  where checkWith f        = chkDerivingClause f derivs
         isNewtypeDecl keyw = case keyw ^. element of
                                UNewtypeKeyword -> True
                                _               -> False
@@ -264,15 +268,12 @@ isNewtypeTyCon _ = False
 
 
 
-chkDerivingClause :: HasNameInfo dom =>
-                     (InstanceHead dom -> ExtMonad (InstanceHead dom)) ->
-                     Deriving dom ->
-                     ExtMonad (Deriving dom)
+chkDerivingClause :: CheckNode' InstanceHead dom -> CheckNode' Deriving dom
 chkDerivingClause checker d@(DerivingOne   x)  = checker x >> return d
-chkDerivingClause checker d@(DerivingMulti xs) = do
-  let classes = xs ^. annListElems
-  mapM_ checker classes
-  return d
+chkDerivingClause checker d@(DerivingMulti xs) = (annList !~ checker) xs >> return d
+  -- let classes = xs ^. annListElems
+  -- mapM_ checker classes
+  -- return d
 
 {-
  Checks an individual class inside a deriving clause in a data declaration
@@ -331,8 +332,6 @@ notGNTD = [ dataClassName
 skipParens :: InstanceHead dom -> InstanceHead dom
 skipParens (ParenInstanceHead x) = skipParens x
 skipParens x = x
-
--}
 
 getSemName :: HasNameInfo dom => Name dom -> Maybe GHC.Name
 getSemName x = semanticsName (x ^. simpleName)

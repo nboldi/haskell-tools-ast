@@ -1,5 +1,5 @@
 TODO
 
 - resolve the "stack solver" issue (??)
-- fix DerivingsChecker
-- fix AST traversal
+- add DerivingStrategies to DerivingsChecker
+- fix BangPatternTest issue (doesn't recognize let !x = ...)
