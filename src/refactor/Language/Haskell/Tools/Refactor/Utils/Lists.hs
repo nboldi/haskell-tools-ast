@@ -7,6 +7,7 @@ import Control.Applicative ((<$>))
 import Control.Reference
 import Data.List (findIndices)
 import Data.Char (isSpace)
+import Data.Maybe (fromMaybe)
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.PrettyPrint.Prepare
@@ -34,6 +35,9 @@ filterListSt pred = filterListIndexedSt (const pred)
 
 -- | A version of filterListIndexed that cares about keeping non-removable code elements (like preprocessor pragmas)
 filterListIndexedSt :: SourceInfoTraversal e => (Int -> Ann e dom SrcTemplateStage -> Bool) -> AnnList e dom -> LocalRefactor dom (AnnList e dom)
+filterListIndexedSt pred ls@(AnnListG _ elems)
+  | all (uncurry pred) (zip [0..] elems)
+  = return ls
 filterListIndexedSt pred (AnnListG (NodeInfo sema src) elems)
   = do mapM_ removeChild removedElems
        mapM_ removeSeparator removedSeparators
@@ -52,7 +56,7 @@ filterListIndexedSt pred (AnnListG (NodeInfo sema src) elems)
         filterSeparators = take (length elementsKept - 1) . sublist elementsKept
         -- if only one element remains we want to keep the whitespace before the first element
         movedBefore = case elementsKept of 
-                        [e] | e > 0 && any @[] isStayingText (removedSeparators ^? traversal & _1 & traversal)
+                        [e] | e > 0 && any @[] isStayingText (removedSeparators ^? traversal & _1 & traversal) && maybe True (not . and) (src ^. srcTmpIndented)
                            -> concatMap (takeWhile isSpace . (^. sourceTemplateText)) . reverse . takeWhile (not . isStayingText) . reverse $ (src ^? srcTmpSeparators & traversal & _1) !! (e - 1)
                         _  -> ""
 
