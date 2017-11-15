@@ -57,6 +57,7 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.ExtractBinding
                      , Language.Haskell.Tools.Refactor.Builtin.InlineBinding
                      , Language.Haskell.Tools.Refactor.Builtin.FloatOut
+                     , Language.Haskell.Tools.Refactor.Builtin.AutoCorrect
 
   build-depends:       base                      >= 4.10  && < 4.11
                      , mtl                       >= 2.2  && < 2.3
