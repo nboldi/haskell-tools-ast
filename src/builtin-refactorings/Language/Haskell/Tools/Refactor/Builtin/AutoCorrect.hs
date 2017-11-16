@@ -93,10 +93,10 @@ reduceBy :: [(GHC.Type, Build dom)] -> Int -> [[(GHC.Type, Build dom)]]
 reduceBy (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ maybeToList (reduceOperatorApp ls i)
   where reduceFunctionApp ls i | Just (funT, fun) <- lookup i ls
                                , Just (argT, arg) <- lookup (i+1) ls
-                               , Just (inpT, resT) <- splitFunTy_maybe $ snd $ splitForAllTys funT
+                               , (filter (not . isPredTy) -> inpT:inpsT, resT) <- splitFunTys $ snd $ splitForAllTys funT
                                , Just subst <- tcUnifyTy argT inpT
           = Just $ map ((_1 .- substTy subst) . snd) (take i ls) 
-                     ++ [(substTy subst resT, mkParen' (mkApp' fun arg))] 
+                     ++ [(substTy subst (mkFunTys inpsT resT), mkParen' (mkApp' fun arg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
         reduceFunctionApp ls i = 
           trace ("### reduceFunctionApp: " ++ show (map (_2 .- ((_1 .- (showSDocUnsafe . ppr)) . (_2 .- (either prettyPrintAtom prettyPrint)))) ls) ++ " " ++ show i 
@@ -109,10 +109,10 @@ reduceBy (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ maybeToLi
         reduceOperatorApp ls i | Just (opT, Left (OperatorA op)) <- lookup i ls
                                , Just (lArgT, lArg) <- lookup (i-1) ls
                                , Just (rArgT, rArg) <- lookup (i+1) ls
-                               , (inp1T:inp2T:inpsT, resT) <- splitFunTys $ snd $ splitForAllTys opT
+                               , (filter (not . isPredTy) -> inp1T:inp2T:inpsT, resT) <- splitFunTys $ snd $ splitForAllTys opT
                                , Just subst <- tcUnifyTys (\_ -> BindMe) [lArgT,rArgT] [inp1T,inp2T]
           = Just $ map ((_1 .- substTy subst) . snd) (take (i - 1) ls) 
-                     ++ [(substTy subst resT, mkParen' (mkInfixApp' lArg op rArg))] 
+                     ++ [(substTy subst (mkFunTys inpsT resT), mkParen' (mkInfixApp' lArg op rArg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
         reduceOperatorApp ls i = 
           trace ("### reduceOperatorApp: " ++ show (map (_2 .- ((_1 .- (showSDocUnsafe . ppr)) . (_2 .- (either prettyPrintAtom prettyPrint)))) ls) ++ " " ++ show i 
