@@ -19,6 +19,7 @@ import qualified Data.List as List
 import Data.List.Split
 import qualified Data.Map as Map
 import Data.Maybe
+import Data.Either.Combinators
 import System.Directory
 import System.FilePath
 
@@ -49,7 +50,7 @@ loadPackagesFrom :: (ModSummary -> IO ())
                       -> ([ModSummary] -> IO ())
                       -> (DaemonSessionState -> FilePath -> IO [FilePath])
                       -> [FilePath]
-                      -> DaemonSession (Maybe SourceError)
+                      -> DaemonSession [SourceError]
 loadPackagesFrom report loadCallback additionalSrcDirs packages =
   do -- collecting modules to load
      modColls <- liftIO $ getAllModules packages
@@ -68,9 +69,8 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
                                   $ List.sort $ concatMap getExposedModules mcs')
      loadRes <- gtry (loadModules mcs alreadyLoadedFiles)
      case loadRes of
-       Right mods -> (compileModules report mods >> return Nothing)
-                        `gcatch` (return . Just)
-       Left err -> return (Just err)
+       Right mods -> catMaybes . map leftToMaybe <$> compileModules report mods
+       Left err -> return [err]
 
   where getExposedModules :: ModuleCollection k -> [k]
         getExposedModules
@@ -118,7 +118,7 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
 
         compileModules report mods = do
           checkEvaluatedMods mods
-          mapM_ (reloadModule report) mods
+          mapM (gtry . reloadModule report) mods
 
 -- | Loads the packages that are declared visible (by .cabal file).
 loadVisiblePackages :: DaemonSession ()

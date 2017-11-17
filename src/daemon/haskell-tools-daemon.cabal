@@ -94,6 +94,7 @@ library
                      , containers                >= 0.5   && < 0.6
                      , mtl                       >= 2.2   && < 2.3
                      , split                     >= 0.2   && < 1.0
+                     , either                    >= 4.4   && < 4.5
                      , directory                 >= 1.2   && < 1.4
                      , process                   >= 1.6   && < 1.7
                      , ghc                       >= 8.2   && < 8.3

@@ -247,14 +247,14 @@ addPackages resp packagePathes = do
       -- load new modules
       pkgDBok <- initializePackageDBIfNeeded roots
       if pkgDBok then do
-        error <- loadPackagesFrom
-                   (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
-                   (resp . LoadingModules . map getModSumOrig)
-                   (\st fp -> maybe (return []) (fmap maybeToList . detectAutogen fp . fst) (st ^. packageDB)) roots
+        errs <- loadPackagesFrom
+                  (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
+                  (resp . LoadingModules . map getModSumOrig)
+                  (\st fp -> maybe (return []) (fmap maybeToList . detectAutogen fp . fst) (st ^. packageDB)) roots
         -- handle source errors here to prevent rollback on the tool state
-        case error of
-          Nothing -> mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
-          Just err -> liftIO $ resp $ uncurry CompilationProblem (getProblems err)
+        forM errs $ liftIO . resp . uncurry CompilationProblem . getProblems
+        when (null errs) $
+          mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
       else liftIO $ resp $ ErrorMessage $ "Attempted to load two packages with different package DB. "
                                             ++ "Stack, cabal-sandbox and normal packages cannot be combined"
   where isTheAdded roots mc = (mc ^. mcRoot) `elem` roots
