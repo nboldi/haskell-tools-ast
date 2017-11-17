@@ -50,7 +50,7 @@ loadPackagesFrom :: (ModSummary -> IO ())
                       -> ([ModSummary] -> IO ())
                       -> (DaemonSessionState -> FilePath -> IO [FilePath])
                       -> [FilePath]
-                      -> DaemonSession [SourceError]
+                      -> DaemonSession (Maybe SourceError)
 loadPackagesFrom report loadCallback additionalSrcDirs packages =
   do -- collecting modules to load
      modColls <- liftIO $ getAllModules packages
@@ -69,8 +69,10 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
                                   $ List.sort $ concatMap getExposedModules mcs')
      loadRes <- gtry (loadModules mcs alreadyLoadedFiles)
      case loadRes of
-       Right mods -> catMaybes . map leftToMaybe <$> compileModules report mods
-       Left err -> return [err]
+       Right mods -> do 
+         modify (refSessMCs & traversal & filtered (\mc -> (mc ^. mcId) `elem` map (^. mcId) modColls) & mcLoadDone .= True)
+         compileModules report mods
+       Left err -> return (Just err)
 
   where getExposedModules :: ModuleCollection k -> [k]
         getExposedModules
@@ -117,8 +119,15 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
           return mods
 
         compileModules report mods = do
-          checkEvaluatedMods mods
-          mapM (gtry . reloadModule report) mods
+            checkEvaluatedMods mods
+            compileWhileOk mods
+          where compileWhileOk [] = return Nothing
+                compileWhileOk (mod:mods) 
+                  = do res <- gtry (reloadModule report mod)
+                       case res of
+                          Left err -> return (Just err)
+                          Right _ -> compileWhileOk mods
+        
 
 -- | Loads the packages that are declared visible (by .cabal file).
 loadVisiblePackages :: DaemonSession ()
