@@ -6,22 +6,15 @@
 module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.FlexibleInstancesChecker where
 
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad
-import Control.Reference ((^.), (!~), (&), biplateRef)
+import Control.Reference ((^.), (!~), biplateRef)
 import Language.Haskell.Tools.Refactor as Refact
-import Language.Haskell.Tools.PrettyPrint (prettyPrint)
-import Language.Haskell.Tools.AST
 
 
 import Data.List (nub)
 import Data.Data
-import qualified Data.Map.Strict as SMap
 import Control.Monad.Trans.Maybe
-import Control.Monad.Identity
 
-import SrcLoc (RealSrcSpan, SrcSpan(..))
 import Name as GHC (isTyVarName, isTyConName, isWiredInName)
-
-import Debug.Trace
 
 {-# ANN module "HLint: ignore Redundant bracket" #-}
 
@@ -68,7 +61,7 @@ refact op = biplateRef !~ op
 -- thus with MultiParamTypeclasses each param will be checked independently
 -- (so the same type variable can appear in multiple params)
 chkInstanceHead :: CheckNode InstanceHead
-chkInstanceHead x@(InfixInstanceHead tyvars op) = do
+chkInstanceHead x@(InfixInstanceHead tyvars _) = do
   tyvars' <- refact rmTypeMisc tyvars
   chkTyVars tyvars'
   addOccurence_ MultiParamTypeClasses x
@@ -95,8 +88,7 @@ chkInstanceHead app = return app
 -- other misc ...
 chkTyVars :: CheckNode Type
 chkTyVars vars = do
-  exts <- get
-  (isOk, (cs, vs)) <- runStateT (runMaybeT (chkAll vars)) ([],[])
+  (isOk, (_, vs)) <- runStateT (runMaybeT (chkAll vars)) ([],[])
   case isOk of
     Just isOk ->
       unless (isOk && length vs == (length . nub $ vs)) --tyvars are different
@@ -151,7 +143,7 @@ chkTyVars vars = do
                        MonadState ExtMap m2,
                        ExtDomain dom) =>
                        Type dom -> MaybeT (m1 m2) Bool
-        chkOnlyApp (TypeApp f v@(VarType x)) = do
+        chkOnlyApp (TypeApp f v@(VarType _)) = do
           isTyVar <- chkSingleTyVar v
           if isTyVar
             then case f of

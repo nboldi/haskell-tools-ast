@@ -11,17 +11,13 @@ import Language.Haskell.TH.LanguageExtensions
 import Data.List (sort)
 import qualified Data.Map.Strict as SMap
 import System.FilePath
-import System.Directory (listDirectory)
 
 import Language.Haskell.Tools.Refactor hiding (ModuleName)
-import Language.Haskell.Tools.PrettyPrint hiding (ModuleName)
 import Language.Haskell.Tools.Refactor.Builtin.OrganizeExtensions
 import ExtensionOrganizerTest.AnnotationParser
 
 import Control.Reference (_1, (.-))
 
-
-import Debug.Trace (trace, traceShow)
 
 {- NOTE:
   Exhaustive checks for Pattern type AST nodes are not given for each check.

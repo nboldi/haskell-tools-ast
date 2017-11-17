@@ -7,8 +7,6 @@ module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.BangP
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad
 import Language.Haskell.Tools.Refactor
 
-import Debug.Trace (trace)
-
 -- NOTE: Here we implicitly constrained the type with ExtDomain.
 --       but we don't really need any.
 
