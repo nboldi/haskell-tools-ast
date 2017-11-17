@@ -12,23 +12,16 @@ module Language.Haskell.Tools.Refactor.Builtin.OrganizeExtensions
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.TraverseAST
 
-import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.Utils.Extensions (expandExtension)
 
 import GHC
-import Language.Haskell.TH.LanguageExtensions
-import SrcLoc (RealSrcSpan, SrcSpan)
 
-import Data.List
 import Data.Char
-import qualified Data.Set as Set
 import qualified Data.Map.Strict as SMap
-import Control.Monad.State
 import Control.Reference ((&), (.=), (^?))
-import Control.Reference.Representation
 
-import Debug.Trace (trace, traceShow)
+--import Debug.Trace (traceShow)
 
 {-# ANN module "HLint: ignore Use mappend" #-}
 {-# ANN module "HLint: ignore Redundant lambda" #-}
@@ -65,12 +58,12 @@ organizeExtensions = \moduleAST -> do
           | otherwise     = []
 
         -- xs :: [(k, [v])]
-        printExts xs = forM_ xs (\(ext, loc) -> do
-                         traceShow ext $ return ()
-                         forM loc (\l ->
-                           traceShow l $ return ()
-                           )
-                         )
+        -- printExts xs = forM_ xs (\(ext, loc) -> do
+        --                  traceShow ext $ return ()
+        --                  forM loc (\l ->
+        --                    traceShow l $ return ()
+        --                    )
+        --                  )
 
 
 

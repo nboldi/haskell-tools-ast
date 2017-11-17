@@ -41,7 +41,7 @@ deriving instance Read Extension
 type ExtMonad        = ReaderT [Extension] (StateT ExtMap Ghc)
 type ExtDomain dom   = (HasNameInfo dom)
 
-type CheckNode  elem     = forall dom . CheckNode'  elem dom
+type CheckNode  elem     = forall dom . CheckNode' elem dom
 type CheckNode' elem dom = ExtDomain dom => elem dom -> ExtMonad (elem dom)
 
 type CheckUNode  uelem     = forall dom . CheckUNode' uelem dom
@@ -70,6 +70,14 @@ conditional :: (node -> ExtMonad node) ->
                node ->
                ExtMonad node
 conditional checker ext = conditionalAny checker [ext]
+
+conditionalNot :: (node -> ExtMonad node) ->
+                  Extension ->
+                  node ->
+                  ExtMonad node
+conditionalNot checker ext node = do
+  b <-isTurnedOn ext
+  if b then return node else checker node
 
 conditionalAny :: (node -> ExtMonad node) ->
                    [Extension] ->

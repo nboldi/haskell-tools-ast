@@ -71,6 +71,7 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMap
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.TraverseAST
 
+
   other-modules:       Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.DerivingsChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.FlexibleInstancesChecker
@@ -83,6 +84,7 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.TupleSectionsChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.UnboxedTuplesChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.MagicHashChecker
+                     , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Utils.TypeLookup
 
 
 

@@ -1,6 +1,4 @@
 {-# LANGUAGE DeriveDataTypeable,
-             DeriveFunctor,
-             DeriveFoldable,
              DeriveTraversable,
              GeneralizedNewtypeDeriving
              #-}
@@ -17,11 +15,11 @@ newtype T2 a = T2 (D6 a)
   deriving (Show, Read, Data, Typeable) {-* DeriveDataTypeable, DeriveDataTypeable *-}
 
 newtype T3 a = T3 (D6 a)
-  deriving Eq   {-* GeneralizedNewtypeDeriving *-}
+  deriving Eq
 
 newtype T4 a = T4 (D6 a)
-  deriving Functor  {-* GeneralizedNewtypeDeriving, DeriveFunctor *-}
+  deriving Functor  {-* GeneralizedNewtypeDeriving *-}
 
 newtype T5 a = T5 (D6 a)
-  deriving (Eq, Ord, Ix, Bounded, Show, Read, {-* GeneralizedNewtypeDeriving, GeneralizedNewtypeDeriving, GeneralizedNewtypeDeriving, GeneralizedNewtypeDeriving *-}
-            Data, Typeable, Functor, Foldable, Traversable) {-* GeneralizedNewtypeDeriving, GeneralizedNewtypeDeriving, GeneralizedNewtypeDeriving, DeriveDataTypeable, DeriveDataTypeable, DeriveFunctor, DeriveFoldable, DeriveTraversable *-}
+  deriving (Eq, Ord, Ix, Bounded, Show, Read,
+            Data, Typeable, Functor, Foldable, Traversable) {-* GeneralizedNewtypeDeriving, GeneralizedNewtypeDeriving, DeriveDataTypeable, DeriveDataTypeable, DeriveTraversable *-}

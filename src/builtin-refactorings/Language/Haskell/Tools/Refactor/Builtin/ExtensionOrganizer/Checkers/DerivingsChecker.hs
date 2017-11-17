@@ -1,133 +1,108 @@
 {-# LANGUAGE FlexibleContexts,
              MultiWayIf,
              RankNTypes,
-             TypeFamilies
+             TypeFamilies,
+             PatternSynonyms
              #-}
 
 {-
   NOTE: We need Decl level checking in order to gain extra information
         from the newtype and data keywords.
-
-  NOTE:
-  - DeriveX (X = Data, Generic, Functor, Foldable, Traversable, Lift)
-  - same for StandaloneDeriving, but has to check for newtype
-  - in case of newtype, we can't really say anything (GeneralizedNtDeriving)
-  - DeriveAnyClass (so has to check the "originality" of the class)
-
-  CASES:
-
-  data declaration:
-  - is DerivableDefault and original:
-    - should do nothing
-    - see for details: https://www.haskell.org/onlinereport/derived.html
-  - is DerivableExtra and original:
-    - add corresponding extension (may still have restrictions)
-  - anything else
-    - DeriveAnyClass
-
-  newtype declaration:
-  - we don't know what the user intended
-  - automatically add GeneralizedNewtypeDeriving (it is possible he wanted this)
-    - should suggest turning this on (not for Show and Read)
-  - however still needs DeriveX for Data and Typeable (and not GNTD)
-  - can't generalize nested types
-    - ie. they have to be of the form: newtype T v1...vn = T' (t vk+1...vn) deriving (c1...cm)
-
-  StandaloneDeriving:
-  - have to lookup type constructor (could be difficult ...)
-
-  DerivingStrategies:
-  - if there is ANY deriving clause, we must keep it
-    (Because even if we don't specify the strategy, it won't fall back on DeriveAny,
-    but it will try to determine the correct strategy using its own algorithm.)
-
-
-  TODO:
-  - write tests for GADTs, data instances
-  - conditional check
-
   NOTE: Here we implicitly constrained the type with ExtDomain.
         but we only really need HasNameInfo.
+
+  SEE:  https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/DerivingStrategies#Thederivingstrategyresolutionalgorithm
+
+  TODO:
+  - write tests for GADTs, data instances, Generic, Lift
 -}
 
 
 module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.DerivingsChecker where
 
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad as Ext
-import Control.Reference ((.-), (^.), (!~), (&), biplateRef, Traversal)
+import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Utils.TypeLookup
+import Control.Reference ((^.), (!~), (&))
 import Language.Haskell.Tools.Refactor as Refact hiding (Enum)
-import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.AST
 
-import Data.Maybe (listToMaybe, fromMaybe)
+import qualified Data.Map as Map
 import Control.Monad.Trans.Maybe
 
-import SrcLoc (RealSrcSpan, SrcSpan(..))
 import qualified Name as GHC (Name)
 import qualified GHC
-import qualified TyCoRep as GHC
 import PrelNames
+import THNames (liftClassName)
 
-import Debug.Trace
+-- can be derived
+isStockClass = flip elem stockClasses
+stockClasses = [ eqClassName
+               , ordClassName
+               , ixClassName
+               , showClassName
+               , readClassName
+               , enumClassName
+               , boundedClassName
+               , dataClassName
+               , typeableClassName
+               , genClassName
+               , gen1ClassName
+               , functorClassName
+               , foldableClassName
+               , traversableClassName
+               , liftClassName
+               ]
 
+-- can be derived for newtypes even without GND
+gndNotNeeded :: GHC.Name -> Bool
+gndNotNeeded = flip elem gndNotNeededClasses
+gndNotNeededClasses =
+  [ eqClassName
+  , ordClassName
+  , ixClassName
+  , boundedClassName
+  ]
 
-data DerivableClass = ClsEq
-                    | ClsOrd
-                    | ClsIx
-                    | ClsShow
-                    | ClsRead
-                    | ClsEnum
-                    | ClsBounded
-                    | ClsData
-                    | ClsTypeable
-                    | ClsGeneric
-                    | ClsFunctor
-                    | ClsFoldable
-                    | ClsTraversable
-  deriving (Show, Read, Eq, Ord)
+-- can be derived for newtypes with GND
+gndNeeded :: GHC.Name -> Bool
+gndNeeded = flip elem gndNeededClasses
+gndNeededClasses =
+  [ functorClassName
+  , foldableClassName
+  , enumClassName
+  ]
 
-whichExtension :: DerivableClass -> Maybe Extension
-whichExtension ClsEq          = Nothing
-whichExtension ClsOrd         = Nothing
-whichExtension ClsIx          = Nothing
-whichExtension ClsShow        = Nothing
-whichExtension ClsRead        = Nothing
-whichExtension ClsEnum        = Nothing
-whichExtension ClsBounded     = Nothing
-whichExtension ClsData        = Just DeriveDataTypeable
-whichExtension ClsTypeable    = Just DeriveDataTypeable
-whichExtension ClsGeneric     = Just DeriveGeneric
-whichExtension ClsFunctor     = Just DeriveFunctor
-whichExtension ClsFoldable    = Just DeriveFoldable
-whichExtension ClsTraversable = Just DeriveTraversable
+-- never selected by default for newtypes (even with GND)
+gndNotAllowed :: GHC.Name -> Bool
+gndNotAllowed = flip elem gndNotAllowedClasses
+gndNotAllowedClasses =
+  [ dataClassName
+  , typeableClassName
+  , showClassName
+  , readClassName
+  , traversableClassName
+  , genClassName
+  , gen1ClassName
+  , liftClassName
+  ]
 
-readClass :: String -> Maybe DerivableClass
-readClass = fmap fst . listToMaybe . filter (null . snd) . reads . ("Cls" ++)
+whichExtension :: GHC.Name -> Maybe Extension
+whichExtension    = flip Map.lookup nameExtensionMap
 
-readIntoExt :: String -> Maybe Extension
-readIntoExt s = readClass s >>= whichExtension
-
-wiredInClasses = [ eqClassName
-                 , ordClassName
-                 , ixClassName
-                 , showClassName
-                 , readClassName
-                 , enumClassName
-                 , boundedClassName
-                 , dataClassName
-                 , typeableClassName
-                 , genClassName
-                 , functorClassName
-                 , foldableClassName
-                 , traversableClassName
-                 ]
-
-isWiredInClass = flip elem wiredInClasses
-
+nameExtensionMap = Map.fromList nameExtensions
+  where nameExtensions = [ (dataClassName,        DeriveDataTypeable)
+                         , (typeableClassName,    DeriveDataTypeable)
+                         , (genClassName,         DeriveGeneric)
+                         , (gen1ClassName,        DeriveGeneric)
+                         , (functorClassName,     DeriveFunctor)
+                         , (foldableClassName,    DeriveFoldable)
+                         , (traversableClassName, DeriveTraversable)
+                         , (liftClassName,        DeriveLift)
+                         ]
 
 chkDerivings :: CheckNode Decl
-chkDerivings = conditionalAny chkDerivings' derivingExts
-           >=> conditional chkStandaloneDeriving Ext.StandaloneDeriving
+chkDerivings = conditionalAny chkDerivings'         derivingExts
+           >=> conditional    chkStandaloneDeriving Ext.StandaloneDeriving
 
       where chkDerivings' = chkDataDecl
                         >=> chkGADTDataDecl
@@ -138,11 +113,11 @@ chkDerivings = conditionalAny chkDerivings' derivingExts
                            , DeriveFunctor
                            , DeriveFoldable
                            , DeriveTraversable
+                           , DeriveLift
                            , DeriveAnyClass
                            , GeneralizedNewtypeDeriving
                            , DerivingStrategies
                            ]
-
 
 
 chkDataDecl :: CheckNode Decl
@@ -167,14 +142,75 @@ chkDataInstance d = return d
 
 separateByKeyword :: DataOrNewtypeKeyword dom -> CheckNode Deriving
 separateByKeyword keyw derivs
-  | isNewtypeDecl keyw = checkWith chkClassForNewtype
-  | otherwise          = checkWith chkClassForData
-  where checkWith f        = chkDerivingClause f derivs
-        isNewtypeDecl keyw = case keyw ^. element of
+  | isNewtypeDecl keyw = chkWithByStrat chkClassForNewtype derivs
+  | otherwise          = chkWithByStrat chkClassForData    derivs
+  where isNewtypeDecl keyw = case keyw ^. element of
                                UNewtypeKeyword -> True
                                _               -> False
 
 
+getStrategy :: Deriving dom -> Maybe (UDeriveStrategy dom SrcTemplateStage)
+getStrategy d
+  | Just node <- d ^. deriveStrategy & annMaybe
+  , strat <- node ^. element
+    = Just strat
+  | otherwise = Nothing
+
+addExtension :: (MonadState ExtMap m, HasRange node) =>
+                 GHC.Name -> node -> m node
+addExtension sname
+  | Just ext <- whichExtension sname = addOccurence ext
+  | otherwise                        = return
+
+addStockExtension :: CheckNode InstanceHead
+addStockExtension x
+  | Just sname <- nameFromStock x = addExtension sname x
+  | otherwise = return x
+
+chkWithByStrat :: CheckNode' InstanceHead dom -> CheckNode' Deriving dom
+chkWithByStrat checker d
+  | Just UStockStrategy    <- getStrategy d = chkDerivingClause addStockExtension d
+  | Just UNewtypeStrategy  <- getStrategy d = addOccurence GeneralizedNewtypeDeriving d
+  | Just UAnyClassStrategy <- getStrategy d = addOccurence DeriveAnyClass d
+  | Nothing                <- getStrategy d = chkDerivingClause checker d
+
+chkDerivingClause :: CheckNode' InstanceHead dom -> CheckNode' Deriving dom
+chkDerivingClause checker d@(DerivingOne   x)  = checker x >> return d
+chkDerivingClause checker d@(DerivingMulti xs) = (annList !~ checker) xs >> return d
+
+-- checks whether the class is stock, and if it is, returns its name
+nameFromStock :: HasNameInfo dom => InstanceHead dom -> Maybe GHC.Name
+nameFromStock x
+  | InstanceHead name <- skipParens x,
+    Just sname <- getSemName name,
+    isStockClass sname
+    = Just sname
+  | otherwise = Nothing
+
+chkClassForData :: CheckNode InstanceHead
+chkClassForData x
+  | Just sname <- nameFromStock x = addExtension sname x
+  | otherwise = addOccurence DeriveAnyClass x
+
+-- performs check in case no explicit strategy is given
+chkClassForNewtype :: CheckNode InstanceHead
+chkClassForNewtype x
+  | Just sname <- nameFromStock x
+    = if | gndNotNeeded  sname -> return x
+         | gndNeeded     sname -> addOccurence GeneralizedNewtypeDeriving x
+         | gndNotAllowed sname -> addExtension sname x
+  | otherwise = do
+      gndOn       <- isTurnedOn GeneralizedNewtypeDeriving
+      deriveAnyOn <- isTurnedOn DeriveAnyClass
+      if | gndOn && deriveAnyOn -> addOccurence_ DeriveAnyClass x
+         | deriveAnyOn          -> addOccurence_ DeriveAnyClass x
+         | gndOn                -> addOccurence_ GeneralizedNewtypeDeriving x
+         | otherwise             -> return ()
+      return x
+
+skipParens :: InstanceHead dom -> InstanceHead dom
+skipParens (ParenInstanceHead x) = skipParens x
+skipParens x = x
 
 chkStandaloneDeriving :: CheckNode Decl
 chkStandaloneDeriving d@(Refact.StandaloneDeriving instRule) = do
@@ -199,7 +235,7 @@ rightmostType :: InstanceHead dom -> Type dom
 rightmostType ihead
   | AppInstanceHead _ tyvar <- skipParens ihead = tyvar
 
--- NOTE: Return false if the type is certainly not a type synonym.
+-- NOTE: Returns false if the type is certainly not a type synonym.
 --       Returns true if it is a synonym or it could not have been looked up.
 -- This behaviour will produce false positives.
 -- This is desirable since the underlying type might be a newtype
@@ -215,123 +251,3 @@ isSynNewType t = do
                             Just def -> do
                                         addOccurence_ TypeSynonymInstances t
                                         return (GHC.isNewTyCon def)
-
-
--- TODO: could be exported
--- NOTE: Returns Nothing if it is not a type synonym
---       (or has some weird structure I didn't think of)
-lookupSynDef :: GHC.TyThing -> Maybe GHC.TyCon
-lookupSynDef syn = do
-  tycon <- tyconFromTyThing syn
-  rhs <- GHC.synTyConRhs_maybe tycon
-  tyconFromGHCType rhs
-
-tyconFromTyThing :: GHC.TyThing -> Maybe GHC.TyCon
-tyconFromTyThing (GHC.ATyCon tycon) = Just tycon
-tyconFromTyThing _ = Nothing
-
--- won't bother
-tyconFromGHCType :: GHC.Type -> Maybe GHC.TyCon
-tyconFromGHCType (GHC.AppTy t1 t2) = tyconFromGHCType t1
-tyconFromGHCType (GHC.TyConApp tycon _) = Just tycon
-tyconFromGHCType _ = Nothing
-
-
--- NOTE: Return false if the type is certainly not a newtype
---       Returns true if it is a newtype or it could not have been looked up
-isNewtype :: HasNameInfo dom => Type dom -> ExtMonad Bool
-isNewtype t = do
-  tycon <- runMaybeT . lookupType $ t
-  return $! maybe True isNewtypeTyCon tycon
-
--- TODO: could be exported
-lookupType :: HasNameInfo dom => Type dom -> MaybeT ExtMonad GHC.TyThing
-lookupType t = do
-  name  <- liftMaybe . nameFromType $ t
-  sname <- liftMaybe . getSemName   $ name
-  MaybeT . GHC.lookupName $ sname
-    where liftMaybe = MaybeT . return
-
--- NOTE: gives just name if the type being scrutinised can be newtype
---       else it gives nothing
-nameFromType :: Type dom -> Maybe (Name dom)
-nameFromType (TypeApp f _)    = nameFromType f
-nameFromType (ParenType x)    = nameFromType x
-nameFromType (KindedType t k) = nameFromType t
-nameFromType (VarType x)      = Just x
-nameFromType _                = Nothing
-
-isNewtypeTyCon :: GHC.TyThing -> Bool
-isNewtypeTyCon (GHC.ATyCon tycon) = GHC.isNewTyCon tycon
-isNewtypeTyCon _ = False
-
-
-
-
-chkDerivingClause :: CheckNode' InstanceHead dom -> CheckNode' Deriving dom
-chkDerivingClause checker d@(DerivingOne   x)  = checker x >> return d
-chkDerivingClause checker d@(DerivingMulti xs) = (annList !~ checker) xs >> return d
-  -- let classes = xs ^. annListElems
-  -- mapM_ checker classes
-  -- return d
-
-{-
- Checks an individual class inside a deriving clause in a data declaration
- NOTE: If a class in a deriving clause is wired in, and the code compiles,
-       means that the class is a DerivableClass.
-       If it is not wired in, or it is not a simple class ctor application,
-       then it cannot be derived traditionally.
-
- NOTE: Works only for "class names". If it gets an input from a standalone
-       deriving clause, it has to be simplified.
--}
-chkClassForData :: CheckNode InstanceHead
-chkClassForData x
-  | InstanceHead name <- skipParens x,
-    Just sname <- getSemName name,
-    isWiredInClass sname
-    = do
-      let className = name ^. (simpleName & unqualifiedName & simpleNameStr)
-      case readIntoExt className of
-        Just ext -> addOccurence ext x
-        Nothing  -> return x
-  | otherwise = addOccurence DeriveAnyClass x
-
-
--- TODO: really similar to chkClassForData, try to refactor
--- NOTE: always adds GeneralizedNewtypeDeriving
-chkClassForNewtype :: CheckNode InstanceHead
-chkClassForNewtype x
-  | InstanceHead name <- skipParens x,
-    Just sname <- getSemName name,
-    isWiredInClass sname
-    = do
-      let className = name ^. (simpleName & unqualifiedName & simpleNameStr)
-      deriveAnyOff <- liftM not $ isTurnedOn DeriveAnyClass
-      when (canBeGeneralized sname && deriveAnyOff)
-        (addOccurence_ GeneralizedNewtypeDeriving x)
-      case readIntoExt className of
-        Just ext -> addOccurence ext x
-        Nothing  -> return x
-  | otherwise = do
-      gntdOn      <- isTurnedOn GeneralizedNewtypeDeriving
-      deriveAnyOn <- isTurnedOn DeriveAnyClass
-      if | gntdOn && deriveAnyOn -> addOccurence_ DeriveAnyClass x
-         | deriveAnyOn           -> addOccurence_ DeriveAnyClass x
-         | gntdOn                -> addOccurence_ GeneralizedNewtypeDeriving x
-         | otherwise             -> return ()
-      return x
-
-canBeGeneralized :: GHC.Name -> Bool
-canBeGeneralized = not . flip elem notGNTD
-notGNTD = [ dataClassName
-          , typeableClassName
-          , showClassName
-          , readClassName]
-
-skipParens :: InstanceHead dom -> InstanceHead dom
-skipParens (ParenInstanceHead x) = skipParens x
-skipParens x = x
-
-getSemName :: HasNameInfo dom => Name dom -> Maybe GHC.Name
-getSemName x = semanticsName (x ^. simpleName)

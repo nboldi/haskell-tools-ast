@@ -11,13 +11,10 @@ module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.TraverseAST
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers
 
-import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.Refactor as Refact
 import Language.Haskell.Tools.AST
 
 import Control.Reference ((!~), (&), (&+&))
-
-import Debug.Trace (trace)
 
 {-
    NOTE: We need Decl level checking for deriving clausese

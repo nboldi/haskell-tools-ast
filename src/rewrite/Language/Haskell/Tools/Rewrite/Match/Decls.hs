@@ -76,9 +76,17 @@ pattern FieldDecl names typ <- Ann _ (UFieldDecl names typ)
 pattern DerivingOne :: InstanceHead dom -> Deriving dom
 pattern DerivingOne deriv <- Ann _ (UDerivingOne _ deriv)
 
+-- | A deriving clause without parentheses, with/witohut strategy (@ deriving stock Show @.
+pattern DerivingOne' :: MaybeDeriveStrategy dom -> InstanceHead dom -> Deriving dom
+pattern DerivingOne' strat deriv <- Ann _ (UDerivingOne strat deriv)
+
 -- | A deriving clause with parentheses @ deriving (Show, Eq) @)
 pattern DerivingMulti :: InstanceHeadList dom -> Deriving dom
 pattern DerivingMulti derivs <- Ann _ (UDerivings _ derivs)
+
+-- | A deriving clause with parentheses, with/witohut strategy (@ deriving stock (Show, Eq) @.
+pattern DerivingMulti' :: MaybeDeriveStrategy dom -> InstanceHeadList dom -> Deriving dom
+pattern DerivingMulti' strat derivs <- Ann _ (UDerivings strat derivs)
 
 pattern DataKeyword :: DataOrNewtypeKeyword dom
 pattern DataKeyword <- Ann _ UDataKeyword
