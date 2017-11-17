@@ -19,7 +19,6 @@ import qualified Data.List as List
 import Data.List.Split
 import qualified Data.Map as Map
 import Data.Maybe
-import Data.Either.Combinators
 import System.Directory
 import System.FilePath
 
@@ -50,7 +49,7 @@ loadPackagesFrom :: (ModSummary -> IO ())
                       -> ([ModSummary] -> IO ())
                       -> (DaemonSessionState -> FilePath -> IO [FilePath])
                       -> [FilePath]
-                      -> DaemonSession (Maybe SourceError)
+                      -> DaemonSession [SourceError]
 loadPackagesFrom report loadCallback additionalSrcDirs packages =
   do -- collecting modules to load
      modColls <- liftIO $ getAllModules packages
@@ -72,7 +71,7 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
        Right mods -> do 
          modify (refSessMCs & traversal & filtered (\mc -> (mc ^. mcId) `elem` map (^. mcId) modColls) & mcLoadDone .= True)
          compileModules report mods
-       Left err -> return (Just err)
+       Left err -> return [err]
 
   where getExposedModules :: ModuleCollection k -> [k]
         getExposedModules
@@ -121,11 +120,12 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
         compileModules report mods = do
             checkEvaluatedMods mods
             compileWhileOk mods
-          where compileWhileOk [] = return Nothing
+          where compileWhileOk [] = return []
                 compileWhileOk (mod:mods) 
                   = do res <- gtry (reloadModule report mod)
                        case res of
-                          Left err -> return (Just err)
+                          Left err -> do dependents <- lift $ dependentModules (return . (ms_mod mod ==) . ms_mod)
+                                         (err :) <$> compileWhileOk (filter ((`notElem` map ms_mod dependents) . ms_mod) mods)
                           Right _ -> compileWhileOk mods
         
 

@@ -354,8 +354,8 @@ reloadingTests testRoot =
     , [ AddPackages [testRoot </> "load-error-multi" ++ testSuffix] ]
     , writeFile (testRoot </> "load-error-multi" ++ testSuffix </> "A.hs") "module A where\n\na = ()"
     , [ ReLoad [] [testRoot </> "load-error-multi" ++ testSuffix </> "A.hs"] [] ]
-    , \case [ LoadingModules{}, CompilationProblem{}
-              , LoadingModules{}, LoadedModule a _, LoadedModule b _
+    , \case [ LoadingModules{}, LoadedModule b _, CompilationProblem{}
+              , LoadingModules{}, LoadedModule a _
               ] -> [a,b] == map ((testRoot </> "load-error-multi" ++ testSuffix) </>) ["A.hs", "B.hs"]
             _ -> False )
   , ( "change-cabal", testRoot </> "two-modules", [], return ()
