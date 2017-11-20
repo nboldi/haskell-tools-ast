@@ -2,7 +2,7 @@
              MultiWayIf,
              RankNTypes,
              TypeFamilies,
-             PatternSynonyms
+             ViewPatterns
              #-}
 
 {-
@@ -11,10 +11,18 @@
   NOTE: Here we implicitly constrained the type with ExtDomain.
         but we only really need HasNameInfo.
 
+        When a strategy is not explicitly given, every single extension
+        is analysied individually, so every occurence induces a separate
+        extension. However, when a strategy is specified, we only add
+        GND and DeriveAnyClass once, since no further examination is needed.
+
+        For examples see the test files.
+
   SEE:  https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/DerivingStrategies#Thederivingstrategyresolutionalgorithm
 
   TODO:
-  - write tests for GADTs, data instances, Generic, Lift
+  - write tests for GADTs, data instances
+  - correct DerivingStrategies behaviour with StandaloneDeriving
 -}
 
 
@@ -140,21 +148,18 @@ chkDataInstance d@(DataInstance keyw _ _ derivs) = do
   return d
 chkDataInstance d = return d
 
+
 separateByKeyword :: DataOrNewtypeKeyword dom -> CheckNode Deriving
 separateByKeyword keyw derivs
-  | isNewtypeDecl keyw = chkWithByStrat chkClassForNewtype derivs
-  | otherwise          = chkWithByStrat chkClassForData    derivs
+  | isNewtypeDecl keyw = chkByStrat chkClassForNewtype derivs
+  | otherwise          = chkByStrat chkClassForData    derivs
   where isNewtypeDecl keyw = case keyw ^. element of
                                UNewtypeKeyword -> True
                                _               -> False
 
 
-getStrategy :: Deriving dom -> Maybe (UDeriveStrategy dom SrcTemplateStage)
-getStrategy d
-  | Just node <- d ^. deriveStrategy & annMaybe
-  , strat <- node ^. element
-    = Just strat
-  | otherwise = Nothing
+getStrategy :: Deriving dom -> Maybe (DeriveStrategy dom)
+getStrategy d = d ^. (deriveStrategy & annMaybe)
 
 addExtension :: (MonadState ExtMap m, HasRange node) =>
                  GHC.Name -> node -> m node
@@ -167,15 +172,21 @@ addStockExtension x
   | Just sname <- nameFromStock x = addExtension sname x
   | otherwise = return x
 
-chkWithByStrat :: CheckNode' InstanceHead dom -> CheckNode' Deriving dom
-chkWithByStrat checker d
-  | Just UStockStrategy    <- getStrategy d = chkDerivingClause addStockExtension d
-  | Just UNewtypeStrategy  <- getStrategy d = addOccurence GeneralizedNewtypeDeriving d
-  | Just UAnyClassStrategy <- getStrategy d = addOccurence DeriveAnyClass d
-  | Nothing                <- getStrategy d = chkDerivingClause checker d
+chkByStrat :: CheckNode' InstanceHead dom -> CheckNode' Deriving dom
+chkByStrat checker d
+  | Just strat <- getStrategy d = do
+    addOccurence DerivingStrategies d
+    chkDerivingClause (chkStrat strat) d
+  | otherwise =
+    chkDerivingClause checker d
+
+chkStrat :: DeriveStrategy dom -> CheckNode' InstanceHead dom
+chkStrat (_element -> UStockStrategy)    = addStockExtension
+chkStrat (_element -> UNewtypeStrategy)  = addOccurence GeneralizedNewtypeDeriving
+chkStrat (_element -> UAnyClassStrategy) = addOccurence DeriveAnyClass
 
 chkDerivingClause :: CheckNode' InstanceHead dom -> CheckNode' Deriving dom
-chkDerivingClause checker d@(DerivingOne   x)  = checker x >> return d
+chkDerivingClause checker d@(DerivingOne   x)  = checker x               >> return d
 chkDerivingClause checker d@(DerivingMulti xs) = (annList !~ checker) xs >> return d
 
 -- checks whether the class is stock, and if it is, returns its name
@@ -212,9 +223,13 @@ skipParens :: InstanceHead dom -> InstanceHead dom
 skipParens (ParenInstanceHead x) = skipParens x
 skipParens x = x
 
+-- rewrite: no strategy -> this code
+--          strategy    -> extract startegy + chkStrat
 chkStandaloneDeriving :: CheckNode Decl
 chkStandaloneDeriving d@(Refact.StandaloneDeriving instRule) = do
-  addOccurence_ Ext.StandaloneDeriving d
+  addOccurence_  Ext.StandaloneDeriving d
+  -- TODO: revisit this
+  conditionalAdd Ext.DerivingStrategies d
   let ihead = instRule ^. irHead
       ty    = rightmostType ihead
       cls   = getClassCon   ihead

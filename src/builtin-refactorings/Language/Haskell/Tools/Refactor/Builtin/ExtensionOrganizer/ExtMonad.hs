@@ -87,6 +87,10 @@ conditionalAny checker exts node = do
   bs <- mapM isTurnedOn exts
   if or bs then checker node else return node
 
+conditionalAdd :: HasRange node => Extension -> node -> ExtMonad node
+conditionalAdd ext = conditional (addOccurence ext) ext
+
+
 runExtMonadIO :: ExtMonad a -> IO a
 runExtMonadIO = runGhc (Just libdir) . runExtMonadGHC
 

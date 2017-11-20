@@ -27,7 +27,7 @@ import Control.Reference (_1, (.-))
 main :: IO ()
 main = defaultMain extensionOrganizerTestGroup
 
-extensionOrganizerTestGroup = testGroup "Extension Organizer Tests"
+extensionOrganizerTestGroup = testGroup "ExtensionOrganizerTest"
   [ mkTests recordWildCardsTest
   , mkTests flexibleInstancesTest
   , mkTests derivingsTest
@@ -122,12 +122,18 @@ derivingsTest :: TestSuite
 derivingsTest = (derivingsRoot, derivingsModules)
 derivingsRoot = "DerivingsTest"
 derivingsModules = [ "DataDeriving"
+                   , "DataDerivingStrategies"
                    , "NewtypeDeriving"
+                   , "NewtypeDerivingStrategies"
                    , "StandaloneData"
+                   , "StandaloneDataStrategies"
                    , "StandaloneDataSynonyms"
+                   , "StandaloneDataSynonymsStrategies"
                    , "StandaloneNewtype"
+                   , "StandaloneNewtypeStrategies"
                    , "StandaloneNewtypeAny"
                    , "StandaloneNewtypeSynonyms"
+                   , "StandaloneNewtypeSynonymsStrategies"
                    , "StandaloneNewtypeSynonymsAny"
                    ]
 

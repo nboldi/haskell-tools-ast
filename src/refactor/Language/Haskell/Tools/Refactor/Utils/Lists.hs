@@ -7,7 +7,6 @@ import Control.Applicative ((<$>))
 import Control.Reference
 import Data.List (findIndices)
 import Data.Char (isSpace)
-import Data.Maybe (fromMaybe)
 
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.PrettyPrint.Prepare
@@ -55,7 +54,7 @@ filterListIndexedSt pred (AnnListG (NodeInfo sema src) elems)
         filterIndents = sublist elementsKept
         filterSeparators = take (length elementsKept - 1) . sublist elementsKept
         -- if only one element remains we want to keep the whitespace before the first element
-        movedBefore = case elementsKept of 
+        movedBefore = case elementsKept of
                         [e] | e > 0 && any @[] isStayingText (removedSeparators ^? traversal & _1 & traversal) && maybe True (not . and) (src ^. srcTmpIndented)
                            -> concatMap (takeWhile isSpace . (^. sourceTemplateText)) . reverse . takeWhile (not . isStayingText) . reverse $ (src ^? srcTmpSeparators & traversal & _1) !! (e - 1)
                         _  -> ""

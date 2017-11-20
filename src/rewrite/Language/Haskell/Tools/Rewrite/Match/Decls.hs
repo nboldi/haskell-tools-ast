@@ -14,8 +14,8 @@ pattern TypeDecl :: DeclHead dom -> Type dom -> Decl dom
 pattern TypeDecl dh typ <- Ann _ (UTypeDecl dh typ)
 
 -- | Standalone deriving declaration (@ deriving instance X T @)
-pattern StandaloneDeriving :: InstanceRule dom -> Decl dom
-pattern StandaloneDeriving instRule <- Ann _ (UDerivDecl _ instRule)
+pattern StandaloneDeriving :: Maybe (DeriveStrategy dom) -> Maybe (OverlapPragma dom) -> InstanceRule dom -> Decl dom
+pattern StandaloneDeriving strat overlap instRule <- Ann _ (UDerivDecl (AnnMaybeG _ strat) (AnnMaybeG _ overlap) instRule)
 
 -- | Fixity declaration (@ infixl 5 +, - @)
 pattern FixityDecl :: FixitySignature dom -> Decl dom

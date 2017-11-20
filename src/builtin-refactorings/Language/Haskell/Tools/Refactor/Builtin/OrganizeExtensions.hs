@@ -85,3 +85,17 @@ collectDefaultExtensions = map toExt . getExtensions
 
   toExt :: String -> Extension
   toExt = (read :: String -> Extension) . takeWhile isAlpha
+
+
+
+asd :: Num a => a -> a
+asd x = 2*x
+
+qwe :: Integer
+qwe = asd 5
+
+
+haha :: Integer
+haha = asd 7
+
+asdasdasd = 88

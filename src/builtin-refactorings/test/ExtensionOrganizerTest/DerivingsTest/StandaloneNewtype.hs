@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable,
              DeriveTraversable,
+             DeriveGeneric,
+             DeriveLift,
              GeneralizedNewtypeDeriving,
              StandaloneDeriving
              #-}
@@ -20,6 +22,8 @@ deriving instance Ix      (T0' a)  {-* StandaloneDeriving *-}
 
 deriving instance Data a     => Data     (T0' a) {-* StandaloneDeriving, DeriveDataTypeable *-}
 deriving instance Typeable a => Typeable (T0' a) {-* StandaloneDeriving, DeriveDataTypeable *-}
+deriving instance Generic a  => Generic  (T0' a) {-* StandaloneDeriving, DeriveGeneric *-}
+deriving instance Lift a     => Lift     (T0' a) {-* StandaloneDeriving, DeriveLift *-}
 
 deriving instance Functor     T0'  {-* StandaloneDeriving, GeneralizedNewtypeDeriving *-}
 deriving instance Foldable    T0'  {-* StandaloneDeriving, GeneralizedNewtypeDeriving *-}

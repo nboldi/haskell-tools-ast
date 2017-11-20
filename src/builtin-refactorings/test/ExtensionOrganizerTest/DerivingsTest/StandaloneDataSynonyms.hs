@@ -2,6 +2,8 @@
              DeriveFunctor,
              DeriveFoldable,
              DeriveTraversable,
+             DeriveGeneric,
+             DeriveLift,
              DeriveAnyClass,
              GeneralizedNewtypeDeriving,
              StandaloneDeriving,
@@ -22,6 +24,8 @@ deriving instance Ix      (D0 a)  {-* TypeSynonymInstances, StandaloneDeriving *
 
 deriving instance Data a     => Data     (D0 a) {-* TypeSynonymInstances, StandaloneDeriving, DeriveDataTypeable *-}
 deriving instance Typeable a => Typeable (D0 a) {-* TypeSynonymInstances, StandaloneDeriving, DeriveDataTypeable *-}
+deriving instance Generic a  => Generic  (D0 a) {-* TypeSynonymInstances, StandaloneDeriving, DeriveGeneric *-}
+deriving instance Lift a     => Lift     (D0 a) {-* TypeSynonymInstances, StandaloneDeriving, DeriveLift *-}
 deriving instance Functor     D0  {-* TypeSynonymInstances, StandaloneDeriving, DeriveFunctor *-}
 deriving instance Foldable    D0  {-* TypeSynonymInstances, StandaloneDeriving, DeriveFoldable *-}
 deriving instance Traversable D0  {-* TypeSynonymInstances, StandaloneDeriving, DeriveTraversable *-}
