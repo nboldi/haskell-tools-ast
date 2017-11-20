@@ -35,17 +35,24 @@ type AutoCorrectDomain dom = (HasIdInfo dom)
 tryItOut :: String -> String -> IO ()
 tryItOut mod sp = tryRefactor (localRefactoring . autoCorrect) mod sp
 
-autoCorrect :: forall dom . AutoCorrectDomain dom => RealSrcSpan -> LocalRefactoring dom
+autoCorrect :: AutoCorrectDomain dom => RealSrcSpan -> LocalRefactoring dom
 autoCorrect sp mod
-  = do let rng:_ = map getRange (mod ^? nodesContained sp :: [Expr dom])
-       return . (nodesContained sp & filtered ((==rng) . getRange) .- autoCorrectExpression) $ mod
+  = do res <- mapM (\f -> f sp mod) [reParen]
+       case catMaybes res of mod':_ -> return mod'
+                             []     -> refactError "Cannot auto-correct the selection."
 
-autoCorrectExpression :: AutoCorrectDomain dom => Expr dom -> Expr dom
-autoCorrectExpression e = trace ("### atoms: " ++ show (map (prettyPrintAtom . snd) (extractAtoms e)))
-                            $ case correctParening $ map (_2 .- Left) $ extractAtoms e of
-                                [e'] -> wrapAtom e'
-                                [] -> error "no correct parentheses were found"
-                                ls -> error $ "multiple correct parentheses were found: " ++ intercalate ", " (map (either prettyPrintAtom prettyPrint) ls)
+reParen :: forall dom . AutoCorrectDomain dom => RealSrcSpan -> HT.Module dom -> LocalRefactor dom (Maybe (HT.Module dom))
+reParen sp mod = do let rng:_ = map getRange (mod ^? nodesContained sp :: [Expr dom])
+                        (res,done) = flip runState False ((nodesContained sp & filtered ((==rng) . getRange) !~ reParenExpr) mod)
+                    return (if done then Just res else Nothing)
+
+reParenExpr :: AutoCorrectDomain dom => Expr dom -> State Bool (Expr dom)
+reParenExpr e = trace ("### atoms: " ++ show (map (prettyPrintAtom . snd) (extractAtoms e)))
+                 $ case correctParening $ map (_2 .- Left) $ extractAtoms e of
+                     [e'] -> put True >> return (wrapAtom e')
+                     [] -> return e
+                     ls -> -- TODO: choose the best one
+                           error $ "multiple correct parentheses were found: " ++ intercalate ", " (map (either prettyPrintAtom prettyPrint) ls)
 
 data Atom dom = NameA { aName :: HT.Name dom }
               | OperatorA { aOperator :: Operator dom }
