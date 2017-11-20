@@ -31,8 +31,8 @@ chkFlexibleInstances :: CheckNode Decl
 chkFlexibleInstances = conditional chkFlexibleInstances' FlexibleInstances
 
 chkFlexibleInstances' :: CheckNode Decl
-chkFlexibleInstances' d@(Refact.StandaloneDeriving rule) = checkedReturn rule d
-chkFlexibleInstances' d@(InstanceDecl rule _)            = checkedReturn rule d
+chkFlexibleInstances' d@(Refact.StandaloneDeriving _ _ rule) = checkedReturn rule d
+chkFlexibleInstances' d@(InstanceDecl rule _)                = checkedReturn rule d
 chkFlexibleInstances' d = return d
 
 checkedReturn :: ExtDomain dom => InstanceRule dom -> a -> ExtMonad a

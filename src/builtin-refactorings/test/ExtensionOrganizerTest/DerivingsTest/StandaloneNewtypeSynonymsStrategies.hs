@@ -16,13 +16,13 @@ import StandaloneDataSynonyms
 
 
 deriving stock   instance Show    (T0 a)  {-* DerivingStrategies, TypeSynonymInstances, StandaloneDeriving *-}
-deriving newtype instance Read    (T0 a)  {-* DerivingStrategies, TypeSynonymInstances, StandaloneDeriving *-}
+deriving newtype instance Read    (T0 a)  {-* DerivingStrategies, TypeSynonymInstances, StandaloneDeriving, GeneralizedNewtypeDeriving *-}
 
 deriving         instance Eq      (T0 a)  {-*                     TypeSynonymInstances, StandaloneDeriving *-}
 deriving         instance Ord     (T0 a)  {-*                     TypeSynonymInstances, StandaloneDeriving *-}
 deriving newtype instance Bounded (T0 a)  {-* DerivingStrategies, TypeSynonymInstances, StandaloneDeriving, GeneralizedNewtypeDeriving *-}
 deriving newtype instance Ix      (T0 a)  {-* DerivingStrategies, TypeSynonymInstances, StandaloneDeriving, GeneralizedNewtypeDeriving *-}
-deriving         instance Enum    (T0 a)  {-* DerivingStrategies, TypeSynonymInstances, StandaloneDeriving, GeneralizedNewtypeDeriving *-}
+deriving         instance Enum    (T0 a)  {-*                     TypeSynonymInstances, StandaloneDeriving, GeneralizedNewtypeDeriving *-}
 
 
 deriving stock   instance Data a     => Data     (T0 a) {-* DerivingStrategies, TypeSynonymInstances, StandaloneDeriving, DeriveDataTypeable *-}

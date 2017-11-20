@@ -4,8 +4,6 @@ import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad -- fo
 import Data.List
 import qualified Data.Map.Strict as SMap
 
-import Debug.Trace (trace)
-
 {-# ANN module "HLint: ignore Use zipWith" #-}
 
 
@@ -38,6 +36,6 @@ delimit' pred xs acc = delimit' pred l2 (acc ++ [l1])
 
 -- exludes the elemnt for which the predicate is true
 break' _ xs@[] = (xs, xs)
-break' p xs@(x:xs')
+break' p (x:xs')
   | p x        = ([],xs')
   | otherwise  = let (ys,zs) = break' p xs' in (x:ys,zs)

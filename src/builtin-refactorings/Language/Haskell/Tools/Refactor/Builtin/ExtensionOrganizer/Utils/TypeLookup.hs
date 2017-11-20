@@ -15,6 +15,17 @@ import Control.Reference ((^.))
 import qualified GHC
 import qualified TyCoRep as GHC
 
+
+chkSynonym :: CheckNode Type
+chkSynonym t = do
+  mtycon <- runMaybeT . lookupType $ t
+  case mtycon of
+    Nothing    -> return t
+    Just tycon -> chkSynonym' tycon
+  where chkSynonym' x = case lookupSynDef x of
+                          Nothing -> return t
+                          Just _  -> addOccurence TypeSynonymInstances t
+
 -- NOTE: Returns Nothing if it is not a type synonym
 --       (or has some weird structure I didn't think of)
 lookupSynDef :: GHC.TyThing -> Maybe GHC.TyCon

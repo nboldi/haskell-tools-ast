@@ -223,23 +223,29 @@ skipParens :: InstanceHead dom -> InstanceHead dom
 skipParens (ParenInstanceHead x) = skipParens x
 skipParens x = x
 
--- rewrite: no strategy -> this code
---          strategy    -> extract startegy + chkStrat
 chkStandaloneDeriving :: CheckNode Decl
-chkStandaloneDeriving d@(Refact.StandaloneDeriving instRule) = do
-  addOccurence_  Ext.StandaloneDeriving d
-  -- TODO: revisit this
-  conditionalAdd Ext.DerivingStrategies d
-  let ihead = instRule ^. irHead
-      ty    = rightmostType ihead
-      cls   = getClassCon   ihead
-  itIsNewType    <- isNewtype ty
-  itIsSynNewType <- isSynNewType ty
-  if itIsNewType || itIsSynNewType
-    then chkClassForNewtype cls
-    else chkClassForData    cls
-  return d
+chkStandaloneDeriving d@(Refact.StandaloneDeriving strat _ (decompRule -> (cls,ty)))
+  | Just strat' <- strat = do
+    addOccurence_  Ext.DerivingStrategies d
+    addOccurence_  Ext.StandaloneDeriving d
+    chkSynonym ty
+    chkStrat strat' cls
+    return d
+  | otherwise = do
+    addOccurence_  Ext.StandaloneDeriving d
+    itIsNewType    <- isNewtype ty
+    itIsSynNewType <- isSynNewType ty
+    if itIsNewType || itIsSynNewType
+      then chkClassForNewtype cls
+      else chkClassForData    cls
+    return d
 chkStandaloneDeriving d = return d
+
+decompRule :: InstanceRule dom -> (InstanceHead dom, Type dom)
+decompRule instRule = (cls, ty)
+  where ihead = instRule  ^. irHead
+        cls   = getClassCon   ihead
+        ty    = rightmostType ihead
 
 getClassCon :: InstanceHead dom -> InstanceHead dom
 getClassCon (AppInstanceHead f _) = getClassCon f
@@ -250,11 +256,17 @@ rightmostType :: InstanceHead dom -> Type dom
 rightmostType ihead
   | AppInstanceHead _ tyvar <- skipParens ihead = tyvar
 
--- NOTE: Returns false if the type is certainly not a type synonym.
---       Returns true if it is a synonym or it could not have been looked up.
--- This behaviour will produce false positives.
--- This is desirable since the underlying type might be a newtype
--- in which case GeneralizedNewtypeDeriving might be necessary.
+{-
+  NOTE: Returns false if the type is certainly not a type synonym.
+        Returns true if it is a synonym for a newtype or it could not have been looked up.
+  NOTE: It always has the following side-effects:
+        - If the input is a type synonym, then adds TypeSynonymInstances
+          (regardless of it being a newtype or not)
+
+  This behaviour will produce false positives.
+  This is desirable since the underlying type might be a newtype
+  in which case GeneralizedNewtypeDeriving might be necessary.
+-}
 isSynNewType :: HasNameInfo dom => Type dom -> ExtMonad Bool
 isSynNewType t = do
   mtycon <- runMaybeT . lookupType $ t
