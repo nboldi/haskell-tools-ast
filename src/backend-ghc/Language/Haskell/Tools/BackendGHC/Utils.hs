@@ -8,10 +8,6 @@
            , AllowAmbiguousTypes
            , TypeApplications
            , TypeFamilies
-           , BangPatterns
-           , StandaloneDeriving
-           , DeriveGeneric
-           , DeriveAnyClass
            #-}
 module Language.Haskell.Tools.BackendGHC.Utils where
 

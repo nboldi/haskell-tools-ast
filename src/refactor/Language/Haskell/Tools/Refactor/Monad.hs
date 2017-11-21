@@ -1,6 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances
            , FlexibleInstances
-           , DeriveFunctor
            , GeneralizedNewtypeDeriving
            #-}
 -- | Types and instances for monadic refactorings. The refactoring monad provides automatic

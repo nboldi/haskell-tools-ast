@@ -1,8 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables
            , OverloadedStrings
-           , DeriveGeneric
-           , LambdaCase
-           , TemplateHaskell
            , FlexibleContexts
            , MultiWayIf
            , TypeApplications

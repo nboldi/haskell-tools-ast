@@ -111,3 +111,14 @@ zipWithSeparators (AnnListG (NodeInfo _ src) elems)
   | otherwise
   = zip (([], noSrcSpan) : seps ++ repeat (_2 .= noSrcSpan $ last seps)) elems
   where seps = src ^. srcTmpSeparators
+
+-- sortList :: Ord a => (Ann e dom -> a) -> AnnList e dom -> AnnList e dom
+-- sortList comp (AnnListG annot elems) 
+--   = AnnListG ( .- permuteList permute $ annot) sortedElems
+--   where (permute, sortedElems) = unzip (sortBy (comp . snd)) indElems
+--         indElems = zip [0..] elems
+-- 
+-- permuteList :: [Int] -> [a] -> [a]
+-- permuteList permute = map snd . sortBy fst . zip permute
+ 
+ 

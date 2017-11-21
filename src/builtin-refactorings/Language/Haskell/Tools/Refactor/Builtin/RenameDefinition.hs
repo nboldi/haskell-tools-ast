@@ -1,5 +1,4 @@
 {-# LANGUAGE ScopedTypeVariables
-           , LambdaCase
            , MultiWayIf
            , TypeApplications
            , ConstraintKinds

@@ -1,5 +1,4 @@
-{-# LANGUAGE LambdaCase
-           , ViewPatterns
+{-# LANGUAGE ViewPatterns
            , ScopedTypeVariables
            #-}
 -- | Functions that convert the type-related elements of the GHC AST to corresponding elements in the Haskell-tools AST representation

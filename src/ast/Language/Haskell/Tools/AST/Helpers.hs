@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts
-           , LambdaCase
            , RankNTypes
            , ScopedTypeVariables
            , TypeFamilies

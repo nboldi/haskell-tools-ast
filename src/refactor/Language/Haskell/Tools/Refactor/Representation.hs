@@ -1,5 +1,4 @@
-{-# LANGUAGE RecordWildCards
-           , TypeSynonymInstances
+{-# LANGUAGE TypeSynonymInstances
            , FlexibleInstances
            , TemplateHaskell
            #-}

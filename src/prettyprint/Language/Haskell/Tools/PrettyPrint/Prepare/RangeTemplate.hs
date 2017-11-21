@@ -1,5 +1,4 @@
-{-# LANGUAGE TemplateHaskell
-           , DeriveDataTypeable
+{-# LANGUAGE DeriveDataTypeable
            , RecordWildCards
            , TypeFamilies
            , FlexibleInstances

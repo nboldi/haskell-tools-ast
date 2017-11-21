@@ -171,6 +171,5 @@ test-suite ht-extension-organizer-test
                      , haskell-tools-prettyprint >= 0.9  && < 0.10
                      , haskell-tools-refactor    >= 0.9  && < 0.10
                      , haskell-tools-builtin-refactorings
-                     , incremental-sat-solver    >= 0.1.8 && < 0.1.9
 
   default-language:    Haskell2010

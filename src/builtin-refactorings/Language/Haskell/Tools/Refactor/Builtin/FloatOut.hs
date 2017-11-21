@@ -1,7 +1,6 @@
 {-# LANGUAGE LambdaCase
            , ConstraintKinds
            , FlexibleContexts
-           , ViewPatterns
            , TypeApplications
            , ScopedTypeVariables
            , TypeFamilies

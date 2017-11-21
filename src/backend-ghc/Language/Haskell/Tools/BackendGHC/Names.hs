@@ -1,6 +1,4 @@
-{-# LANGUAGE LambdaCase
-           , TupleSections
-           , TypeFamilies
+{-# LANGUAGE TypeFamilies
            , FlexibleInstances
            , FlexibleContexts
            , TypeSynonymInstances

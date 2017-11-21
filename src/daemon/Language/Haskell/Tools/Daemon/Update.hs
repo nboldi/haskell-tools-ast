@@ -5,8 +5,6 @@
            , TypeFamilies
            , RecordWildCards
            , FlexibleContexts
-           , BangPatterns
-           , ViewPatterns
            , TupleSections
            #-}
 -- | Resolves how the daemon should react to individual requests from the client.

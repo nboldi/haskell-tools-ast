@@ -1,5 +1,4 @@
-{-# LANGUAGE LambdaCase
-           , ViewPatterns
+{-# LANGUAGE ViewPatterns
            , ScopedTypeVariables
            , AllowAmbiguousTypes
            #-}
