@@ -2,7 +2,6 @@
            , TypeSynonymInstances
            , FlexibleInstances
            , ScopedTypeVariables
-           , ViewPatterns
            , LambdaCase
            , RecordWildCards
            , FlexibleContexts

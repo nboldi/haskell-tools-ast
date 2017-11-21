@@ -10,7 +10,6 @@
            , AllowAmbiguousTypes
            , TypeApplications
            , ScopedTypeVariables
-           , PatternSynonyms
            , ConstraintKinds
            #-}
 -- | Parts of AST representation for keeping extra data

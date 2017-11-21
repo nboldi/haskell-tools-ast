@@ -1,5 +1,4 @@
-{-# LANGUAGE LambdaCase
-           , RankNTypes
+{-# LANGUAGE RankNTypes
            , FlexibleContexts
            #-}
 -- | Utility operations for the reprsentation of module collections.

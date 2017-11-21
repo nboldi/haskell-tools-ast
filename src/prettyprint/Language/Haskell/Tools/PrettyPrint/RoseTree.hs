@@ -1,7 +1,6 @@
 {-# LANGUAGE NamedFieldPuns
            , FlexibleContexts
            , LambdaCase
-           , DeriveFunctor
            , StandaloneDeriving
            #-}
 -- | A simpler representation of the original AST.

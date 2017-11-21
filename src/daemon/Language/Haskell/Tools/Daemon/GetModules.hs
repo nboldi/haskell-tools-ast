@@ -1,7 +1,6 @@
 {-# LANGUAGE TupleSections
            , NamedFieldPuns
            , LambdaCase
-           , TemplateHaskell
            , FlexibleContexts
            , TypeApplications
            , RankNTypes

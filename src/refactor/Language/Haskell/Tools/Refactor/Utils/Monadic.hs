@@ -1,16 +1,9 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving
-           , TypeFamilies
-           , ViewPatterns
-           , StandaloneDeriving
-           , LambdaCase
+{-# LANGUAGE TypeFamilies
            , FlexibleInstances
            , FlexibleContexts
            , TypeSynonymInstances
            , MultiWayIf
-           , TemplateHaskell
-           , ViewPatterns
            , TypeApplications
-           , RecordWildCards
            #-}
 -- | Basic utilities and types for defining refactorings.
 module Language.Haskell.Tools.Refactor.Utils.Monadic where

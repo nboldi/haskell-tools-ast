@@ -1,5 +1,4 @@
 {-# LANGUAGE ScopedTypeVariables
-           , LambdaCase
            , FlexibleContexts
            #-}
 -- | Transform a syntax tree with ranges to a syntax tree that has range templates. Cuts the ranges of children

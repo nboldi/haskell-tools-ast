@@ -1,6 +1,5 @@
 {-# LANGUAGE TypeOperators
            , DefaultSignatures
-           , StandaloneDeriving
            , FlexibleContexts
            , FlexibleInstances
            , MultiParamTypeClasses

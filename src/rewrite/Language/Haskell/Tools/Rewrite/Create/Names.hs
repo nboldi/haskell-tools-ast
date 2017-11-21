@@ -1,6 +1,5 @@
 -- | Generation of names for refactorings
 {-# LANGUAGE OverloadedStrings
-           , ViewPatterns
            , TypeFamilies
            #-}
 module Language.Haskell.Tools.Rewrite.Create.Names where

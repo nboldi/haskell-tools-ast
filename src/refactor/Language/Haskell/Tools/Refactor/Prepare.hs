@@ -1,13 +1,8 @@
-{-# LANGUAGE StandaloneDeriving
-           , DeriveGeneric
-           , LambdaCase
+{-# LANGUAGE LambdaCase
            , ScopedTypeVariables
-           , BangPatterns
            , MultiWayIf
            , FlexibleContexts
            , TypeFamilies
-           , TupleSections
-           , ViewPatterns
            #-}
 -- | Defines utility methods that prepare Haskell modules for refactoring
 module Language.Haskell.Tools.Refactor.Prepare where
