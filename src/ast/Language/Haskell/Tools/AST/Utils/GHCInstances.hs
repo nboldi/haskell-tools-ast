@@ -1,11 +1,12 @@
-{-# LANGUAGE StandaloneDeriving, DeriveDataTypeable #-}
+{-# LANGUAGE StandaloneDeriving, DeriveDataTypeable, TypeFamilies, BangPatterns #-}
+
 module Language.Haskell.Tools.AST.Utils.GHCInstances where
 
 import Data.Data
 import SrcLoc
 
 deriving instance Data SrcLoc
-  
+
 instance Data RealSrcLoc where
     gfoldl k z rsl = z mkRealSrcLoc `k` srcLocFile rsl `k` srcLocLine rsl `k` srcLocCol rsl
 

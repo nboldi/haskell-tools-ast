@@ -21,3 +21,13 @@ chkTemplateHaskellQuasiQuote = addOccurence QuasiQuotes
 -- can be reached from: Expr
 chkTemplateHaskellBracket :: CheckNode Bracket
 chkTemplateHaskellBracket = addOccurence TemplateHaskellQuotes
+
+chkTemplateHaskellhNamePart :: CheckNode NamePart
+chkTemplateHaskellhNamePart = conditional chkTemplateHaskellNamePart' TemplateHaskellQuotes
+
+
+-- should be THQuotes OR DataKinds
+chkTemplateHaskellNamePart' :: CheckNode NamePart
+chkTemplateHaskellNamePart' n@(NamePart name) =
+  if (head name == '\'') then addOccurence TemplateHaskellQuotes n
+                         else return n
