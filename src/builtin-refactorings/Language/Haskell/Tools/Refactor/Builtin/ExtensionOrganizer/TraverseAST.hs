@@ -56,6 +56,7 @@ chkLiteral = chkMagicHashLiteral
 
 chkNamePart :: CheckNode NamePart
 chkNamePart = chkMagicHashNamePart
+          >=> chkTemplateHaskellhNamePart
 
 chkKind :: CheckNode Kind
 chkKind = chkMagicHashKind
