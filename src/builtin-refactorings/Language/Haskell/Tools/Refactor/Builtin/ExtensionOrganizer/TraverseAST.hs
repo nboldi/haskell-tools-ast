@@ -1,7 +1,4 @@
-{-# LANGUAGE FlexibleContexts,
-             RankNTypes,
-             TypeFamilies
-             #-}
+{-# LANGUAGE FlexibleContexts, RankNTypes, TypeFamilies #-}
 
 module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.TraverseAST
   ( module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.TraverseAST

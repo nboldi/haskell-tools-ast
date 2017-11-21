@@ -1,6 +1,4 @@
-{-# LANGUAGE LambdaCase
-           , TypeFamilies
-           #-}
+{-# LANGUAGE LambdaCase, TypeFamilies #-}
            
 module Main where
 

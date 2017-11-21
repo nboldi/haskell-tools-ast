@@ -1,9 +1,4 @@
-{-# LANGUAGE FlexibleContexts,
-             MultiWayIf,
-             RankNTypes,
-             TypeFamilies,
-             ViewPatterns
-             #-}
+{-# LANGUAGE FlexibleContexts, MultiWayIf, RankNTypes, TypeFamilies, ViewPatterns #-}
 
 {-
   NOTE: We need Decl level checking in order to gain extra information

@@ -1,10 +1,4 @@
-{-# LANGUAGE TupleSections,
-             TypeFamilies,
-             RankNTypes,
-             ConstraintKinds,
-             FlexibleContexts,
-             LambdaCase
-             #-}
+{-# LANGUAGE ConstraintKinds, FlexibleContexts, RankNTypes, TupleSections, TypeFamilies #-}
 
 module Language.Haskell.Tools.Refactor.Builtin.OrganizeExtensions
   ( module Language.Haskell.Tools.Refactor.Builtin.OrganizeExtensions
@@ -50,7 +44,8 @@ tryOut = tryRefactor (localRefactoring . const organizeExtensions)
 organizeExtensions :: ExtDomain dom => LocalRefactoring dom
 organizeExtensions moduleAST = do
   exts <- liftGhc $ reduceExtensions moduleAST
-  let newPragmas = [mkLanguagePragma . map show $ exts]
+  let newPragmas = if null exts then []
+                                else [mkLanguagePragma . map show $ exts]
   return $ (filePragmas & annListElems .= newPragmas) moduleAST
 
 
@@ -92,10 +87,13 @@ expandDefaults = nub . concatMap expandExtension . collectDefaultExtensions
 
 -- | Collects extensions enabled by default
 collectDefaultExtensions :: UnnamedModule dom -> [Extension]
-collectDefaultExtensions = map toExt . getExtensions
+collectDefaultExtensions = map toExt . fromFragments . getExtensions
   where
   getExtensions :: UnnamedModule dom -> [String]
   getExtensions = flip (^?) (filePragmas & annList & lpPragmas & annList & langExt)
+
+  fromFragments :: [String] -> [String]
+  fromFragments = filter ((>1) . length) . groupBy ((&&) `on` isAlpha) . concat
 
 toExt :: String -> Extension
 toExt str = case map fst . reads . unregularExts . takeWhile isAlpha $ str of

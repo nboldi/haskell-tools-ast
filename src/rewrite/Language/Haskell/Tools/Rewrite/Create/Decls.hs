@@ -1,9 +1,7 @@
 -- | Generation of declaration-level AST fragments for refactorings.
 -- The bindings defined here create a the annotated version of the AST constructor with the same name.
 -- For example, @mkTypeSignature@ creates the annotated version of the @UTypeSignature@ AST constructor.
-{-# LANGUAGE OverloadedStrings
-           , TypeFamilies
-           #-}
+{-# LANGUAGE OverloadedStrings, TypeFamilies #-}
 module Language.Haskell.Tools.Rewrite.Create.Decls where
 
 import Language.Haskell.Tools.AST

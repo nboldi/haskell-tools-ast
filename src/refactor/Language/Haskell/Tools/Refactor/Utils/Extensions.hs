@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fwarn-incomplete-patterns -Werror #-} -- all extensions should be matched
+ -- all extensions should be matched
 
 module Language.Haskell.Tools.Refactor.Utils.Extensions where
 

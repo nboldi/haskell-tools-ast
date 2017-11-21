@@ -14,7 +14,7 @@ isSupported = flip elem fullyHandledExtensions
 fullyHandledExtensions :: [Extension]
 fullyHandledExtensions = syntacticExtensions
                       ++ derivingExtensions
-                      ++ [FlexibleInstances]
+                      -- ++ [FlexibleInstances]
 
 syntacticExtensions :: [Extension]
 syntacticExtensions = [ RecordWildCards, TemplateHaskell, BangPatterns

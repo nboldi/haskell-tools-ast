@@ -1,11 +1,9 @@
-{-# LANGUAGE FlexibleContexts,
-             TypeFamilies,
-             MultiWayIf
-             #-}
+{-# LANGUAGE FlexibleContexts, MultiWayIf, TypeFamilies #-}
 
 module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.FlexibleInstancesChecker where
 
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad
+import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Utils.TypeLookup
 import Control.Reference ((^.), (!~), biplateRef)
 import Language.Haskell.Tools.Refactor as Refact
 
@@ -86,17 +84,22 @@ chkInstanceHead app = return app
 -- unboxed tuple (has different kind, can't use in ihead), par array?
 -- TH ctors
 -- other misc ...
+-- synonym expansion (runMaybeT . lookupSynDefM $ vars) (now: if synonym, keep FC)
 chkTyVars :: CheckNode Type
 chkTyVars vars = do
-  (isOk, (_, vs)) <- runStateT (runMaybeT (chkAll vars)) ([],[])
-  case isOk of
-    Just isOk ->
-      unless (isOk && length vs == (length . nub $ vs)) --tyvars are different
-        (addOccurence_ FlexibleInstances vars)
-    _         -> error "chkTyVars: Couldn't look up something"
-  return vars
+  msyn <- runMaybeT . lookupSynDefM $ vars
+  maybe (performCheck vars) (const $ addOccurence FlexibleInstances vars) msyn
 
-  where chkAll x =
+  where performCheck vars = do
+          (isOk, (_, vs)) <- runStateT (runMaybeT (chkAll vars)) ([],[])
+          case isOk of
+            Just isOk ->
+              unless (isOk && length vs == (length . nub $ vs)) --tyvars are different
+                (addOccurence_ FlexibleInstances vars)
+            Nothing   -> error "chkTyVars: Couldn't look up something"
+          return vars
+
+        chkAll x =
           ifM (chkTopLevel x) $
             chkOnlyApp x
 
@@ -117,7 +120,7 @@ chkTyVars vars = do
           if | isTyVarName   sname -> addTyVarM x >> return False
              | isWiredInName sname -> addTyConM x >> return False
              | isTyConName   sname -> addTyConM x >> return True
-             | otherwise            -> return True -- NEVER
+             | otherwise           -> return True -- NEVER
         chkUnitTyCon _ = return False
 
 

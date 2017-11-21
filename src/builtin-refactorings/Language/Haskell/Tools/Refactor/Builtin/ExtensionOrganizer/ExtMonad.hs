@@ -1,10 +1,4 @@
-{-# LANGUAGE FlexibleContexts,
-             FlexibleInstances,
-             StandaloneDeriving,
-             ConstraintKinds,
-             RankNTypes,
-             TypeFamilies
-             #-}
+{-# LANGUAGE ConstraintKinds, FlexibleContexts, RankNTypes, StandaloneDeriving, TypeFamilies, TypeSynonymInstances #-}
 
 module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad
   ( module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad

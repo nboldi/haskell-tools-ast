@@ -1,13 +1,4 @@
-
-{-# LANGUAGE ViewPatterns
-           , ScopedTypeVariables
-           , RankNTypes
-           , FlexibleContexts
-           , TypeApplications
-           , ConstraintKinds
-           , TypeFamilies
-           , MultiWayIf
-           #-}
+{-# LANGUAGE ConstraintKinds, FlexibleContexts, MultiWayIf, RankNTypes, ScopedTypeVariables, TypeApplications, TypeFamilies, ViewPatterns #-}
 module Language.Haskell.Tools.Refactor.Builtin.ExtractBinding
   (extractBinding', ExtractBindingDomain, tryItOut, extractBindingRefactoring) where
 

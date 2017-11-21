@@ -1,6 +1,4 @@
-{-# LANGUAGE TypeFamilies,
-             FlexibleContexts
-             #-}
+{-# LANGUAGE FlexibleContexts, TypeFamilies #-}
 
 module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Utils.TypeLookup where
 
@@ -25,6 +23,12 @@ chkSynonym t = do
   where chkSynonym' x = case lookupSynDef x of
                           Nothing -> return t
                           Just _  -> addOccurence TypeSynonymInstances t
+
+lookupSynDefM :: HasNameInfo dom => Type dom -> MaybeT ExtMonad GHC.TyCon
+lookupSynDefM t = do
+  tything <- lookupType t
+  liftMaybe $ lookupSynDef tything
+  where liftMaybe = MaybeT . return
 
 -- NOTE: Returns Nothing if it is not a type synonym
 --       (or has some weird structure I didn't think of)
