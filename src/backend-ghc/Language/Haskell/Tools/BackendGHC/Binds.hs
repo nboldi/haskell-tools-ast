@@ -1,6 +1,4 @@
-{-# LANGUAGE LambdaCase
-           , ViewPatterns
-           #-}
+{-# LANGUAGE LambdaCase, ViewPatterns #-}
 -- | Functions that convert the value and function definitions of the GHC AST to corresponding elements in the Haskell-tools AST representation
 module Language.Haskell.Tools.BackendGHC.Binds where
 
@@ -10,7 +8,7 @@ import BasicTypes as GHC
 import HsBinds as GHC
 import HsExpr as GHC
 import HsPat as GHC (LPat)
-import HsTypes as GHC
+import HsTypes as GHC (SrcStrictness(..), HsWildCardBndrs(..), HsImplicitBndrs(..))
 import Name as GHC (isSymOcc)
 import PlaceHolder as GHC (NameOrRdrName)
 import SrcLoc as GHC

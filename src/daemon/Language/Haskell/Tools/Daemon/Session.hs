@@ -1,11 +1,4 @@
-{-# LANGUAGE TemplateHaskell
-           , TupleSections
-           , TypeApplications
-           , MultiWayIf
-           , FlexibleContexts
-           , BangPatterns
-           , StandaloneDeriving
-           #-}
+{-# LANGUAGE FlexibleContexts, MultiWayIf, TypeApplications #-}
 -- | Common operations for managing Daemon-tools sessions, for example loading whole packages or
 -- re-loading modules when they are changed. Maintains the state of the compilation with loaded
 -- modules. Contains checks for compiling the modules to code when Template Haskell is used.
@@ -14,29 +7,29 @@ module Language.Haskell.Tools.Daemon.Session where
 import Control.Monad.State.Strict
 import Control.Reference
 import Data.Function (on)
-import Data.IORef
+import Data.IORef (writeIORef, readIORef)
 import qualified Data.List as List
-import Data.List.Split
+import Data.List.Split (splitOn)
 import qualified Data.Map as Map
 import Data.Maybe
-import System.Directory
+import System.Directory (doesFileExist)
 import System.FilePath
 
-import Digraph as GHC
-import DynFlags
+import Digraph as GHC (flattenSCCs)
+import DynFlags (DynFlags(..), xopt)
+import Exception (gtry)
 import GHC
-import Exception
-import GHCi
+import GHCi (purgeLookupSymbolCache)
 import GhcMonad (modifySession)
 import HscTypes
-import Language.Haskell.TH.LanguageExtensions as Exts
-import Linker
+import Language.Haskell.TH.LanguageExtensions as Exts (Extension(..))
+import Linker (unload)
 import Module
-import NameCache
-import Packages
+import NameCache (NameCache(..))
+import Packages (initPackages)
 
-import Language.Haskell.Tools.Daemon.GetModules
-import Language.Haskell.Tools.Daemon.ModuleGraph
+import Language.Haskell.Tools.Daemon.GetModules (getAllModules, setupLoadFlags)
+import Language.Haskell.Tools.Daemon.ModuleGraph (supportingModules, dependentModules)
 import Language.Haskell.Tools.Daemon.Representation
 import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Utils
@@ -49,7 +42,7 @@ loadPackagesFrom :: (ModSummary -> IO ())
                       -> ([ModSummary] -> IO ())
                       -> (DaemonSessionState -> FilePath -> IO [FilePath])
                       -> [FilePath]
-                      -> DaemonSession (Maybe SourceError)
+                      -> DaemonSession [SourceError]
 loadPackagesFrom report loadCallback additionalSrcDirs packages =
   do -- collecting modules to load
      modColls <- liftIO $ getAllModules packages
@@ -68,9 +61,10 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
                                   $ List.sort $ concatMap getExposedModules mcs')
      loadRes <- gtry (loadModules mcs alreadyLoadedFiles)
      case loadRes of
-       Right mods -> (compileModules report mods >> return Nothing)
-                        `gcatch` (return . Just)
-       Left err -> return (Just err)
+       Right mods -> do 
+         modify (refSessMCs & traversal & filtered (\mc -> (mc ^. mcId) `elem` map (^. mcId) modColls) & mcLoadDone .= True)
+         compileModules report mods
+       Left err -> return [err]
 
   where getExposedModules :: ModuleCollection k -> [k]
         getExposedModules
@@ -117,8 +111,16 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
           return mods
 
         compileModules report mods = do
-          checkEvaluatedMods mods
-          mapM_ (reloadModule report) mods
+            checkEvaluatedMods mods
+            compileWhileOk mods
+          where compileWhileOk [] = return []
+                compileWhileOk (mod:mods) 
+                  = do res <- gtry (reloadModule report mod)
+                       case res of
+                          Left err -> do dependents <- lift $ dependentModules (return . (ms_mod mod ==) . ms_mod)
+                                         (err :) <$> compileWhileOk (filter ((`notElem` map ms_mod dependents) . ms_mod) mods)
+                          Right _ -> compileWhileOk mods
+        
 
 -- | Loads the packages that are declared visible (by .cabal file).
 loadVisiblePackages :: DaemonSession ()

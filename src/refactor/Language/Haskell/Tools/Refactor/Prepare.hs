@@ -1,14 +1,4 @@
-{-# LANGUAGE StandaloneDeriving
-           , DeriveGeneric
-           , LambdaCase
-           , ScopedTypeVariables
-           , BangPatterns
-           , MultiWayIf
-           , FlexibleContexts
-           , TypeFamilies
-           , TupleSections
-           , ViewPatterns
-           #-}
+{-# LANGUAGE FlexibleContexts, LambdaCase, MultiWayIf, ScopedTypeVariables, TypeFamilies #-}
 -- | Defines utility methods that prepare Haskell modules for refactoring
 module Language.Haskell.Tools.Refactor.Prepare where
 
@@ -24,16 +14,16 @@ import System.FilePath
 
 import CmdLineParser (CmdLineP(..), processArgs)
 import DynFlags
-import Linker
 import FastString (mkFastString)
 import GHC hiding (loadModule)
 import qualified GHC (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad
 import HscTypes (HscEnv(..), ModSummary(..))
+import Linker (unload)
+import Outputable (Outputable(..), showSDocUnsafe)
 import Packages (initPackages)
 import SrcLoc
-import Outputable
 import StringBuffer (hGetStringBuffer)
 
 import Language.Haskell.Tools.AST as AST
@@ -173,7 +163,6 @@ parseTyped modSum = withAlteredDynFlags (return . normalizeFlags) $ do
   when (ApplicativeDo `xopt` ms_hspp_opts modSum) $ liftIO $ throwIO $ UnsupportedExtension "ApplicativeDo"
   when (OverloadedLabels `xopt` ms_hspp_opts modSum) $ liftIO $ throwIO $ UnsupportedExtension "OverloadedLabels"
   when (ImplicitParams `xopt` ms_hspp_opts modSum) $ liftIO $ throwIO $ UnsupportedExtension "ImplicitParams"
-  modifySession $ \s -> s { hsc_mod_graph = filter (\m -> ms_mod m /= ms_mod ms) (hsc_mod_graph s) }
   p <- parseModule ms
   tc <- typecheckModule p
   void $ GHC.loadModule tc -- when used with loadModule, the module will be loaded twice

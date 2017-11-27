@@ -1,42 +1,34 @@
-{-# LANGUAGE TupleSections
-           , NamedFieldPuns
-           , LambdaCase
-           , TemplateHaskell
-           , FlexibleContexts
-           , TypeApplications
-           , RankNTypes
-           , BangPatterns
-           #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, LambdaCase, RankNTypes, NamedFieldPuns, TupleSections, TypeApplications #-}
 -- | Collecting modules contained in a module collection (library, executable, testsuite or
 -- benchmark). Gets names, source file locations, compilation and load flags for these modules.
 module Language.Haskell.Tools.Daemon.GetModules where
 
-import Control.Exception
-import Control.Reference
-import Data.Char
+import Control.Exception (Exception, throw)
+import Control.Reference ((^.))
+import Data.Char (isUpper)
 import Data.Function (on)
 import Data.List
-import qualified Data.Map as Map
-import Data.Maybe
-import Distribution.Compiler
-import Distribution.ModuleName
+import qualified Data.Map as Map (fromList)
+import Data.Maybe (Maybe(..), maybe, catMaybes)
+import Distribution.Compiler (AbiTag(..), unknownCompilerInfo, buildCompilerId)
+import Distribution.ModuleName (fromString, ModuleName, components)
 import Distribution.Package (Dependency(..), PackageName(..), pkgName, unPackageName)
 import Distribution.PackageDescription
-import Distribution.PackageDescription.Configuration
-import Distribution.PackageDescription.Parse
-import Distribution.System
-import Distribution.Types.ComponentRequestedSpec
-import Distribution.Types.UnqualComponentName
+import Distribution.PackageDescription.Configuration (finalizePD)
+import Distribution.PackageDescription.Parse (readGenericPackageDescription)
+import Distribution.System (buildPlatform)
+import Distribution.Types.ComponentRequestedSpec (ComponentRequestedSpec(..))
+import Distribution.Types.UnqualComponentName (unUnqualComponentName)
 import Distribution.Verbosity (silent)
-import Language.Haskell.Extension as Cabal
-import System.Directory
+import Language.Haskell.Extension as Cabal (Language(..), KnownExtension(..), Extension(..))
+import System.Directory (listDirectory, doesDirectoryExist)
 import System.FilePath
 
 import DynFlags
 import qualified DynFlags as GHC
 import GHC hiding (ModuleName)
 
-import Language.Haskell.Tools.Daemon.MapExtensions
+import Language.Haskell.Tools.Daemon.MapExtensions (translateExtension, setExtensionFlag', unSetExtensionFlag')
 import Language.Haskell.Tools.Daemon.Representation
 
 -- | Gets all ModuleCollections from a list of source directories. It also orders the source directories that are package roots so that
@@ -66,7 +58,7 @@ getModules root
        case find (\p -> takeExtension p == ".cabal") files of
           Just cabalFile -> modulesFromCabalFile root cabalFile
           Nothing        -> do mods <- modulesFromDirectory root root
-                               return [ModuleCollection (DirectoryMC root) root [root] [] (modKeys mods) return return []]
+                               return [ModuleCollection (DirectoryMC root) False root [root] [] (modKeys mods) return return []]
   where modKeys mods = Map.fromList $ map (, ModuleNotLoaded NoCodeGen True) mods
 
 -- | Load the module giving a directory. All modules loaded from the folder and subfolders.
@@ -103,7 +95,7 @@ modulesFromCabalFile root cabal = (getModules . setupFlags <$> readGenericPackag
           = let bi = getBuildInfo tmc
                 packageName = pkgName $ package pkg
              in if buildable bi
-                  then Just $ ModuleCollection (mkModuleCollKey packageName tmc)
+                  then Just $ ModuleCollection (mkModuleCollKey packageName tmc) False
                                 root
                                 (map (normalise . (root </>)) $ hsSourceDirs bi)
                                 (map (\(mn, fs) -> (moduleName mn, fs)) $ getModuleSourceFiles tmc)

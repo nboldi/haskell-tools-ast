@@ -1,19 +1,9 @@
-{-# OPTIONS_GHC -O0 #-} -- this is needed because of an optimization bug in GHC 8.2.1: https://ghc.haskell.org/trac/ghc/ticket/13413
-{-# LANGUAGE LambdaCase
-           , MultiWayIf
-           , TypeApplications
-           , TypeFamilies
-           , RecordWildCards
-           , FlexibleContexts
-           , BangPatterns
-           , ViewPatterns
-           , TupleSections
-           #-}
+{-# LANGUAGE FlexibleContexts, LambdaCase, MultiWayIf, RecordWildCards, TupleSections, TypeApplications, TypeFamilies #-}
 -- | Resolves how the daemon should react to individual requests from the client.
 module Language.Haskell.Tools.Daemon.Update (updateClient, updateForFileChanges, initGhcSession) where
 
 import Control.DeepSeq (force)
-import Control.Exception
+import Control.Exception (evaluate)
 import Control.Monad
 import Control.Monad.State.Strict
 import Control.Reference hiding (modifyMVarMasked_)
@@ -23,14 +13,14 @@ import qualified Data.ByteString.Char8 as StrictBS (unpack, readFile)
 import Data.Either (Either(..), either, rights)
 import Data.IORef (readIORef, newIORef)
 import Data.List as List hiding (insert)
-import qualified Data.Set as Set
-import qualified Data.Map as Map
+import qualified Data.Map as Map (insert, keys, filter)
 import Data.Maybe
+import qualified Data.Set as Set (fromList, isSubsetOf, (\\))
 import Data.Version (Version(..))
 import System.Directory
 import System.FSWatch.Slave (watch)
+import System.FilePath (FilePath, takeDirectory, takeExtension)
 import System.IO
-import System.FilePath
 import System.IO.Strict as StrictIO (hGetContents)
 import Text.PrettyPrint as PP (text, render)
 
@@ -39,18 +29,18 @@ import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad (GhcMonad(..), Session(..), modifySession)
 import HscTypes (hsc_mod_graph)
-import Linker (unload)
-import Packages (initPackages)
+import Language.Haskell.Tools.Daemon.ErrorHandling (getProblems)
 import Language.Haskell.Tools.Daemon.Options (SharedDaemonOptions(..), DaemonOptions(..))
 import Language.Haskell.Tools.Daemon.PackageDB (decidePkgDB, packageDBLoc, detectAutogen)
 import Language.Haskell.Tools.Daemon.Protocol
-import Language.Haskell.Tools.Daemon.Representation
+import Language.Haskell.Tools.Daemon.Representation as HT
 import Language.Haskell.Tools.Daemon.Session
 import Language.Haskell.Tools.Daemon.State
 import Language.Haskell.Tools.Daemon.Utils
-import Language.Haskell.Tools.Daemon.ErrorHandling
 import Language.Haskell.Tools.PrettyPrint (prettyPrint)
 import Language.Haskell.Tools.Refactor
+import Linker (unload)
+import Packages (initPackages)
 import Paths_haskell_tools_daemon (version)
 
 -- | Context for responding to a user request.
@@ -128,7 +118,7 @@ updateClient' UpdateCtx{..} UndoLast | disableHistory $ sharedOptions options
 updateClient' UpdateCtx{..} UndoLast =
   do undos <- gets (^. undoStack)
      case undos of
-       [] -> do liftIO $ response $ ErrorMessage "There is nothing to undo."
+       [] -> do liftIO $ response $ ErrorMessage "There is nothing to undo. Please note that the refactoring history is cleared after manual changes in the refactored files."
                 return True
        lastUndo:_ -> do
          modify (undoStack .- tail)
@@ -247,14 +237,14 @@ addPackages resp packagePathes = do
       -- load new modules
       pkgDBok <- initializePackageDBIfNeeded roots
       if pkgDBok then do
-        error <- loadPackagesFrom
-                   (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
-                   (resp . LoadingModules . map getModSumOrig)
-                   (\st fp -> maybe (return []) (fmap maybeToList . detectAutogen fp . fst) (st ^. packageDB)) roots
-        -- handle source errors here to prevent rollback on the tool state
-        case error of
-          Nothing -> mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
-          Just err -> liftIO $ resp $ uncurry CompilationProblem (getProblems err)
+        errs <- loadPackagesFrom
+                  (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
+                  (resp . LoadingModules . map getModSumOrig)
+                  (\st fp -> maybe (return []) (fmap maybeToList . detectAutogen fp . fst) (st ^. packageDB)) roots
+        mapM_ (liftIO . resp . uncurry CompilationProblem . getProblems) errs -- handle source errors here to prevent rollback on the tool state
+        when (null errs)
+          $ mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
+           
       else liftIO $ resp $ ErrorMessage $ "Attempted to load two packages with different package DB. "
                                             ++ "Stack, cabal-sandbox and normal packages cannot be combined"
   where isTheAdded roots mc = (mc ^. mcRoot) `elem` roots
@@ -287,7 +277,7 @@ updateForFileChanges resp added changed removed = do
     $ modify (undoStack .= []) -- clear the undo stack, if this changeset is not a result of a refactoring
   -- check for module collections that failed to load
   mcs <- gets (^. refSessMCs)
-  let packagesNotLoaded = filter (\mc -> List.all (\m -> isNothing (m ^? modRecMS)) $ Map.elems (mc ^. mcModules)) mcs
+  let packagesNotLoaded = filter (not . (^. mcLoadDone)) mcs
       tryLoadAgain = filter (\r -> List.any (r `isPrefixOf`) (added ++ changed ++ removed)) $ map (^. mcRoot) packagesNotLoaded
   -- check for changes in .cabal files
   modify (touchedFiles .- (Set.\\ changeSet))
