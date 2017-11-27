@@ -41,18 +41,19 @@ autoCorrect sp mod
        case catMaybes res of mod':_ -> return mod'
                              []     -> refactError "Cannot auto-correct the selection."
 
+--------------------------------------------------------------------------------------------
+
 reParen :: forall dom . AutoCorrectDomain dom => RealSrcSpan -> HT.Module dom -> LocalRefactor dom (Maybe (HT.Module dom))
 reParen sp mod = do let rng:_ = map getRange (mod ^? nodesContained sp :: [Expr dom])
                         (res,done) = flip runState False ((nodesContained sp & filtered ((==rng) . getRange) !~ reParenExpr) mod)
                     return (if done then Just res else Nothing)
 
 reParenExpr :: AutoCorrectDomain dom => Expr dom -> State Bool (Expr dom)
-reParenExpr e = trace ("### atoms: " ++ show (map (prettyPrintAtom . snd) (extractAtoms e)))
-                 $ case correctParening $ map (_2 .- Left) $ extractAtoms e of
-                     [e'] -> put True >> return (wrapAtom e')
-                     [] -> return e
-                     ls -> -- TODO: choose the best one
-                           error $ "multiple correct parentheses were found: " ++ intercalate ", " (map (either prettyPrintAtom prettyPrint) ls)
+reParenExpr e = case correctParening $ map (_2 .- Left) $ extractAtoms e of
+                  [e'] -> put True >> return (wrapAtom e')
+                  [] -> return e
+                  ls -> -- TODO: choose the best one
+                        error $ "multiple correct parentheses were found: " ++ intercalate ", " (map (either prettyPrintAtom prettyPrint) ls)
 
 data Atom dom = NameA { aName :: HT.Name dom }
               | OperatorA { aOperator :: Operator dom }
@@ -66,9 +67,7 @@ prettyPrintAtom (LiteralA l) = prettyPrint l
 type Build dom = Either (Atom dom) (Expr dom)
 
 extractAtoms :: AutoCorrectDomain dom => Expr dom -> [(GHC.Type, Atom dom)]
--- TODO: make it more efficient
-extractAtoms e = trace ("### " ++ shortShowSpan (getRange e))
-                   $ sortOn (srcSpanStart . atomRange . snd) 
+extractAtoms e = sortOn (srcSpanStart . atomRange . snd) 
                    $ map (\n -> (idType $ semanticsId (n ^. simpleName), NameA n)) (e ^? biplateRef) 
                        ++ map (\o -> (idType $ semanticsId (o ^. operatorName), OperatorA o)) (e ^? biplateRef) 
                        ++ map (\l -> (literalType l, LiteralA l)) (e ^? biplateRef)
@@ -105,13 +104,7 @@ reduceBy (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ maybeToLi
           = Just $ map ((_1 .- substTy subst) . snd) (take i ls) 
                      ++ [(substTy subst (mkFunTys inpsT resT), mkParen' (mkApp' fun arg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
-        reduceFunctionApp ls i = 
-          trace ("### reduceFunctionApp: " ++ show (map (_2 .- ((_1 .- (showSDocUnsafe . ppr)) . (_2 .- (either prettyPrintAtom prettyPrint)))) ls) ++ " " ++ show i 
-                    ++ "\n" ++ case (lookup i ls, lookup (i+1) ls) of (Just (funT, fun), Just (argT, arg)) -> case splitFunTy_maybe $ snd (splitForAllTys funT) of
-                                                                                                                Just (inpT, resT) -> showSDocUnsafe $ ppr $ tcUnifyTy argT inpT
-                                                                                                                _ -> "bzz"
-                                                                      _ -> "mo match" 
-                ) Nothing
+        reduceFunctionApp ls i = Nothing
         
         reduceOperatorApp ls i | Just (opT, Left (OperatorA op)) <- lookup i ls
                                , Just (lArgT, lArg) <- lookup (i-1) ls
@@ -121,13 +114,7 @@ reduceBy (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ maybeToLi
           = Just $ map ((_1 .- substTy subst) . snd) (take (i - 1) ls) 
                      ++ [(substTy subst (mkFunTys inpsT resT), mkParen' (mkInfixApp' lArg op rArg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
-        reduceOperatorApp ls i = 
-          trace ("### reduceOperatorApp: " ++ show (map (_2 .- ((_1 .- (showSDocUnsafe . ppr)) . (_2 .- (either prettyPrintAtom prettyPrint)))) ls) ++ " " ++ show i 
-                    ++ "\n" ++ case (lookup (i-1) ls, lookup i ls, lookup (i+1) ls) of (Just (lArgT, lArg), Just (funT, fun), Just (rArgT, rArg)) -> case splitFunTys $ snd (splitForAllTys funT) of
-                                                                                                                   (inp1T:inp2T:inpsT, resT) -> showSDocUnsafe $ ppr $ tcUnifyTys (\_ -> BindMe) [lArgT,rArgT] [inp1T,inp2T]
-                                                                                                                   _ -> "bzz"
-                                                                                       _ -> "mo match" 
-                ) Nothing
+        reduceOperatorApp ls i = Nothing
 
 mkApp' :: Build dom -> Build dom -> Build dom
 mkApp' (wrapAtom -> f) (wrapAtom -> a) = Right $ mkApp f a
