@@ -94,13 +94,13 @@ data ResponseMsg
 data Marker = Marker { location :: SrcSpan
                      , severity :: Severity
                      , message :: String
-                     } deriving (Generic)
+                     } deriving (Generic, Eq)
 
 instance Show Marker where
   show marker = show (severity marker) ++ " at " ++ shortShowSpanWithFile (location marker) ++ ": " ++ message marker
 
 data Severity = Error | Warning | Info 
-  deriving (Show, Generic)
+  deriving (Show, Generic, Eq)
 
 instance ToJSON ResponseMsg
 instance ToJSON Marker
