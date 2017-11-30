@@ -2,9 +2,10 @@
 -- | Defines utility methods that prepare Haskell modules for refactoring
 module Language.Haskell.Tools.Refactor.Prepare where
 
-import Control.Exception (Exception(..), throwIO, throw)
+import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class (MonadIO(..))
+import Data.IORef
 import Data.List ((\\), isSuffixOf)
 import Data.List.Split (splitOn)
 import Data.Maybe (Maybe(..), fromMaybe, fromJust)
@@ -19,7 +20,10 @@ import GHC hiding (loadModule)
 import qualified GHC (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad
-import HscTypes (HscEnv(..), ModSummary(..))
+import HscTypes
+import TcRnTypes
+import TcRnMonad
+import TcRnDriver
 import Linker (unload)
 import Outputable (Outputable(..), showSDocUnsafe)
 import Packages (initPackages)
@@ -41,7 +45,8 @@ tryRefactor refact moduleName span
   = runGhc (Just libdir) $ do
       initGhcFlags
       useDirs ["."]
-      mod <- loadModule "." moduleName >>= parseTyped
+      (mod, errs) <- loadModule "." moduleName >>= parseTyped
+      liftIO $ print errs
       res <- runRefactor (SourceFileKey (moduleSourceFile moduleName) moduleName, mod) []
                $ refact $ correctRefactorSpan mod $ readSrcSpan span
       case res of Right r -> liftIO $ mapM_ (putStrLn . prettyPrint . snd . fromContentChanged) r
@@ -155,8 +160,8 @@ loadModule workingDir moduleName
 -- | The final version of our AST, with type infromation added
 type TypedModule = Ann AST.UModule IdDom SrcTemplateStage
 
--- | Get the typed representation from a type-correct program.
-parseTyped :: ModSummary -> Ghc TypedModule
+-- | Get the typed representation of a Haskell module.
+parseTyped :: ModSummary -> Ghc (TypedModule, Maybe SourceError)
 parseTyped modSum = withAlteredDynFlags (return . normalizeFlags) $ do
   let hasCppExtension = Cpp `xopt` ms_hspp_opts modSum
       ms = modSumNormalizeFlags modSum
@@ -164,20 +169,51 @@ parseTyped modSum = withAlteredDynFlags (return . normalizeFlags) $ do
   when (OverloadedLabels `xopt` ms_hspp_opts modSum) $ liftIO $ throwIO $ UnsupportedExtension "OverloadedLabels"
   when (ImplicitParams `xopt` ms_hspp_opts modSum) $ liftIO $ throwIO $ UnsupportedExtension "ImplicitParams"
   p <- parseModule ms
-  tc <- typecheckModule p
-  void $ GHC.loadModule tc -- when used with loadModule, the module will be loaded twice
+  ((rnSrc, tcSrc), tc, errs) 
+    <- ((\t -> ((tm_renamed_source t, typecheckedSource t), Just t, Nothing)) <$> typecheckModule p)
+          `gcatch` \(e :: SourceError) -> forcedTypecheck ms p >>= \case Just r -> return (r, Nothing, Just e)
+                                                                         Nothing -> liftIO $ throwIO e
+                                                                                                
+  maybe (return ()) (void . GHC.loadModule) tc -- when used with loadModule, the module will be loaded twice
   let annots = pm_annotations p
   srcBuffer <- if hasCppExtension
                     then liftIO $ hGetStringBuffer (getModSumOrig ms)
                     else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
   withTempSession (\e -> e { hsc_dflags = ms_hspp_opts ms }) 
-    $ (if hasCppExtension then prepareASTCpp else prepareAST) srcBuffer . placeComments (fst annots) (getNormalComments $ snd annots)
-        <$> (addTypeInfos (typecheckedSource tc)
-               =<< (do parseTrf <- runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms (pm_parsed_source p)
-                       runTrf (fst annots) (getPragmaComments $ snd annots)
-                         $ trfModuleRename ms parseTrf
-                             (fromJust $ tm_renamed_source tc)
-                             (pm_parsed_source p)))
+    $ ((\t -> (t, errs))
+         . (if hasCppExtension then prepareASTCpp else prepareAST) srcBuffer 
+         . placeComments (fst annots) (getNormalComments $ snd annots))
+       <$> (addTypeInfos tcSrc
+              =<< (do parseTrf <- runTrf (fst annots) (getPragmaComments $ snd annots) 
+                                    $ trfModule ms (pm_parsed_source p)
+                      runTrf (fst annots) (getPragmaComments $ snd annots)
+                        $ trfModuleRename ms parseTrf
+                            (fromJust rnSrc)
+                            (pm_parsed_source p)))
+
+-- | Run typecheck in a way that gives back a typed AST even if the source code contains errors.
+-- This function should only be called if normal type check failed.
+forcedTypecheck :: ModSummary -> ParsedModule -> Ghc (Maybe (Maybe RenamedSource, TypecheckedSource))
+forcedTypecheck ms p = do
+  env <- getSession
+  store <- liftIO $ newIORef Nothing
+  let hpm = HsParsedModule (pm_parsed_source p) (pm_extra_src_files p) (pm_annotations p)
+  -- initialize enviroments
+  (_, Just (gblEnv, lclEnv)) <- liftIO $ runTcInteractive env $ (,) <$> getGblEnv <*> getLclEnv 
+  -- install a module finalizer that saves the typecheck/rename state
+  let finalizeModule = do gbl <- getGblEnv
+                          liftIO $ writeIORef store $ Just ( (,,,) <$> tcg_rn_decls gbl
+                                                                   <*> return (tcg_rn_imports gbl)
+                                                                   <*> return (tcg_rn_exports gbl)
+                                                                   <*> return (tcg_doc_hdr gbl)
+                                                           , tcg_binds gbl )
+  liftIO $ modifyIORef (tcg_th_modfinalizers gblEnv) (finalizeModule :)
+  -- run the type checking again, ignoring the error
+  let gblEnv' = gblEnv { tcg_rn_exports = Just [], tcg_rn_decls = Just emptyRnGroup }
+  liftIO $ initTcRnIf 'a' env gblEnv' lclEnv $ void (tcRnModuleTcRnM env HsSrcFile hpm (ms_mod ms, getLoc (pm_parsed_source p)))
+                                                 `gcatch` \(_ :: SomeException) -> return ()
+  -- extract the saved typecheck/rename state
+  liftIO $ readIORef store
 
 data UnsupportedExtension = UnsupportedExtension String
   deriving Show

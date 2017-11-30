@@ -158,7 +158,8 @@ updateClient' UpdateCtx{..} (PerformRefactoring refact modPath selection args sh
                              if not isWatching && not shutdown && not diffMode
                               -- if watch is on, then it will automatically
                               -- reload changed files, otherwise we do it manually
-                               then void $ reloadChanges (map ((^. sfkFileName) . (^. _1)) (rights changedMods))
+                               then do res <- reloadChanges (map ((^. sfkFileName) . (^. _1)) (rights changedMods))
+                                       mapM_ (liftIO . response . uncurry CompilationProblem . getProblems) (catMaybes $ map snd res)
                                else modify (touchedFiles .= Set.fromList (map ((^. sfkFileName) . (^. _1)) (rights changedMods)))
 
         applyChanges changes = do
@@ -307,9 +308,11 @@ reloadModules resp warnMVar added changed removed = do
   modifySession (\s -> s { hsc_mod_graph = filter (\mod -> getModSumOrig mod `notElem` removed) (hsc_mod_graph s) })
   -- reload changed modules
   -- TODO: filter those that are in reloaded packages
-  reloadChangedModules (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
-                       (\mss -> resp (LoadingModules (map getModSumOrig mss)))
-                       (\ms -> getModSumOrig ms `elem` changed)
+  res <- reloadChangedModules (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
+                              (\mss -> resp (LoadingModules (map getModSumOrig mss)))
+                              (\ms -> getModSumOrig ms `elem` changed)
+  let (errors, hints) = mconcat $ map getProblems $ catMaybes $ map snd res
+  when (not $ null errors) (liftIO $ resp $ CompilationProblem errors hints)
   reportWarnings resp warnMVar
   mcs <- gets (^. refSessMCs)
   let mcsToReload = filter (\mc -> any ((mc ^. mcRoot) `isPrefixOf`) added && isNothing (moduleCollectionPkgId (mc ^. mcId))) mcs

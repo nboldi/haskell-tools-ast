@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, MultiWayIf, TypeApplications #-}
+{-# LANGUAGE FlexibleContexts, MultiWayIf, TypeApplications, TupleSections #-}
 -- | Common operations for managing Daemon-tools sessions, for example loading whole packages or
 -- re-loading modules when they are changed. Maintains the state of the compilation with loaded
 -- modules. Contains checks for compiling the modules to code when Template Haskell is used.
@@ -119,7 +119,9 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
                        case res of
                           Left err -> do dependents <- lift $ dependentModules (return . (ms_mod mod ==) . ms_mod)
                                          (err :) <$> compileWhileOk (filter ((`notElem` map ms_mod dependents) . ms_mod) mods)
-                          Right _ -> compileWhileOk mods
+                          Right (_, Just err) -> do dependents <- lift $ dependentModules (return . (ms_mod mod ==) . ms_mod)
+                                                    (err :) <$> compileWhileOk (filter ((`notElem` map ms_mod dependents) . ms_mod) mods)
+                          Right (_, Nothing) -> compileWhileOk mods
         
 
 -- | Loads the packages that are declared visible (by .cabal file).
@@ -159,7 +161,7 @@ getFileMods fnameOrModule = do
 
 -- | Reload the modules that have been changed (given by predicate). Pefrom the callback.
 reloadChangedModules :: (ModSummary -> IO a) -> ([ModSummary] -> IO ()) -> (ModSummary -> Bool)
-                           -> DaemonSession [a]
+                           -> DaemonSession [(a, Maybe SourceError)]
 reloadChangedModules report loadCallback isChanged = do
   reachable <- getReachableModules loadCallback isChanged
   checkEvaluatedMods reachable
@@ -201,13 +203,13 @@ getReachableModules loadCallback selected = do
     return sortedRecompMods
 
 -- | Reload a given module. Perform a callback.
-reloadModule :: (ModSummary -> IO a) -> ModSummary -> DaemonSession a
+reloadModule :: (ModSummary -> IO a) -> ModSummary -> DaemonSession (a, Maybe SourceError)
 reloadModule report ms = do
   mcs <- gets (^. refSessMCs)
   ghcfl <- gets (^. ghcFlagsSet)
   let codeGen = needsGeneratedCode (keyFromMS ms) mcs
       mc = decideMC ms mcs
-  newm <- withFlagsForModule mc $ lift $ do
+  (newm, errs) <- withFlagsForModule mc $ lift $ do
     dfs <- liftIO $ fmap ghcfl $ mc ^. mcFlagSetup $ ms_hspp_opts ms
     let ms' = ms { ms_hspp_opts = dfs }
     -- some flags are cached in mod summary, so we need to override
@@ -218,7 +220,7 @@ reloadModule report ms = do
   modify' $ refSessMCs & traversal & filtered (\c -> (c ^. mcId) == (mc ^. mcId)) & mcModules
               .- Map.insert (keyFromMS ms) (ModuleTypeChecked newm ms codeGen)
                    . removeModuleMS ms
-  liftIO $ report ms
+  liftIO $ (,errs) <$> report ms
 
 -- | Select which module collection we think the module is in
 decideMC :: ModSummary -> [ModuleCollection SourceFileKey] -> ModuleCollection SourceFileKey

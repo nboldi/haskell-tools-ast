@@ -8,6 +8,7 @@ import GHC.Paths (libdir)
 import Language.Haskell.TH.LanguageExtensions (Extension)
 import SrcLoc (SrcSpan(..), srcSpanEndLine)
 
+import Control.Exception
 import Data.List (sort)
 import qualified Data.Map.Strict as SMap (Map, map)
 import System.FilePath (FilePath, addExtension, (</>))
@@ -62,7 +63,9 @@ loadModuleAST :: FilePath -> ModuleName -> Ghc TypedModule
 loadModuleAST dir moduleName = do
   useFlags ["-w"]
   modSummary <- loadModule (testRoot </> dir) moduleName
-  parseTyped modSummary
+  (mod, errs) <- parseTyped modSummary
+  liftIO $ maybe (return ()) throwIO errs
+  return mod
 
 getExtensionsFrom :: FilePath -> ModuleName -> IO SimpleMap
 getExtensionsFrom dir moduleName = runGhc (Just libdir) $ do

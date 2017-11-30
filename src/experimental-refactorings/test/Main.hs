@@ -9,7 +9,9 @@ import Test.Tasty.HUnit (assertEqual, testCase)
 import GHC hiding (loadModule, ParsedModule)
 import GHC.Paths ( libdir )
 
+import Control.Exception
 import Control.Monad (Monad(..))
+import Control.Monad.IO.Class
 import Data.Either.Combinators (mapRight)
 import System.FilePath (pathSeparator, (</>))
 import System.IO
@@ -52,7 +54,8 @@ testRefactor refact moduleName
   = runGhc (Just libdir) $ do
       initGhcFlags
       useDirs [rootDir]
-      mod <- loadModule rootDir moduleName >>= parseTyped
+      (mod, errs) <- loadModule rootDir moduleName >>= parseTyped
+      liftIO $ maybe (return ()) throwIO errs
       res <- runRefactor (SourceFileKey (rootDir </> moduleSourceFile moduleName) moduleName, mod) [] (localRefactoring $ refact mod)
       case res of Right r -> return $ Right $ prettyPrint $ snd $ fromContentChanged $ head r
                   Left err -> return $ Left err
