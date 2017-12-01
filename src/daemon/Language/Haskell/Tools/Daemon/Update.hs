@@ -376,12 +376,12 @@ getUndoRemoved = catMaybes . map (\case RemoveAdded fp -> Just fp
 initGhcSession :: Bool -> IO (Session, MVar [Marker])
 initGhcSession genCode = do 
   mv <- newMVar []
-  sess <- Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags' genCode >> setupLogging mv >> getSession))
+  sess <- Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags' genCode True >> setupLogging mv >> getSession))
   return (sess, mv)
 
 reinitGhcSession :: MVar [Marker] -> Bool -> IO Session
 reinitGhcSession mv genCode = do 
-  sess <- Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags' genCode >> setupLogging mv >> getSession))
+  sess <- Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags' genCode True >> setupLogging mv >> getSession))
   return sess
 
 setupLogging :: MVar [Marker] -> Ghc ()

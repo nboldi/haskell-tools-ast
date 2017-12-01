@@ -83,25 +83,26 @@ reloadPkgDb = void $ setSessionDynFlags . fst =<< liftIO . initPackages . (\df -
 
 -- | Initialize GHC flags to default values that support refactoring
 initGhcFlags :: Ghc ()
-initGhcFlags = initGhcFlags' False
+initGhcFlags = initGhcFlags' False True
 
 initGhcFlagsForTest :: Ghc ()
-initGhcFlagsForTest = do initGhcFlags' True
+initGhcFlagsForTest = do initGhcFlags' True False
                          dfs <- getSessionDynFlags
                          void $ setSessionDynFlags $ dfs { hscTarget = HscAsm }
 
 -- | Sets up basic flags and settings for GHC
-initGhcFlags' :: Bool -> Ghc ()
-initGhcFlags' needsCodeGen = do
+initGhcFlags' :: Bool -> Bool -> Ghc ()
+initGhcFlags' needsCodeGen errorsSuppressed = do
   dflags <- getSessionDynFlags
   env <- getSession
   liftIO $ unload env [] -- clear linker state if ghc was used in the same process
   void $ setSessionDynFlags
     $ flip gopt_set Opt_KeepRawTokenStream
     $ flip gopt_set Opt_NoHsMain
-    $ flip gopt_set Opt_DeferTypeErrors
-    $ flip gopt_set Opt_DeferTypedHoles	 
-    $ flip gopt_set Opt_DeferOutOfScopeVariables
+    $ (if errorsSuppressed then flip gopt_set Opt_DeferTypeErrors
+                                  . flip gopt_set Opt_DeferTypedHoles	 
+                                  . flip gopt_set Opt_DeferOutOfScopeVariables 
+                           else id)
     $ dflags { importPaths = []
              , hscTarget = if needsCodeGen then HscInterpreted else HscNothing
              , ghcLink = if needsCodeGen then LinkInMemory else NoLink
