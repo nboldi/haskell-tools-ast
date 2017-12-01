@@ -25,7 +25,7 @@ import System.IO
 import System.IO.Strict as StrictIO (hGetContents)
 import Text.PrettyPrint as PP (text, render)
 
-import DynFlags (DynFlags(..), PkgConfRef(..), PackageDBFlag(..))
+import DynFlags
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad (GhcMonad(..), Session(..), modifySession)
@@ -158,8 +158,8 @@ updateClient' UpdateCtx{..} (PerformRefactoring refact modPath selection args sh
                              if not isWatching && not shutdown && not diffMode
                               -- if watch is on, then it will automatically
                               -- reload changed files, otherwise we do it manually
-                               then do res <- reloadChanges (map ((^. sfkFileName) . (^. _1)) (rights changedMods))
-                                       mapM_ (liftIO . response . uncurry CompilationProblem . getProblems) (catMaybes $ map snd res)
+                               then do reloadChanges (map ((^. sfkFileName) . (^. _1)) (rights changedMods))
+                                       reportWarnings response warnMVar
                                else modify (touchedFiles .= Set.fromList (map ((^. sfkFileName) . (^. _1)) (rights changedMods)))
 
         applyChanges changes = do
@@ -308,11 +308,9 @@ reloadModules resp warnMVar added changed removed = do
   modifySession (\s -> s { hsc_mod_graph = filter (\mod -> getModSumOrig mod `notElem` removed) (hsc_mod_graph s) })
   -- reload changed modules
   -- TODO: filter those that are in reloaded packages
-  res <- reloadChangedModules (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
-                              (\mss -> resp (LoadingModules (map getModSumOrig mss)))
-                              (\ms -> getModSumOrig ms `elem` changed)
-  let (errors, hints) = mconcat $ map getProblems $ catMaybes $ map snd res
-  when (not $ null errors) (liftIO $ resp $ CompilationProblem errors hints)
+  reloadChangedModules (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
+                       (\mss -> resp (LoadingModules (map getModSumOrig mss)))
+                       (\ms -> getModSumOrig ms `elem` changed)
   reportWarnings resp warnMVar
   mcs <- gets (^. refSessMCs)
   let mcsToReload = filter (\mc -> any ((mc ^. mcRoot) `isPrefixOf`) added && isNothing (moduleCollectionPkgId (mc ^. mcId))) mcs
@@ -388,10 +386,12 @@ reinitGhcSession mv genCode = do
 
 setupLogging :: MVar [Marker] -> Ghc ()
 setupLogging mv = modifySession $ \s -> s { hsc_dflags = (hsc_dflags s) { log_action = logger } }
-  where logger dfs _ sev sp _ msg = modifyMVar_ mv (return . (Marker sp severity (showSDoc dfs msg) :))
-          where severity = case sev of SevError -> Error
-                                       SevWarning -> HT.Warning
-                                       _ -> Info
+  where logger dfs reason sev sp _ msg = modifyMVar_ mv (return . (Marker sp (severity sev reason) (showSDoc dfs msg) :))
+        severity SevError _ = Error
+        severity SevWarning (Reason Opt_WarnDeferredTypeErrors) = Error
+        severity SevWarning (Reason Opt_WarnDeferredOutOfScopeVariables) = Error
+        severity SevWarning _ = HT.Warning
+        severity _ _ = Info
 
 usePackageDB :: GhcMonad m => [FilePath] -> m ()
 usePackageDB [] = return ()

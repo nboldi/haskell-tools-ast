@@ -281,6 +281,13 @@ refactorTests testRoot =
               -> aPath == testRoot </> "simple-refactor" ++ testSuffix </> "A.hs"
                    && aaPath == testRoot </> "simple-refactor" ++ testSuffix </> "AA.hs"
             _ -> False )
+  , ( "refactor-type-error", testRoot </> "source-error"
+    , [ AddPackages [testRoot </> "source-error"] 
+      , PerformRefactoring "RenameDefinition" (testRoot </> "source-error" ++ testSuffix </> "A.hs") "3:1-3:2" ["aa"] False False
+      ]
+    , \case [ LoadingModules{}, LoadedModule{}, CompilationProblem {}
+              , LoadingModules{}, LoadedModule{}, CompilationProblem {}
+              ] -> True; _ -> False)
   ]
 
 reloadingTests :: FilePath -> [(String, FilePath, [ClientMessage], IO (), [ClientMessage], [ResponseMsg] -> Bool)]

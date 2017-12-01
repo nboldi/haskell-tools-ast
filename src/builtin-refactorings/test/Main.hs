@@ -11,14 +11,13 @@ import GHC.Paths ( libdir )
 import Module as GHC (mkModuleName)
 import StringBuffer (hGetStringBuffer)
 
-import Control.Exception
 import Control.Monad (Monad(..), mapM, (=<<))
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Reference ((^.))
 import Data.Either.Combinators (mapRight, isLeft)
 import Data.List
 import Data.List.Split (splitOn)
-import Data.Maybe
+import Data.Maybe (Maybe(..), fromJust)
 import Language.Haskell.TH.LanguageExtensions (Extension(..))
 import System.Directory (listDirectory)
 import System.FilePath
@@ -524,9 +523,8 @@ testRefactor refact moduleName
   = runGhc (Just libdir) $ do
       initGhcFlags
       useDirs [rootDir]
-      (mod, errs) <- loadModule rootDir moduleName >>= parseTyped
+      mod <- loadModule rootDir moduleName >>= parseTyped
       res <- runRefactor (SourceFileKey (rootDir </> moduleSourceFile moduleName) moduleName, mod) [] (localRefactoring $ refact mod)
-      liftIO $ maybe (return ()) throwIO errs
       case res of Right r -> return $ Right $ prettyPrint $ snd $ fromContentChanged $ head r
                   Left err -> return $ Left err
 
@@ -562,9 +560,7 @@ checkCorrectlyPrinted workingDir moduleName
          parsed <- loadModule workingDir moduleName
          actual <- prettyPrint <$> parseAST parsed
          actual' <- prettyPrint <$> parseRenamed parsed
-         (actualMod'', errs) <- parseTyped parsed
-         let actual'' = prettyPrint actualMod''
-         liftIO $ maybe (return ()) throwIO errs
+         actual'' <- prettyPrint <$> parseTyped parsed
          return (actual, actual', actual'')
        assertEqual "Parsed: The original and the transformed source differ" expected actual
        assertEqual "Renamed: The original and the transformed source differ" expected actual'
@@ -583,9 +579,8 @@ performRefactors command workingDir flags target = do
       allMods <- getModuleGraph
       selectedMod <- getModSummary (GHC.mkModuleName target)
       let otherModules = filter (not . (\ms -> ms_mod ms == ms_mod selectedMod && ms_hsc_src ms == ms_hsc_src selectedMod)) allMods
-      (targetMod, errs) <- parseTyped selectedMod
-      (otherMods, moreErrs) <- unzip <$> mapM parseTyped otherModules
-      liftIO $ maybe (return ()) throwIO (listToMaybe $ catMaybes (errs : moreErrs))
+      targetMod <- parseTyped selectedMod
+      otherMods <- mapM parseTyped otherModules
       res <- performCommand builtinRefactorings (splitOn " " command)
                             (Right (SourceFileKey (workingDir </> moduleSourceFile target) target, targetMod))
                             (zip (map keyFromMS otherModules) otherMods)
@@ -633,9 +628,7 @@ performRefactor :: String -> FilePath -> [String] -> String -> IO (Either String
 performRefactor command workingDir flags target =
   runGhc (Just libdir) $ do
     useFlags flags
-    (mod, errs) <- parseTyped =<< loadModule workingDir target
-    liftIO $ maybe (return ()) throwIO errs
-    ((\case Right r -> Right (newContent r); Left l -> Left l) <$> refact mod)
+    ((\case Right r -> Right (newContent r); Left l -> Left l) <$> (refact =<< parseTyped =<< loadModule workingDir target))
   where refact m = performCommand builtinRefactorings (splitOn " " command)
                                   (Right (SourceFileKey (workingDir </> moduleSourceFile target) target,m)) []
         newContent (ContentChanged (_, newContent) : _) = prettyPrint newContent
