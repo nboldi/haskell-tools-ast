@@ -12,6 +12,8 @@ import GHC
 import Unify
 import Type
 import TysWiredIn
+import TysPrim
+import PrelNames
 import qualified FastString as FS
 -- 
 import Control.Monad.State
@@ -34,11 +36,38 @@ tryItOut mod sp = tryRefactor (localRefactoring . autoCorrect) mod sp
 
 autoCorrect :: RealSrcSpan -> LocalRefactoring
 autoCorrect sp mod
-  = do res <- mapM (\f -> f sp mod) [reParen]
+  = do res <- mapM (\f -> f sp mod) [reParen, reOrder]
        case catMaybes res of mod':_ -> return mod'
                              []     -> refactError "Cannot auto-correct the selection."
 
 --------------------------------------------------------------------------------------------
+
+reOrder :: RealSrcSpan -> HT.Module -> LocalRefactor (Maybe HT.Module)
+reOrder sp mod = do let rng:_ = map getRange (mod ^? nodesContained sp :: [Expr])
+                    (res,done) <- liftGhc $ flip runStateT False ((nodesContained sp & filtered ((==rng) . getRange) !~ reOrderExpr) mod)
+                    return (if done then Just res else Nothing)
+
+reOrderExpr :: Expr -> StateT Bool Ghc Expr
+reOrderExpr e@(App (App f a1) a2)
+  = do funTy <- lift $ typeExpr f
+       arg1Ty <- lift $ typeExpr a1
+       arg2Ty <- lift $ typeExpr a2
+       liftIO $ putStrLn $ showSDocUnsafe (ppr funTy) ++ ", " 
+                             ++ showSDocUnsafe (ppr arg1Ty) ++ ", " 
+                             ++ showSDocUnsafe (ppr arg2Ty)
+       liftIO $ putStrLn $ show (appTypeMatches funTy [arg2Ty, arg1Ty])
+       liftIO $ putStrLn $ show (not (appTypeMatches funTy [arg1Ty, arg2Ty]))
+       if not (appTypeMatches funTy [arg1Ty, arg2Ty]) && appTypeMatches funTy [arg2Ty, arg1Ty]
+          then put True >> return (exprArg .= a1 $ exprFun&exprArg .= a2 $ e)
+          else return e
+reOrderExpr e@(InfixApp lhs op rhs) 
+  = do let funTy = idType $ semanticsId (op ^. operatorName)
+       lhsTy <- lift $ typeExpr lhs
+       rhsTy <- lift $ typeExpr rhs
+       if not (appTypeMatches funTy [lhsTy, rhsTy]) && appTypeMatches funTy [rhsTy, lhsTy]
+          then put True >> return (exprLhs .= rhs $ exprRhs .= lhs $ e)
+          else return e
+reOrderExpr e = return e
 
 reParen :: RealSrcSpan -> HT.Module -> LocalRefactor (Maybe HT.Module)
 reParen sp mod = do let rng:_ = map getRange (mod ^? nodesContained sp :: [Expr])
@@ -71,6 +100,15 @@ extractAtoms e = sortOn (srcSpanStart . atomRange . snd)
 
 literalType :: Literal -> GHC.Type
 literalType (StringLit {}) = stringTy
+literalType (CharLit {}) = charTy
+literalType (IntLit {}) = intTy -- TODO: polymorph type
+literalType (FracLit {}) = intTy -- TODO: polymorph type
+literalType (PrimIntLit {}) = intPrimTy
+literalType (PrimWordLit {}) = word32PrimTy
+literalType (PrimFloatLit {}) = floatX4PrimTy
+literalType (PrimDoubleLit {}) = doubleX2PrimTy
+literalType (PrimCharLit {}) = charPrimTy
+literalType (PrimStringLit {}) = addrPrimTy
 
 atomRange :: Atom -> SrcSpan
 atomRange (NameA n) = getRange n

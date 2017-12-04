@@ -7,13 +7,15 @@
            , TypeFamilies
            , ViewPatterns
            #-}
-module Language.Haskell.Tools.Refactor.Utils.Type (typeExpr) where
+module Language.Haskell.Tools.Refactor.Utils.Type (typeExpr, appTypeMatches) where
 
 import Data.List
+import Data.Maybe
 import Control.Monad.State
 import Control.Monad.IO.Class
 import Control.Reference
 import GHC
+import Unify as GHC
 import SrcLoc as GHC
 import Type as GHC
 import Name as GHC
@@ -97,7 +99,6 @@ typeExpr' (ParArray elems) = do
                                      return $ pack $ mkPArrTy typ
                            e:_ -> do (typ, pack) <- splitType <$> typeExpr' e
                                      return $ pack $ mkPArrTy typ
-
 typeExpr' (Lit (StringLit {})) = return stringTy
 typeExpr' (Lit (CharLit {})) = return charTy
 typeExpr' (Lit (IntLit {})) = literalType numClassName
@@ -109,7 +110,12 @@ typeExpr' (Lit (PrimDoubleLit {})) = return $ doubleX2PrimTy
 typeExpr' (Lit (PrimCharLit {})) = return $ charPrimTy
 typeExpr' (Lit (PrimStringLit {})) = return $ addrPrimTy
 
-
+appTypeMatches :: GHC.Type -> [GHC.Type] -> Bool
+appTypeMatches funT argTs 
+  = let (args, _) = splitFunTys $ fst $ splitType funT
+        argTypes = fst $ unzip $ map splitType argTs
+     in length args >= length argTypes
+          && and (zipWith (\t -> isJust . tcUnifyTy t) args argTypes)
 
 splitType :: GHC.Type -> (GHC.Type, GHC.Type -> GHC.Type)
 splitType typ =
