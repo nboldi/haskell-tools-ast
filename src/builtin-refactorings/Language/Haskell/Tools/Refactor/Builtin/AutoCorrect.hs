@@ -5,8 +5,7 @@
            , ViewPatterns
            , TupleSections
            #-}
-module Language.Haskell.Tools.Refactor.Builtin.AutoCorrect
-  (autoCorrect, AutoCorrectDomain, tryItOut, autoCorrectRefactoring) where
+module Language.Haskell.Tools.Refactor.Builtin.AutoCorrect (autoCorrect, tryItOut, autoCorrectRefactoring) where
 
 import SrcLoc
 import GHC
@@ -27,15 +26,13 @@ import Language.Haskell.Tools.PrettyPrint
 import Debug.Trace
 import Outputable
 
-autoCorrectRefactoring :: (AutoCorrectDomain dom, HasModuleInfo dom) => RefactoringChoice dom
+autoCorrectRefactoring :: RefactoringChoice
 autoCorrectRefactoring = SelectionRefactoring "AutoCorrect" (localRefactoring . autoCorrect)
-
-type AutoCorrectDomain dom = (HasIdInfo dom)
 
 tryItOut :: String -> String -> IO ()
 tryItOut mod sp = tryRefactor (localRefactoring . autoCorrect) mod sp
 
-autoCorrect :: AutoCorrectDomain dom => RealSrcSpan -> LocalRefactoring dom
+autoCorrect :: RealSrcSpan -> LocalRefactoring
 autoCorrect sp mod
   = do res <- mapM (\f -> f sp mod) [reParen]
        case catMaybes res of mod':_ -> return mod'
@@ -43,59 +40,59 @@ autoCorrect sp mod
 
 --------------------------------------------------------------------------------------------
 
-reParen :: forall dom . AutoCorrectDomain dom => RealSrcSpan -> HT.Module dom -> LocalRefactor dom (Maybe (HT.Module dom))
-reParen sp mod = do let rng:_ = map getRange (mod ^? nodesContained sp :: [Expr dom])
+reParen :: RealSrcSpan -> HT.Module -> LocalRefactor (Maybe HT.Module)
+reParen sp mod = do let rng:_ = map getRange (mod ^? nodesContained sp :: [Expr])
                         (res,done) = flip runState False ((nodesContained sp & filtered ((==rng) . getRange) !~ reParenExpr) mod)
                     return (if done then Just res else Nothing)
 
-reParenExpr :: AutoCorrectDomain dom => Expr dom -> State Bool (Expr dom)
+reParenExpr :: Expr -> State Bool Expr
 reParenExpr e = case correctParening $ map (_2 .- Left) $ extractAtoms e of
                   [e'] -> put True >> return (wrapAtom e')
                   [] -> return e
                   ls -> -- TODO: choose the best one
                         error $ "multiple correct parentheses were found: " ++ intercalate ", " (map (either prettyPrintAtom prettyPrint) ls)
 
-data Atom dom = NameA { aName :: HT.Name dom }
-              | OperatorA { aOperator :: Operator dom }
-              | LiteralA { aLiteral :: Literal dom }
+data Atom = NameA { aName :: HT.Name }
+          | OperatorA { aOperator :: Operator }
+          | LiteralA { aLiteral :: Literal }
 
-prettyPrintAtom :: Atom dom -> String
+prettyPrintAtom :: Atom -> String
 prettyPrintAtom (NameA n) = prettyPrint n
 prettyPrintAtom (OperatorA o) = prettyPrint o
 prettyPrintAtom (LiteralA l) = prettyPrint l
 
-type Build dom = Either (Atom dom) (Expr dom)
+type Build = Either Atom Expr
 
-extractAtoms :: AutoCorrectDomain dom => Expr dom -> [(GHC.Type, Atom dom)]
+extractAtoms :: Expr -> [(GHC.Type, Atom)]
 extractAtoms e = sortOn (srcSpanStart . atomRange . snd) 
                    $ map (\n -> (idType $ semanticsId (n ^. simpleName), NameA n)) (e ^? biplateRef) 
                        ++ map (\o -> (idType $ semanticsId (o ^. operatorName), OperatorA o)) (e ^? biplateRef) 
                        ++ map (\l -> (literalType l, LiteralA l)) (e ^? biplateRef)
 
-literalType :: Literal dom -> GHC.Type
+literalType :: Literal -> GHC.Type
 literalType (StringLit {}) = stringTy
 
-atomRange :: Atom dom -> SrcSpan
+atomRange :: Atom -> SrcSpan
 atomRange (NameA n) = getRange n
 atomRange (OperatorA n) = getRange n
 atomRange (LiteralA n) = getRange n
 
-wrapAtom :: Build dom -> Expr dom
+wrapAtom :: Build -> Expr
 wrapAtom (Right e) = e
 wrapAtom (Left (NameA n)) = mkVar n
 wrapAtom (Left (OperatorA (NormalOp o))) = mkVar (mkParenName o)
 wrapAtom (Left (OperatorA (BacktickOp n))) = mkVar (mkNormalName n)
 wrapAtom (Left (LiteralA l)) = mkLit l
 
-correctParening :: [(GHC.Type, Build dom)] -> [Build dom]
+correctParening :: [(GHC.Type, Build)] -> [Build]
 correctParening [(_,e)] = [e]
 correctParening ls = concatMap correctParening (reduceAtoms ls)
 
-reduceAtoms :: [(GHC.Type, Build dom)] -> [[(GHC.Type, Build dom)]]
+reduceAtoms :: [(GHC.Type, Build)] -> [[(GHC.Type, Build)]]
 reduceAtoms [(t,e)] = [[(t,e)]]
 reduceAtoms ls = concatMap (reduceBy ls) [0 .. length ls - 1]
 
-reduceBy :: [(GHC.Type, Build dom)] -> Int -> [[(GHC.Type, Build dom)]]
+reduceBy :: [(GHC.Type, Build)] -> Int -> [[(GHC.Type, Build)]]
 reduceBy (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ maybeToList (reduceOperatorApp ls i)
   where reduceFunctionApp ls i | Just (funT, fun) <- lookup i ls
                                , Just (argT, arg) <- lookup (i+1) ls
@@ -116,11 +113,11 @@ reduceBy (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ maybeToLi
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
         reduceOperatorApp ls i = Nothing
 
-mkApp' :: Build dom -> Build dom -> Build dom
+mkApp' :: Build -> Build -> Build
 mkApp' (wrapAtom -> f) (wrapAtom -> a) = Right $ mkApp f a
 
-mkInfixApp' :: Build dom -> Operator dom -> Build dom -> Build dom
+mkInfixApp' :: Build -> Operator -> Build -> Build
 mkInfixApp' (wrapAtom -> lhs) op (wrapAtom -> rhs) = Right $ mkInfixApp lhs op rhs
 
-mkParen' :: Build dom -> Build dom
+mkParen' :: Build -> Build
 mkParen' (wrapAtom -> e) = Right $ mkParen e
