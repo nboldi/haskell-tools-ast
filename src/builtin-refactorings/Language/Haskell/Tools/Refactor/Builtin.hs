@@ -11,6 +11,7 @@ import Language.Haskell.Tools.Refactor.Builtin.OrganizeExtensions (OrganizeExten
 import Language.Haskell.Tools.Refactor.Builtin.OrganizeImports (OrganizeImportsDomain, organizeImportsRefactoring, projectOrganizeImportsRefactoring)
 import Language.Haskell.Tools.Refactor.Builtin.RenameDefinition (DomainRenameDefinition, renameDefinitionRefactoring)
 import Language.Haskell.Tools.Refactor.Builtin.AutoCorrect
+import Language.Haskell.Tools.Refactor.Builtin.PrintType (printTypeRefactoring)
 
 builtinRefactorings :: ( DomGenerateExports dom, OrganizeImportsDomain dom
                        , DomainRenameDefinition dom, ExtractBindingDomain dom
