@@ -53,11 +53,6 @@ reOrderExpr insts e@(App (App f a1) a2)
   = do funTy <- lift $ typeExpr f
        arg1Ty <- lift $ typeExpr a1
        arg2Ty <- lift $ typeExpr a2
-       liftIO $ putStrLn $ showSDocUnsafe (ppr funTy) ++ ", " 
-                             ++ showSDocUnsafe (ppr arg1Ty) ++ ", " 
-                             ++ showSDocUnsafe (ppr arg2Ty)
-       liftIO $ putStrLn $ show (isJust $ appTypeMatches insts funTy [arg2Ty, arg1Ty])
-       liftIO $ putStrLn $ show (not (isJust $ appTypeMatches insts funTy [arg1Ty, arg2Ty]))
        if not (isJust (appTypeMatches insts funTy [arg1Ty, arg2Ty])) && isJust (appTypeMatches insts funTy [arg2Ty, arg1Ty])
           then put True >> return (exprArg .= a1 $ exprFun&exprArg .= a2 $ e)
           else return e

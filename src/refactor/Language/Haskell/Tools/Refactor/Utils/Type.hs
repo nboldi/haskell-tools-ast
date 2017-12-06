@@ -128,7 +128,7 @@ appTypeMatches insts functionT argTs -- TODO: check instances
         (args, resT) = splitFunTys funT
         argTypes = fst $ unzip $ map splitType argTs
      in if length args >= length argTypes
-          then case tcUnifyTys (\_ -> BindMe) args argTypes of
+          then case tcUnifyTys (\_ -> BindMe) (take (length argTypes) args) argTypes of
                  Just st -> let (t', check) = repackFun st insts (substTy st $ mkFunTys (drop (length argTypes) args) resT)
                              in if check then Just (st, t')
                                          else Nothing
