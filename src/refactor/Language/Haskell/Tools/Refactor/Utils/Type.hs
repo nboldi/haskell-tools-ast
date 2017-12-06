@@ -7,7 +7,7 @@
            , TypeFamilies
            , ViewPatterns
            #-}
-module Language.Haskell.Tools.Refactor.Utils.Type (typeExpr, appTypeMatches, literalType, splitType) where
+module Language.Haskell.Tools.Refactor.Utils.Type (typeExpr, appTypeMatches, literalType) where
 
 import Data.List
 import Data.Maybe
@@ -15,6 +15,9 @@ import Control.Monad.State
 import Control.Monad.IO.Class
 import Control.Reference
 import GHC
+import TyCon as GHC
+import Module as GHC
+import InstEnv as GHC
 import Unify as GHC
 import SrcLoc as GHC
 import Type as GHC
@@ -42,24 +45,24 @@ typeExpr' :: Expr -> StateT [Unique] Ghc GHC.Type
 typeExpr' Hole = resultType
 typeExpr' (Var n) = return $ idType $ semanticsId (n ^. simpleName)
 typeExpr' (Lambda args e) = do
-  (resType, recomp) <- splitType <$> typeExpr' e
-  (argTypes, recomps) <- unzip <$> mapM (\_ -> splitType <$> resultType) (args ^? annList)
+  (resType, recomp) <- splitType' <$> typeExpr' e
+  (argTypes, recomps) <- unzip <$> mapM (\_ -> splitType' <$> resultType) (args ^? annList)
   return $ foldr (.) recomp recomps $ mkFunTys argTypes resType
 typeExpr' (Paren inner) = typeExpr' inner
 typeExpr' (InfixApp lhs op rhs) = do
   lhsType <- typeExpr' lhs
   rhsType <- typeExpr' rhs
   let opType = idType $ semanticsId (op ^. operatorName)
-  let (opt, repack) = splitType opType
+  let (opt, repack) = splitType' opType
       (args, resTyp) = splitFunTys opt
       lhsT:rhsT:rest = case args of _:_:_ -> args
-                                    _ -> error (showSDocUnsafe (ppr (fst $ splitType opType)))
+                                    _ -> error (showSDocUnsafe (ppr (fst $ splitType' opType)))
       subst = tcUnifyTys (\_ -> BindMe) [lhsType, rhsType] [lhsT, rhsT]
   return $ maybe id substTy subst $ repack (mkFunTys rest resTyp)
 typeExpr' (PrefixApp op rhs) = do
   let opType = idType $ semanticsId (op ^. operatorName)
   argType <- typeExpr' rhs
-  let (ft, repack) = splitType opType
+  let (ft, repack) = splitType' opType
       Just (argTyp, resTyp) = splitFunTy_maybe ft
       subst = tcUnifyTy argType argTyp
   return $ maybe id substTy subst $ repack resTyp
@@ -77,29 +80,29 @@ typeExpr' (Do stmts) =
 typeExpr' (App f arg) = do
   argType <- typeExpr' arg
   funType <- typeExpr' f
-  let (ft, repack) = splitType funType
+  let (ft, repack) = splitType' funType
   case splitFunTy_maybe ft of
     Just (argTyp, resTyp) -> do
       let subst = tcUnifyTy argType argTyp
       return $ maybe id substTy subst $ repack resTyp
     Nothing -> return funType
 typeExpr' (Tuple elems) = do
-  (elemTypes, pack) <- unzip . map splitType <$> mapM typeExpr' (elems ^? annList)
+  (elemTypes, pack) <- unzip . map splitType' <$> mapM typeExpr' (elems ^? annList)
   return $ foldr (.) id pack $ mkTupleTy Boxed elemTypes
 typeExpr' (AST.UnboxedTuple elems) = do
-  (elemTypes, pack) <- unzip . map splitType <$> mapM typeExpr' (elems ^? annList)
+  (elemTypes, pack) <- unzip . map splitType' <$> mapM typeExpr' (elems ^? annList)
   return $ foldr (.) id pack $ mkTupleTy Unboxed elemTypes
 -- typeExpr' (TupleSection elems) = 
 -- typeExpr' (UnboxedTupSec elems) = 
 typeExpr' (List elems) = do
-  case elems ^? annList of []  -> do (typ, pack) <- splitType <$> resultType
+  case elems ^? annList of []  -> do (typ, pack) <- splitType' <$> resultType
                                      return $ pack $ mkListTy typ
-                           e:_ -> do (typ, pack) <- splitType <$> typeExpr' e
+                           e:_ -> do (typ, pack) <- splitType' <$> typeExpr' e
                                      return $ pack $ mkListTy typ
 typeExpr' (ParArray elems) = do
-  case elems ^? annList of []  -> do (typ, pack) <- splitType <$> resultType
+  case elems ^? annList of []  -> do (typ, pack) <- splitType' <$> resultType
                                      return $ pack $ mkPArrTy typ
-                           e:_ -> do (typ, pack) <- splitType <$> typeExpr' e
+                           e:_ -> do (typ, pack) <- splitType' <$> typeExpr' e
                                      return $ pack $ mkPArrTy typ
 typeExpr' (Lit l) = literalType' l
 
@@ -119,21 +122,42 @@ literalType' (PrimDoubleLit {}) = return $ doubleX2PrimTy
 literalType' (PrimCharLit {}) = return $ charPrimTy
 literalType' (PrimStringLit {}) = return $ addrPrimTy
 
-appTypeMatches :: [ClsInst] -> GHC.Type -> [GHC.Type] -> Bool
-appTypeMatches insts funT argTs -- TODO: check instances
-  = let (args, _) = splitFunTys $ fst $ splitType funT
+appTypeMatches :: [ClsInst] -> GHC.Type -> [GHC.Type] -> Maybe (TCvSubst, GHC.Type)
+appTypeMatches insts functionT argTs -- TODO: check instances
+  = let (funT, repackFun) = splitType functionT
+        (args, resT) = splitFunTys funT
         argTypes = fst $ unzip $ map splitType argTs
-     in length args >= length argTypes
-          && and (zipWith (\t -> isJust . tcUnifyTy t) args argTypes)
+     in if length args >= length argTypes
+          then case tcUnifyTys (\_ -> BindMe) args argTypes of
+                 Just st -> let (t', check) = repackFun st insts (substTy st $ mkFunTys (drop (length argTypes) args) resT)
+                             in if check then Just (st, t')
+                                         else Nothing
+                 Nothing -> Nothing
+          else Nothing
 
-splitType :: GHC.Type -> (GHC.Type, GHC.Type -> GHC.Type)
+splitType' :: GHC.Type -> (GHC.Type, GHC.Type -> GHC.Type)
+splitType' t = case splitType t of (t', repack) -> (t', fst . repack emptyTCvSubst [])
+
+splitType :: GHC.Type -> (GHC.Type, TCvSubst -> [ClsInst] -> GHC.Type -> (GHC.Type, Bool))
 splitType typ =
   let (foralls, typ') = splitForAllTys typ
       (args, coreType) = splitFunTys typ'
       (implicitArgs, realArgs) = partition isPredTy args
-      repack t = mkInvForAllTys (filter (`elem` tvs) foralls) . mkFunTys (filter hasCommonTv implicitArgs) $ t
-        where tvs = tyCoVarsOfTypeWellScoped t
-              hasCommonTv = not . null . intersect tvs . tyCoVarsOfTypeWellScoped
+      repack subst insts t = (mkInvForAllTys (filter (`elem` tvs) foralls) . mkFunTys keptConstraints $ t, check)
+        where
+          check = and $ map (checkInst insts) implicitArgs
+          checkInst insts t =
+            case splitTyConApp_maybe (substTy subst t) of
+              Just (tc, args) -> case tyConClass_maybe tc of 
+                                   Just cls -> case lookupInstEnv False instEnvs cls args of 
+                                                 ([],[],[]) -> False
+                                                 _          -> True
+                                   Nothing -> True
+              Nothing -> True
+          instEnvs = InstEnvs (extendInstEnvList emptyInstEnv insts) emptyInstEnv emptyModuleSet
+          keptConstraints = filter hasCommonTv implicitArgs
+          tvs = tyCoVarsOfTypeWellScoped t
+          hasCommonTv = not . null . intersect tvs . tyCoVarsOfTypeWellScoped
    in (mkFunTys realArgs coreType, repack)
 
 resultType :: StateT [Unique] Ghc GHC.Type

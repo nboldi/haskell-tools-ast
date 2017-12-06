@@ -56,16 +56,16 @@ reOrderExpr insts e@(App (App f a1) a2)
        liftIO $ putStrLn $ showSDocUnsafe (ppr funTy) ++ ", " 
                              ++ showSDocUnsafe (ppr arg1Ty) ++ ", " 
                              ++ showSDocUnsafe (ppr arg2Ty)
-       liftIO $ putStrLn $ show (appTypeMatches insts funTy [arg2Ty, arg1Ty])
-       liftIO $ putStrLn $ show (not (appTypeMatches insts funTy [arg1Ty, arg2Ty]))
-       if not (appTypeMatches insts funTy [arg1Ty, arg2Ty]) && appTypeMatches insts funTy [arg2Ty, arg1Ty]
+       liftIO $ putStrLn $ show (isJust $ appTypeMatches insts funTy [arg2Ty, arg1Ty])
+       liftIO $ putStrLn $ show (not (isJust $ appTypeMatches insts funTy [arg1Ty, arg2Ty]))
+       if not (isJust (appTypeMatches insts funTy [arg1Ty, arg2Ty])) && isJust (appTypeMatches insts funTy [arg2Ty, arg1Ty])
           then put True >> return (exprArg .= a1 $ exprFun&exprArg .= a2 $ e)
           else return e
 reOrderExpr insts e@(InfixApp lhs op rhs) 
   = do let funTy = idType $ semanticsId (op ^. operatorName)
        lhsTy <- lift $ typeExpr lhs
        rhsTy <- lift $ typeExpr rhs
-       if not (appTypeMatches insts funTy [lhsTy, rhsTy]) && appTypeMatches insts funTy [rhsTy, lhsTy]
+       if not (isJust (appTypeMatches insts funTy [lhsTy, rhsTy])) && isJust (appTypeMatches insts funTy [rhsTy, lhsTy])
           then put True >> return (exprLhs .= rhs $ exprRhs .= lhs $ e)
           else return e
 reOrderExpr _ e = return e
@@ -80,7 +80,7 @@ reParen sp mod = do let insts = semanticsPrelInsts mod ++ concatMap semanticsIns
 
 reParenExpr :: [ClsInst] -> Expr -> StateT Bool Ghc Expr
 reParenExpr insts e = do atoms <- lift $ extractAtoms e
-                         case correctParening $ map (_2 .- Left) atoms of
+                         case correctParening insts $ map (_2 .- Left) atoms of
                            [e'] -> put True >> return (wrapAtom e')
                            [] -> return e
                            ls -> -- TODO: choose the best one
@@ -116,37 +116,30 @@ wrapAtom (Left (OperatorA (NormalOp o))) = mkVar (mkParenName o)
 wrapAtom (Left (OperatorA (BacktickOp n))) = mkVar (mkNormalName n)
 wrapAtom (Left (LiteralA l)) = mkLit l
 
-correctParening :: [(GHC.Type, Build)] -> [Build]
-correctParening [(_,e)] = [e]
-correctParening ls = concatMap correctParening (reduceAtoms ls)
+correctParening :: [ClsInst] -> [(GHC.Type, Build)] -> [Build]
+correctParening insts [(_,e)] = [e]
+correctParening insts ls = concatMap (correctParening insts) (reduceAtoms insts ls)
 
-reduceAtoms :: [(GHC.Type, Build)] -> [[(GHC.Type, Build)]]
-reduceAtoms [(t,e)] = [[(t,e)]]
-reduceAtoms ls = concatMap (reduceBy ls) [0 .. length ls - 2]
+reduceAtoms :: [ClsInst] -> [(GHC.Type, Build)] -> [[(GHC.Type, Build)]]
+reduceAtoms insts [(t,e)] = [[(t,e)]]
+reduceAtoms insts ls = concatMap (reduceBy insts ls) [0 .. length ls - 2]
 
-reduceBy :: [(GHC.Type, Build)] -> Int -> [[(GHC.Type, Build)]]
-reduceBy (zip [0..] -> ls) i = trace (show i) $ maybeToList (reduceFunctionApp ls i) ++ maybeToList (reduceOperatorApp ls i)
+reduceBy :: [ClsInst] -> [(GHC.Type, Build)] -> Int -> [[(GHC.Type, Build)]]
+reduceBy insts (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ maybeToList (reduceOperatorApp ls i)
   where reduceFunctionApp ls i | Just (funT, fun) <- lookup i ls
                                , Just (argT, arg) <- lookup (i+1) ls
-                               , (funType, funTRepack) <- splitType funT
-                               , (argType, _) <- splitType argT
-                               , Just (inputType, resType) <- splitFunTy_maybe funType
-                               , Just subst <- tcUnifyTy argType inputType
+                               , Just (subst, resTyp) <- appTypeMatches insts funT [argT]
           = Just $ map ((_1 .- substTy subst) . snd) (take i ls) 
-                     ++ [(substTy subst (funTRepack resType), mkParen' (mkApp' fun arg))] 
+                     ++ [(resTyp, mkParen' (mkApp' fun arg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
         reduceFunctionApp ls i = Nothing
         
         reduceOperatorApp ls i | Just (opT, Left (OperatorA op)) <- lookup i ls
                                , Just (lArgT, lArg) <- lookup (i-1) ls
                                , Just (rArgT, rArg) <- lookup (i+1) ls
-                               , (funType, funTRepack) <- splitType opT
-                               , (rArgType, _) <- splitType lArgT
-                               , (lArgType, _) <- splitType rArgT
-                               , (input1Type:input2Type:inputRest, resType) <- splitFunTys funType
-                               , Just subst <- tcUnifyTys (\_ -> BindMe) [lArgType,rArgType] []
+                               , Just (subst, resTyp) <- appTypeMatches insts opT [lArgT, rArgT]
           = Just $ map ((_1 .- substTy subst) . snd) (take (i - 1) ls) 
-                     ++ [(substTy subst (funTRepack (mkFunTys inputRest resType)), mkParen' (mkInfixApp' lArg op rArg))] 
+                     ++ [(resTyp, mkParen' (mkInfixApp' lArg op rArg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
         reduceOperatorApp ls i = Nothing
 

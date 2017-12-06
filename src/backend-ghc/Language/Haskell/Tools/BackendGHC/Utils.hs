@@ -23,6 +23,7 @@ import FieldLabel as GHC (FieldLbl(..))
 import GHC
 import HsSyn
 import HscTypes
+import Var
 import Id (idName)
 import InstEnv as GHC (ClsInst(..), instanceDFunId, instEnvElts)
 import Language.Haskell.TH.LanguageExtensions (Extension(..))
@@ -113,14 +114,19 @@ createImportData (GHC.ImportDecl _ name pkg _ _ _ _ _ declHiding) =
 getInstances :: Module -> Ghc ([ClsInst], [FamInst])
 getInstances mod = do
   env <- getSession
+  eps <- liftIO $ hscEPS env
   let lookupInstances mn = case lookupHpt (hsc_HPT env) (GHC.moduleName mod) of 
                              Just hmi -> (md_insts (hm_details hmi), md_fam_insts (hm_details hmi))
-                             Nothing -> hptInstances env (== mn) 
-  case lookupHpt (hsc_HPT env) (GHC.moduleName mod) of
-    Just hmi -> do
-      let ownInstances = md_insts (hm_details hmi)
-          ownFamInstances = md_fam_insts (hm_details hmi)
-          deps = dep_mods (mi_deps (hm_iface hmi))
+                             Nothing -> let (hptInsts, hptFamInsts) = hptInstances env (== mn)
+                                            instDefIn mn inst = maybe False ((== mn) . GHC.moduleName) $ nameModule_maybe $ Var.varName $ is_dfun inst
+                                            famInstDefIn mn inst = maybe False ((== mn) . GHC.moduleName) $ nameModule_maybe $ co_ax_name $ fi_axiom inst
+                                         in ( hptInsts ++ filter (instDefIn mn) (instEnvElts $ eps_inst_env eps)
+                                            , hptFamInsts ++ filter (famInstDefIn mn) (famInstEnvElts $ eps_fam_inst_env eps)
+                                            )
+  case lookupIfaceByModule (hsc_dflags env) (hsc_HPT env) (eps_PIT eps) mod of
+    Just ifc -> do
+      let (ownInstances, ownFamInstances) = lookupInstances (GHC.moduleName mod)
+          deps = dep_mods (mi_deps ifc)
           (depInstances, depFamInstances) = unzip $ map lookupInstances (map fst deps)
       return (ownInstances ++ concat depInstances, ownFamInstances ++ concat depFamInstances)
     Nothing -> return ([],[])
