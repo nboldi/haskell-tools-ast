@@ -43,43 +43,48 @@ autoCorrect sp mod
 --------------------------------------------------------------------------------------------
 
 reOrder :: RealSrcSpan -> HT.Module -> LocalRefactor (Maybe HT.Module)
-reOrder sp mod = do let rng:_ = map getRange (mod ^? nodesContained sp :: [Expr])
-                    (res,done) <- liftGhc $ flip runStateT False ((nodesContained sp & filtered ((==rng) . getRange) !~ reOrderExpr) mod)
+reOrder sp mod = do let insts = semanticsPrelInsts mod ++ concatMap semanticsInsts (mod ^? modImports & annList :: [HT.ImportDecl])
+                        rng:_ = map getRange (mod ^? nodesContained sp :: [Expr])
+                    (res,done) <- liftGhc $ flip runStateT False ((nodesContained sp & filtered ((==rng) . getRange) !~ reOrderExpr insts) mod)
                     return (if done then Just res else Nothing)
 
-reOrderExpr :: Expr -> StateT Bool Ghc Expr
-reOrderExpr e@(App (App f a1) a2)
+reOrderExpr :: [ClsInst] -> Expr -> StateT Bool Ghc Expr
+reOrderExpr insts e@(App (App f a1) a2)
   = do funTy <- lift $ typeExpr f
        arg1Ty <- lift $ typeExpr a1
        arg2Ty <- lift $ typeExpr a2
        liftIO $ putStrLn $ showSDocUnsafe (ppr funTy) ++ ", " 
                              ++ showSDocUnsafe (ppr arg1Ty) ++ ", " 
                              ++ showSDocUnsafe (ppr arg2Ty)
-       liftIO $ putStrLn $ show (appTypeMatches funTy [arg2Ty, arg1Ty])
-       liftIO $ putStrLn $ show (not (appTypeMatches funTy [arg1Ty, arg2Ty]))
-       if not (appTypeMatches funTy [arg1Ty, arg2Ty]) && appTypeMatches funTy [arg2Ty, arg1Ty]
+       liftIO $ putStrLn $ show (appTypeMatches insts funTy [arg2Ty, arg1Ty])
+       liftIO $ putStrLn $ show (not (appTypeMatches insts funTy [arg1Ty, arg2Ty]))
+       if not (appTypeMatches insts funTy [arg1Ty, arg2Ty]) && appTypeMatches insts funTy [arg2Ty, arg1Ty]
           then put True >> return (exprArg .= a1 $ exprFun&exprArg .= a2 $ e)
           else return e
-reOrderExpr e@(InfixApp lhs op rhs) 
+reOrderExpr insts e@(InfixApp lhs op rhs) 
   = do let funTy = idType $ semanticsId (op ^. operatorName)
        lhsTy <- lift $ typeExpr lhs
        rhsTy <- lift $ typeExpr rhs
-       if not (appTypeMatches funTy [lhsTy, rhsTy]) && appTypeMatches funTy [rhsTy, lhsTy]
+       if not (appTypeMatches insts funTy [lhsTy, rhsTy]) && appTypeMatches insts funTy [rhsTy, lhsTy]
           then put True >> return (exprLhs .= rhs $ exprRhs .= lhs $ e)
           else return e
-reOrderExpr e = return e
+reOrderExpr _ e = return e
+
+------------------------------------------------------------------------------------------
 
 reParen :: RealSrcSpan -> HT.Module -> LocalRefactor (Maybe HT.Module)
-reParen sp mod = do let rng:_ = map getRange (mod ^? nodesContained sp :: [Expr])
-                        (res,done) = flip runState False ((nodesContained sp & filtered ((==rng) . getRange) !~ reParenExpr) mod)
+reParen sp mod = do let insts = semanticsPrelInsts mod ++ concatMap semanticsInsts (mod ^? modImports & annList :: [HT.ImportDecl])
+                        rng:_ = map getRange (mod ^? nodesContained sp :: [Expr])
+                    (res,done) <- liftGhc $ flip runStateT False ((nodesContained sp & filtered ((==rng) . getRange) !~ reParenExpr insts) mod)
                     return (if done then Just res else Nothing)
 
-reParenExpr :: Expr -> State Bool Expr
-reParenExpr e = case correctParening $ map (_2 .- Left) $ extractAtoms e of
-                  [e'] -> put True >> return (wrapAtom e')
-                  [] -> return e
-                  ls -> -- TODO: choose the best one
-                        error $ "multiple correct parentheses were found: " ++ intercalate ", " (map (either prettyPrintAtom prettyPrint) ls)
+reParenExpr :: [ClsInst] -> Expr -> StateT Bool Ghc Expr
+reParenExpr insts e = do atoms <- lift $ extractAtoms e
+                         case correctParening $ map (_2 .- Left) atoms of
+                           [e'] -> put True >> return (wrapAtom e')
+                           [] -> return e
+                           ls -> -- TODO: choose the best one
+                                 error $ "multiple correct parentheses were found: " ++ intercalate ", " (map (either prettyPrintAtom prettyPrint) ls)
 
 data Atom = NameA { aName :: HT.Name }
           | OperatorA { aOperator :: Operator }
@@ -92,23 +97,12 @@ prettyPrintAtom (LiteralA l) = prettyPrint l
 
 type Build = Either Atom Expr
 
-extractAtoms :: Expr -> [(GHC.Type, Atom)]
-extractAtoms e = sortOn (srcSpanStart . atomRange . snd) 
-                   $ map (\n -> (idType $ semanticsId (n ^. simpleName), NameA n)) (e ^? biplateRef) 
-                       ++ map (\o -> (idType $ semanticsId (o ^. operatorName), OperatorA o)) (e ^? biplateRef) 
-                       ++ map (\l -> (literalType l, LiteralA l)) (e ^? biplateRef)
-
-literalType :: Literal -> GHC.Type
-literalType (StringLit {}) = stringTy
-literalType (CharLit {}) = charTy
-literalType (IntLit {}) = intTy -- TODO: polymorph type
-literalType (FracLit {}) = intTy -- TODO: polymorph type
-literalType (PrimIntLit {}) = intPrimTy
-literalType (PrimWordLit {}) = word32PrimTy
-literalType (PrimFloatLit {}) = floatX4PrimTy
-literalType (PrimDoubleLit {}) = doubleX2PrimTy
-literalType (PrimCharLit {}) = charPrimTy
-literalType (PrimStringLit {}) = addrPrimTy
+extractAtoms :: Expr -> Ghc [(GHC.Type, Atom)]
+extractAtoms e = do lits <- mapM (\l -> (, LiteralA l) <$> literalType l) (e ^? biplateRef)
+                    return $ sortOn (srcSpanStart . atomRange . snd) 
+                           $ map (\n -> (idType $ semanticsId (n ^. simpleName), NameA n)) (e ^? biplateRef) 
+                               ++ map (\o -> (idType $ semanticsId (o ^. operatorName), OperatorA o)) (e ^? biplateRef) 
+                               ++ lits
 
 atomRange :: Atom -> SrcSpan
 atomRange (NameA n) = getRange n
@@ -128,26 +122,31 @@ correctParening ls = concatMap correctParening (reduceAtoms ls)
 
 reduceAtoms :: [(GHC.Type, Build)] -> [[(GHC.Type, Build)]]
 reduceAtoms [(t,e)] = [[(t,e)]]
-reduceAtoms ls = concatMap (reduceBy ls) [0 .. length ls - 1]
+reduceAtoms ls = concatMap (reduceBy ls) [0 .. length ls - 2]
 
 reduceBy :: [(GHC.Type, Build)] -> Int -> [[(GHC.Type, Build)]]
-reduceBy (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ maybeToList (reduceOperatorApp ls i)
+reduceBy (zip [0..] -> ls) i = trace (show i) $ maybeToList (reduceFunctionApp ls i) ++ maybeToList (reduceOperatorApp ls i)
   where reduceFunctionApp ls i | Just (funT, fun) <- lookup i ls
                                , Just (argT, arg) <- lookup (i+1) ls
-                               , (filter (not . isPredTy) -> inpT:inpsT, resT) <- splitFunTys $ snd $ splitForAllTys funT
-                               , Just subst <- tcUnifyTy argT inpT
+                               , (funType, funTRepack) <- splitType funT
+                               , (argType, _) <- splitType argT
+                               , Just (inputType, resType) <- splitFunTy_maybe funType
+                               , Just subst <- tcUnifyTy argType inputType
           = Just $ map ((_1 .- substTy subst) . snd) (take i ls) 
-                     ++ [(substTy subst (mkFunTys inpsT resT), mkParen' (mkApp' fun arg))] 
+                     ++ [(substTy subst (funTRepack resType), mkParen' (mkApp' fun arg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
         reduceFunctionApp ls i = Nothing
         
         reduceOperatorApp ls i | Just (opT, Left (OperatorA op)) <- lookup i ls
                                , Just (lArgT, lArg) <- lookup (i-1) ls
                                , Just (rArgT, rArg) <- lookup (i+1) ls
-                               , (filter (not . isPredTy) -> inp1T:inp2T:inpsT, resT) <- splitFunTys $ snd $ splitForAllTys opT
-                               , Just subst <- tcUnifyTys (\_ -> BindMe) [lArgT,rArgT] [inp1T,inp2T]
+                               , (funType, funTRepack) <- splitType opT
+                               , (rArgType, _) <- splitType lArgT
+                               , (lArgType, _) <- splitType rArgT
+                               , (input1Type:input2Type:inputRest, resType) <- splitFunTys funType
+                               , Just subst <- tcUnifyTys (\_ -> BindMe) [lArgType,rArgType] []
           = Just $ map ((_1 .- substTy subst) . snd) (take (i - 1) ls) 
-                     ++ [(substTy subst (mkFunTys inpsT resT), mkParen' (mkInfixApp' lArg op rArg))] 
+                     ++ [(substTy subst (funTRepack (mkFunTys inputRest resType)), mkParen' (mkInfixApp' lArg op rArg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
         reduceOperatorApp ls i = Nothing
 

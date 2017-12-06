@@ -7,7 +7,7 @@
            , TypeFamilies
            , ViewPatterns
            #-}
-module Language.Haskell.Tools.Refactor.Utils.Type (typeExpr, appTypeMatches) where
+module Language.Haskell.Tools.Refactor.Utils.Type (typeExpr, appTypeMatches, literalType, splitType) where
 
 import Data.List
 import Data.Maybe
@@ -78,9 +78,11 @@ typeExpr' (App f arg) = do
   argType <- typeExpr' arg
   funType <- typeExpr' f
   let (ft, repack) = splitType funType
-      Just (argTyp, resTyp) = splitFunTy_maybe ft
-      subst = tcUnifyTy argType argTyp
-  return $ maybe id substTy subst $ repack resTyp
+  case splitFunTy_maybe ft of
+    Just (argTyp, resTyp) -> do
+      let subst = tcUnifyTy argType argTyp
+      return $ maybe id substTy subst $ repack resTyp
+    Nothing -> return funType
 typeExpr' (Tuple elems) = do
   (elemTypes, pack) <- unzip . map splitType <$> mapM typeExpr' (elems ^? annList)
   return $ foldr (.) id pack $ mkTupleTy Boxed elemTypes
@@ -99,19 +101,26 @@ typeExpr' (ParArray elems) = do
                                      return $ pack $ mkPArrTy typ
                            e:_ -> do (typ, pack) <- splitType <$> typeExpr' e
                                      return $ pack $ mkPArrTy typ
-typeExpr' (Lit (StringLit {})) = return stringTy
-typeExpr' (Lit (CharLit {})) = return charTy
-typeExpr' (Lit (IntLit {})) = literalType numClassName
-typeExpr' (Lit (FracLit {})) = literalType fractionalClassName
-typeExpr' (Lit (PrimIntLit {})) = return $ intPrimTy
-typeExpr' (Lit (PrimWordLit {})) = return $ word32PrimTy
-typeExpr' (Lit (PrimFloatLit {})) = return $ floatX4PrimTy
-typeExpr' (Lit (PrimDoubleLit {})) = return $ doubleX2PrimTy
-typeExpr' (Lit (PrimCharLit {})) = return $ charPrimTy
-typeExpr' (Lit (PrimStringLit {})) = return $ addrPrimTy
+typeExpr' (Lit l) = literalType' l
 
-appTypeMatches :: GHC.Type -> [GHC.Type] -> Bool
-appTypeMatches funT argTs 
+literalType :: Literal -> Ghc GHC.Type
+literalType e = do usupp <- liftIO $ mkSplitUniqSupply 'z'
+                   evalStateT (literalType' e) (uniqsFromSupply usupp)
+
+literalType' :: Literal -> StateT [Unique] Ghc GHC.Type
+literalType' (StringLit {}) = return stringTy
+literalType' (CharLit {}) = return charTy
+literalType' (IntLit {}) = litType numClassName
+literalType' (FracLit {}) = litType fractionalClassName
+literalType' (PrimIntLit {}) = return $ intPrimTy
+literalType' (PrimWordLit {}) = return $ word32PrimTy
+literalType' (PrimFloatLit {}) = return $ floatX4PrimTy
+literalType' (PrimDoubleLit {}) = return $ doubleX2PrimTy
+literalType' (PrimCharLit {}) = return $ charPrimTy
+literalType' (PrimStringLit {}) = return $ addrPrimTy
+
+appTypeMatches :: [ClsInst] -> GHC.Type -> [GHC.Type] -> Bool
+appTypeMatches insts funT argTs -- TODO: check instances
   = let (args, _) = splitFunTys $ fst $ splitType funT
         argTypes = fst $ unzip $ map splitType argTs
      in length args >= length argTypes
@@ -134,8 +143,8 @@ resultType = do
       occn  = mkOccName tvName "a"
   return $ mkInvForAllTys [tv] (mkTyVarTy tv)
 
-literalType :: GHC.Name -> StateT [Unique] Ghc GHC.Type
-literalType constraint = do 
+litType :: GHC.Name -> StateT [Unique] Ghc GHC.Type
+litType constraint = do 
   Just (ATyCon numTyCon) <- lookupName numClassName
   name <- newName
   let tv = mkTyVar name (mkTyConTy starKindTyCon)
