@@ -2,13 +2,13 @@
 module Language.Haskell.Tools.AST.SemaInfoTypes
   ( -- types
     NoSemanticInfo, ScopeInfo, NameInfo, CNameInfo, ModuleInfo, ImportInfo, ImplicitFieldInfo
-  , Scope, UsageSpec(..)
+  , Scope, UsageSpec(..), LiteralInfo(..), PreLiteralInfo(..)
     -- references
   , exprScopedLocals, nameScopedLocals, nameIsDefined, nameInfo, ambiguousName, nameLocation
   , implicitName, cnameScopedLocals, cnameIsDefined, cnameInfo, cnameFixity
   , defModuleName, defDynFlags, defIsBootModule, implicitNames, importedModule, availableNames
   , importedNames, implicitFieldBindings, importedOrphanInsts, importedFamInsts, prelOrphanInsts
-  , prelFamInsts
+  , prelFamInsts, literalType
     -- creator functions
   , mkNoSemanticInfo, mkScopeInfo, mkNameInfo, mkAmbiguousNameInfo, mkImplicitNameInfo, mkCNameInfo
   , mkModuleInfo, mkImportInfo, mkImplicitFieldInfo
@@ -26,6 +26,7 @@ import Name as GHC
 import Outputable as GHC
 import RdrName as GHC
 import SrcLoc as GHC
+import Type as GHC
 
 import Data.Data as Data
 import Data.List
@@ -64,6 +65,24 @@ data ScopeInfo = ScopeInfo { _exprScopedLocals :: Scope
 -- | Creates the information about the definitions in scope
 mkScopeInfo :: Scope -> ScopeInfo
 mkScopeInfo = ScopeInfo
+
+data PreLiteralInfo = RealLiteralInfo { _realLiteralType :: Type
+                                      }
+                    | PreLiteralInfo { _preLiteralLoc :: SrcSpan
+                                     }
+  deriving (Data)
+
+instance Show PreLiteralInfo where
+  show (RealLiteralInfo t) = "RealLiteralInfo (" ++ showSDocUnsafe (ppr t) ++ ")"
+  show (PreLiteralInfo sp) = "PreLiteralInfo (" ++ show sp ++ ")"
+
+data LiteralInfo = LiteralInfo { _literalType :: Type
+                               }
+  deriving (Data)
+
+instance Show LiteralInfo where
+  show (LiteralInfo t) = "LiteralInfo (" ++ showSDocUnsafe (ppr t) ++ ")"
+
 
 -- | Info corresponding to a name
 data NameInfo n = NameInfo { _nameScopedLocals :: Scope
@@ -217,6 +236,7 @@ makeReferences ''CNameInfo
 makeReferences ''ModuleInfo
 makeReferences ''ImportInfo
 makeReferences ''ImplicitFieldInfo
+makeReferences ''LiteralInfo
 
 instance Functor NameInfo where
   fmap f = nameInfo .- f

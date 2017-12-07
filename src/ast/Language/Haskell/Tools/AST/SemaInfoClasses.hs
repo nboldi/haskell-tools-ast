@@ -3,6 +3,7 @@ module Language.Haskell.Tools.AST.SemaInfoClasses (module Language.Haskell.Tools
 
 import GHC
 import Id as GHC (Id, idName)
+import qualified Type as GHC
 
 import Control.Reference
 
@@ -10,7 +11,11 @@ import Language.Haskell.Tools.AST.Ann as AST
 import Language.Haskell.Tools.AST.Representation.Exprs as AST (UFieldWildcard, UExpr)
 import Language.Haskell.Tools.AST.Representation.Modules as AST (UImportDecl, UModule)
 import Language.Haskell.Tools.AST.Representation.Names as AST (UQualifiedName)
+import Language.Haskell.Tools.AST.Representation.Literals as AST (ULiteral)
 import Language.Haskell.Tools.AST.SemaInfoTypes as AST
+
+semanticsLitType :: Ann ULiteral IdDom st -> GHC.Type
+semanticsLitType lit = lit ^. annotation & semanticInfo & literalType
 
 -- * Information about names
 
