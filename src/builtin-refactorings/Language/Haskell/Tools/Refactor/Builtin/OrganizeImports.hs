@@ -65,7 +65,7 @@ organizeImports mod
        if noNarrowingImports
          then -- we don't know what definitions the generated code will use
               return $ modImports .- sortImports $ mod
-         else modImports !~ narrowImports noNarrowingSubspecs exportedModules (addFromString dfs usedNames) exportedNames prelInstances prelFamInsts . sortImports $ mod
+         else modImports !~ fmap sortImports . narrowImports noNarrowingSubspecs exportedModules (addFromString dfs usedNames) exportedNames prelInstances prelFamInsts $ mod
   where prelInstances = semanticsPrelInsts mod
         prelFamInsts = semanticsPrelFamInsts mod
         addFromString dfs = if xopt OverloadedStrings dfs then (GHC.fromStringName :) else id

@@ -83,6 +83,8 @@ organizeImportTests =
   , "Refactor.OrganizeImports.MakeExplicit.Renamed"
   , "Refactor.OrganizeImports.InstanceCarry.ImportOrphan"
   , "Refactor.OrganizeImports.InstanceCarry.ImportNonOrphan"
+  , "Refactor.OrganizeImports.InstanceCarry.Duplicate"
+  , "Refactor.OrganizeImports.InstanceCarry.Transitive"
   , "Refactor.OrganizeImports.NarrowQual"
   , "Refactor.OrganizeImports.NarrowSpec"
   , "Refactor.OrganizeImports.StandaloneDeriving"
@@ -285,6 +287,9 @@ autoCorrectTests =
   , ("Refactor.AutoCorrect.ExternalInstanceReOrder", "3:5-3:11")
   , ("Refactor.AutoCorrect.ComplexExprReOrder", "3:5-3:22")
   , ("Refactor.AutoCorrect.OwnInstanceReOrder", "5:5-5:10")
+  , ("Refactor.AutoCorrect.ComplexExprReOrder2", "3:5-3:39")
+  , ("Refactor.AutoCorrect.SectionReOrder", "3:5-3:18")
+  , ("Refactor.AutoCorrect.TupleSectionReOrder", "4:5-4:15")
   ]
 
 makeMultiModuleTest :: ((String, String, String, [String]) -> Either String [(String, Maybe String)] -> IO ())

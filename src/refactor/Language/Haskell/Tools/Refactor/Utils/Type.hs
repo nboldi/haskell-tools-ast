@@ -31,6 +31,9 @@ import Unify as GHC
 import TysWiredIn as GHC
 import TysPrim as GHC
 import PrelNames as GHC
+import ConLike as GHC
+import DataCon as GHC
+import PatSyn as GHC
 import BasicTypes as GHC
 import Language.Haskell.Tools.Rewrite.ElementTypes as AST
 import Language.Haskell.Tools.Rewrite.Match as AST
@@ -42,30 +45,40 @@ typeExpr e = do usupp <- liftIO $ mkSplitUniqSupply 'z'
                 evalStateT (typeExpr' e) (uniqsFromSupply usupp)
 
 typeExpr' :: Expr -> StateT [Unique] Ghc GHC.Type
-typeExpr' Hole = resultType
 typeExpr' (Var n) = return $ idType $ semanticsId (n ^. simpleName)
-typeExpr' (Lambda args e) = do
-  (resType, recomp) <- splitType' <$> typeExpr' e
-  (argTypes, recomps) <- unzip <$> mapM (\_ -> splitType' <$> resultType) (args ^? annList)
-  return $ foldr (.) recomp recomps $ mkFunTys argTypes resType
-typeExpr' (Paren inner) = typeExpr' inner
+typeExpr' (Lit l) = literalType' l
 typeExpr' (InfixApp lhs op rhs) = do
   lhsType <- typeExpr' lhs
   rhsType <- typeExpr' rhs
   let opType = idType $ semanticsId (op ^. operatorName)
   let (opt, repack) = splitType' opType
-      (args, resTyp) = splitFunTys opt
-      lhsT:rhsT:rest = case args of _:_:_ -> args
-                                    _ -> error (showSDocUnsafe (ppr (fst $ splitType' opType)))
-      subst = tcUnifyTys (\_ -> BindMe) [lhsType, rhsType] [lhsT, rhsT]
-  return $ maybe id substTy subst $ repack (mkFunTys rest resTyp)
+  case splitFunTys opt of
+    (lhsT:rhsT:rest, resTyp) -> do
+      let subst = tcUnifyTys (\_ -> BindMe) [lhsType, rhsType] [lhsT, rhsT]
+      return $ maybe id substTy subst $ repack (mkFunTys rest resTyp)
+    _ -> resultType
 typeExpr' (PrefixApp op rhs) = do
   let opType = idType $ semanticsId (op ^. operatorName)
   argType <- typeExpr' rhs
   let (ft, repack) = splitType' opType
-      Just (argTyp, resTyp) = splitFunTy_maybe ft
-      subst = tcUnifyTy argType argTyp
-  return $ maybe id substTy subst $ repack resTyp
+  case splitFunTy_maybe ft of
+    Just (argTyp, resTyp) -> do
+      let subst = tcUnifyTy argType argTyp
+      return $ maybe id substTy subst $ repack resTyp
+    _ -> resultType
+typeExpr' (App f arg) = do
+  argType <- typeExpr' arg
+  funType <- typeExpr' f
+  let (ft, repack) = splitType' funType
+  case splitFunTy_maybe ft of
+    Just (argTyp, resTyp) -> do
+      let subst = tcUnifyTy argType argTyp
+      return $ maybe id substTy subst $ repack resTyp
+    Nothing -> return funType
+typeExpr' (Lambda args e) = do
+  (resType, recomp) <- splitType' <$> typeExpr' e
+  (argTypes, recomps) <- unzip <$> mapM (\_ -> splitType' <$> resultType) (args ^? annList)
+  return $ foldr (.) recomp recomps $ mkFunTys argTypes resType
 typeExpr' (Let _ e) = typeExpr' e
 typeExpr' (If cond then' else') = typeExpr' then'
 typeExpr' (MultiIf alts) =
@@ -77,22 +90,16 @@ typeExpr' (Case _ alts) =
 typeExpr' (Do stmts) =
   case stmts ^? annList & stmtExpr of e:_ -> typeExpr' e
                                       _   -> resultType
-typeExpr' (App f arg) = do
-  argType <- typeExpr' arg
-  funType <- typeExpr' f
-  let (ft, repack) = splitType' funType
-  case splitFunTy_maybe ft of
-    Just (argTyp, resTyp) -> do
-      let subst = tcUnifyTy argType argTyp
-      return $ maybe id substTy subst $ repack resTyp
-    Nothing -> return funType
 typeExpr' (Tuple elems) = do
   (elemTypes, pack) <- unzip . map splitType' <$> mapM typeExpr' (elems ^? annList)
   return $ foldr (.) id pack $ mkTupleTy Boxed elemTypes
 typeExpr' (AST.UnboxedTuple elems) = do
   (elemTypes, pack) <- unzip . map splitType' <$> mapM typeExpr' (elems ^? annList)
   return $ foldr (.) id pack $ mkTupleTy Unboxed elemTypes
--- typeExpr' (TupleSection elems) = 
+-- typeExpr' (TupleSection elems) 
+--   = let (elems, holes) <- partition (\case Present _ -> True; Missing -> False) elems
+--      in do args <- mapM resultType holes
+-- 
 -- typeExpr' (UnboxedTupSec elems) = 
 typeExpr' (List elems) = do
   case elems ^? annList of []  -> do (typ, pack) <- splitType' <$> resultType
@@ -104,7 +111,39 @@ typeExpr' (ParArray elems) = do
                                      return $ pack $ mkPArrTy typ
                            e:_ -> do (typ, pack) <- splitType' <$> typeExpr' e
                                      return $ pack $ mkPArrTy typ
-typeExpr' (Lit l) = literalType' l
+typeExpr' (Paren inner) = typeExpr' inner
+typeExpr' (LeftSection lhs op) = do
+  let opType = idType $ semanticsId (op ^. operatorName)
+  argType <- typeExpr' lhs
+  let (ft, repack) = splitType' opType
+  case splitFunTy_maybe ft of 
+    Just (argTyp, resTyp) -> do
+      let subst = tcUnifyTy argType argTyp
+      return $ maybe id substTy subst $ repack resTyp
+    _ -> resultType
+typeExpr' (RightSection op rhs) = do
+  let opType = idType $ semanticsId (op ^. operatorName)
+  argType <- typeExpr' rhs
+  let (ft, repack) = splitType' opType
+  case splitFunTys ft of 
+    (arg1:arg2:rest, resTyp) -> do 
+      let subst = tcUnifyTy arg2 argType
+      return $ maybe id substTy subst $ repack (mkFunTys (arg1:rest) resTyp)
+    _ -> resultType
+typeExpr' (AST.RecCon name _) 
+  = do def <- maybe (return Nothing) GHC.lookupName (semanticsName (name ^. simpleName))
+       case def of 
+         Just (AConLike (RealDataCon con)) -> return $ dataConSig con ^. _4
+         Just (AConLike (PatSynCon patSyn)) -> return $ patSynSig patSyn ^. _6
+         _ -> resultType
+typeExpr' (AST.RecUpdate e _) = typeExpr' e
+typeExpr' (AST.Enum from _ _) = mkListTy <$> typeExpr' from
+typeExpr' (AST.ParArrayEnum from _ _) = mkPArrTy <$> typeExpr' from
+typeExpr' (AST.ListComp e _) = mkListTy <$> typeExpr' e
+typeExpr' (AST.ParArrayComp e _) = mkPArrTy <$> typeExpr' e
+-- typeExpr' (AST.UTypeSig _ t) = -- TODO: evaluate type
+typeExpr' Hole = resultType
+typeExpr' _ = resultType
 
 literalType :: Literal -> Ghc GHC.Type
 literalType e = do usupp <- liftIO $ mkSplitUniqSupply 'z'

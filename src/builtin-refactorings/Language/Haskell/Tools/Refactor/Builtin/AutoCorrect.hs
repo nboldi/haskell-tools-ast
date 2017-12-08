@@ -9,24 +9,17 @@ module Language.Haskell.Tools.Refactor.Builtin.AutoCorrect (autoCorrect, tryItOu
 
 import SrcLoc
 import GHC
-import Unify
 import Type
-import TysWiredIn
-import TysPrim
-import PrelNames
-import qualified FastString as FS
+-- import Outputable
 -- 
 import Control.Monad.State
 import Control.Reference
 import Data.List
 import Data.Maybe
-import Data.Either
 -- 
 import Language.Haskell.Tools.Refactor as HT
 -- 
 import Language.Haskell.Tools.PrettyPrint
-import Debug.Trace
-import Outputable
 
 autoCorrectRefactoring :: RefactoringChoice
 autoCorrectRefactoring = SelectionRefactoring "AutoCorrect" (localRefactoring . autoCorrect)
@@ -53,6 +46,7 @@ reOrderExpr insts e@(App (App f a1) a2)
   = do funTy <- lift $ typeExpr f
        arg1Ty <- lift $ typeExpr a1
        arg2Ty <- lift $ typeExpr a2
+       -- liftIO $ putStrLn $ (show $ isJust $ appTypeMatches insts funTy [arg1Ty, arg2Ty]) ++ " " ++ (show $ isJust $ appTypeMatches insts funTy [arg2Ty, arg1Ty]) ++ " " ++ (showSDocUnsafe $ ppr $ funTy) ++ " " ++ (showSDocUnsafe $ ppr $ arg1Ty) ++ " " ++ (showSDocUnsafe $ ppr $ arg2Ty)
        if not (isJust (appTypeMatches insts funTy [arg1Ty, arg2Ty])) && isJust (appTypeMatches insts funTy [arg2Ty, arg1Ty])
           then put True >> return (exprArg .= a1 $ exprFun&exprArg .= a2 $ e)
           else return e
@@ -60,6 +54,7 @@ reOrderExpr insts e@(InfixApp lhs op rhs)
   = do let funTy = idType $ semanticsId (op ^. operatorName)
        lhsTy <- lift $ typeExpr lhs
        rhsTy <- lift $ typeExpr rhs
+       -- liftIO $ putStrLn $ (show $ isJust $ appTypeMatches insts funTy [lhsTy, rhsTy]) ++ " " ++ (show $ isJust $ appTypeMatches insts funTy [lhsTy, rhsTy]) ++ " " ++ (showSDocUnsafe $ ppr $ funTy) ++ " " ++ (showSDocUnsafe $ ppr $ lhsTy) ++ " " ++ (showSDocUnsafe $ ppr $ rhsTy)
        if not (isJust (appTypeMatches insts funTy [lhsTy, rhsTy])) && isJust (appTypeMatches insts funTy [rhsTy, lhsTy])
           then put True >> return (exprLhs .= rhs $ exprRhs .= lhs $ e)
           else return e
@@ -112,11 +107,11 @@ wrapAtom (Left (OperatorA (BacktickOp n))) = mkVar (mkNormalName n)
 wrapAtom (Left (LiteralA l)) = mkLit l
 
 correctParening :: [ClsInst] -> [(GHC.Type, Build)] -> [Build]
-correctParening insts [(_,e)] = [e]
+correctParening _ [(_,e)] = [e]
 correctParening insts ls = concatMap (correctParening insts) (reduceAtoms insts ls)
 
 reduceAtoms :: [ClsInst] -> [(GHC.Type, Build)] -> [[(GHC.Type, Build)]]
-reduceAtoms insts [(t,e)] = [[(t,e)]]
+reduceAtoms _ [(t,e)] = [[(t,e)]]
 reduceAtoms insts ls = concatMap (reduceBy insts ls) [0 .. length ls - 2]
 
 reduceBy :: [ClsInst] -> [(GHC.Type, Build)] -> Int -> [[(GHC.Type, Build)]]
@@ -127,7 +122,7 @@ reduceBy insts (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ may
           = Just $ map ((_1 .- substTy subst) . snd) (take i ls) 
                      ++ [(resTyp, mkParen' (mkApp' fun arg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
-        reduceFunctionApp ls i = Nothing
+        reduceFunctionApp _ _ = Nothing
         
         reduceOperatorApp ls i | Just (opT, Left (OperatorA op)) <- lookup i ls
                                , Just (lArgT, lArg) <- lookup (i-1) ls
@@ -136,7 +131,7 @@ reduceBy insts (zip [0..] -> ls) i = maybeToList (reduceFunctionApp ls i) ++ may
           = Just $ map ((_1 .- substTy subst) . snd) (take (i - 1) ls) 
                      ++ [(resTyp, mkParen' (mkInfixApp' lArg op rArg))] 
                      ++ map ((_1 .- substTy subst) . snd) (drop (i + 2) ls)
-        reduceOperatorApp ls i = Nothing
+        reduceOperatorApp _ _ = Nothing
 
 mkApp' :: Build -> Build -> Build
 mkApp' (wrapAtom -> f) (wrapAtom -> a) = Right $ mkApp f a
