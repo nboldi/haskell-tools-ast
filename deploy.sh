@@ -18,9 +18,8 @@ ssh-add deploykey
 
 # Clone the existing repo into out/. Download only the files for the given folder
 mkdir out
+git clone git@github.com:haskell-tools/haskell-tools.github.io out
 cd out
-git clone git@github.com:haskell-tools/haskell-tools.github.io
-git fetch
 git checkout origin/master
 cd ..
 
