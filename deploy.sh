@@ -20,6 +20,7 @@ ssh-add deploykey
 mkdir out
 cd out
 git clone git@github.com:haskell-tools/haskell-tools.github.io
+git checkout master
 cd ..
 
 # Publish api and coverage info on pushes
