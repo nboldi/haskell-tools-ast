@@ -18,10 +18,7 @@ ssh-add deploykey
 
 # Clone the existing repo into out/. Download only the files for the given folder
 mkdir out
-git clone git@github.com:haskell-tools/haskell-tools.github.io out
-cd out
-git checkout origin/master
-cd ..
+git clone -b master git@github.com:haskell-tools/haskell-tools.github.io out
 
 # Publish api and coverage info on pushes
 if [ "$TRAVIS_EVENT_TYPE" = "push" ]; then
