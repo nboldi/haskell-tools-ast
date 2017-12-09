@@ -50,7 +50,6 @@ cd out
 
 git config user.name "Travis CI"
 git config user.email "nboldi@caesar.elte.hu"
-git config push.default simple
 
 git add -A .
 git commit -m "Updating API documentation for: https://github.com/haskell-tools/haskell-tools/commit/$TRAVIS_COMMIT"
