@@ -34,7 +34,7 @@ matrix:
     if: type IN (push, pull_request)
   - env: 
       - BUILD=stack 
-      - ARGS="--no-terminal --test --no-run-tests --bench --no-run-benchmarks"
+      - BUILD_ARGS="--no-terminal --test --no-run-tests --bench --no-run-benchmarks"
       - DOC_ARGS=""
       - TEST_ARGS=""
     compiler: ": #stack nightly"

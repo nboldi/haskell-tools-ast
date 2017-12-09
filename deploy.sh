@@ -19,11 +19,7 @@ ssh-add deploykey
 # Clone the existing repo into out/. Download only the files for the given folder
 mkdir out
 cd out
-git init
-git remote add -f origin git@github.com:haskell-tools/haskell-tools.github.io
-git config core.sparseCheckout true
-echo "$TRAVIS_BRANCH" >> .git/info/sparse-checkout
-git pull origin master
+git clone git@github.com:haskell-tools/haskell-tools.github.io
 cd ..
 
 # Publish api and coverage info on pushes
@@ -58,5 +54,4 @@ git config push.default simple
 
 git add -A .
 git commit -m "Updating API documentation for: https://github.com/haskell-tools/haskell-tools/commit/$TRAVIS_COMMIT"
-git pull --allow-unrelated-histories origin master
-git push --set-upstream origin master
+git push
