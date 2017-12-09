@@ -20,6 +20,11 @@ ssh-add deploykey
 mkdir out
 git clone -b master git@github.com:haskell-tools/haskell-tools.github.io out
 
+# Remove folders from the github.io repo that has no corresponding active branches
+git ls-remote --heads https://github.com/haskell-tools/haskell-tools.git | grep -o -E "[a-zA-Z0-9-]+$" > branches.txt
+find out -maxdepth 1 -type d -path "./*" -exec sh -c \
+    'for f; do f=${f#./}; grep -qw "$f" branches.txt || rm -rf "$f"; done' sh {} +
+
 # Publish api and coverage info on pushes
 if [ "$TRAVIS_EVENT_TYPE" = "push" ]; then
     # Clean out existing contents
