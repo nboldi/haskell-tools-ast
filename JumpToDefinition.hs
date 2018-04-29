@@ -24,7 +24,7 @@ getMatches sp (_,mod) mods
                                    fileName <- getFileName source
                                    line <- getLineDefinition source
                                    return $ toJSON (fileName, line)
-                         []  -> queryError "No name."
+                         []  -> queryError "No name is selected."
                          _   -> queryError "Multiple names are selected."
   where
 

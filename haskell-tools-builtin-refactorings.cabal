@@ -68,6 +68,8 @@ library
   exposed-modules:     Language.Haskell.Tools.Refactor.Builtin
                      , Language.Haskell.Tools.Refactor.Builtin.AutoCorrect
                      , Language.Haskell.Tools.Refactor.Builtin.GenerateTypeSignature
+                     , Language.Haskell.Tools.Refactor.Builtin.DefinedInThis
+                     , Language.Haskell.Tools.Refactor.Builtin.DefinedModuleInfos
                      , Language.Haskell.Tools.Refactor.Builtin.OrganizeImports
                      , Language.Haskell.Tools.Refactor.Builtin.GenerateExports
                      , Language.Haskell.Tools.Refactor.Builtin.RenameDefinition
@@ -86,6 +88,7 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.TraverseAST
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Instances.Checkable
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Instances.AppSelector
+                     , Language.Haskell.Tools.Refactor.Builtin.Scope
 
   other-modules:       Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.ArrowsChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.BangPatternsChecker
