@@ -1,20 +1,10 @@
 module Language.Haskell.Tools.Refactor.Builtin.DefinedModuleInfos where
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.Builtin.DefinedInThis(getNameToList,getOccNameString,isLesser,isEqualQualif,getUnique)
-import Language.Haskell.Tools.Refactor.Builtin.FindUsages
-import Language.Haskell.Tools.AST.SemaInfoTypes
-import Language.Haskell.Tools.PrettyPrint
 
---import Language.Haskell.Tools.Refactor.Builtin.DefinedInThis
-
-import Control.Monad.Writer
 import Control.Reference
 import Data.Aeson
-import FastString
-import qualified Name as GHC (Name)
-import Control.Monad.State
 import SrcLoc as GHC
-import Debug.Trace (trace)
 
 --Result of this function is that every time when user runs DefinedInfo command
 --the definedInfo function will be invoked.
