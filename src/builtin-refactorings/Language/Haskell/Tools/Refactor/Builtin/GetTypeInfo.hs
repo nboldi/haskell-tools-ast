@@ -31,8 +31,6 @@ getType sp modul@(_,mod) mods
     selectedName :: [QualifiedName]
     selectedName = mod ^? nodesContaining sp
     
---result n name qualifiedNames = (typeNameToString n, (findFixity qualifiedNames name),getSrcTemplateInfo (getSourceInfo n))
-
 getInfo :: [ModuleDom] -> GHC.Name ->  [[String]]
 getInfo [] _ = []
 getInfo (x:xs) name
@@ -104,11 +102,7 @@ getFixityDirection :: FixityDirection -> String
 getFixityDirection BasicTypes.InfixL = "Left"
 getFixityDirection BasicTypes.InfixR = "Right"
 getFixityDirection BasicTypes.InfixN = "None"
-{-
-sourceTextToString :: SourceText -> String
-sourceTextToString (SourceText str) = str
-sourceTextToString _ = ""
--}
+
 getNodeInfo :: Ann elem dom SrcTemplateStage -> NodeInfo (SemanticInfo' dom (SemaInfoClassify elem)) (SpanInfo SrcTemplateStage)
 getNodeInfo (Ann _annotation _element) = _annotation
 
