@@ -57,7 +57,7 @@ getHead (x:xs) = (head) x : (getHead xs)
 isLesser :: (String, String, b) -> (String, String, b) -> Ordering
 isLesser (s1, _, _ ) (s3, _, _) = s1 `compare` s3
 
---Returns true if the first element from the tuple parameters is equal.
+--Returns true if the first elements from the tuples are equal.
 --Otherwise returns false.
 isEqualQualif :: (String, String, b) -> (String, String, b) -> Bool
 isEqualQualif (s1, _, _) (s3, _, _ ) = s1 == s3
