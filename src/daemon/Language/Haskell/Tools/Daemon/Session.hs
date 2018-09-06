@@ -1,4 +1,6 @@
-{-# LANGUAGE FlexibleContexts, MultiWayIf, TypeApplications #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
+
 -- | Common operations for managing Daemon-tools sessions, for example loading whole packages or
 -- re-loading modules when they are changed. Maintains the state of the compilation with loaded
 -- modules. Contains checks for compiling the modules to code when Template Haskell is used.
@@ -61,7 +63,7 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
                                   $ List.sort $ concatMap getExposedModules mcs')
      loadRes <- gtry (loadModules mcs alreadyLoadedFiles)
      case loadRes of
-       Right mods -> do 
+       Right mods -> do
          modify (refSessMCs & traversal & filtered (\mc -> (mc ^. mcId) `elem` map (^. mcId) modColls) & mcLoadDone .= True)
          compileModules report mods
        Left err -> return [err]
@@ -114,13 +116,13 @@ loadPackagesFrom report loadCallback additionalSrcDirs packages =
             checkEvaluatedMods mods
             compileWhileOk mods
           where compileWhileOk [] = return []
-                compileWhileOk (mod:mods) 
+                compileWhileOk (mod:mods)
                   = do res <- gtry (reloadModule report mod)
                        case res of
                           Left err -> do dependents <- lift $ dependentModules (return . (ms_mod mod ==) . ms_mod)
                                          (err :) <$> compileWhileOk (filter ((`notElem` map ms_mod dependents) . ms_mod) mods)
                           Right _ -> compileWhileOk mods
-        
+
 
 -- | Loads the packages that are declared visible (by .cabal file).
 loadVisiblePackages :: DaemonSession ()
@@ -133,8 +135,8 @@ loadVisiblePackages = do
                                      }) -- save the package database
 
 -- | Get the module that is selected for refactoring and all the other modules.
-getFileMods :: String -> DaemonSession ( Maybe (SourceFileKey, UnnamedModule IdDom)
-                                       , [(SourceFileKey, UnnamedModule IdDom)] )
+getFileMods :: String -> DaemonSession ( Maybe (SourceFileKey, UnnamedModule)
+                                       , [(SourceFileKey, UnnamedModule)] )
 getFileMods fnameOrModule = do
   modMaps <- gets (^? refSessMCs & traversal & mcModules)
   let modules = mapMaybe (\(k,m) -> (\ms tc -> (ms, (k,tc))) <$> (m ^? modRecMS) <*> (m ^? typedRecModule)) -- not type checkable modules are ignored
@@ -179,14 +181,16 @@ clearModules mods = do
   -- clear the symbol cache for iserv
   liftIO $ purgeLookupSymbolCache env
   -- clear the global linker state
-  liftIO $ unload env (mapMaybe hm_linkable (eltsHpt hptStay))
+  dfs <- getSessionDynFlags
+  when (not $ gopt Opt_ExternalInterpreter dfs) $
+    liftIO $ unload env (mapMaybe hm_linkable (eltsHpt hptStay))
   -- clear name cache
   nameCache <- liftIO $ readIORef $ hsc_NC env
   let nameCache' = nameCache { nsNames = delModuleEnvList (nsNames nameCache) (map ms_mod mods) }
   liftIO $ writeIORef (hsc_NC env) nameCache'
   -- clear home package table and module graph
   lift $ modifySession (\s -> s { hsc_HPT = hptStay
-                                , hsc_mod_graph = filter ((`notElem` reachableMods) . ms_mod_name) (hsc_mod_graph s)
+                                , hsc_mod_graph = mkModuleGraph $ filter ((`notElem` reachableMods) . ms_mod_name) (mgModSummaries $ hsc_mod_graph s)
                                 })
 
 -- | Get all modules that can be accessed from a given set of modules. Can be used to select which
@@ -268,7 +272,7 @@ checkEvaluatedMods changed = do
     -- specify the need of code generation for later loading
     forM_ modsNeedCode (\ms -> modify $ refSessMCs .- codeGeneratedFor (keyFromMS ms) InterpretedCode)
     forM_ modsNeedAsm (\ms -> modify $ refSessMCs .- codeGeneratedFor (keyFromMS ms) GeneratedCode)
-    let interpreted = filter (\ms -> isAlreadyLoaded (keyFromMS ms) InterpretedCode mcs) 
+    let interpreted = filter (\ms -> isAlreadyLoaded (keyFromMS ms) InterpretedCode mcs)
                              modsNeedCode
         codeGenerated = filter (\ms -> isAlreadyLoaded (keyFromMS ms) GeneratedCode mcs) modsNeedAsm
     clearModules (interpreted ++ codeGenerated)
@@ -298,7 +302,7 @@ getEvaluatedMods changed additionalFlags
        -- some flags are stored only in the module collection and are not recorded in the summary
        eval <- supportingModules (\ms -> (\flags -> getModSumOrig ms `elem` changedModulePathes && TemplateHaskell `xopt` flags)
                                            <$> liftIO (additionalFlags ms))
-       asm <- supportingModules (\ms -> (\flags -> getModSumOrig ms `elem` changedModulePathes 
+       asm <- supportingModules (\ms -> (\flags -> getModSumOrig ms `elem` changedModulePathes
                                                      && (StaticPointers `xopt` flags || UnboxedTuples `xopt` flags || UnboxedSums `xopt` flags))
                                            <$> liftIO (additionalFlags ms))
        let asmOrigs = map getModSumOrig asm

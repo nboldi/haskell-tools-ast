@@ -1,16 +1,20 @@
-{-# LANGUAGE DeriveAnyClass, DeriveGeneric, OverloadedStrings #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
+
 -- | This module declares the messages that can be sent from the client to the
 -- daemon engine and from the engine to the client.
-module Language.Haskell.Tools.Daemon.Protocol where
+module Language.Haskell.Tools.Daemon.Protocol
+  ( module Language.Haskell.Tools.Daemon.Protocol
+  , Marker(..), Severity(..)
+  ) where
 
 import Control.DeepSeq (NFData)
-import qualified Data.Aeson as A ((.=))
-import Data.Aeson hiding ((.=))
+import Data.Aeson (ToJSON, FromJSON, Value)
 import GHC.Generics (Generic)
 
-import FastString (unpackFS)
 import SrcLoc
 
+import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Daemon.PackageDB (PackageDB)
 
 -- | The messages expected from the client.
@@ -47,6 +51,14 @@ data ClientMessage
     -- with the selection and details. Successful refactorings will cause re-loading of modules.
     -- If 'shutdownAfter' or 'diffMode' is not set, after the refactoring,
     -- modules are re-loaded, LoadingModules, LoadedModule responses are sent.
+  | PerformQuery { query :: String
+                 , modulePath :: FilePath
+                 , editorSelection :: String
+                 , details :: [String] -- ^ Additional details for the refactoring like the
+                                       -- names of generated definitions.
+                 , shutdownAfter :: Bool -- ^ Stop the daemon after performing the query.
+                 }
+    -- ^ Orders the engine to perform a query on the module given with the selection and details.
   | UndoLast
     -- ^ Asks the daemon to undo the last refactoring.
   | Disconnect
@@ -71,7 +83,7 @@ data ResponseMsg
   | ErrorMessage { errorMsg :: String }
     -- ^ An error message marking internal problems or user mistakes.
     -- TODO: separate internal problems and user mistakes.
-  | CompilationProblem { errorMarkers :: [(SrcSpan, String)]
+  | CompilationProblem { markers :: [Marker]
                        , errorHints :: [String]
                        }
     -- ^ A response that tells there are errors in the source code given.
@@ -84,6 +96,11 @@ data ResponseMsg
                  , loadedModuleName :: String
                  }
     -- ^ The engine has loaded the given module.
+  | QueryResult { queryName :: String
+                , queryType :: String
+                , queryResult :: Value
+                }
+    -- ^ The result of querying the program representation.
   | UnusedFlags { unusedFlags :: [String] }
     -- ^ Returns the flags that are not used by the engine.
   | Disconnected
@@ -91,15 +108,6 @@ data ResponseMsg
   deriving (Show, Generic)
 
 instance ToJSON ResponseMsg
-
-instance ToJSON SrcSpan where
-  toJSON (RealSrcSpan sp) = object [ "file" A..= unpackFS (srcSpanFile sp)
-                                   , "startRow" A..= srcLocLine (realSrcSpanStart sp)
-                                   , "startCol" A..= srcLocCol (realSrcSpanStart sp)
-                                   , "endRow" A..= srcLocLine (realSrcSpanEnd sp)
-                                   , "endCol" A..= srcLocCol (realSrcSpanEnd sp)
-                                   ]
-  toJSON _ = Null
 
 data UndoRefactor = RemoveAdded { undoRemovePath :: FilePath }
                   | RestoreRemoved { undoRestorePath :: FilePath

@@ -1,4 +1,9 @@
-{-# LANGUAGE FlexibleContexts, PatternSynonyms, RankNTypes, ScopedTypeVariables, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 
 -- | Helper functions for using the AST.
 module Language.Haskell.Tools.AST.Helpers where

@@ -1,4 +1,6 @@
-{-# LANGUAGE DeriveDataTypeable, StandaloneDeriving, TypeFamilies #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE StandaloneDeriving #-}
+
 
 module Language.Haskell.Tools.AST.Utils.GHCInstances where
 

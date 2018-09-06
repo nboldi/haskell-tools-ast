@@ -1,4 +1,6 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Helper functions for working with source templates
 module Language.Haskell.Tools.PrettyPrint.Prepare.SourceTemplateHelpers where
 
@@ -76,6 +78,7 @@ separatedBy sep = srcTmpDefaultSeparator .= sep
 indented :: ListInfo SrcTemplateStage -> ListInfo SrcTemplateStage
 indented = (srcTmpIndented .= Just []) . (srcTmpDefaultSeparator .= "\n")
 
--- | Concatenates two source templates to produce a new template with all child elements.
-(<>) :: SpanInfo SrcTemplateStage -> SpanInfo SrcTemplateStage -> SpanInfo SrcTemplateStage
-SourceTemplateNode sp1 el1 _ _ <> SourceTemplateNode sp2 el2 _ _ = SourceTemplateNode (combineSrcSpans sp1 sp2) (el1 ++ el2) 0 Nothing
+-- Concatenates two source templates to produce a new template with all child elements.
+instance Semigroup (SpanInfo SrcTemplateStage) where
+  SourceTemplateNode sp1 el1 _ _ <> SourceTemplateNode sp2 el2 _ _
+    = SourceTemplateNode (combineSrcSpans sp1 sp2) (el1 ++ el2) 0 Nothing

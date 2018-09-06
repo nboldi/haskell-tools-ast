@@ -1,4 +1,8 @@
-{-# LANGUAGE LambdaCase, OverloadedStrings, ScopedTypeVariables, StandaloneDeriving #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
+
 module Main where
 
 import Control.Concurrent
@@ -27,8 +31,8 @@ import SrcLoc (SrcSpan(..), mkSrcSpan, mkSrcLoc)
 import Language.Haskell.Tools.Daemon (runDaemon')
 import Language.Haskell.Tools.Daemon.Options as Options (SharedDaemonOptions(..), DaemonOptions(..))
 import Language.Haskell.Tools.Daemon.PackageDB (PackageDB(..))
-import Language.Haskell.Tools.Daemon.Protocol (UndoRefactor(..), ResponseMsg(..), ClientMessage(..))
-import Language.Haskell.Tools.Refactor.Builtin (builtinRefactorings)
+import Language.Haskell.Tools.Daemon.Protocol
+import Language.Haskell.Tools.Refactor.Builtin (builtinRefactorings, builtinQueries)
 
 pORT_NUM_START = 4100
 pORT_NUM_END = 4200
@@ -184,7 +188,7 @@ compProblemTests isSource testRoot =
     , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
   , ( "source-error"
     , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "source-error"] ]
-    , \case [LoadingModules{}, CompilationProblem {}] -> True; _ -> False)
+    , \case [LoadingModules{}, LoadedModule{}, CompilationProblem {}] -> True; _ -> False)
   , ( "reload-error"
     , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "empty"]
       , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\nimport No.Such.Module"
@@ -196,7 +200,10 @@ compProblemTests isSource testRoot =
       , Left $ appendFile (testRoot </> "empty" </> "A.hs") "\n\naa = 3 + ()"
       , Right $ ReLoad [] [testRoot </> "empty" </> "A.hs"] []
       , Left $ writeFile (testRoot </> "empty" </> "A.hs") "module A where"]
-    , \case [LoadingModules {}, LoadedModule {}, LoadingModules {}, CompilationProblem {}] -> True; _ -> False)
+    , \case [LoadingModules {}, LoadedModule {}, LoadingModules {}, LoadedModule{}, CompilationProblem {}] -> True; _ -> False)
+  , ( "warning"
+    , [ Right $ SetPackageDB DefaultDB, Right $ AddPackages [testRoot </> "warning"] ]
+    , \case [LoadingModules{}, LoadedModule {}, CompilationProblem [Marker _ Warning _] []] -> True; _ -> False)
   , ( "no-such-file"
     , [ Right $ SetPackageDB DefaultDB
       , Right $ PerformRefactoring "RenameDefinition" (testRoot </> "simple-refactor" ++ testSuffix </> "A.hs") "3:1-3:2" ["y"] False False]
@@ -278,6 +285,13 @@ refactorTests testRoot =
               -> aPath == testRoot </> "simple-refactor" ++ testSuffix </> "A.hs"
                    && aaPath == testRoot </> "simple-refactor" ++ testSuffix </> "AA.hs"
             _ -> False )
+  , ( "refactor-type-error", testRoot </> "source-error"
+    , [ AddPackages [testRoot </> "source-error"] 
+      , PerformRefactoring "RenameDefinition" (testRoot </> "source-error" ++ testSuffix </> "A.hs") "3:1-3:2" ["aa"] False False
+      ]
+    , \case [ LoadingModules{}, LoadedModule{}, CompilationProblem {}
+              , LoadingModules{}, LoadedModule{}, CompilationProblem {}
+              ] -> True; _ -> False)
   ]
 
 reloadingTests :: FilePath -> [(String, FilePath, [ClientMessage], IO (), [ClientMessage], [ResponseMsg] -> Bool)]
@@ -645,8 +659,8 @@ communicateWithDaemon watch port opts msgs = withSocketsDo $ do
                                watchDir <- (++) <$> glob watchPath <*> glob linuxWatchPath
                                case (watch, watchDir) of
                                  (True, []) -> error "The watch executable is not found."
-                                 (True, w:_) -> forkIO $ runDaemon' builtinRefactorings (opts portNum (Just w))
-                                 (False, _) -> forkIO $ runDaemon' builtinRefactorings (opts portNum Nothing)
+                                 (True, w:_) -> forkIO $ runDaemon' builtinRefactorings builtinQueries (opts portNum (Just w))
+                                 (False, _) -> forkIO $ runDaemon' builtinRefactorings builtinQueries (opts portNum Nothing)
                                return portNum
           `catch` \(e :: SomeException) -> do putStrLn ("exception caught: `" ++ show e ++ "` trying with a new port")
                                               modifyMVar_ port (\i -> if i < pORT_NUM_END
@@ -701,6 +715,8 @@ deriving instance Eq UndoRefactor
 deriving instance Eq ResponseMsg
 instance FromJSON UndoRefactor
 instance FromJSON ResponseMsg
+instance FromJSON Marker
+instance FromJSON Severity
 instance ToJSON ClientMessage
 instance ToJSON PackageDB
 

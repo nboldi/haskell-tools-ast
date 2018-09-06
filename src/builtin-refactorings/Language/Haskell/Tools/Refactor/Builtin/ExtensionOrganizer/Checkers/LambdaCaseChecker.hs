@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts, TypeFamilies #-}
-
 module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.LambdaCaseChecker where
 
 import Language.Haskell.Tools.Refactor as Refact
@@ -9,7 +7,7 @@ chkLambdaCase :: CheckNode Expr
 chkLambdaCase = conditional chkLambdaCase' Ext.LambdaCase
 
 chkLambdaCase' :: CheckNode Expr
-chkLambdaCase' e@(Refact.LambdaCase _) = addOccurence Ext.LambdaCase e
+chkLambdaCase' e@(Refact.LambdaCase _) = addEvidence Ext.LambdaCase e
 chkLambdaCase' e = return e
 
 

@@ -1,12 +1,5 @@
-{-# LANGUAGE OverloadedStrings
-           , DeriveGeneric
-           , TypeApplications
-           , ScopedTypeVariables
-           , LambdaCase
-           , TemplateHaskell
-           , PatternGuards
-           , FlexibleContexts
-           #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, TypeApplications, ScopedTypeVariables, LambdaCase, TemplateHaskell, PatternGuards, FlexibleContexts #-}
+
 
 module Language.Haskell.Tools.Demo where
 
@@ -45,7 +38,6 @@ import SrcLoc (realSrcSpanStart)
 
 import Control.Reference
 
-import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.ASTDebug
 import Language.Haskell.Tools.ASTDebug.Instances ()
 import Language.Haskell.Tools.PrettyPrint
@@ -55,7 +47,7 @@ import Language.Haskell.Tools.Refactor.Builtin
 type ClientId = Int
 
 data RefactorSessionState
-  = RefactorSessionState { _refSessMods :: Map.Map (String, String, FilePath) (UnnamedModule IdDom)
+  = RefactorSessionState { _refSessMods :: Map.Map (String, String, FilePath) UnnamedModule
                          , _actualMod :: Maybe (String, String, FilePath)
                          , _isDisconnecting :: Bool
                          }

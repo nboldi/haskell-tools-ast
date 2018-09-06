@@ -1,4 +1,10 @@
-{-# LANGUAGE FlexibleContexts, LambdaCase, MultiWayIf, RecordWildCards, TupleSections, TypeApplications, TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
+
 -- | Resolves how the daemon should react to individual requests from the client.
 module Language.Haskell.Tools.Daemon.Update (updateClient, updateForFileChanges, initGhcSession) where
 
@@ -11,6 +17,7 @@ import Data.Algorithm.Diff (Diff(..), getGroupedDiff)
 import Data.Algorithm.DiffContext (prettyContextDiff, getContextDiff)
 import qualified Data.ByteString.Char8 as StrictBS (unpack, readFile)
 import Data.Either (Either(..), either, rights)
+import Control.Concurrent.MVar
 import Data.IORef (readIORef, newIORef)
 import Data.List as List hiding (insert)
 import qualified Data.Map as Map (insert, keys, filter)
@@ -24,15 +31,16 @@ import System.IO
 import System.IO.Strict as StrictIO (hGetContents)
 import Text.PrettyPrint as PP (text, render)
 
-import DynFlags (DynFlags(..), PkgConfRef(..), PackageDBFlag(..))
+import DynFlags
 import GHC hiding (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad (GhcMonad(..), Session(..), modifySession)
-import HscTypes (hsc_mod_graph)
+import HscTypes
+import Outputable
 import Language.Haskell.Tools.Daemon.ErrorHandling (getProblems)
 import Language.Haskell.Tools.Daemon.Options (SharedDaemonOptions(..), DaemonOptions(..))
 import Language.Haskell.Tools.Daemon.PackageDB (decidePkgDB, packageDBLoc, detectAutogen)
-import Language.Haskell.Tools.Daemon.Protocol
+import Language.Haskell.Tools.Daemon.Protocol as HT
 import Language.Haskell.Tools.Daemon.Representation as HT
 import Language.Haskell.Tools.Daemon.Session
 import Language.Haskell.Tools.Daemon.State
@@ -45,26 +53,32 @@ import Paths_haskell_tools_daemon (version)
 
 -- | Context for responding to a user request.
 data UpdateCtx = UpdateCtx { options :: DaemonOptions
-                           , refactorings :: [RefactoringChoice IdDom]
+                           , refactorings :: [RefactoringChoice]
+                           , queries :: [QueryChoice]
                            , response :: ResponseMsg -> IO ()
+                           , warnMVar :: MVar [Marker]
                            }
 
 -- | This function does the real job of acting upon client messages in a stateful environment of a
 -- client.
-updateClient :: DaemonOptions -> [RefactoringChoice IdDom] -> (ResponseMsg -> IO ()) -> ClientMessage
+updateClient :: DaemonOptions -> MVar [Marker] -> [RefactoringChoice] -> [QueryChoice]
+                  -> (ResponseMsg -> IO ()) -> ClientMessage
                   -> DaemonSession Bool
-updateClient options refactors resp = updateClient' (UpdateCtx options refactors resp)
+updateClient options warnMVar refactors queries resp
+  = updateClient' (UpdateCtx options refactors queries resp warnMVar)
 
 updateClient' :: UpdateCtx -> ClientMessage -> DaemonSession Bool
 -- resets the internal state of Haskell-tools (but keeps options)
 updateClient' UpdateCtx{..} Reset
   = do roots <- gets (^? refSessMCs & traversal & mcRoot)
        modify' $ resetSession
-       Session sess <- liftIO $ initGhcSession (generateCode (sharedOptions options))
+       Session sess <- liftIO $ reinitGhcSession warnMVar (generateCode (sharedOptions options))
        env <- liftIO $ readIORef sess
-       liftIO $ unload env [] -- clear (unload everything) the global state of the linker
+       dfs <- getSessionDynFlags
+       when (not $ gopt Opt_ExternalInterpreter dfs) $
+         liftIO $ unload env [] -- clear (unload everything) the global state of the linker
        lift $ setSession env
-       addPackages response roots
+       addPackages response warnMVar roots
        return True
 
 updateClient' UpdateCtx{..} (Handshake _)
@@ -87,7 +101,7 @@ updateClient' UpdateCtx{..} (SetPackageDB pkgDB)
        return True
 
 updateClient' UpdateCtx{..} (AddPackages packagePathes)
-  = do addPackages response packagePathes
+  = do addPackages response warnMVar packagePathes
        return True
 
 updateClient' _ (SetWorkingDir fp)
@@ -106,7 +120,7 @@ updateClient' UpdateCtx{..} (RemovePackages packagePathes) = do
     lift $ forM_ existingFiles (\fs -> removeTarget (TargetFile fs Nothing))
     lift $ deregisterDirs (mcs ^? traversal & filtered isRemoved & mcSourceDirs & traversal)
     modify' $ refSessMCs .- filter (not . isRemoved)
-    modifySession (\s -> s { hsc_mod_graph = filter ((`notElem` existingFiles) . getModSumOrig) (hsc_mod_graph s) })
+    modifySession (\s -> s { hsc_mod_graph = mkModuleGraph $ filter ((`notElem` existingFiles) . getModSumOrig) (mgModSummaries $ hsc_mod_graph s) })
     mcs <- gets (^. refSessMCs)
     when (null mcs) $ modify' (packageDB .= Nothing)
     return True
@@ -123,20 +137,28 @@ updateClient' UpdateCtx{..} UndoLast =
        lastUndo:_ -> do
          modify (undoStack .- tail)
          liftIO $ mapM_ performUndo lastUndo
-         reloadModules response (getUndoAdded lastUndo)
-                                (getUndoChanged lastUndo)
-                                (getUndoRemoved lastUndo) -- reload the reverted files
+         reloadModules response warnMVar (getUndoAdded lastUndo)
+                                         (getUndoChanged lastUndo)
+                                         (getUndoRemoved lastUndo) -- reload the reverted files
          return True
 
 updateClient' UpdateCtx{..} (ReLoad added changed removed)
-  = do updateForFileChanges response added changed removed
+  = do updateForFileChanges response warnMVar added changed removed
        return True
 
 updateClient' _ Stop
   = do modify (exiting .= True)
        return False
 
--- TODO: perform refactorings without selected modules
+updateClient' UpdateCtx{..} (PerformQuery query modPath selection args shutdown)
+  = do (selectedMod, otherMods) <- getFileMods modPath
+       res <- lift $ performQuery queries (query:selection:args) (maybe (Left modPath) Right selectedMod) otherMods
+       case res of
+         Left err -> liftIO $ response $ ErrorMessage err
+         Right (qType, qRes) -> liftIO $ response $ QueryResult query qType qRes
+       when shutdown $ liftIO $ response Disconnected
+       return (not shutdown)
+
 updateClient' UpdateCtx{..} (PerformRefactoring refact modPath selection args shutdown diffMode)
   = do (selectedMod, otherMods) <- getFileMods modPath
        performRefactoring (refact:selection:args)
@@ -155,7 +177,8 @@ updateClient' UpdateCtx{..} (PerformRefactoring refact modPath selection args sh
                              if not isWatching && not shutdown && not diffMode
                               -- if watch is on, then it will automatically
                               -- reload changed files, otherwise we do it manually
-                               then void $ reloadChanges (map ((^. sfkFileName) . (^. _1)) (rights changedMods))
+                               then do reloadChanges (map ((^. sfkFileName) . (^. _1)) (rights changedMods))
+                                       reportWarnings response warnMVar
                                else modify (touchedFiles .= Set.fromList (map ((^. sfkFileName) . (^. _1)) (rights changedMods)))
 
         applyChanges changes = do
@@ -215,9 +238,9 @@ updateClient' UpdateCtx{..} (PerformRefactoring refact modPath selection args sh
                liftIO $ evaluate $ force us
                return ()
 
-addPackages :: (ResponseMsg -> IO ()) -> [FilePath] -> DaemonSession ()
-addPackages _ [] = return ()
-addPackages resp packagePathes = do
+addPackages :: (ResponseMsg -> IO ()) -> MVar [Marker] -> [FilePath] -> DaemonSession ()
+addPackages _ _ [] = return ()
+addPackages resp warnMVar packagePathes = do
   roots <- liftIO $ mapM canonicalizePath packagePathes
   nonExisting <- filterM ((return . not) <=< liftIO . doesDirectoryExist) roots
   DaemonSessionState {..} <- get
@@ -233,7 +256,7 @@ addPackages resp packagePathes = do
                         <$> getReachableModules (\_ -> return ()) (\ms -> ms_mod ms `elem` existingModNames)
       modify' $ refSessMCs .- filter (not . isTheAdded roots) -- remove the added package from the database
       forM_ existing $ \ms -> removeTarget (TargetFile (getModSumOrig ms) Nothing)
-      modifySession (\s -> s { hsc_mod_graph = filter (not . (`elem` existingModNames) . ms_mod) (hsc_mod_graph s) })
+      modifySession (\s -> s { hsc_mod_graph = mkModuleGraph $ filter (not . (`elem` existingModNames) . ms_mod) (mgModSummaries $ hsc_mod_graph s) })
       -- load new modules
       pkgDBok <- initializePackageDBIfNeeded roots
       if pkgDBok then do
@@ -241,10 +264,12 @@ addPackages resp packagePathes = do
                   (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
                   (resp . LoadingModules . map getModSumOrig)
                   (\st fp -> maybe (return []) (fmap maybeToList . detectAutogen fp . fst) (st ^. packageDB)) roots
-        mapM_ (liftIO . resp . uncurry CompilationProblem . getProblems) errs -- handle source errors here to prevent rollback on the tool state
-        when (null errs)
-          $ mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
-           
+        -- handle source errors here to prevent rollback on the tool state
+        let errors = foldl mappend ([],[]) (map getProblems errs)
+        if null (fst errors)
+          then do mapM_ (reloadModule (\_ -> return ())) needToReload -- don't report consequent reloads (not expected)
+                  reportWarnings resp warnMVar
+          else liftIO $ resp $ uncurry CompilationProblem errors
       else liftIO $ resp $ ErrorMessage $ "Attempted to load two packages with different package DB. "
                                             ++ "Stack, cabal-sandbox and normal packages cannot be combined"
   where isTheAdded roots mc = (mc ^. mcRoot) `elem` roots
@@ -268,8 +293,8 @@ addPackages resp packagePathes = do
                                                                    else return Nothing
 
 -- | Updates the state of the tool after some files have been changed (possibly by another application)
-updateForFileChanges :: (ResponseMsg -> IO ()) -> [FilePath] -> [FilePath] -> [FilePath] -> DaemonSession ()
-updateForFileChanges resp added changed removed = do
+updateForFileChanges :: (ResponseMsg -> IO ()) -> MVar [Marker] -> [FilePath] -> [FilePath] -> [FilePath] -> DaemonSession ()
+updateForFileChanges resp warnMVar added changed removed = do
   -- clear undo stack if the changes are from another application
   refactoredFiles <- gets (^. touchedFiles)
   let changeSet = Set.fromList (added ++ changed ++ removed)
@@ -286,28 +311,34 @@ updateForFileChanges resp added changed removed = do
                           $ added ++ changed ++ removed
       reloadedPackages = tryLoadAgain ++ changedPackages
       packageNotReloaded fp = not $ any (`isPrefixOf` fp) reloadedPackages
-  addPackages resp reloadedPackages -- reload packages if needed
+  addPackages resp warnMVar reloadedPackages -- reload packages if needed
   -- reload the rest of the modules
-  reloadModules resp (filter packageNotReloaded added) (filter packageNotReloaded changed)
-                (filter packageNotReloaded removed)
+  reloadModules resp warnMVar (filter packageNotReloaded added) (filter packageNotReloaded changed)
+                              (filter packageNotReloaded removed)
 
 -- | Reloads changed modules to have an up-to-date version loaded
-reloadModules :: (ResponseMsg -> IO ()) -> [FilePath] -> [FilePath] -> [FilePath] -> DaemonSession ()
-reloadModules _ [] [] [] = return ()
-reloadModules resp added changed removed = do
+reloadModules :: (ResponseMsg -> IO ()) -> MVar [Marker] -> [FilePath] -> [FilePath] -> [FilePath] -> DaemonSession ()
+reloadModules _ _ [] [] [] = return ()
+reloadModules resp warnMVar added changed removed = do
   lift $ forM_ removed (\src -> removeTarget (TargetFile src Nothing))
   -- remove targets deleted
   modify' $ refSessMCs & traversal & mcModules
               .- Map.filter (\m -> maybe True ((`notElem` removed) . getModSumOrig) (m ^? modRecMS))
-  modifySession (\s -> s { hsc_mod_graph = filter (\mod -> getModSumOrig mod `notElem` removed) (hsc_mod_graph s) })
+  modifySession (\s -> s { hsc_mod_graph = mkModuleGraph $ filter (\mod -> getModSumOrig mod `notElem` removed) (mgModSummaries $ hsc_mod_graph s) })
   -- reload changed modules
   -- TODO: filter those that are in reloaded packages
   reloadChangedModules (\ms -> resp (LoadedModule (getModSumOrig ms) (getModSumName ms)))
                        (\mss -> resp (LoadingModules (map getModSumOrig mss)))
                        (\ms -> getModSumOrig ms `elem` changed)
+  reportWarnings resp warnMVar
   mcs <- gets (^. refSessMCs)
   let mcsToReload = filter (\mc -> any ((mc ^. mcRoot) `isPrefixOf`) added && isNothing (moduleCollectionPkgId (mc ^. mcId))) mcs
-  addPackages resp (map (^. mcRoot) mcsToReload) -- reload packages containing added modules
+  addPackages resp warnMVar (map (^. mcRoot) mcsToReload) -- reload packages containing added modules
+
+reportWarnings :: (ResponseMsg -> IO ()) -> MVar [Marker] -> DaemonSession ()
+reportWarnings resp warnMVar = liftIO $ do
+  warns <- modifyMVar warnMVar (return . ([],))
+  when (not (null warns)) $ (resp $ CompilationProblem warns [])
 
 -- | Creates a compressed set of changes in one file
 createUndo :: Eq a => Int -> [Diff [a]] -> [(Int, Int, [a])]
@@ -361,8 +392,24 @@ getUndoRemoved :: [UndoRefactor] -> [FilePath]
 getUndoRemoved = catMaybes . map (\case RemoveAdded fp -> Just fp
                                         _              -> Nothing)
 
-initGhcSession :: Bool -> IO Session
-initGhcSession genCode = Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags' genCode >> getSession))
+initGhcSession :: Bool -> IO (Session, MVar [Marker])
+initGhcSession genCode = do
+  mv <- newMVar []
+  sess <- Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags' genCode True >> setupLogging mv >> getSession))
+  return (sess, mv)
+
+reinitGhcSession :: MVar [Marker] -> Bool -> IO Session
+reinitGhcSession mv genCode = do
+  Session <$> (newIORef =<< runGhc (Just libdir) (initGhcFlags' genCode True >> setupLogging mv >> getSession))
+
+setupLogging :: MVar [Marker] -> Ghc ()
+setupLogging mv = modifySession $ \s -> s { hsc_dflags = (hsc_dflags s) { log_action = logger } }
+  where logger dfs reason sev sp _ msg = modifyMVar_ mv (return . (Marker sp (severity sev reason) (showSDoc dfs msg) :))
+        severity SevError _ = Error
+        severity SevWarning (Reason Opt_WarnDeferredTypeErrors) = Error
+        severity SevWarning (Reason Opt_WarnDeferredOutOfScopeVariables) = Error
+        severity SevWarning _ = HT.Warning
+        severity _ _ = Info
 
 usePackageDB :: GhcMonad m => [FilePath] -> m ()
 usePackageDB [] = return ()

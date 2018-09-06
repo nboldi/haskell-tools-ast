@@ -1,4 +1,10 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, LambdaCase, RankNTypes, NamedFieldPuns, TupleSections, TypeApplications #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
+
 -- | Collecting modules contained in a module collection (library, executable, testsuite or
 -- benchmark). Gets names, source file locations, compilation and load flags for these modules.
 module Language.Haskell.Tools.Daemon.GetModules where
@@ -15,7 +21,7 @@ import Distribution.ModuleName (fromString, ModuleName, components)
 import Distribution.Package (Dependency(..), PackageName(..), pkgName, unPackageName)
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Configuration (finalizePD)
-import Distribution.PackageDescription.Parse (readGenericPackageDescription)
+import Distribution.PackageDescription.Parsec (readGenericPackageDescription)
 import Distribution.System (buildPlatform)
 import Distribution.Types.ComponentRequestedSpec (ComponentRequestedSpec(..))
 import Distribution.Types.UnqualComponentName (unUnqualComponentName)
@@ -27,6 +33,7 @@ import System.FilePath
 import DynFlags
 import qualified DynFlags as GHC
 import GHC hiding (ModuleName)
+import CmdLineParser
 
 import Language.Haskell.Tools.Daemon.MapExtensions (translateExtension, setExtensionFlag', unSetExtensionFlag')
 import Language.Haskell.Tools.Daemon.Representation
@@ -89,7 +96,7 @@ modulesFromCabalFile root cabal = (getModules . setupFlags <$> readGenericPackag
                            ++ catMaybes (map (toModuleCollection pkg) (benchmarks pkg))
 
         toModuleCollection :: ToModuleCollection tmc => PackageDescription -> tmc -> Maybe (ModuleCollection ModuleNameStr)
-        toModuleCollection PackageDescription{ buildType = Just Custom } _
+        toModuleCollection PackageDescription{ buildTypeRaw = Just Custom } _
           = throw $ UnsupportedPackage "'build-type: custom' setting in cabal file"
         toModuleCollection pkg tmc
           = let bi = getBuildInfo tmc
@@ -107,7 +114,8 @@ modulesFromCabalFile root cabal = (getModules . setupFlags <$> readGenericPackag
           where modRecord mn = ( moduleName mn, ModuleNotLoaded NoCodeGen (needsToCompile tmc mn) )
         moduleName = concat . intersperse "." . components
         setupFlags = either (\deps -> error $ "Missing dependencies: " ++ show deps) fst
-                       . finalizePD [] (ComponentRequestedSpec True True) (const True) buildPlatform
+                       . finalizePD (mkFlagAssignment [])
+                                    (ComponentRequestedSpec True True) (const True) buildPlatform
                                     (unknownCompilerInfo buildCompilerId NoAbiTag) []
 
 data UnsupportedPackage = UnsupportedPackage String
@@ -221,7 +229,7 @@ setupLoadFlags !ids !roots !allDeps !flags dfs = applyDependencies ids allDeps .
 loadFlagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
 loadFlagsFromBuildInfo bi@BuildInfo{ cppOptions } df
   = do (df',unused,warnings) <- parseDynamicFlags df (map (L noSrcSpan) $ cppOptions)
-       mapM_ putStrLn (map unLoc warnings ++ map (("Flag is not used: " ++) . unLoc) unused)
+       mapM_ putStrLn (map (unLoc . warnMsg) warnings ++ map (("Flag is not used: " ++) . unLoc) unused)
        return (setupLoadExtensions df')
   where setupLoadExtensions = foldl (.) id (map setExtensionFlag' $ catMaybes $ map translateExtension loadExtensions)
         loadExtensions = [PatternSynonyms | patternSynonymsNeeded] ++ [ExplicitNamespaces | explicitNamespacesNeeded]
@@ -238,7 +246,7 @@ flagsFromBuildInfo :: BuildInfo -> DynFlags -> IO DynFlags
 -- the import pathes are already set globally
 flagsFromBuildInfo bi@BuildInfo{ options } df
   = do (df',unused,warnings) <- parseDynamicFlags df (map (L noSrcSpan) $ concatMap snd options)
-       mapM_ putStrLn (map unLoc warnings ++ map (("Flag is not used: " ++) . unLoc) unused)
+       mapM_ putStrLn (map (unLoc . warnMsg) warnings ++ map (("Flag is not used: " ++) . unLoc) unused)
        return $ (flip lang_set (toGhcLang =<< defaultLanguage bi))
          $ foldl (.) id (map (\case EnableExtension ext -> setEnabled True ext
                                     DisableExtension ext -> setEnabled False ext

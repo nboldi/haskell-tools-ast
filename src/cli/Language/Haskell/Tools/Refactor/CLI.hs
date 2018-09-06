@@ -1,8 +1,5 @@
-{-# LANGUAGE FlexibleContexts
-           , TypeFamilies
-           , RecordWildCards
-           , ScopedTypeVariables
-           #-}
+{-# LANGUAGE FlexibleContexts, MonoLocalBinds, RecordWildCards, ScopedTypeVariables #-}
+
 -- | The command line interface for Haskell-tools. It uses the Haskell-tools daemon package starting
 -- the daemon in the same process and communicating with it through a channel.
 -- It can be used in a one-shot mode, listing all actions in a command-line parameter or using its
@@ -28,12 +25,12 @@ import Language.Haskell.Tools.Daemon.Protocol (ResponseMsg(..), ClientMessage(..
 import Language.Haskell.Tools.Refactor
 import Paths_haskell_tools_cli (version)
 -- | Normal entry point of the cli.
-normalRefactorSession :: [RefactoringChoice IdDom] -> Handle -> Handle -> CLIOptions -> IO Bool
-normalRefactorSession refactorings input output options@CLIOptions{..}
+normalRefactorSession :: [RefactoringChoice] -> [QueryChoice] -> Handle -> Handle -> CLIOptions -> IO Bool
+normalRefactorSession refactorings queries input output options@CLIOptions{..}
   = do hSetBuffering stdout LineBuffering -- to synch our output with GHC's
        hSetBuffering stderr LineBuffering -- to synch our output with GHC's
-       refactorSession refactorings
-         (\st -> void $ forkIO $ do runDaemon refactorings channelMode st
+       refactorSession refactorings queries
+         (\st -> void $ forkIO $ do runDaemon refactorings queries channelMode st
                                       (DaemonOptions False 0 (not cliVerbose) sharedOptions))
          input output options
 
@@ -47,11 +44,12 @@ data CLIOptions = CLIOptions { displayVersion :: Bool
 
 -- | Entry point with configurable initialization. Mainly for testing, call 'normalRefactorSession'
 -- to use the command-line.
-refactorSession :: [RefactoringChoice IdDom] -> ServerInit -> Handle -> Handle -> CLIOptions -> IO Bool
-refactorSession _ _ _ output CLIOptions{..} | displayVersion
+refactorSession :: [RefactoringChoice] -> [QueryChoice] -> ServerInit -> Handle -> Handle
+                     -> CLIOptions -> IO Bool
+refactorSession _ _ _ _ output CLIOptions{..} | displayVersion
   = do hPutStrLn output $ showVersion version
        return True
-refactorSession refactorings init input output CLIOptions{..} = do
+refactorSession refactorings queries init input output CLIOptions{..} = do
   connStore <- newEmptyMVar
   init connStore
   (recv,send) <- takeMVar connStore -- wait for the server to establish connection
@@ -59,28 +57,30 @@ refactorSession refactorings init input output CLIOptions{..} = do
   writeChan send (SetWorkingDir wd)
   writeChan send (AddPackages packageRoots)
   case executeCommands of
-    Just cmds -> performCmdOptions refactorings output send (splitOn ";" cmds)
+    Just cmds -> performCmdOptions refactorings queries output send (splitOn ";" cmds)
     Nothing -> return ()
-  when (isNothing executeCommands) (void $ forkIO $ do processUserInput refactorings input output send)
+  when (isNothing executeCommands) (void $ forkIO $ processUserInput refactorings queries input output send)
   readFromSocket (isJust executeCommands) output recv
 
 -- | An initialization action for the daemon.
 type ServerInit = MVar (Chan ResponseMsg, Chan ClientMessage) -> IO ()
 
 -- | Reads commands from standard input and executes them.
-processUserInput :: [RefactoringChoice IdDom] -> Handle -> Handle -> Chan ClientMessage -> IO ()
-processUserInput refactorings input output chan = do
+processUserInput :: [RefactoringChoice] -> [QueryChoice] -> Handle -> Handle
+                      -> Chan ClientMessage -> IO ()
+processUserInput refactorings queries input output chan = do
     cmd <- hGetLine input
-    continue <- processCommand False refactorings output chan cmd
-    when continue $ processUserInput refactorings input output chan
+    continue <- processCommand False refactorings queries output chan cmd
+    when continue $ processUserInput refactorings queries input output chan
   `catch` \e -> if isEOFError e then return ()
                                 else putStrLn (show e) >> return ()
 
 -- | Perform a command received from the user. The resulting boolean states if the user may continue
 -- (True), or the session is over (False).
-processCommand :: Bool -> [RefactoringChoice IdDom] -> Handle -> Chan ClientMessage -> String -> IO Bool
-processCommand _ _ _ _ "" = return True
-processCommand shutdown refactorings output chan cmd = do
+processCommand :: Bool -> [RefactoringChoice] -> [QueryChoice] -> Handle -> Chan ClientMessage
+                    -> String -> IO Bool
+processCommand _ _ _ _ _ "" = return True
+processCommand shutdown refactorings queries output chan cmd = do
   case splitOn " " cmd of
     ["Exit"] -> writeChan chan Disconnect >> return False
     ["AddFile", fn] -> writeChan chan (ReLoad [fn] [] []) >> return True
@@ -95,6 +95,10 @@ processCommand shutdown refactorings output chan cmd = do
     ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")
                , ref `elem` refactorCommands refactorings
        -> do writeChan chan (PerformRefactoring ref modPath selection details shutdown False)
+             return (not shutdown)
+    ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")
+               , ref `elem` queryCommands queries
+       -> do writeChan chan (PerformQuery ref modPath selection details shutdown)
              return (not shutdown)
     "Try" : ref : rest | let modPath:selection:details = rest ++ (replicate (2 - length rest) "")
                        , ref `elem` refactorCommands refactorings
@@ -119,10 +123,13 @@ processMessage :: Bool -> Handle -> ResponseMsg -> IO (Maybe Bool)
 processMessage _ output (ErrorMessage msg) = hPutStrLn output msg >> return (Just False)
 processMessage pedantic output (CompilationProblem marks hints)
   = do mapM_ (hPutStrLn output) hints
-       mapM_ (\(loc, msg) -> hPutStrLn output (shortShowSpanWithFile loc ++ ": " ++ msg)) marks
+       mapM_ (hPutStrLn output . show) marks
        return (if pedantic then Just False else Nothing)
 processMessage _ output (LoadedModule fp name)
   = do hPutStrLn output $ "Loaded module: " ++ name ++ "( " ++ fp ++ ") "
+       return Nothing
+processMessage _ output (QueryResult query qType qResult)
+  = do hPutStrLn output $ "Query " ++ query ++ " type: " ++ qType ++ " result: " ++ show qResult
        return Nothing
 processMessage _ output (DiffInfo diff)
   = do hPutStrLn output diff
@@ -139,9 +146,11 @@ processMessage _ _ Disconnected = return (Just True)
 processMessage _ _ _ = return Nothing
 
 -- | Perform the commands specified by the user as a command line argument.
-performCmdOptions :: [RefactoringChoice IdDom] -> Handle -> Chan ClientMessage -> [String] -> IO ()
-performCmdOptions refactorings output chan cmds = do
-    continue <- mapM (\(shutdown, cmd) -> processCommand shutdown refactorings output chan cmd)
+performCmdOptions :: [RefactoringChoice] -> [QueryChoice] -> Handle -> Chan ClientMessage
+                       -> [String] -> IO ()
+performCmdOptions refactorings queries output chan cmds = do
+    continue <- mapM (\(shutdown, cmd) -> processCommand shutdown refactorings
+                                            queries output chan cmd)
                      (zip lastIsShutdown cmds)
     when (and continue) $ writeChan chan Disconnect
   where lastIsShutdown = replicate (length cmds - 1) False ++ [True]

@@ -1,5 +1,5 @@
 name:                haskell-tools-refactor
-version:             1.0.0.0
+version:             1.1.0.2
 synopsis:            Refactoring Tool for Haskell
 description:         Contains a set of refactorings based on the Haskell-Tools framework to easily transform a Haskell program. For the descriptions of the implemented refactorings, see the homepage.
 homepage:            https://github.com/haskell-tools/haskell-tools
@@ -11,23 +11,45 @@ category:            Language
 build-type:          Simple
 cabal-version:       >=1.10
 
+extra-source-files: examples/CppHs/Language/Preprocessor/*.hs
+                  , examples/CppHs/Language/Preprocessor/Cpphs/*.hs
+                  , examples/CppHs/Language/Preprocessor/Cpphs/*.hs
+                  , examples/Decl/*.hs
+                  , examples/Expr/*.hs
+                  , examples/InstanceControl/Control/Instances/*.hs
+                  , examples/Module/*.hs
+                  , examples/Pattern/*.hs
+                  , examples/TH/*.hs
+                  , examples/CPP/*.hs
+                  , examples/TH/QuasiQuote/*.hs
+                  , examples/TH/Splice/*.hs
+                  , examples/Type/*.hs
+                  , examples/CommentHandling/*.hs
+
 library
   ghc-options: -O2
   exposed-modules:     Language.Haskell.Tools.Refactor
-                     , Language.Haskell.Tools.Refactor.Utils.BindingElem
-                     , Language.Haskell.Tools.Refactor.Utils.Monadic
                      , Language.Haskell.Tools.Refactor.Monad
-                     , Language.Haskell.Tools.Refactor.Representation
                      , Language.Haskell.Tools.Refactor.Prepare
-                     , Language.Haskell.Tools.Refactor.Utils.Lists
-                     , Language.Haskell.Tools.Refactor.Utils.Name
-                     , Language.Haskell.Tools.Refactor.Utils.Helpers
-                     , Language.Haskell.Tools.Refactor.Utils.AST
                      , Language.Haskell.Tools.Refactor.Refactoring
-                     , Language.Haskell.Tools.Refactor.Utils.Indentation
+                     , Language.Haskell.Tools.Refactor.Representation
+                     , Language.Haskell.Tools.Refactor.Utils.AST
+                     , Language.Haskell.Tools.Refactor.Utils.BindingElem
+                     , Language.Haskell.Tools.Refactor.Utils.Debug
                      , Language.Haskell.Tools.Refactor.Utils.Extensions
+                     , Language.Haskell.Tools.Refactor.Utils.Helpers
+                     , Language.Haskell.Tools.Refactor.Utils.Indentation
+                     , Language.Haskell.Tools.Refactor.Utils.Lists
+                     , Language.Haskell.Tools.Refactor.Utils.Maybe
+                     , Language.Haskell.Tools.Refactor.Utils.Monadic
+                     , Language.Haskell.Tools.Refactor.Utils.Name
+                     , Language.Haskell.Tools.Refactor.Utils.Type
+                     , Language.Haskell.Tools.Refactor.Utils.NameLookup
+                     , Language.Haskell.Tools.Refactor.Utils.TypeLookup
+                     , Language.Haskell.Tools.Refactor.Querying
 
-  build-depends:       base                      >= 4.10  && < 4.11
+  build-depends:       base                      >= 4.11 && < 4.12
+                     , aeson                     >= 1.0  && < 1.5
                      , mtl                       >= 2.2  && < 2.3
                      , uniplate                  >= 1.6  && < 1.7
                      , ghc-paths                 >= 0.1  && < 0.2
@@ -37,11 +59,43 @@ library
                      , references                >= 0.3  && < 0.4
                      , split                     >= 0.2  && < 0.3
                      , filepath                  >= 1.4  && < 1.5
-                     , template-haskell          >= 2.12 && < 2.13
-                     , ghc                       >= 8.2  && < 8.3
-                     , Cabal                     >= 2.0 && < 2.1
-                     , haskell-tools-ast         >= 1.0  && < 1.1
-                     , haskell-tools-backend-ghc >= 1.0  && < 1.1
-                     , haskell-tools-rewrite     >= 1.0  && < 1.1
-                     , haskell-tools-prettyprint >= 1.0  && < 1.1
+                     , template-haskell          >= 2.13 && < 2.14
+                     , ghc                       >= 8.4  && < 8.5
+                     , Cabal                     >= 2.0  && < 2.3
+                     , haskell-tools-ast         >= 1.1  && < 1.2
+                     , haskell-tools-backend-ghc >= 1.1  && < 1.2
+                     , haskell-tools-rewrite     >= 1.1  && < 1.2
+                     , haskell-tools-prettyprint >= 1.1  && < 1.2
+  default-language:    Haskell2010
+
+test-suite haskell-tools-builtin-refactorings-test
+  type:                exitcode-stdio-1.0
+  ghc-options:         -with-rtsopts=-M2g
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  build-depends:       base                      >= 4.11 && < 4.12
+                     , tasty                     >= 0.11 && < 1.2
+                     , tasty-hunit               >= 0.9  && < 0.11
+                     , transformers              >= 0.5  && < 0.6
+                     , either                    >= 4.4  && < 5.1
+                     , filepath                  >= 1.4  && < 1.5
+                     , mtl                       >= 2.2  && < 2.3
+                     , uniplate                  >= 1.6  && < 1.7
+                     , containers                >= 0.5  && < 0.6
+                     , directory                 >= 1.2  && < 1.4
+                     , references                >= 0.3  && < 0.4
+                     , split                     >= 0.2  && < 0.3
+                     , time                      >= 1.8  && < 1.9
+                     , template-haskell          >= 2.13 && < 2.14
+                     , ghc                       >= 8.4  && < 8.5
+                     , ghc-paths                 >= 0.1  && < 0.2
+                     , Cabal                     >= 2.0  && < 2.3
+                     , haskell-tools-ast         >= 1.1  && < 1.2
+                     , haskell-tools-backend-ghc >= 1.1  && < 1.2
+                     , haskell-tools-rewrite     >= 1.1  && < 1.2
+                     , haskell-tools-prettyprint >= 1.1  && < 1.2
+                     , haskell-tools-refactor
+                     -- libraries used by the examples
+                     , old-time                  >= 1.1  && < 1.2
+                     , polyparse                 >= 1.12 && < 1.13
   default-language:    Haskell2010

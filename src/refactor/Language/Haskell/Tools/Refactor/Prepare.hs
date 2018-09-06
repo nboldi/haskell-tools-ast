@@ -1,8 +1,10 @@
-{-# LANGUAGE FlexibleContexts, LambdaCase, MultiWayIf, ScopedTypeVariables, TypeFamilies #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | Defines utility methods that prepare Haskell modules for refactoring
 module Language.Haskell.Tools.Refactor.Prepare where
 
-import Control.Exception (Exception(..), throwIO, throw)
+import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.List ((\\), isSuffixOf)
@@ -12,16 +14,15 @@ import Language.Haskell.TH.LanguageExtensions (Extension(..))
 import System.Directory (canonicalizePath)
 import System.FilePath
 
-import CmdLineParser (CmdLineP(..), processArgs)
+import CmdLineParser (CmdLineP(..), processArgs, Warn(..), Err(..))
 import DynFlags
 import FastString (mkFastString)
-import GHC hiding (loadModule)
+import GHC hiding (loadModule, ModuleName)
 import qualified GHC (loadModule)
 import GHC.Paths ( libdir )
 import GhcMonad
-import HscTypes (HscEnv(..), ModSummary(..))
-import Linker (unload)
-import Outputable (Outputable(..), showSDocUnsafe)
+import HscTypes
+import Outputable (Outputable(..), showSDocUnsafe, cat, (<>))
 import Packages (initPackages)
 import SrcLoc
 import StringBuffer (hGetStringBuffer)
@@ -34,9 +35,12 @@ import Language.Haskell.Tools.Refactor.Monad (Refactoring(..))
 import Language.Haskell.Tools.Refactor.Representation
 import Language.Haskell.Tools.Refactor.Utils.Monadic (runRefactor)
 
+-- | Type synonym for module names.
+type ModuleName = String
+
 
 -- | A quick function to try the refactorings
-tryRefactor :: (RealSrcSpan -> Refactoring IdDom) -> String -> String -> IO ()
+tryRefactor :: (RealSrcSpan -> Refactoring) -> String -> ModuleName -> IO ()
 tryRefactor refact moduleName span
   = runGhc (Just libdir) $ do
       initGhcFlags
@@ -48,7 +52,7 @@ tryRefactor refact moduleName span
                   Left err -> liftIO $ putStrLn err
 
 -- | Adjust the source range to be applied to the refactored module
-correctRefactorSpan :: UnnamedModule dom -> RealSrcSpan -> RealSrcSpan
+correctRefactorSpan :: UnnamedModule -> RealSrcSpan -> RealSrcSpan
 correctRefactorSpan mod sp = mkRealSrcSpan (updateSrcFile fileName $ realSrcSpanStart sp)
                                            (updateSrcFile fileName $ realSrcSpanEnd sp)
   where fileName = case srcSpanStart $ getRange mod of RealSrcLoc loc -> srcLocFile loc
@@ -64,13 +68,16 @@ useFlags args = do
   dynflags <- getSessionDynFlags
   let change = runCmdLine $ processArgs flagsAll lArgs
   let ((leftovers, errs, warnings), newDynFlags) = change dynflags
-  when (not (null warnings))
-    $ liftIO $ putStrLn $ showSDocUnsafe $ ppr warnings
-  when (not (null errs))
-    $ liftIO $ putStrLn $ showSDocUnsafe $ ppr errs
+  unless (null warnings)
+    $ liftIO $ putStrLn $ showSDocUnsafe $ cat $ map pprWarning warnings
+  unless (null errs)
+    $ liftIO $ putStrLn $ showSDocUnsafe $ cat $ map pprErr errs
   void $ setSessionDynFlags newDynFlags
   when (any ("-package-db" `isSuffixOf`) args) reloadPkgDb
-  return $ (map unLoc leftovers, snd . change)
+  return (map unLoc leftovers, snd . change)
+
+pprWarning (Warn reason msg) = ppr reason Outputable.<> ppr msg
+pprErr (Err msg) = ppr msg
 
 -- | Reloads the package database based on the session flags
 reloadPkgDb :: Ghc ()
@@ -79,22 +86,24 @@ reloadPkgDb = void $ setSessionDynFlags . fst =<< liftIO . initPackages . (\df -
 
 -- | Initialize GHC flags to default values that support refactoring
 initGhcFlags :: Ghc ()
-initGhcFlags = initGhcFlags' False
+initGhcFlags = initGhcFlags' False True
 
 initGhcFlagsForTest :: Ghc ()
-initGhcFlagsForTest = do initGhcFlags' True
+initGhcFlagsForTest = do initGhcFlags' True False
                          dfs <- getSessionDynFlags
                          void $ setSessionDynFlags $ dfs { hscTarget = HscAsm }
 
 -- | Sets up basic flags and settings for GHC
-initGhcFlags' :: Bool -> Ghc ()
-initGhcFlags' needsCodeGen = do
+initGhcFlags' :: Bool -> Bool -> Ghc ()
+initGhcFlags' needsCodeGen errorsSuppressed = do
   dflags <- getSessionDynFlags
-  env <- getSession
-  liftIO $ unload env [] -- clear linker state if ghc was used in the same process
   void $ setSessionDynFlags
     $ flip gopt_set Opt_KeepRawTokenStream
     $ flip gopt_set Opt_NoHsMain
+    $ (if errorsSuppressed then flip gopt_set Opt_DeferTypeErrors
+                                  . flip gopt_set Opt_DeferTypedHoles
+                                  . flip gopt_set Opt_DeferOutOfScopeVariables
+                           else id)
     $ dflags { importPaths = []
              , hscTarget = if needsCodeGen then HscInterpreted else HscNothing
              , ghcLink = if needsCodeGen then LinkInMemory else NoLink
@@ -115,11 +124,11 @@ deregisterDirs workingDirs = do
   void $ setSessionDynFlags dynflags { importPaths = importPaths dynflags \\ workingDirs }
 
 -- | Translates module name and working directory into the name of the file where the given module should be defined
-toFileName :: FilePath -> String -> FilePath
+toFileName :: FilePath -> ModuleName -> FilePath
 toFileName workingDir mod = normalise $ workingDir </> map (\case '.' -> pathSeparator; c -> c) mod ++ ".hs"
 
 -- | Translates module name and working directory into the name of the file where the boot module should be defined
-toBootFileName :: FilePath -> String -> FilePath
+toBootFileName :: FilePath -> ModuleName -> FilePath
 toBootFileName workingDir mod = normalise $ workingDir </> map (\case '.' -> pathSeparator; c -> c) mod ++ ".hs-boot"
 
 -- | Get the source directory where the module is located.
@@ -142,8 +151,15 @@ keyFromMS ms = SourceFileKey (normalise $ getModSumOrig ms) (getModSumName ms)
 getModSumName :: ModSummary -> String
 getModSumName = GHC.moduleNameString . moduleName . ms_mod
 
+-- | Load the AST of a module given by the working directory and module name.
+loadModuleAST :: FilePath -> ModuleName -> Ghc TypedModule
+loadModuleAST workingDir moduleName = do
+  useFlags ["-w"]
+  modSummary <- loadModule workingDir moduleName
+  parseTyped modSummary
+
 -- | Load the summary of a module given by the working directory and module name.
-loadModule :: String -> String -> Ghc ModSummary
+loadModule :: FilePath -> ModuleName -> Ghc ModSummary
 loadModule workingDir moduleName
   = do initGhcFlagsForTest
        useDirs [workingDir]
@@ -155,7 +171,7 @@ loadModule workingDir moduleName
 -- | The final version of our AST, with type infromation added
 type TypedModule = Ann AST.UModule IdDom SrcTemplateStage
 
--- | Get the typed representation from a type-correct program.
+-- | Get the typed representation of a Haskell module.
 parseTyped :: ModSummary -> Ghc TypedModule
 parseTyped modSum = withAlteredDynFlags (return . normalizeFlags) $ do
   let hasCppExtension = Cpp `xopt` ms_hspp_opts modSum
@@ -170,7 +186,7 @@ parseTyped modSum = withAlteredDynFlags (return . normalizeFlags) $ do
   srcBuffer <- if hasCppExtension
                     then liftIO $ hGetStringBuffer (getModSumOrig ms)
                     else return (fromJust $ ms_hspp_buf $ pm_mod_summary p)
-  withTempSession (\e -> e { hsc_dflags = ms_hspp_opts ms }) 
+  withTempSession (\e -> e { hsc_dflags = ms_hspp_opts ms })
     $ (if hasCppExtension then prepareASTCpp else prepareAST) srcBuffer . placeComments (fst annots) (getNormalComments $ snd annots)
         <$> (addTypeInfos (typecheckedSource tc)
                =<< (do parseTrf <- runTrf (fst annots) (getPragmaComments $ snd annots) $ trfModule ms (pm_parsed_source p)

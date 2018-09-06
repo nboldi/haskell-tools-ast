@@ -1,5 +1,10 @@
 -- | Generic instance for Haskell AST representation
-{-# LANGUAGE DeriveGeneric, FlexibleContexts, StandaloneDeriving, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module Language.Haskell.Tools.AST.Instances.Generic () where
 
 import GHC.Generics (Generic(..))

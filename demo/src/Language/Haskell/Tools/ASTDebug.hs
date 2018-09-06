@@ -1,18 +1,5 @@
-{-# LANGUAGE TypeOperators
-           , DefaultSignatures
-           , StandaloneDeriving
-           , FlexibleContexts
-           , FlexibleInstances
-           , MultiParamTypeClasses
-           , TypeFamilies
-           , TemplateHaskell
-           , OverloadedStrings
-           , ConstraintKinds
-           , LambdaCase
-           , ViewPatterns
-           , ScopedTypeVariables
-           , UndecidableInstances
-           #-}
+{-# LANGUAGE TypeOperators, DefaultSignatures, StandaloneDeriving, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TypeFamilies, TemplateHaskell, OverloadedStrings, ConstraintKinds, LambdaCase, ViewPatterns, ScopedTypeVariables, UndecidableInstances #-}
+
 -- | A module for displaying the AST in a tree view.
 module Language.Haskell.Tools.ASTDebug where
 
@@ -43,7 +30,7 @@ data DebugNode dom = TreeNode { _nodeLabel :: String
                                 , _nodeValue :: String
                                 }
 
-deriving instance Domain dom => Show (DebugNode dom)
+-- deriving instance Domain dom => Show (DebugNode dom)
 
 data TreeDebugNode dom
   = TreeDebugNode { _nodeName :: String
@@ -51,36 +38,33 @@ data TreeDebugNode dom
                   , _children :: [DebugNode dom]
                   }
 
-deriving instance Domain dom => Show (TreeDebugNode dom)
+-- deriving instance Domain dom => Show (TreeDebugNode dom)
 
 data SemanticInfoType dom
   = DefaultInfoType { semaInfoTypeRng :: SrcSpan
                     }
-  | NameInfoType { semaInfoTypeName :: SemanticInfo' dom SameInfoNameCls
+  | NameInfoType { semaInfoTypeName :: SemanticInfo' dom SemaInfoNameCls
                  , semaInfoTypeRng :: SrcSpan
                  }
-  | ExprInfoType { semaInfoTypeExpr :: SemanticInfo' dom SameInfoExprCls
+  | ExprInfoType { semaInfoTypeExpr :: SemanticInfo' dom SemaInfoExprCls
                  , semaInfoTypeRng :: SrcSpan
                  }
-  | ImportInfoType { semaInfoTypeImport :: SemanticInfo' dom SameInfoImportCls
+  | ImportInfoType { semaInfoTypeImport :: SemanticInfo' dom SemaInfoImportCls
                    , semaInfoTypeRng :: SrcSpan
                    }
-  | ModuleInfoType { semaInfoTypeModule :: SemanticInfo' dom SameInfoModuleCls
+  | ModuleInfoType { semaInfoTypeModule :: SemanticInfo' dom SemaInfoModuleCls
                    , semaInfoTypeRng :: SrcSpan
                    }
-  | ImplicitFieldInfoType { semaInfoTypeImplicitFld :: SemanticInfo' dom SameInfoWildcardCls
+  | ImplicitFieldInfoType { semaInfoTypeImplicitFld :: SemanticInfo' dom SemaInfoWildcardCls
                           , semaInfoTypeRng :: SrcSpan
                           }
-
-
-deriving instance Domain dom => Show (SemanticInfoType dom)
 
 makeReferences ''DebugNode
 makeReferences ''TreeDebugNode
 
-type AssocSema dom = ( AssocData (SemanticInfo' dom SameInfoModuleCls), AssocData (SemanticInfo' dom SameInfoImportCls)
-                     , AssocData (SemanticInfo' dom SameInfoNameCls), AssocData (SemanticInfo' dom SameInfoExprCls)
-                     , AssocData (SemanticInfo' dom SameInfoWildcardCls) )
+type AssocSema dom = ( AssocData (SemanticInfo' dom SemaInfoModuleCls), AssocData (SemanticInfo' dom SemaInfoImportCls)
+                     , AssocData (SemanticInfo' dom SemaInfoNameCls), AssocData (SemanticInfo' dom SemaInfoExprCls)
+                     , AssocData (SemanticInfo' dom SemaInfoWildcardCls) )
 
 astDebug :: (ASTDebug e dom st, AssocSema dom) => e dom st -> String
 astDebug ast = toList (astDebugToJson (astDebug' ast))
@@ -171,13 +155,17 @@ instance AssocData ImplicitFieldInfo where
                 ]
 
 inspectScope :: InspectableName n => [[(n, Maybe [UsageSpec], Maybe n)]] -> String
-inspectScope = concat . intersperse " | " . map (concat . intersperse ", " . map inspect)
+inspectScope = concat . intersperse " | " . map (concat . intersperse ", " . map showUsage)
 
 class Outputable n => InspectableName n where
   inspect :: n -> String
 
-instance InspectableName n => InspectableName (n, Maybe [UsageSpec], Maybe n) where
-  inspect (n,usage,parent) = inspect n ++ showSDocUnsafe (ppr usage) ++ maybe "" (\p -> "( in " ++ showSDocUnsafe (ppr p) ++ ")") parent
+showUsage :: InspectableName n => (n, Maybe [UsageSpec], Maybe n) -> String
+showUsage (n,usage,parent) = inspect n ++ show usage ++ maybe "" (\p -> "( in " ++ showSDocUnsafe (ppr p) ++ ")") parent
+
+instance Show UsageSpec where
+  show (UsageSpec q useQ asQ)
+    = (if q then "qualified " else "") ++ "as " ++ (if useQ == asQ || q then asQ else asQ ++ " or " ++ useQ)
 
 instance InspectableName GHC.Name where
   inspect name = showSDocUnsafe (ppr name) ++ "[" ++ show (getUnique name) ++ "]"

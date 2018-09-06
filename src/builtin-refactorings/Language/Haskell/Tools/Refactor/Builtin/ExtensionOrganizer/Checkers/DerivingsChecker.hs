@@ -1,4 +1,7 @@
-{-# LANGUAGE FlexibleContexts, MultiWayIf, RankNTypes, TypeFamilies, ViewPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE ViewPatterns #-}
+
 
 {-
   NOTE: We need Decl level checking in order to gain extra information
@@ -27,13 +30,11 @@ import Control.Reference ((^.), (!~), (&))
 import Language.Haskell.Tools.AST
 import Language.Haskell.Tools.Refactor as Refact hiding (Enum)
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad as Ext
-import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Utils.TypeLookup
 
 import Control.Monad.Trans.Maybe (MaybeT(..))
 import qualified Data.Map as Map (fromList, lookup)
 
 import qualified GHC (Name(..), isNewTyCon)
-import qualified Name as GHC (Name)
 import PrelNames
 import THNames (liftClassName)
 
@@ -131,20 +132,20 @@ chkDataDecl d = return d
 
 chkGADTDataDecl :: CheckNode Decl
 chkGADTDataDecl d@(GADTDataDecl keyw _ _ _ _ derivs) = do
-  addOccurence_ GADTs d
+  addEvidence_ GADTs d
   annList !~ separateByKeyword keyw $ derivs
   return d
 chkGADTDataDecl d = return d
 
 chkDataInstance :: CheckNode Decl
 chkDataInstance d@(DataInstance keyw _ _ derivs) = do
-  addOccurence_ TypeFamilies d
+  addEvidence_ TypeFamilies d
   annList !~ separateByKeyword keyw $ derivs
   return d
 chkDataInstance d = return d
 
 
-separateByKeyword :: DataOrNewtypeKeyword dom -> CheckNode Deriving
+separateByKeyword :: DataOrNewtypeKeyword -> CheckNode Deriving
 separateByKeyword keyw derivs
   | isNewtypeDecl keyw = chkByStrat chkClassForNewtype derivs
   | otherwise          = chkByStrat chkClassForData    derivs
@@ -153,13 +154,13 @@ separateByKeyword keyw derivs
                                _               -> False
 
 
-getStrategy :: Deriving dom -> Maybe (DeriveStrategy dom)
+getStrategy :: Deriving -> Maybe DeriveStrategy
 getStrategy d = d ^. (deriveStrategy & annMaybe)
 
 addExtension :: (MonadState ExtMap m, HasRange node) =>
                  GHC.Name -> node -> m node
 addExtension sname
-  | Just ext <- whichExtension sname = addOccurence ext
+  | Just ext <- whichExtension sname = addEvidence ext
   | otherwise                        = return
 
 addStockExtension :: CheckNode InstanceHead
@@ -167,28 +168,28 @@ addStockExtension x
   | Just sname <- nameFromStock x = addExtension sname x
   | otherwise = return x
 
-chkByStrat :: CheckNode' InstanceHead dom -> CheckNode' Deriving dom
+chkByStrat :: CheckNode InstanceHead -> CheckNode Deriving
 chkByStrat checker d
   | Just strat <- getStrategy d = do
-    addOccurence DerivingStrategies d
+    addEvidence DerivingStrategies d
     chkDerivingClause (chkStrat strat) d
   | otherwise =
     chkDerivingClause checker d
 
-chkStrat :: DeriveStrategy dom -> CheckNode' InstanceHead dom
+chkStrat :: DeriveStrategy -> CheckNode InstanceHead
 chkStrat (_element -> UStockStrategy)    = addStockExtension
-chkStrat (_element -> UNewtypeStrategy)  = addOccurence GeneralizedNewtypeDeriving
-chkStrat (_element -> UAnyClassStrategy) = addOccurence DeriveAnyClass
+chkStrat (_element -> UNewtypeStrategy)  = addEvidence GeneralizedNewtypeDeriving
+chkStrat (_element -> UAnyClassStrategy) = addEvidence DeriveAnyClass
 
-chkDerivingClause :: CheckNode' InstanceHead dom -> CheckNode' Deriving dom
+chkDerivingClause :: CheckNode InstanceHead -> CheckNode Deriving
 chkDerivingClause checker d@(DerivingOne   x)  = checker x               >> return d
 chkDerivingClause checker d@(DerivingMulti xs) = (annList !~ checker) xs >> return d
 
 -- checks whether the class is stock, and if it is, returns its name
-nameFromStock :: HasNameInfo dom => InstanceHead dom -> Maybe GHC.Name
+nameFromStock :: InstanceHead -> Maybe GHC.Name
 nameFromStock x
   | InstanceHead name <- skipParens x,
-    Just sname <- getSemName name,
+    Just sname <- semanticsName name,
     isStockClass sname
     = Just sname
   | otherwise = Nothing
@@ -196,38 +197,37 @@ nameFromStock x
 chkClassForData :: CheckNode InstanceHead
 chkClassForData x
   | Just sname <- nameFromStock x = addExtension sname x
-  | otherwise = addOccurence DeriveAnyClass x
+  | otherwise = addEvidence DeriveAnyClass x
 
 -- performs check in case no explicit strategy is given
 chkClassForNewtype :: CheckNode InstanceHead
 chkClassForNewtype x
   | Just sname <- nameFromStock x
     = if | gndNotNeeded  sname -> return x
-         | gndNeeded     sname -> addOccurence GeneralizedNewtypeDeriving x
+         | gndNeeded     sname -> addEvidence GeneralizedNewtypeDeriving x
          | gndNotAllowed sname -> addExtension sname x
   | otherwise = do
       gndOn       <- isTurnedOn GeneralizedNewtypeDeriving
       deriveAnyOn <- isTurnedOn DeriveAnyClass
-      if | gndOn && deriveAnyOn -> addOccurence_ DeriveAnyClass x
-         | deriveAnyOn          -> addOccurence_ DeriveAnyClass x
-         | gndOn                -> addOccurence_ GeneralizedNewtypeDeriving x
+      if | gndOn && deriveAnyOn -> addEvidence_ DeriveAnyClass x
+         | deriveAnyOn          -> addEvidence_ DeriveAnyClass x
+         | gndOn                -> addEvidence_ GeneralizedNewtypeDeriving x
          | otherwise             -> return ()
       return x
 
-skipParens :: InstanceHead dom -> InstanceHead dom
+skipParens :: InstanceHead -> InstanceHead
 skipParens (ParenInstanceHead x) = skipParens x
 skipParens x = x
 
 chkStandaloneDeriving :: CheckNode Decl
 chkStandaloneDeriving d@(Refact.StandaloneDeriving strat _ (decompRule -> (cls,ty)))
   | Just strat' <- strat = do
-    addOccurence_  Ext.DerivingStrategies d
-    addOccurence_  Ext.StandaloneDeriving d
-    chkSynonym ty
+    addEvidence_  Ext.DerivingStrategies d
+    addEvidence_  Ext.StandaloneDeriving d
     chkStrat strat' cls
     return d
   | otherwise = do
-    addOccurence_  Ext.StandaloneDeriving d
+    addEvidence_  Ext.StandaloneDeriving d
     itIsNewType    <- isNewtype ty
     itIsSynNewType <- isSynNewType ty
     if itIsNewType || itIsSynNewType
@@ -236,33 +236,30 @@ chkStandaloneDeriving d@(Refact.StandaloneDeriving strat _ (decompRule -> (cls,t
     return d
 chkStandaloneDeriving d = return d
 
-decompRule :: InstanceRule dom -> (InstanceHead dom, Type dom)
+decompRule :: InstanceRule -> (InstanceHead, Type)
 decompRule instRule = (cls, ty)
   where ihead = instRule  ^. irHead
         cls   = getClassCon   ihead
         ty    = rightmostType ihead
 
-getClassCon :: InstanceHead dom -> InstanceHead dom
+getClassCon :: InstanceHead -> InstanceHead
 getClassCon (AppInstanceHead f _) = getClassCon f
 getClassCon (ParenInstanceHead x) = getClassCon x
 getClassCon x = x
 
-rightmostType :: InstanceHead dom -> Type dom
+rightmostType :: InstanceHead -> Type
 rightmostType ihead
   | AppInstanceHead _ tyvar <- skipParens ihead = tyvar
 
 {-
   NOTE: Returns false if the type is certainly not a type synonym.
         Returns true if it is a synonym for a newtype or it could not have been looked up.
-  NOTE: It always has the following side-effects:
-        - If the input is a type synonym, then adds TypeSynonymInstances
-          (regardless of it being a newtype or not)
 
   This behaviour will produce false positives.
   This is desirable since the underlying type might be a newtype
   in which case GeneralizedNewtypeDeriving might be necessary.
 -}
-isSynNewType :: HasNameInfo dom => Type dom -> ExtMonad Bool
+isSynNewType :: Type -> ExtMonad Bool
 isSynNewType t = do
   mtycon <- runMaybeT . lookupType $ t
   case mtycon of
@@ -270,6 +267,4 @@ isSynNewType t = do
     Just tycon -> isSynNewType' tycon
   where isSynNewType' x = case lookupSynDef x of
                             Nothing  -> return False
-                            Just def -> do
-                                        addOccurence_ TypeSynonymInstances t
-                                        return (GHC.isNewTyCon def)
+                            Just def -> return (GHC.isNewTyCon def)

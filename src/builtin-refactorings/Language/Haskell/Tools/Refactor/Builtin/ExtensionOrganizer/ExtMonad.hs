@@ -1,20 +1,24 @@
-{-# LANGUAGE ConstraintKinds, FlexibleContexts, RankNTypes, StandaloneDeriving, TypeFamilies, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE RankNTypes #-}
+
 
 module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad
   ( module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMonad
   , module Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMap
+  , module Language.Haskell.Tools.Refactor.Utils.Maybe
   , module Language.Haskell.TH.LanguageExtensions
   , module Control.Monad.State
   , module Control.Monad.Reader
   ) where
 
 import Language.Haskell.Tools.Refactor
+import Language.Haskell.Tools.Refactor.Utils.Maybe
 import Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMap
 
 import GHC (SrcSpan(..), Ghc(..), runGhc)
 import GHC.Paths ( libdir )
 import Language.Haskell.TH.LanguageExtensions
-import SrcLoc (SrcSpan)
 
 import Control.Monad.Reader
 import Control.Monad.State
@@ -24,40 +28,94 @@ import qualified Data.Map.Strict as SMap (Map(..), empty, insertWith)
 {-# ANN module "HLint: ignore Use mappend" #-}
 {-# ANN module "HLint: ignore Use import/export shortcut" #-}
 
-deriving instance Ord  Extension
-deriving instance Read Extension
+
+type ExtMonad = ReaderT [Extension] (StateT ExtMap Ghc)
+
+type CheckNode  elem  = elem -> ExtMonad elem
+type CheckUNode uelem = Ann uelem IdDom SrcTemplateStage -> ExtMonad (Ann uelem IdDom SrcTemplateStage)
+
+class Checkable node where
+  check :: CheckNode node
+
+addHint' :: (Ord k, HasRange a) =>
+                 k -> a -> SMap.Map k [Occurence SrcSpan] -> SMap.Map k [Occurence SrcSpan]
+addHint' key node = SMap.insertWith (++) key [Hint (getRange node)]
+
+addHint_ :: (MonadState ExtMap m, HasRange node) =>
+             Extension -> node -> m ()
+addHint_ extension element = modify $ addHint' (lVar extension) element
+
+addHint :: (MonadState ExtMap m, HasRange node) =>
+            Extension -> node -> m node
+addHint ext node = addHint_ ext node >> return node
+
+addRelationHint_ :: (MonadState ExtMap m, HasRange node) =>
+                     LogicalRelation Extension -> node -> m ()
+addRelationHint_ rel element = modify $ addHint' rel element
+
+addRelationHint :: (MonadState ExtMap m, HasRange node) =>
+                    LogicalRelation Extension -> node -> m node
+addRelationHint rel node = addRelationHint_ rel node >> return node
 
 
--- how could I hide the tyvar a?
--- type Asd a = forall m . (MonadReader [Extension] m, MonadState ExtMap m, GhcMonad m) => m a
+addMI' :: (Ord k, HasRange a) =>
+                 k -> a -> SMap.Map k [Occurence SrcSpan] -> SMap.Map k [Occurence SrcSpan]
+addMI' key node = SMap.insertWith (++) key [MissingInformation (getRange node)]
+
+addMI_ :: (MonadState ExtMap m, HasRange node) =>
+             Extension -> node -> m ()
+addMI_ extension element = modify $ addMI' (lVar extension) element
+
+addMI :: (MonadState ExtMap m, HasRange node) =>
+            Extension -> node -> m node
+addMI ext node = addMI_ ext node >> return node
+
+addRelationMI_ :: (MonadState ExtMap m, HasRange node) =>
+                     LogicalRelation Extension -> node -> m ()
+addRelationMI_ rel element = modify $ addMI' rel element
+
+addRelationMI :: (MonadState ExtMap m, HasRange node) =>
+                    LogicalRelation Extension -> node -> m node
+addRelationMI rel node = addRelationMI_ rel node >> return node
 
 
-type ExtMonad        = ReaderT [Extension] (StateT ExtMap Ghc)
-type ExtDomain dom   = (HasNameInfo dom)
+addEvidence' :: (Ord k, HasRange a) =>
+                 k -> a -> SMap.Map k [Occurence SrcSpan] -> SMap.Map k [Occurence SrcSpan]
+addEvidence' key node = SMap.insertWith (++) key [Evidence (getRange node)]
 
-type CheckNode  elem     = forall dom . CheckNode' elem dom
-type CheckNode' elem dom = ExtDomain dom => elem dom -> ExtMonad (elem dom)
+addEvidence_ :: (MonadState ExtMap m, HasRange node) =>
+                 Extension -> node -> m ()
+addEvidence_ extension element = modify $ addEvidence' (lVar extension) element
 
-type CheckUNode  uelem     = forall dom . CheckUNode' uelem dom
-type CheckUNode' uelem dom = ExtDomain dom => Ann uelem dom SrcTemplateStage -> ExtMonad (Ann uelem dom SrcTemplateStage)
+addEvidence :: (MonadState ExtMap m, HasRange node) =>
+                Extension -> node -> m node
+addEvidence ext node = addEvidence_ ext node >> return node
 
-addOccurence' :: (Ord k, HasRange a) =>
-                 k -> a -> SMap.Map k [SrcSpan] -> SMap.Map k [SrcSpan]
-addOccurence' key node = SMap.insertWith (++) key [getRange node]
+addRelation_ :: (MonadState ExtMap m, HasRange node) =>
+                 LogicalRelation Extension -> node -> m ()
+addRelation_ rel element = modify $ addEvidence' rel element
 
--- TODO: add isTurnedOn check
-addOccurence_ :: (MonadState ExtMap m, HasRange node) =>
-                  Extension -> node -> m ()
-addOccurence_ extension element = modify $ addOccurence' (LVar extension) element
+addRelation :: (MonadState ExtMap m, HasRange node) =>
+                LogicalRelation Extension -> node -> m node
+addRelation rel node = addRelation_ rel node >> return node
 
-addOccurence :: (MonadState ExtMap m, HasRange node) =>
-                 Extension -> node -> m node
-addOccurence ext node = addOccurence_ ext node >> return node
+
+addEvidenceLoc' :: Ord k => k -> SrcSpan -> SMap.Map k [Occurence SrcSpan] -> SMap.Map k [Occurence SrcSpan]
+addEvidenceLoc' k loc = SMap.insertWith (++) k [Evidence loc]
+
+addEvidenceLoc :: MonadState ExtMap m => Extension -> SrcSpan -> m ()
+addEvidenceLoc ext loc = modify $ addEvidenceLoc' (lVar ext) loc
+
+addRelationLoc :: MonadState ExtMap m => LogicalRelation Extension -> SrcSpan -> m ()
+addRelationLoc rel loc = modify $ addEvidenceLoc' rel loc
 
 isTurnedOn :: Extension -> ExtMonad Bool
 isTurnedOn ext = do
   defaults <- ask
   return $! ext `elem` defaults
+
+isTurnedOff :: Extension -> ExtMonad Bool
+isTurnedOff ext = not <$> isTurnedOn ext
 
 conditional :: (node -> ExtMonad node) ->
                Extension ->
@@ -82,8 +140,7 @@ conditionalAny checker exts node = do
   if or bs then checker node else return node
 
 conditionalAdd :: HasRange node => Extension -> node -> ExtMonad node
-conditionalAdd ext = conditional (addOccurence ext) ext
-
+conditionalAdd ext = conditional (addEvidence ext) ext
 
 runExtMonadIO :: ExtMonad a -> IO a
 runExtMonadIO = runGhc (Just libdir) . runExtMonadGHC
