@@ -14,9 +14,9 @@ definedModule = LocationQuery "DefinedInfo" definedInfo
 
 --Returns the result of defMods wrapped by JSON and QueryMonad.
 
-definedInfo :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad Value
+definedInfo :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad QueryValue
 definedInfo _ mod _
-  = return $ toJSON $ defMods mod
+  = return $ GeneralQuery $ toJSON $ defMods mod
 
 --Returns the appearances of unique GHC.Names
 --Paramteres:

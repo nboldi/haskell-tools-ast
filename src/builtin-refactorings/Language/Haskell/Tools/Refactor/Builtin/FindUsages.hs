@@ -17,12 +17,12 @@ getUsagesQuery = LocationQuery "GetUsages" getUsages
 --Finds the QualifiedName in the selected range.
 --Collect the QualifiedNames in moduls and separate them by moduls.
 --Returns the position of usages of the QualifiedName in QueryMonad JSON Value.
-getUsages :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad Value
+getUsages :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad QueryValue
 getUsages sp modul@(_,mod) mods
   = case selectedName of [n] -> do ctors <- getName n
                                    if separateMods qualifiedNames ctors == []
                                         then queryError "No usages found"
-                                        else return $ toJSON $ nub $ map wrapOutSource (separateMods qualifiedNames ctors)
+                                        else return $ GeneralQuery $ toJSON $ nub $ map wrapOutSource (separateMods qualifiedNames ctors)
                          []  -> queryError "No name is selected."
                          _   -> queryError "Multiple names are selected."
   where

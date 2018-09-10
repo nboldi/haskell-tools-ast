@@ -16,10 +16,10 @@ getScope = LocationQuery "GetScope" scope
 
 --Gets the closest Expr to the given position and returns the scope
 --of it in QueryMonad Value
-scope :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad Value
+scope :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad QueryValue
 scope sp (_,mod) _
   = case selectedExpr of (_:_)-> if result == [] then queryError "Empty scope"
-                                 else return $ toJSON $ scopeToString $ semanticsScope $ head result
+                                 else return $ GeneralQuery $ toJSON $ scopeToString $ semanticsScope $ head result
                          _  -> queryError "No name is selected."
   where
     selectedExpr :: [Expr]

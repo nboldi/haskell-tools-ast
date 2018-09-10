@@ -17,9 +17,9 @@ defined :: QueryChoice
 defined = LocationQuery "DefinedHere" definedHere
 
 --Returns the result of defMods wrapped to QueryMonad Value
-definedHere :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad Value
+definedHere :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad QueryValue
 definedHere _ mod mods
-  = return $ toJSON $ defMods (mod : mods)
+  = return $ GeneralQuery $ toJSON $ defMods (mod : mods)
 
 --Returns list of definitions in the moduls.
 --The returned value is [(filename,[(qualifiedName, short name, line of definition)])]

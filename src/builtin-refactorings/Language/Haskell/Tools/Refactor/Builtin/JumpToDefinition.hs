@@ -23,13 +23,13 @@ getDefinitionQuery = LocationQuery "JumpToDefinition" getDefinition
 --Collect the QualifiedName in moduls.
 --Returns the filename and the line in which the definition of the QualifiedName in the given sourcerange.
 --The returning is wrapped to JSON Value
-getDefinition :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad Value
+getDefinition :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad QueryValue
 getDefinition sp (_,mod) mods
   = case selectedName of [n] -> do ctors <- getName n
                                    source <- evalStateT (findName qualifiedNames ctors) n
                                    fileName <- getFileName source
                                    line <- getLineDefinition source
-                                   return $ toJSON (fileName, line)
+                                   return $ GeneralQuery $ toJSON (fileName, line)
                          []  -> queryError "No name is selected."
                          _   -> queryError "Multiple names are selected."
   where

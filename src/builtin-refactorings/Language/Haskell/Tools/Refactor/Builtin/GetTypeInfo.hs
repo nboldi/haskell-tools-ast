@@ -21,10 +21,10 @@ getTypeInfo = LocationQuery "GetType" getType
 --Indentifies the QualifiedName in the selected position.
 --Then returns the type, the fixity information and the comments from it
 --wrapped to QueryMonad.
-getType :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad Value
+getType :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad QueryValue
 getType sp modul@(_,mod) mods
   = case selectedName of [n] -> do name <- getName n
-                                   return $ toJSON $ result n name (modul:mods)
+                                   return $ GeneralQuery $ toJSON $ result n name (modul:mods)
                          []  -> queryError "No name is selected."
                          _   -> queryError "Multiple names are selected."
   where
