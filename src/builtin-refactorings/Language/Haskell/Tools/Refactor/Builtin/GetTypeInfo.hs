@@ -3,7 +3,6 @@ module Language.Haskell.Tools.Refactor.Builtin.GetTypeInfo where
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.Builtin.JumpToDefinition(getName,isfoundedName)
 import Language.Haskell.Tools.Refactor.Builtin.FindUsages(getRealSp,isProperName)
-import Language.Haskell.Tools.PrettyPrint.Prepare
 import Language.Haskell.Tools.AST.Ann
 import BasicTypes
 import Control.Reference

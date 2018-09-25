@@ -1,14 +1,11 @@
 module Language.Haskell.Tools.Refactor.Builtin.DefinedInThis where
 import Language.Haskell.Tools.Refactor
 import Language.Haskell.Tools.Refactor.Builtin.FindUsages(getFile,getLineUsage)
-import Language.Haskell.Tools.AST.SemaInfoTypes
-import Language.Haskell.Tools.PrettyPrint
 import OccName
 import Control.Reference
 import Outputable
 import Data.List
 import Data.Aeson
-import FastString
 import qualified Name as GHC (Name,nameOccName)
 import SrcLoc as GHC
 

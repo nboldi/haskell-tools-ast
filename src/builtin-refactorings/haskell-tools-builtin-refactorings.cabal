@@ -57,7 +57,7 @@ extra-source-files: examples/CPP/*.hs
                   , test/ExtensionOrganizerTest/ParallelListCompTest/*.hs
                   , test/ExtensionOrganizerTest/PatternSynonymsTest/*.hs
                   , test/ExtensionOrganizerTest/RecordWildCardsTest/*.hs
-                  , test/ExtensionOrganizerTest/RecursiveDoTest/*.hsf
+                  , test/ExtensionOrganizerTest/RecursiveDoTest/*.hs
                   , test/ExtensionOrganizerTest/TemplateHaskellTest/*.hs
                   , test/ExtensionOrganizerTest/TupleSectionsTest/*.hs
                   , test/ExtensionOrganizerTest/TypeFamiliesTest/*.hs

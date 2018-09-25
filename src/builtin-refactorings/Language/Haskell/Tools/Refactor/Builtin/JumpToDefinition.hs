@@ -10,7 +10,6 @@ import FastString
 import qualified Name as GHC (Name)
 import Control.Monad.State
 import SrcLoc as GHC
-import Debug.Trace (trace)
 
 type SrcMonad = StateT QualifiedName QueryMonad SrcSpan
 
