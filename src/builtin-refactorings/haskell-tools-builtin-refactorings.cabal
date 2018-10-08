@@ -70,18 +70,19 @@ library
   exposed-modules:     Language.Haskell.Tools.Refactor.Builtin
                      , Language.Haskell.Tools.Refactor.Builtin.AutoCorrect
                      , Language.Haskell.Tools.Refactor.Builtin.GenerateTypeSignature
-                     , Language.Haskell.Tools.Refactor.Builtin.DefinedInThis
-                     , Language.Haskell.Tools.Refactor.Builtin.DefinedModuleInfos
                      , Language.Haskell.Tools.Refactor.Builtin.OrganizeImports
                      , Language.Haskell.Tools.Refactor.Builtin.GenerateExports
                      , Language.Haskell.Tools.Refactor.Builtin.RenameDefinition
                      , Language.Haskell.Tools.Refactor.Builtin.ExtractBinding
                      , Language.Haskell.Tools.Refactor.Builtin.InlineBinding
-                     , Language.Haskell.Tools.Refactor.Builtin.JumpToDefinition
                      , Language.Haskell.Tools.Refactor.Builtin.FloatOut
-                     , Language.Haskell.Tools.Refactor.Builtin.FindUsages
                      , Language.Haskell.Tools.Refactor.Builtin.GetMatches
+                     , Language.Haskell.Tools.Refactor.Builtin.DefinedInThis
+                     , Language.Haskell.Tools.Refactor.Builtin.DefinedModuleInfos
+                     , Language.Haskell.Tools.Refactor.Builtin.FindUsages
                      , Language.Haskell.Tools.Refactor.Builtin.GetTypeInfo
+                     , Language.Haskell.Tools.Refactor.Builtin.JumpToDefinition
+                     , Language.Haskell.Tools.Refactor.Builtin.Scope
                      , Language.Haskell.Tools.Refactor.Builtin.OrganizeExtensions
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMap
@@ -90,7 +91,7 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.TraverseAST
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Instances.Checkable
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Instances.AppSelector
-                     , Language.Haskell.Tools.Refactor.Builtin.Scope
+
 
   other-modules:       Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.ArrowsChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.BangPatternsChecker
@@ -121,7 +122,6 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.TypeOperatorsChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.TypeSynonymInstancesChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.UnboxedTuplesChecker
-                     , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.ViewPatternsChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.UndecidableInstancesChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.ViewPatternsChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Utils.GHCHelpers
@@ -156,7 +156,6 @@ test-suite haskell-tools-builtin-refactorings-test
   ghc-options:         -with-rtsopts=-M2g
   hs-source-dirs:      test
   main-is:             Main.hs
-
   build-depends:       base                      >= 4.11 && < 4.12
                      , tasty                     >= 0.11 && < 1.2
                      , tasty-hunit               >= 0.9  && < 0.11
@@ -187,10 +186,9 @@ test-suite ht-extension-organizer-test
   type:                exitcode-stdio-1.0
   ghc-options:         -with-rtsopts=-M2g
   other-modules:       ExtensionOrganizerTest.AnnotationParser
-                     , ExtensionOrganizerTest.Parserf
+                     , ExtensionOrganizerTest.Parser
   hs-source-dirs:      test
   main-is:             ExtensionOrganizerTest/Main.hs
-
   build-depends:       base                      >= 4.11 && < 4.12
                      , tasty                     >= 0.11 && < 1.2
                      , tasty-hunit               >= 0.9  && < 0.11
@@ -224,7 +222,6 @@ test-suite ht-extension-organizer-test
 --                      , ExtensionOrganizerBenchmark.UniPlateTraversal
 --   hs-source-dirs:      benchmark
 --   main-is:             ExtensionOrganizerBenchmark/Main.hs
-
 --   build-depends:       base                      >= 4.11 && < 4.12
 --                      , criterion                 >= 1.2  && < 1.6
 --                      , silently                  >= 1.2  && < 1.3

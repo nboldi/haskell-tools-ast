@@ -1,6 +1,5 @@
 {-# LANGUAGE MonoLocalBinds #-}
 
-
 module Language.Haskell.Tools.Refactor.Builtin ( builtinRefactorings, builtinQueries ) where
 
 import Language.Haskell.Tools.Refactor (RefactoringChoice, QueryChoice)
@@ -21,7 +20,6 @@ import Language.Haskell.Tools.Refactor.Builtin.DefinedInThis
 import Language.Haskell.Tools.Refactor.Builtin.DefinedModuleInfos
 import Language.Haskell.Tools.Refactor.Builtin.Scope
 
-
 builtinRefactorings :: [RefactoringChoice]
 builtinRefactorings
   = [ organizeImportsRefactoring
@@ -39,4 +37,3 @@ builtinRefactorings
 
 builtinQueries :: [QueryChoice]
 builtinQueries = [ getMatchesQuery, highlightExtensionsQuery, getUsagesQuery , getTypeInfo, getDefinitionQuery, defined, definedModule, getScope]
-
