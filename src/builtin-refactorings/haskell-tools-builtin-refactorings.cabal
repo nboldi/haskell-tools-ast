@@ -85,6 +85,8 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.TraverseAST
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Instances.Checkable
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Instances.AppSelector
+                     , Language.Haskell.Tools.Refactor.Builtin.MoveForward
+                     , Language.Haskell.Tools.Refactor.Builtin.CloneDetection
 
   other-modules:       Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.ArrowsChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.BangPatternsChecker
@@ -117,8 +119,10 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.UnboxedTuplesChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.UndecidableInstancesChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.ViewPatternsChecker
+                     , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Utils.Debug
+                     , Language.Haskell.Tools.Refactor.Builtin.CloneDetection.TransformInstances
+                     , Language.Haskell.Tools.Refactor.Builtin.CloneDetection.Transform
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Utils.GHCHelpers
-
 
   build-depends:       base                      >= 4.11  && < 4.12
                      , mtl                       >= 2.2  && < 2.3
@@ -135,6 +139,11 @@ library
                      , filepath                  >= 1.4  && < 1.5
                      , template-haskell          >= 2.13 && < 2.14
                      , minisat-solver            >= 0.1  && < 0.2
+                     , hashable                  >= 1.2  && < 1.3
+                     , containers                >= 0.5  && < 0.6
+                     , matrix                    >= 0.3  && < 0.4
+                     , vector                    >= 0.11 && < 0.13
+                     , listsafe                  >= 0.1  && < 0.2
                      , ghc                       >= 8.4  && < 8.5
                      , portable-lines            >= 0.1  && < 0.2                     , Cabal                     >= 2.0  && < 2.3
                      , haskell-tools-ast         >= 1.1  && < 1.2

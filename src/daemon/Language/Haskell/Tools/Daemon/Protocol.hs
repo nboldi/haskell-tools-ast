@@ -108,6 +108,8 @@ data ResponseMsg
   deriving (Show, Generic)
 
 instance ToJSON ResponseMsg
+instance ToJSON Marker
+instance ToJSON Severity
 
 data UndoRefactor = RemoveAdded { undoRemovePath :: FilePath }
                   | RestoreRemoved { undoRestorePath :: FilePath

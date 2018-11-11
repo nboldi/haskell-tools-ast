@@ -15,16 +15,16 @@ import Language.Haskell.Tools.AST
 
 -- Annotations
 instance (TreeDebug e dom st, ShowSrcInfo st) => TreeDebug (Ann e) dom st where
-  treeDebug' i (Ann a e) = identLine i ++ show (a ^. sourceInfo) ++ " " ++ take 40 (show e) ++ "..." ++ treeDebug' (i+1) e
+  treeDebug' i (Ann a e) = indentLine i ++ show (a ^. sourceInfo) ++ " " ++ take 40 (show e) ++ "..." ++ treeDebug' (i+1) e
 
-identLine :: Int -> String
-identLine i = "\n" ++ replicate (i*2) ' '
+indentLine :: Int -> String
+indentLine i = "\n" ++ replicate (i*2) ' '
 
 instance (TreeDebug e dom st, ShowSrcInfo st) => TreeDebug (AnnListG e) dom st where
-  treeDebug' i (AnnListG a ls) = identLine i ++ show (a ^. sourceInfo) ++ " <*>" ++ concatMap (treeDebug' (i + 1)) ls
+  treeDebug' i (AnnListG a ls) = indentLine i ++ show (a ^. sourceInfo) ++ " <*>" ++ concatMap (treeDebug' (i + 1)) ls
 
 instance (TreeDebug e dom st, ShowSrcInfo st) => TreeDebug (AnnMaybeG e) dom st where
-  treeDebug' i (AnnMaybeG a e) = identLine i ++ show (a ^. sourceInfo) ++ " <?>" ++ maybe "" (\e -> treeDebug' (i + 1) e) e
+  treeDebug' i (AnnMaybeG a e) = indentLine i ++ show (a ^. sourceInfo) ++ " <?>" ++ maybe "" (treeDebug' (i + 1)) e
 
 -- Modules
 instance (ShowSrcInfo st, Domain dom) => TreeDebug UModule dom st

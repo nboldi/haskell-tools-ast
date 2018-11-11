@@ -17,20 +17,29 @@ import Language.Haskell.Tools.AST (shortShowSpanWithFile)
 import Language.Haskell.Tools.Refactor.Prepare (correctRefactorSpan, readSrcSpan)
 import Language.Haskell.Tools.Refactor.Representation (ModuleDom)
 
+data QueryChoice = LocationQuery
+                     { queryName :: String
+                     , locationQuery :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad Value
+                     }
+                 | ProjectQuery
+                     { queryName :: String
+                     , projectQuery :: [ModuleDom] -> QueryMonad Value
+                     }
+                 | ProjectQueryReadable
+                     { queryName :: String
+                     , projectQueryReadable :: [ModuleDom] -> QueryMonad Value
+                     }
+                | GlobalQuery
+                     { queryName   :: String
+                     , globalQuery :: ModuleDom -> [ModuleDom] -> QueryMonad QueryValue
+                     }
+
 type QueryType = String
 type QueryMonad = ExceptT String Ghc
 
 data QueryValue = GeneralQuery Value
                 | MarkerQuery  [Marker]
   deriving (Generic, Show, Eq)
-
-data QueryChoice
-  = LocationQuery { queryName     :: String
-                  , locationQuery :: RealSrcSpan -> ModuleDom -> [ModuleDom] -> QueryMonad QueryValue
-                  }
-  | GlobalQuery   { queryName   :: String
-                  , globalQuery :: ModuleDom -> [ModuleDom] -> QueryMonad QueryValue
-                  }
 
 data Marker = Marker { location :: SrcSpan
                      , severity :: Severity
@@ -61,6 +70,14 @@ performQuery queries (name:args) modOrPath mods =
       -> runExceptT $ decompQuery <$> query (correctRefactorSpan (snd mod) $ readSrcSpan sp) mod mods
     (Just (LocationQuery _ _), _, _)
       -> return $ Left $ "The query '" ++ name ++ "' needs one argument: a source range"
+    (Just (ProjectQuery _ query), Right mod, _)
+      -> runExceptT $ query (mod:mods)
+    (Just (ProjectQuery _ query), Left _, _)
+          -> runExceptT $ query mods
+    (Just (ProjectQueryReadable _ query), Right mod, _)
+          -> runExceptT $ query (mod:mods)
+    (Just (ProjectQueryReadable _ query), Left _, _)
+          -> runExceptT $ query mods
     (Just (GlobalQuery _ query), Right mod, _)
       -> runExceptT $ decompQuery <$> query mod mods
     (Nothing, _, _)
@@ -71,16 +88,6 @@ performQuery queries (name:args) modOrPath mods =
 instance ToJSON Marker
 instance ToJSON Severity
 instance ToJSON QueryValue
-
-instance ToJSON SrcSpan where
-  toJSON (RealSrcSpan sp) = object [ "file" .= unpackFS (srcSpanFile sp)
-                                   , "startRow" .= srcLocLine (realSrcSpanStart sp)
-                                   , "startCol" .= srcLocCol (realSrcSpanStart sp)
-                                   , "endRow" .= srcLocLine (realSrcSpanEnd sp)
-                                   , "endCol" .= srcLocCol (realSrcSpanEnd sp)
-                                   ]
-  toJSON _ = Null
-
 
 instance Show Marker where
   show marker = show (severity marker) ++ " at " ++ shortShowSpanWithFile (location marker) ++ ": " ++ message marker

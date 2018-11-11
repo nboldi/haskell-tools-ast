@@ -52,6 +52,8 @@ main = defaultMain $ testGroup "refactor tests"
                            ++ map makeWrongFloatOutTest wrongFloatOutTests
                            ++ map (makeMultiModuleTest checkMultiResults) multiModuleTests
                            ++ map (makeMultiModuleTest checkMultiFail) wrongMultiModuleTests
+                           ++ map makeMoveForwardTest moveForwardTests
+                           ++ map makeMoveForwardNegativeTest moveForwardNegativeTests
 
 rootDir = "examples"
 
@@ -300,6 +302,16 @@ autoCorrectTests =
   , ("Refactor.AutoCorrect.TupleSectionReOrder", "4:5-4:15")
   ]
 
+moveForwardTests =
+  [ ("Refactor.MoveForward.TopLevel.OneDefinitionMoveFirstParam", "4:3-4:4")
+  , ("Refactor.MoveForward.TopLevel.OneDefinitionMoveLastParam", "4:9-4:10")
+  , ("Refactor.MoveForward.TopLevel.MultipleDefinitionSwapParams", "4:3-4:4")
+  ]
+
+moveForwardNegativeTests =
+   [ ("Refactor.MoveForward.TopLevel.IllegalPosition", "4:7-4:8")
+   ]
+
 makeMultiModuleTest :: ((String, String, String, [String]) -> Either String [(String, Maybe String)] -> IO ())
                          -> (String, String, String, [String]) -> TestTree
 makeMultiModuleTest checker test@(refact, mod, root, _)
@@ -377,6 +389,11 @@ makeWrongFloatOutTest (mod, rng) = createFailTest "FloatOut" [rng] mod
 makeAutoCorrectTest :: (String, String) -> TestTree
 makeAutoCorrectTest (mod, rng) = createResilientTest "AutoCorrect" [rng] mod
 
+makeMoveForwardTest :: (String, String) -> TestTree
+makeMoveForwardTest (mod, rng) = createTest "MoveForward" [rng] mod
+
+makeMoveForwardNegativeTest :: (String, String) -> TestTree
+makeMoveForwardNegativeTest (mod, rng) = createFailTest "MoveForward" [rng] mod
 
 checkCorrectlyTransformed :: Bool -> String -> String -> String -> IO ()
 checkCorrectlyTransformed suppressErrors command workingDir moduleName

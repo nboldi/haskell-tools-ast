@@ -52,5 +52,6 @@ library
                      , mtl              >= 2.2  && < 2.3
                      , template-haskell >= 2.13 && < 2.14
                      , classyplate      >= 0.3 && < 0.4
-                     , pretty      >= 1.1 && < 1.2
+                     , pretty           >= 1.1 && < 1.2
+                     , aeson            >= 1.0 && < 1.4
   default-language:    Haskell2010
