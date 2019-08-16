@@ -13,6 +13,12 @@ import Language.Haskell.Tools.Refactor.Builtin.OrganizeImports (organizeImportsR
 import Language.Haskell.Tools.Refactor.Builtin.RenameDefinition (renameDefinitionRefactoring)
 import Language.Haskell.Tools.Refactor.Builtin.GetMatches (getMatchesQuery)
 import Language.Haskell.Tools.Refactor.Builtin.AutoCorrect
+import Language.Haskell.Tools.Refactor.Builtin.FindUsages
+import Language.Haskell.Tools.Refactor.Builtin.GetTypeInfo
+import Language.Haskell.Tools.Refactor.Builtin.JumpToDefinition
+import Language.Haskell.Tools.Refactor.Builtin.DefinedInThis
+import Language.Haskell.Tools.Refactor.Builtin.DefinedModuleInfos
+import Language.Haskell.Tools.Refactor.Builtin.Scope
 
 builtinRefactorings :: [RefactoringChoice]
 builtinRefactorings
@@ -30,4 +36,4 @@ builtinRefactorings
     ]
 
 builtinQueries :: [QueryChoice]
-builtinQueries = [ getMatchesQuery, highlightExtensionsQuery ]
+builtinQueries = [ getMatchesQuery, highlightExtensionsQuery, getUsagesQuery , getTypeInfo, getDefinitionQuery, defined, definedModule, getScope]

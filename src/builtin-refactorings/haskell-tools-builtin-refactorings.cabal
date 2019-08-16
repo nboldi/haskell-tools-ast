@@ -77,6 +77,12 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.InlineBinding
                      , Language.Haskell.Tools.Refactor.Builtin.FloatOut
                      , Language.Haskell.Tools.Refactor.Builtin.GetMatches
+                     , Language.Haskell.Tools.Refactor.Builtin.DefinedInThis
+                     , Language.Haskell.Tools.Refactor.Builtin.DefinedModuleInfos
+                     , Language.Haskell.Tools.Refactor.Builtin.FindUsages
+                     , Language.Haskell.Tools.Refactor.Builtin.GetTypeInfo
+                     , Language.Haskell.Tools.Refactor.Builtin.JumpToDefinition
+                     , Language.Haskell.Tools.Refactor.Builtin.Scope
                      , Language.Haskell.Tools.Refactor.Builtin.OrganizeExtensions
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.ExtMap
@@ -85,6 +91,7 @@ library
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.TraverseAST
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Instances.Checkable
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Instances.AppSelector
+
 
   other-modules:       Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.ArrowsChecker
                      , Language.Haskell.Tools.Refactor.Builtin.ExtensionOrganizer.Checkers.BangPatternsChecker
